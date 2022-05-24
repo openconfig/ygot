@@ -308,6 +308,8 @@ type yangEnum struct {
 	entry *yang.Entry
 	// kind indicates the type of the enumeration.
 	kind EnumeratedValueType
+	// id is a unique synthesized key for the enumerated type.
+	id string
 }
 
 // GeneratedGoCode contains generated code snippets that can be processed by the calling
