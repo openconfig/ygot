@@ -76,7 +76,7 @@ type MappedUnionSubtype struct {
 	// EnumeratedYANGTypeKey stores a globally-unique key that can be
 	// used to key into IR's EnumeratedYANGTypes map containing all of the
 	// enumeration definitions. This value should only be populated when
-	// the union subtype is an enumerated type
+	// the union subtype is an enumerated type.
 	//EnumeratedYANGTypeKey string
 }
 
