@@ -4792,7 +4792,7 @@ func TestFindEnumSet(t *testing.T) {
 						wantEnumSet = &modEnumSet
 					}
 					t.Run(fmt.Sprintf("%s findEnumSet(compress:%v,skipEnumDedup:%v,useDefiningModuleForTypedefEnumNames:%v,enumOrgPrefixesToTrim:%v,appendEnumSuffixForSimpleUnionEnums:%v)", tt.name, compressed, tt.inSkipEnumDeduplication, useDefiningModuleForTypedefEnumNames, tt.inEnumOrgPrefixesToTrim, appendEnumSuffixForSimpleUnionEnums), func(t *testing.T) {
-						gotEnumSet, gotEntries, errs := findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication, tt.inShortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums, true, tt.inEnumOrgPrefixesToTrim)
+						gotEnumSet, gotEntries, errs := findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication, tt.inShortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums, tt.inEnumOrgPrefixesToTrim)
 						wantErrSubstr := tt.wantErrSubstr
 						if !compressed && tt.wantUncompressFailDueToClash {
 							wantErrSubstr = "clash in enumerated name occurred despite paths being uncompressed"

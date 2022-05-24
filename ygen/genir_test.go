@@ -1490,7 +1490,7 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/model/a/single-key/state/leaf-default-override",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "cyclone-scales"},
+								Type:              &YANGType{Name: "union"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -1701,16 +1701,8 @@ func TestGenerateIR(t *testing.T) {
 			},
 			Enums: map[string]*EnumeratedYANGType{
 				"Complex_CycloneScales_Enum": {
-					Name: "Complex_CycloneScales_Enum",
-					Kind: DerivedUnionEnumerationType,
-					ValuePrefix: []string{
-						"openconfig-complex",
-						"model",
-						"a",
-						"single-key",
-						"config",
-						"leaf-default-override",
-					},
+					Name:     "Complex_CycloneScales_Enum",
+					Kind:     DerivedUnionEnumerationType,
 					TypeName: "cyclone-scales",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{
@@ -1732,17 +1724,9 @@ func TestGenerateIR(t *testing.T) {
 					},
 				},
 				"Complex_WeekendDays": {
-					Name: "Complex_WeekendDays",
-					Kind: DerivedEnumerationType,
-					ValuePrefix: []string{
-						"openconfig-complex",
-						"model",
-						"a",
-						"single-key",
-						"config",
-						"key",
-					},
-					TypeName: "days-of-week",
+					Name:     "Complex_WeekendDays",
+					Kind:     DerivedEnumerationType,
+					TypeName: "weekend-days",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{
 							Name:           "SATURDAY",
@@ -1755,16 +1739,8 @@ func TestGenerateIR(t *testing.T) {
 					},
 				},
 				"SingleKey_SimpleUnionEnum_Enum": {
-					Name: "SingleKey_SimpleUnionEnum_Enum",
-					Kind: UnionEnumerationType,
-					ValuePrefix: []string{
-						"openconfig-complex",
-						"model",
-						"a",
-						"single-key",
-						"config",
-						"simple-union-enum",
-					},
+					Name:     "SingleKey_SimpleUnionEnum_Enum",
+					Kind:     UnionEnumerationType,
 					TypeName: "union",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{
@@ -1782,16 +1758,8 @@ func TestGenerateIR(t *testing.T) {
 					},
 				},
 				"SingleKey_SingletonUnionEnum_Enum": {
-					Name: "SingleKey_SingletonUnionEnum_Enum",
-					Kind: UnionEnumerationType,
-					ValuePrefix: []string{
-						"openconfig-complex",
-						"model",
-						"a",
-						"single-key",
-						"config",
-						"singleton-union-enum",
-					},
+					Name:     "SingleKey_SingletonUnionEnum_Enum",
+					Kind:     UnionEnumerationType,
 					TypeName: "union",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{

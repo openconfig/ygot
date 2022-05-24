@@ -1392,10 +1392,9 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 							UseDefiningModuleForTypedefEnumNames: true,
 							EnumOrgPrefixesToTrim:                nil,
 						},
-						NestedDirectories:                    false,
-						AbsoluteMapPaths:                     false,
-						AppendEnumSuffixForSimpleUnionEnums:  true,
-						UseConsistentNamesForProtoUnionEnums: false,
+						NestedDirectories:                   false,
+						AbsoluteMapPaths:                    false,
+						AppendEnumSuffixForSimpleUnionEnums: true,
 					})
 				case protobuf:
 					got, errs = buildDirectoryDefinitions(protogen, structs, IROptions{
@@ -1409,10 +1408,9 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 							UseDefiningModuleForTypedefEnumNames: true,
 							EnumOrgPrefixesToTrim:                nil,
 						},
-						NestedDirectories:                    true,
-						AbsoluteMapPaths:                     true,
-						AppendEnumSuffixForSimpleUnionEnums:  true,
-						UseConsistentNamesForProtoUnionEnums: true,
+						NestedDirectories:                   true,
+						AbsoluteMapPaths:                    true,
+						AppendEnumSuffixForSimpleUnionEnums: true,
 					})
 				}
 				if errs != nil {
@@ -2271,7 +2269,7 @@ func TestBuildListKey(t *testing.T) {
 			}
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.in, enumMap)
-			enumSet, _, errs := findEnumSet(enumMap, tt.inCompress, false, tt.inSkipEnumDedup, true, true, true, true, nil)
+			enumSet, _, errs := findEnumSet(enumMap, tt.inCompress, false, tt.inSkipEnumDedup, true, true, true, nil)
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)
@@ -2299,10 +2297,9 @@ func TestBuildListKey(t *testing.T) {
 					EnumOrgPrefixesToTrim:                nil,
 					EnumerationsUseUnderscores:           true,
 				},
-				NestedDirectories:                    false,
-				AbsoluteMapPaths:                     false,
-				AppendEnumSuffixForSimpleUnionEnums:  true,
-				UseConsistentNamesForProtoUnionEnums: false,
+				NestedDirectories:                   false,
+				AbsoluteMapPaths:                    false,
+				AppendEnumSuffixForSimpleUnionEnums: true,
 			})
 			if err != nil && !tt.wantErr {
 				t.Errorf("%s: could not build list key successfully %v", tt.name, err)

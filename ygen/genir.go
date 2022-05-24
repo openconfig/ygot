@@ -53,12 +53,6 @@ type IROptions struct {
 	// to true.
 	// NOTE: This flag will be removed by v1 release.
 	AppendEnumSuffixForSimpleUnionEnums bool
-
-	// UseConsistentNamesForProtoUnionEnums, when set, avoids using the schema
-	// path as the name of enumerations under unions in generated proto
-	// code, and also appends a suffix to non-typedef union enums.
-	// NOTE: This flag will be removed by v1 release.
-	UseConsistentNamesForProtoUnionEnums bool
 }
 
 // GenerateIR creates the ygen intermediate representation for a set of
@@ -85,7 +79,7 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 		return nil, errs
 	}
 
-	enumSet, genEnums, errs := findEnumSet(mdef.enumEntries, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.AppendEnumSuffixForSimpleUnionEnums, opts.UseConsistentNamesForProtoUnionEnums, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+	enumSet, genEnums, errs := findEnumSet(mdef.enumEntries, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.AppendEnumSuffixForSimpleUnionEnums, opts.TransformationOptions.EnumOrgPrefixesToTrim)
 	if errs != nil {
 		return nil, errs
 	}
@@ -131,15 +125,6 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 		case et.Kind == UnknownEnumerationType:
 			errs = append(errs, fmt.Errorf("unknown type of enumerated value for %s, got: %v, type: %v", enum.name, enum, enum.entry.Type))
 			continue
-		}
-
-		if a, ok := enum.entry.Annotation["valuePrefix"]; ok {
-			s, ok := a.([]string)
-			if !ok {
-				errs = append(errs, fmt.Errorf("invalid annotation for valuePrefix of type %T, %v", a, a))
-				continue
-			}
-			et.ValuePrefix = s
 		}
 
 		switch {

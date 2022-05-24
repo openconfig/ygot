@@ -574,7 +574,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 			for _, e := range enumMapFromEntries(tt.inEntries) {
 				addEnumsToEnumMap(e, enumMap)
 			}
-			enumSet, _, errs := findEnumSet(enumMap, false, true, false, true, true, true, true, nil)
+			enumSet, _, errs := findEnumSet(enumMap, false, true, false, true, true, true, nil)
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)
@@ -585,7 +585,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 			s := newProtoGenState(st, enumSet)
 
 			for _, st := range tt.in {
-				gotWrapper, err := s.yangTypeToProtoType(st, rpt, true, true)
+				gotWrapper, err := s.yangTypeToProtoType(st, rpt)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("%s: yangTypeToProtoType(%v): got unexpected error, got: %v, want error: %v", tt.name, tt.in, err, tt.wantErr)
 					continue
@@ -595,7 +595,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 					t.Errorf("%s: yangTypeToProtoType(%v): did not get correct type, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 				}
 
-				gotScalar, err := s.yangTypeToProtoScalarType(st, rpt, true, true)
+				gotScalar, err := s.yangTypeToProtoScalarType(st, rpt)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("%s: yangTypeToProtoScalarType(%v, basePackage, enumPackage): got unexpected error: %v", tt.name, tt.in, err)
 				}

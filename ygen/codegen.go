@@ -280,10 +280,6 @@ type ProtoOpts struct {
 	// output for the protobuf schema. If false, a separate package
 	// is generated per package.
 	NestedMessages bool
-	// UseConsistentNamesForProtoUnionEnums, when set, avoids using the schema
-	// path as the name of enumerations under unions in generated proto
-	// code, and also appends a suffix to non-typedef union enums.
-	UseConsistentNamesForProtoUnionEnums bool
 	// GoPackageBase specifies the base of the names that are used in
 	// the go_package file option for generated protobufs. Additional
 	// package identifiers are appended to the go_package - such that
@@ -428,12 +424,11 @@ func checkForBinaryKeys(dir *ParsedDirectory) []error {
 // If errors are encountered during code generation, an error is returned.
 func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*GeneratedGoCode, util.Errors) {
 	opts := IROptions{
-		ParseOptions:                         cg.Config.ParseOptions,
-		TransformationOptions:                cg.Config.TransformationOptions,
-		NestedDirectories:                    false,
-		AbsoluteMapPaths:                     false,
-		AppendEnumSuffixForSimpleUnionEnums:  cg.Config.GoOptions.AppendEnumSuffixForSimpleUnionEnums,
-		UseConsistentNamesForProtoUnionEnums: false,
+		ParseOptions:                        cg.Config.ParseOptions,
+		TransformationOptions:               cg.Config.TransformationOptions,
+		NestedDirectories:                   false,
+		AbsoluteMapPaths:                    false,
+		AppendEnumSuffixForSimpleUnionEnums: cg.Config.GoOptions.AppendEnumSuffixForSimpleUnionEnums,
 	}
 
 	var codegenErr util.Errors
@@ -690,12 +685,11 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 	cg := &GeneratorConfig{ParseOptions: dcg.ParseOptions, TransformationOptions: dcg.TransformationOptions, GoOptions: dcg.GoOptions}
 
 	opts := IROptions{
-		ParseOptions:                         cg.ParseOptions,
-		TransformationOptions:                cg.TransformationOptions,
-		NestedDirectories:                    false,
-		AbsoluteMapPaths:                     false,
-		AppendEnumSuffixForSimpleUnionEnums:  cg.GoOptions.AppendEnumSuffixForSimpleUnionEnums,
-		UseConsistentNamesForProtoUnionEnums: false,
+		ParseOptions:                        cg.ParseOptions,
+		TransformationOptions:               cg.TransformationOptions,
+		NestedDirectories:                   false,
+		AbsoluteMapPaths:                    false,
+		AppendEnumSuffixForSimpleUnionEnums: cg.GoOptions.AppendEnumSuffixForSimpleUnionEnums,
 	}
 
 	// Extract the entities to be mapped into structs and enumerations in the output
@@ -706,7 +700,7 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 		return nil, nil, errs
 	}
 
-	enumSet, _, errs := findEnumSet(mdef.enumEntries, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.AppendEnumSuffixForSimpleUnionEnums, opts.UseConsistentNamesForProtoUnionEnums, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+	enumSet, _, errs := findEnumSet(mdef.enumEntries, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.AppendEnumSuffixForSimpleUnionEnums, opts.TransformationOptions.EnumOrgPrefixesToTrim)
 	if errs != nil {
 		return nil, nil, errs
 	}
@@ -766,19 +760,17 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		return nil, errs
 	}
 
+	// This flag is always true for proto generation.
+	cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames = true
 	opts := IROptions{
-		ParseOptions:          cg.Config.ParseOptions,
-		TransformationOptions: cg.Config.TransformationOptions,
-		NestedDirectories:     true,
-		AbsoluteMapPaths:      true,
-		// If UseConsistentNamesForProtoUnionEnums=true, then also set
-		// AppendEnumSuffixForSimpleUnionEnums=true for consistent union enum
-		// names.
-		AppendEnumSuffixForSimpleUnionEnums:  cg.Config.ProtoOptions.UseConsistentNamesForProtoUnionEnums,
-		UseConsistentNamesForProtoUnionEnums: cg.Config.ProtoOptions.UseConsistentNamesForProtoUnionEnums,
+		ParseOptions:                        cg.Config.ParseOptions,
+		TransformationOptions:               cg.Config.TransformationOptions,
+		NestedDirectories:                   true,
+		AbsoluteMapPaths:                    true,
+		AppendEnumSuffixForSimpleUnionEnums: true,
 	}
 
-	enumSet, penums, errs := findEnumSet(mdef.enumEntries, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.AppendEnumSuffixForSimpleUnionEnums, opts.UseConsistentNamesForProtoUnionEnums, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+	enumSet, penums, errs := findEnumSet(mdef.enumEntries, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.AppendEnumSuffixForSimpleUnionEnums, opts.TransformationOptions.EnumOrgPrefixesToTrim)
 	if errs != nil {
 		return nil, errs
 	}
@@ -859,7 +851,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			annotateSchemaPaths: cg.Config.ProtoOptions.AnnotateSchemaPaths,
 			annotateEnumNames:   cg.Config.ProtoOptions.AnnotateEnumNames,
 			nestedMessages:      cg.Config.ProtoOptions.NestedMessages,
-		}, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.ProtoOptions.UseConsistentNamesForProtoUnionEnums)
+		})
 
 		if errs != nil {
 			yerr = util.AppendErrs(yerr, errs)
