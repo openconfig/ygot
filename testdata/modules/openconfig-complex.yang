@@ -94,7 +94,9 @@ module openconfig-complex {
     }
 
     leaf leaf-default-override {
-      type cyclone-scales;
+      type union {
+        type cyclone-scales;
+      }
       default 3;
     }
   }

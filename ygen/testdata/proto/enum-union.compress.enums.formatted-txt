@@ -18,7 +18,7 @@ enum EnumUnionCycloneScalesEnum {
   ENUMUNIONCYCLONESCALESENUM_SUPER = 2 [(yext.yang_name) = "SUPER"];
 }
 
-// EnumUnionWeekendDays represents an enumerated type generated for the YANG enumerated type union.
+// EnumUnionWeekendDays represents an enumerated type generated for the YANG enumerated type weekend-days.
 enum EnumUnionWeekendDays {
   ENUMUNIONWEEKENDDAYS_UNSET = 0;
   ENUMUNIONWEEKENDDAYS_SATURDAY = 1 [(yext.yang_name) = "SATURDAY"];

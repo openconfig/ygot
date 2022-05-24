@@ -1475,7 +1475,7 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/model/a/single-key/config/leaf-default-override",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "cyclone-scales"},
+								Type:              &YANGType{Name: "union"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -1705,7 +1705,7 @@ func TestGenerateIR(t *testing.T) {
 				"Complex_WeekendDays": {
 					Name:     "Complex_WeekendDays",
 					Kind:     DerivedEnumerationType,
-					TypeName: "days-of-week",
+					TypeName: "weekend-days",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{
 							Name:           "SATURDAY",
