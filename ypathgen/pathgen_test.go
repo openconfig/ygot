@@ -1552,7 +1552,14 @@ func getIR() *ygen.IR {
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
 							NativeType: "RootElementModule_List_UnionKey_Union",
-							UnionTypes: map[string]int{"string": 0, "Binary": 1},
+							UnionTypes: map[string]ygen.MappedUnionSubtype{
+								"string": {
+									Index: 0,
+								},
+								"Binary": {
+									Index: 1,
+								},
+							},
 						},
 						MappedPaths:             [][]string{{"union-key"}},
 						MappedPathModules:       [][]string{{"root-module"}},
@@ -1578,8 +1585,15 @@ func getIR() *ygen.IR {
 						Name: "UnionKey",
 						LangType: &ygen.MappedType{
 							NativeType: "RootElementModule_List_UnionKey_Union",
-							UnionTypes: map[string]int{"string": 0, "Binary": 1},
-							ZeroValue:  "nil",
+							UnionTypes: map[string]ygen.MappedUnionSubtype{
+								"string": {
+									Index: 0,
+								},
+								"Binary": {
+									Index: 1,
+								},
+							},
+							ZeroValue: "nil",
 						},
 					},
 				},
@@ -3162,7 +3176,17 @@ func TestMakeKeyParams(t *testing.T) {
 				Name: "Tennessine",
 				LangType: &ygen.MappedType{
 					NativeType: "Ununseptium",
-					UnionTypes: map[string]int{"int32": 1, "float64": 2, "interface{}": 3},
+					UnionTypes: map[string]ygen.MappedUnionSubtype{
+						"int32": {
+							Index: 1,
+						},
+						"float64": {
+							Index: 2,
+						},
+						"interface{}": {
+							Index: 3,
+						},
+					},
 				},
 			},
 		},
