@@ -168,19 +168,23 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 }
 
 // identityrefBaseTypeFromLeaf retrieves the mapped name of an identityref's
-// base such that it can be used in generated code. The value that is returned
-// is defining module name followed by the CamelCase-ified version of the
-// base's name. This function wraps the identityrefBaseTypeFromIdentity
-// function since it covers the common case that the caller is interested in
-// determining the name from an identityref leaf, rather than directly from the
-// identity.
+// base such that it can be used in generated code. The first value returned is
+// the defining module name followed by the CamelCase-ified version of the
+// base's name. The second value returned is a string key that uniquely
+// identifies this enumerated value among all possible enumerated values in the
+// input set of YANG files.
+// This function wraps the identityrefBaseTypeFromIdentity function since it
+// covers the common case that the caller is interested in determining the name
+// from an identityref leaf, rather than directly from the identity.
 func (s *enumSet) identityrefBaseTypeFromLeaf(idr *yang.Entry) (string, string, error) {
 	return s.identityrefBaseTypeFromIdentity(idr.Type.IdentityBase)
 }
 
 // identityrefBaseTypeFromIdentity retrieves the generated type name of the
-// input *yang.Identity. The value returned is based on the defining module
-// followed by the CamelCase-ified version of the identity's name.
+// input *yang.Identity. The first value returned is the defining module
+// followed by the CamelCase-ified version of the identity's name. The second
+// value returned is a string key that uniquely identifies this enumerated
+// value among all possible enumerated values in the input set of YANG files.
 func (s *enumSet) identityrefBaseTypeFromIdentity(i *yang.Identity) (string, string, error) {
 	key := s.identityBaseKey(i)
 	definedName, ok := s.uniqueIdentityNames[key]
@@ -191,7 +195,9 @@ func (s *enumSet) identityrefBaseTypeFromIdentity(i *yang.Identity) (string, str
 }
 
 // enumName retrieves the type name of the input enum *yang.Entry that will be
-// used in the generated code.
+// used in the generated code, which is the first returned value. The second
+// value returned is a string key that uniquely identifies this enumerated
+// value among all possible enumerated values in the input set of YANG files.
 func (s *enumSet) enumName(e *yang.Entry, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames, addEnumeratedUnionSuffix bool, enumOrgPrefixesToTrim []string) (string, string, error) {
 	key, _ := s.enumLeafKey(e, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames, addEnumeratedUnionSuffix, enumOrgPrefixesToTrim)
 	definedName, ok := s.uniqueEnumeratedLeafNames[key]
@@ -243,7 +249,9 @@ func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string,
 
 // typedefEnumeratedName retrieves the generated name of the input *yang.Entry
 // which represents a typedef that has an underlying enumerated type (e.g.,
-// identityref or enumeration).
+// identityref or enumeration), which is the first value returned. The second
+// value returned is a string key that uniquely identifies this enumerated
+// value among all possible enumerated values in the input set of YANG files.
 func (s *enumSet) typedefEnumeratedName(args resolveTypeArgs, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (string, string, error) {
 	typedefKey, _, err := s.enumeratedTypedefKey(args, noUnderscores, useDefiningModuleForTypedefEnumNames)
 	if err != nil {
