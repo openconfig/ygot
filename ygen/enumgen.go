@@ -148,13 +148,6 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 						Kind: yang.Yenum,
 						Enum: t.Enum,
 					},
-					Annotation: map[string]interface{}{
-						// We skip generating the enum in the global proto enum file when the
-						// enumeration is a non-typedef enumeration within a non-typedef union
-						// type, and with consistent name generation.
-						// TODO(wenbli): Once the IR is used, this code should be deleted.
-						"skipGlobalProtoGeneration": util.IsYANGBaseType(enumNameSake),
-					},
 				},
 				kind: enumKind,
 				id:   key,

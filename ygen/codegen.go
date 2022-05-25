@@ -757,62 +757,6 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 // It returns a GeneratedProto3 struct containing the messages that are to be
 // output, along with any associated values (e.g., enumerations).
 func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto3, util.Errors) {
-	mdef, errs := mappedDefinitions(yangFiles, includePaths, &cg.Config)
-	if errs != nil {
-		return nil, errs
-	}
-
-	// This flag is always true for proto generation.
-	cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames = true
-	opts := IROptions{
-		ParseOptions:                        cg.Config.ParseOptions,
-		TransformationOptions:               cg.Config.TransformationOptions,
-		NestedDirectories:                   cg.Config.ProtoOptions.NestedMessages,
-		AbsoluteMapPaths:                    true,
-		AppendEnumSuffixForSimpleUnionEnums: true,
-	}
-
-	enumSet, penums, errs := findEnumSet(mdef.enumEntries, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.AppendEnumSuffixForSimpleUnionEnums, opts.TransformationOptions.EnumOrgPrefixesToTrim)
-	if errs != nil {
-		return nil, errs
-	}
-
-	protoEnums, errs := writeProtoEnums(penums, cg.Config.ProtoOptions.AnnotateEnumNames)
-	if errs != nil {
-		return nil, errs
-	}
-
-	// Store the returned schematree and enumSet within the state for this code generation.
-	protogen := NewProtoLangMapper(mdef.schematree, enumSet)
-
-	protoMsgs, errs := buildDirectoryDefinitions(protogen, mdef.directoryEntries, opts)
-	if errs != nil {
-		return nil, errs
-	}
-
-	genProto := &GeneratedProto3{
-		Packages: map[string]Proto3Package{},
-	}
-
-	// yerr stores errors encountered during code generation.
-	var yerr util.Errors
-
-	// pkgImports lists the imports that are required for the package that is being
-	// written out.
-	pkgImports := map[string]map[string]interface{}{}
-
-	// Ensure that the slice of messages returned is in a deterministic order by
-	// sorting the message paths. We use the path rather than the name as the
-	// proto message name may not be unique.
-	msgPaths := []string{}
-	msgMap := map[string]*Directory{}
-	for _, m := range protoMsgs {
-		k := strings.Join(m.Path, "/")
-		msgPaths = append(msgPaths, k)
-		msgMap[k] = m
-	}
-	sort.Strings(msgPaths)
-
 	basePackageName := cg.Config.PackageName
 	if basePackageName == "" {
 		basePackageName = DefaultBasePackageName
@@ -830,6 +774,37 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		yextPath = DefaultYextPath
 	}
 
+	// This flag is always true for proto generation.
+	cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames = true
+	opts := IROptions{
+		ParseOptions:                        cg.Config.ParseOptions,
+		TransformationOptions:               cg.Config.TransformationOptions,
+		NestedDirectories:                   cg.Config.ProtoOptions.NestedMessages,
+		AbsoluteMapPaths:                    true,
+		AppendEnumSuffixForSimpleUnionEnums: true,
+	}
+
+	ir, err := GenerateIR(yangFiles, includePaths, NewProtoLangMapper(basePackageName, enumPackageName), opts)
+	if err != nil {
+		return nil, util.NewErrs(err)
+	}
+
+	protoEnums, err := writeProtoEnums(ir.Enums, cg.Config.ProtoOptions.AnnotateEnumNames)
+	if err != nil {
+		return nil, util.NewErrs(err)
+	}
+
+	genProto := &GeneratedProto3{
+		Packages: map[string]Proto3Package{},
+	}
+
+	// yerr stores errors encountered during code generation.
+	var yerr util.Errors
+
+	// pkgImports lists the imports that are required for the package that is being
+	// written out.
+	pkgImports := map[string]map[string]interface{}{}
+
 	// Only create the enums package if there are enums that are within the schema.
 	if len(protoEnums) > 0 {
 		// Sort the set of enumerations so that they are deterministically output.
@@ -842,10 +817,13 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		}
 	}
 
-	for _, n := range msgPaths {
-		m := msgMap[n]
+	// Ensure that the slice of messages returned is in a deterministic order by
+	// sorting the message paths. We use the path rather than the name as the
+	// proto message name may not be unique.
+	for _, directoryPath := range ir.OrderedDirectoryPaths() {
+		m := ir.Directories[directoryPath]
 
-		genMsg, errs := writeProto3Msg(m, protoMsgs, protogen, &protoMsgConfig{
+		genMsg, errs := writeProto3Msg(m, ir, &protoMsgConfig{
 			compressPaths:       cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(),
 			basePackageName:     basePackageName,
 			enumPackageName:     enumPackageName,
@@ -853,7 +831,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			annotateSchemaPaths: cg.Config.ProtoOptions.AnnotateSchemaPaths,
 			annotateEnumNames:   cg.Config.ProtoOptions.AnnotateEnumNames,
 			nestedMessages:      cg.Config.ProtoOptions.NestedMessages,
-		}, opts)
+		})
 
 		if errs != nil {
 			yerr = util.AppendErrs(yerr, errs)
