@@ -148,13 +148,6 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 						Kind: yang.Yenum,
 						Enum: t.Enum,
 					},
-					Annotation: map[string]interface{}{
-						// We skip generating the enum in the global proto enum file when the
-						// enumeration is a non-typedef enumeration within a non-typedef union
-						// type, and with consistent name generation.
-						// TODO(wenbli): Once the IR is used, this code should be deleted.
-						"skipGlobalProtoGeneration": util.IsYANGBaseType(enumNameSake),
-					},
 				},
 				kind: enumKind,
 				id:   key,
@@ -232,14 +225,15 @@ func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string,
 		}
 		enumIsTypedef := args.yangType.Kind == yang.Yenum && !util.IsYANGBaseType(definingType)
 		if !util.IsYANGBaseType(args.yangType) || (useDefiningModuleForTypedefEnumNames && enumIsTypedef) {
-			tn, _, err := s.typedefEnumeratedName(args, noUnderscores, useDefiningModuleForTypedefEnumNames)
+			tn, key, err := s.typedefEnumeratedName(args, noUnderscores, useDefiningModuleForTypedefEnumNames)
 			if err != nil {
 				return nil, err
 			}
 
 			return &MappedType{
-				NativeType:        fmt.Sprintf("%s%s", prefix, tn),
-				IsEnumeratedValue: true,
+				NativeType:            fmt.Sprintf("%s%s", prefix, tn),
+				IsEnumeratedValue:     true,
+				EnumeratedYANGTypeKey: key,
 			}, nil
 		}
 	}

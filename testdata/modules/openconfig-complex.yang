@@ -102,8 +102,17 @@ module openconfig-complex {
   }
 
   grouping multi-key-config {
-    leaf key1 { type uint32; }
-    leaf key2 { type uint64; }
+    leaf key1 {
+      type union {
+        type uint32 {
+          range "10..20";
+        }
+        type uint32 {
+          range "1..4";
+        }
+      }
+    }
+    leaf key2 { type enumeration { enum RED; enum BLUE; } }
   }
 
   grouping top {
@@ -168,6 +177,15 @@ module openconfig-complex {
           container state {
             config false;
             uses multi-key-config;
+          }
+        }
+      }
+
+      container c {
+        config false;
+        list unkeyed-list {
+          leaf field {
+            type binary;
           }
         }
       }
