@@ -1228,7 +1228,7 @@ func unionFieldToOneOf(fieldName string, field *NodeDetails, path string, mtype 
 		// above.
 		p := &protoMsg{
 			Name:     fmt.Sprintf("%sUnion", yang.CamelCase(fieldName)),
-			YANGPath: fmt.Sprintf("%s union field %s", field.YANGDetails.Path, field.Name),
+			YANGPath: fmt.Sprintf("%s union field %s", field.YANGDetails.Path, field.YANGDetails.Name),
 			Fields:   oofs,
 		}
 

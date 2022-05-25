@@ -45,6 +45,9 @@ module enum-union {
       type string {
         length 1..5;
       }
+      type string {
+        length 10..50;
+      }
     }
     default "cba=";
   }
