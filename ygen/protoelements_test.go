@@ -135,6 +135,21 @@ func TestYangTypeToProtoType(t *testing.T) {
 		wantWrapper: &MappedType{NativeType: "ywrapper.StringValue"},
 		wantSame:    true,
 	}, {
+		name: "union of string, unsupported instance identifier",
+		in: []resolveTypeArgs{
+			{
+				yangType: &yang.YangType{
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{
+						{Kind: yang.Ystring, Name: "string"},
+						{Kind: yang.YinstanceIdentifier, Name: "inst-ident"},
+					},
+				},
+			},
+		},
+		wantErr:  true,
+		wantSame: true,
+	}, {
 		name: "enumeration in union as the lone type with default",
 		in: []resolveTypeArgs{{
 			contextEntry: &yang.Entry{

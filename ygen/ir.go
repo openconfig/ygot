@@ -483,6 +483,7 @@ type YANGNodeDetails struct {
 	// Type is the YANG type which represents the node. It is only
 	// applicable for leaf or leaf-list nodes because only these nodes can
 	// have type statements.
+	// TODO(wenbli): This needs to be replaced using a plugin mechanism.
 	Type *YANGType
 }
 
