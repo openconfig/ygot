@@ -180,6 +180,15 @@ module openconfig-complex {
           }
         }
       }
+
+      container c {
+        config false;
+        list unkeyed-list {
+          leaf field {
+            type binary;
+          }
+        }
+      }
     }
   }
 
