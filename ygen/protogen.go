@@ -307,14 +307,14 @@ type protoMsgConfig struct {
 //  It returns a generatedProto3Message pointer which includes the definition of the proto3 message, particularly the
 //  name of the package it is within, the code for the message, and any imports for packages that are referenced by
 //  the message.
-func writeProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLangMapper, cfg *protoMsgConfig, opts IROptions) (*generatedProto3Message, util.Errors) {
+func writeProto3Msg(msg *ParsedDirectory, ir *IR, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
 	if cfg.nestedMessages {
 		if !outputNestedMessage(msg, cfg.compressPaths) {
 			return nil, nil
 		}
-		return writeProto3MsgNested(msg, msgs, protogen, cfg, opts)
+		return writeProto3MsgNested(msg, ir, cfg)
 	}
-	return writeProto3MsgSingleMsg(msg, msgs, protogen, cfg, opts)
+	return writeProto3MsgSingleMsg(msg, ir, cfg)
 }
 
 // outputNestedMessage determines whether the message represented by the supplied
@@ -323,12 +323,12 @@ func writeProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoL
 // Valid messages are those that are direct children of a module, or become a direct
 // child when path compression is enabled (i.e., lists that have their parent
 // surrounding container removed).
-func outputNestedMessage(msg *Directory, compressPaths bool) bool {
+func outputNestedMessage(msg *ParsedDirectory, compressPaths bool) bool {
 	// If path compression is enabled, and this entry is a list, then its top-level
 	// parent will have been removed, therefore this is a valid message. The path
 	// is 4 elements long since it is of the form
 	// []string{"", module-name, surrounding-container, list-name}.
-	if compressPaths && msg.Entry.IsList() && len(msg.Path) == 4 {
+	if compressPaths && msg.Type == List && len(strings.Split(msg.Path, "/")) == 4 {
 		return true
 	}
 
@@ -343,13 +343,19 @@ func outputNestedMessage(msg *Directory, compressPaths bool) bool {
 //  - protogen: the current code generation state.
 //  - cfg: the configuration for the current code generation.
 // It returns a generated protobuf3 message.
-func writeProto3MsgNested(msg *Directory, msgs map[string]*Directory, protogen *ProtoLangMapper, cfg *protoMsgConfig, opts IROptions) (*generatedProto3Message, util.Errors) {
+func writeProto3MsgNested(msg *ParsedDirectory, ir *IR, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
 	var gerrs util.Errors
 	var childMsgs []*generatedProto3Message
-	// Find all the children of the current message that should be output.
-	for _, n := range msgs {
-		if util.IsDirectEntryChild(msg.Entry, n.Entry, cfg.compressPaths) {
-			cmsg, errs := writeProto3MsgNested(n, msgs, protogen, cfg, opts)
+	if !msg.IsFakeRoot {
+		// Except the fake root message, which should always be a
+		// separate definition, find all the children of the current
+		// message that should be output.
+		childDirs, err := msg.ChildDirectories(ir)
+		if err != nil {
+			return nil, append(gerrs, err)
+		}
+		for _, n := range childDirs {
+			cmsg, errs := writeProto3MsgNested(n, ir, cfg)
 			if errs != nil {
 				gerrs = append(gerrs, errs...)
 				continue
@@ -358,18 +364,13 @@ func writeProto3MsgNested(msg *Directory, msgs map[string]*Directory, protogen *
 		}
 	}
 
-	pkg, err := protobufPackageForMsg(msg, protogen, cfg.compressPaths, cfg.nestedMessages)
-	if err != nil {
-		return nil, append(gerrs, err)
-	}
-
 	// Generate this message, and its associated messages.
-	msgDefs, errs := genProto3Msg(msg, msgs, protogen, cfg, pkg, childMsgs, opts)
+	msgDefs, errs := genProto3Msg(msg, ir, cfg, msg.PackageName, childMsgs)
 	if errs != nil {
 		return nil, append(gerrs, errs...)
 	}
 
-	gmsg, errs := genProto3MsgCode(cfg, pkg, msgDefs, false)
+	gmsg, errs := genProto3MsgCode(cfg, msg.PackageName, msgDefs, false)
 	if errs != nil {
 		return nil, append(gerrs, errs...)
 	}
@@ -418,67 +419,16 @@ func writeProto3MsgNested(msg *Directory, msgs map[string]*Directory, protogen *
 	return gmsg, nil
 }
 
-// protobufPackageForMsg takes a YANG directory definition, the current generator
-// state, whether path compression is currently enabled, and whether nested messages
-// are to be output and determines the package name for the output protobuf. In the
-// case that nested messages are being output, the package name is derived based
-// on the top-level module that the message is within.
-func protobufPackageForMsg(msg *Directory, protogen *ProtoLangMapper, compressPaths, nestedMessages bool) (string, error) {
-	switch {
-	case msg.IsFakeRoot:
-		// In this case, we explicitly leave the package name as nil, which is interpeted
-		// as meaning that the base package is used throughout the handling code.
-		return "", nil
-	case msg.Entry.Parent == nil:
-		return "", fmt.Errorf("YANG schema element %s does not have a parent, protobuf messages are not generated for modules", msg.Entry.Path())
-	}
-
-	e := msg.Entry
-	// If we have nested messages enabled, the protobuf package name is defined
-	// based on the top-level message within the schema tree that is created -
-	// we therefore need to derive the name of this message.
-	if nestedMessages {
-		if compressPaths {
-			if e.Parent.Parent == nil {
-				// In the special case that the grandparent of this entry is nil, and
-				// compress paths is enabled, then we are a top-level schema element - so
-				// this message should be in the root package.
-				return "", nil
-			}
-			if e.IsList() && e.Parent.Parent.Parent == nil {
-				// If this is a list, and our great-grandparent is a module, then
-				// since the level above this node has been compressed out, then it
-				// is at the root.
-				return "", nil
-			}
-		}
-
-		if e.Parent != nil && e.Parent.Parent != nil {
-			var n *yang.Entry
-			for n = e.Parent; n.Parent.Parent != nil; n = n.Parent {
-			}
-			e = n
-		}
-	}
-
-	return protogen.protobufPackage(e, compressPaths), nil
-}
-
 // writeProto3MsgSingleMsg generates a protobuf message definition. It takes the
 // arguments of writeProto3Message, outputting an individual message that outputs
 // a package definition and a single protobuf message.
-func writeProto3MsgSingleMsg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLangMapper, cfg *protoMsgConfig, opts IROptions) (*generatedProto3Message, util.Errors) {
-	pkg, err := protobufPackageForMsg(msg, protogen, cfg.compressPaths, cfg.nestedMessages)
-	if err != nil {
-		return nil, []error{err}
-	}
-
-	msgDefs, errs := genProto3Msg(msg, msgs, protogen, cfg, pkg, nil, opts)
+func writeProto3MsgSingleMsg(msg *ParsedDirectory, ir *IR, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
+	msgDefs, errs := genProto3Msg(msg, ir, cfg, msg.PackageName, nil)
 	if errs != nil {
 		return nil, errs
 	}
 
-	return genProto3MsgCode(cfg, pkg, msgDefs, true)
+	return genProto3MsgCode(cfg, msg.PackageName, msgDefs, true)
 }
 
 // genProto3MsgCode takes an input package name, and set of protobuf message
@@ -565,7 +515,7 @@ func genProto3MsgCode(cfg *protoMsgConfig, pkg string, msgDefs []*protoMsg, path
 // as a protoMsgConfig struct. The parentPkg argument specifies the name of the parent
 // package for the protobuf message(s) that are being generated, such that relative
 // paths can be used in the messages.
-func genProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLangMapper, cfg *protoMsgConfig, parentPkg string, childMsgs []*generatedProto3Message, opts IROptions) ([]*protoMsg, util.Errors) {
+func genProto3Msg(msg *ParsedDirectory, ir *IR, cfg *protoMsgConfig, parentPkg string, childMsgs []*generatedProto3Message) ([]*protoMsg, util.Errors) {
 	var errs util.Errors
 
 	var msgDefs []*protoMsg
@@ -574,7 +524,7 @@ func genProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLan
 		// msg.name is already specified to be CamelCase in the form we expect it
 		// to be for the protobuf message name.
 		Name:      msg.Name,
-		YANGPath:  util.SlicePathToString(msg.Path),
+		YANGPath:  msg.Path,
 		Enums:     map[string]*protoMsgEnum{},
 		ChildMsgs: childMsgs,
 	}
@@ -588,23 +538,19 @@ func genProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLan
 	}
 	sort.Strings(fNames)
 
-	skipFields := map[string]bool{}
-	if util.IsKeyedList(msg.Entry) {
-		skipFields = util.ListKeyFieldsMap(msg.Entry)
-	}
 	for _, name := range fNames {
-		// Skip fields that we are explicitly not asked to include.
-		if _, ok := skipFields[name]; ok {
+		// Skip list key fields.
+		if _, ok := msg.ListKeys[name]; ok {
 			continue
 		}
 
 		field := msg.Fields[name]
 
 		fieldDef := &protoMsgField{
-			Name: genutil.MakeNameUnique(safeProtoIdentifierName(name), definedFieldNames),
+			Name: genutil.MakeNameUnique(field.Name, definedFieldNames),
 		}
 
-		t, err := protoTagForEntry(field)
+		t, err := protoTagForEntry(field.YANGDetails)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("proto: could not generate tag for field %s: %v", field.Name, err))
 			continue
@@ -612,17 +558,16 @@ func genProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLan
 		fieldDef.Tag = t
 
 		defArgs := &protoDefinitionArgs{
-			field:              field,
-			directory:          msg,
-			definedDirectories: msgs,
-			definedFieldNames:  definedFieldNames,
-			protogen:           protogen,
-			cfg:                cfg,
-			parentPkg:          parentPkg,
+			field:             field,
+			directory:         msg,
+			ir:                ir,
+			definedFieldNames: definedFieldNames,
+			cfg:               cfg,
+			parentPkg:         parentPkg,
 		}
-		switch {
-		case field.IsList():
-			keyMsg, listImports, listErrs := addProtoListField(fieldDef, msgDef, defArgs, opts)
+		switch field.Type {
+		case ListNode:
+			keyMsg, listImports, listErrs := addProtoListField(fieldDef, msgDef, defArgs)
 			if listErrs != nil {
 				errs = append(errs, listErrs...)
 				continue
@@ -631,15 +576,15 @@ func genProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLan
 			if keyMsg != nil {
 				msgDefs = append(msgDefs, keyMsg)
 			}
-		case field.IsContainer():
+		case ContainerNode:
 			cImports, err := addProtoContainerField(fieldDef, defArgs)
 			if err != nil {
 				errs = append(errs, err)
 				continue
 			}
 			addNewKeys(imports, cImports)
-		case field.IsLeaf() || field.IsLeafList():
-			repeatedMsg, lImports, lErrs := addProtoLeafOrLeafListField(fieldDef, msgDef, defArgs, opts)
+		case LeafNode, LeafListNode:
+			repeatedMsg, lImports, lErrs := addProtoLeafOrLeafListField(fieldDef, msgDef, defArgs)
 			if lErrs != nil {
 				errs = append(errs, lErrs...)
 				continue
@@ -648,7 +593,7 @@ func genProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLan
 			if repeatedMsg != nil {
 				msgDefs = append(msgDefs, repeatedMsg)
 			}
-		case util.IsAnydata(field):
+		case AnyDataNode:
 			fieldDef.Type = protoAnyType
 			imports[protoAnyPackage] = true
 		default:
@@ -678,13 +623,20 @@ func genProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLan
 
 // protoDefinitionArgs is used as the input argument when YANG is being mapped to protobuf.
 type protoDefinitionArgs struct {
-	field              *yang.Entry           // field is the yang.Entry for which the proto output is being defined, in the case that the definition is for an individual entry.
-	directory          *Directory            // directory is the Directory for which the proto output is being defined, in the case that the definition is for an directory entry.
-	definedDirectories map[string]*Directory // definedDirectories specifies the set of Directories that have been defined in the current code generation context.
-	definedFieldNames  map[string]bool       // definedFieldNames specifies the field names that have been defined in the context.
-	protogen           *ProtoLangMapper      // protogen is the current generator state.
-	cfg                *protoMsgConfig
-	parentPkg          string // parentPackage stores the name of the protobuf package that the field's parent is within.
+	// field contains the node details for which the proto output is being
+	// defined, in the case that the definition is for an individual entry.
+	field *NodeDetails
+	// directory is the ParsedDirectory for which the proto output is being
+	// defined, in the case that the definition is for an directory entry.
+	directory *ParsedDirectory
+	// ir is the entirety of the IR as input to the code generation.
+	ir *IR
+	// definedFieldNames specifies the field names that have been defined in the context.
+	definedFieldNames map[string]bool
+	// cfg contains configuration options for proto generation.
+	cfg *protoMsgConfig
+	// parentPackage stores the name of the protobuf package that the field's parent is within.
+	parentPkg string
 }
 
 // addProtoListField modifies the field definition in fieldDef (which must correspond to a list field of a
@@ -692,10 +644,10 @@ type protoDefinitionArgs struct {
 // and nested messages are being output, the generated protobuf message for the key is appended to the supplied
 // message definition (msgDef). If nested messages are not being output, a definition of the key message is returned.
 // Along with the optional key message, it returns a list of the imports being used for the list.
-func addProtoListField(fieldDef *protoMsgField, msgDef *protoMsg, args *protoDefinitionArgs, opts IROptions) (*protoMsg, []string, util.Errors) {
-	listDef, keyMsg, err := protoListDefinition(args, opts)
+func addProtoListField(fieldDef *protoMsgField, msgDef *protoMsg, args *protoDefinitionArgs) (*protoMsg, []string, util.Errors) {
+	listDef, keyMsg, err := protoListDefinition(args)
 	if err != nil {
-		return nil, nil, []error{fmt.Errorf("could not define list %s: %v", args.field.Path(), err)}
+		return nil, nil, []error{fmt.Errorf("could not define list %s: %v", args.directory.Path, err)}
 	}
 
 	var nKeyMsg *protoMsg
@@ -704,7 +656,7 @@ func addProtoListField(fieldDef *protoMsgField, msgDef *protoMsg, args *protoDef
 			// If nested messages are being output, we must ensure that the
 			// generated key message is output within the parent message - hence
 			// it is generated directly here and appended to the child messages.
-			kc, cerrs := genProto3MsgCode(args.cfg, args.parentPkg, []*protoMsg{keyMsg}, false)
+			kc, cerrs := genProto3MsgCode(args.cfg, args.directory.PackageName, []*protoMsg{keyMsg}, false)
 			if cerrs != nil {
 				return nil, nil, cerrs
 			}
@@ -725,16 +677,16 @@ func addProtoListField(fieldDef *protoMsgField, msgDef *protoMsg, args *protoDef
 // a YANG schema) to contain the definition of the field described by the args. It returns a slice of strings containing
 // the protobuf package imports that are required for the container definition.
 func addProtoContainerField(fieldDef *protoMsgField, args *protoDefinitionArgs) ([]string, error) {
-	childmsg, ok := args.definedDirectories[args.field.Path()]
+	childmsg, ok := args.ir.Directories[args.field.YANGDetails.Path]
 	if !ok {
-		return nil, fmt.Errorf("proto: could not resolve %s into a defined struct", args.field.Path())
+		return nil, fmt.Errorf("proto: could not resolve %s into a defined struct", args.field.YANGDetails.Path)
 	}
 
 	imports := map[string]interface{}{}
 
 	var pfx string
 	if !(args.cfg.compressPaths && args.directory.IsFakeRoot) {
-		childpkg := args.protogen.protobufPackage(childmsg.Entry, args.cfg.compressPaths)
+		childpkg := childmsg.PackageName
 		// Add the import to the slice of imports if it is not already
 		// there. This allows the message file to import the required
 		// child packages.
@@ -759,13 +711,13 @@ func addProtoContainerField(fieldDef *protoMsgField, args *protoDefinitionArgs) 
 // generated for it, it is appended to the message definition supplied (msgDef) when nested messages are being output,
 // otherwise it is returned. In addition, it returns a slice of strings describing the imports that are required for
 // the message.
-func addProtoLeafOrLeafListField(fieldDef *protoMsgField, msgDef *protoMsg, args *protoDefinitionArgs, opts IROptions) (*protoMsg, []string, util.Errors) {
+func addProtoLeafOrLeafListField(fieldDef *protoMsgField, msgDef *protoMsg, args *protoDefinitionArgs) (*protoMsg, []string, util.Errors) {
 	var imports []string
 	var repeatedMsg *protoMsg
 
-	d, err := protoLeafDefinition(fieldDef.Name, args, opts)
+	d, err := protoLeafDefinition(fieldDef.Name, args)
 	if err != nil {
-		return nil, nil, []error{fmt.Errorf("could not define field %s: %v", args.field.Path(), err)}
+		return nil, nil, []error{fmt.Errorf("could not define field %s: %v", args.field.YANGDetails.Path, err)}
 	}
 
 	fieldDef.Type = d.protoType
@@ -800,7 +752,7 @@ func addProtoLeafOrLeafListField(fieldDef *protoMsgField, msgDef *protoMsg, args
 		imports = append(imports, importPath(args.cfg.baseImportPath, args.cfg.basePackageName, args.cfg.enumPackageName))
 	}
 
-	if args.field.ListAttr != nil {
+	if args.field.Type == LeafListNode {
 		fieldDef.IsRepeated = true
 	}
 	return repeatedMsg, imports, nil
@@ -811,22 +763,18 @@ func addProtoLeafOrLeafListField(fieldDef *protoMsgField, msgDef *protoMsg, args
 // the annotateEnumNames bool is set, then the original enum value label is
 // stored in the definition. Since leaves that are of type enumeration are
 // output directly within a Protobuf message, these are skipped.
-func writeProtoEnums(enums map[string]*yangEnum, annotateEnumNames bool) ([]string, util.Errors) {
+func writeProtoEnums(enums map[string]*EnumeratedYANGType, annotateEnumNames bool) ([]string, error) {
 	var errs util.Errors
 	var genEnums []string
 	for _, enum := range enums {
-		if skip, ok := enum.entry.Annotation["skipGlobalProtoGeneration"].(bool); util.IsSimpleEnumerationType(enum.entry.Type) || enum.entry.Type.Kind == yang.Yunion || (ok && skip) {
-			// Skip simple enumerations and those within unions.
-			// Furthermore, under the consistent naming scheme, non-typedef enumerations
-			// within non-typedef unions are not generated in the global
-			// file, only in the messages.
-			continue
-		}
-
 		// Make the name of the enum upper case to follow Protobuf enum convention.
-		p := &protoEnum{Name: enum.name}
-		switch {
-		case util.IsIdentityrefLeaf(enum.entry):
+		p := &protoEnum{Name: enum.Name}
+
+		switch enum.Kind {
+		case SimpleEnumerationType, UnionEnumerationType:
+			// Skip simple enumerations and those within unions.
+			continue
+		case IdentityType:
 			// For an identityref the values are based on
 			// the name of the identities that correspond with the base, and the value
 			// is gleaned from the YANG schema.
@@ -834,30 +782,22 @@ func writeProtoEnums(enums map[string]*yangEnum, annotateEnumNames bool) ([]stri
 				0: {ProtoLabel: protoEnumZeroName},
 			}
 
-			// Ensure that we output the identity values in a determinstic order.
-			nameMap := map[string]*yang.Identity{}
-			var names []string
-			for _, v := range enum.entry.Type.IdentityBase.Values {
-				names = append(names, v.Name)
-				nameMap[v.Name] = v
-			}
-
-			for _, n := range names {
-				v := nameMap[n]
+			for _, enumDef := range enum.ValToYANGDetails {
 				// Calculate a tag value for the identity values, since otherwise when another
 				// module augments this module then the enum values may be subject to change.
-				tag, err := fieldTag(fmt.Sprintf("%s%s", enum.entry.Type.IdentityBase.Name, v.Name))
+				tag, err := fieldTag(fmt.Sprintf("%s%s", enum.identityBaseName, enumDef.Name))
 				if err != nil {
-					errs = append(errs, fmt.Errorf("cannot calculate tag for %s: %v", v.Name, err))
+					errs = append(errs, fmt.Errorf("cannot calculate tag for %s: %v", enumDef.Name, err))
 				}
 
-				values[int64(tag)] = toProtoEnumValue(strings.ToUpper(safeProtoIdentifierName(v.Name)), v.Name, annotateEnumNames)
+				// Names are converted to upper case to follow the protobuf style guide.
+				values[int64(tag)] = toProtoEnumValue(safeProtoIdentifierName(enumDef.Name), enumDef.Name, annotateEnumNames)
 			}
 			p.Values = values
-			p.ValuePrefix = strings.ToUpper(enum.name)
-			p.Description = fmt.Sprintf("YANG identity %s", enum.entry.Type.IdentityBase.Name)
-		case enum.entry.Type.Kind == yang.Yenum:
-			ge, err := genProtoEnum(enum.entry, annotateEnumNames)
+			p.ValuePrefix = strings.ToUpper(enum.Name)
+			p.Description = fmt.Sprintf("YANG identity %s", enum.identityBaseName)
+		case DerivedEnumerationType, DerivedUnionEnumerationType:
+			ge, err := genProtoEnum(enum, annotateEnumNames, true)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -865,31 +805,15 @@ func writeProtoEnums(enums map[string]*yangEnum, annotateEnumNames bool) ([]stri
 			p.Values = ge.Values
 
 			// Capitalize name per proto style.
-			p.ValuePrefix = strings.ToUpper(enum.name)
-			// If the supplied enum entry has the valuePrefix annotation then use it to
-			// calculate the enum value names.
-			if e, ok := enum.entry.Annotation["valuePrefix"]; ok {
-				t, ok := e.([]string)
-				if ok {
-					var pp []string
-					for _, pe := range t {
-						pp = append(pp, strings.ToUpper(safeProtoIdentifierName(yang.CamelCase(pe))))
-					}
-					p.ValuePrefix = strings.Join(pp, "_")
-				}
-			}
-
-			p.Description = fmt.Sprintf("YANG enumerated type %s", enum.entry.Type.Name)
-		case len(enum.entry.Type.Type) != 0:
-			errs = append(errs, fmt.Errorf("unimplemented: support for multiple enumerations within a union for %v", enum.name))
-			continue
+			p.ValuePrefix = strings.ToUpper(enum.Name)
+			p.Description = fmt.Sprintf("YANG enumerated type %s", enum.TypeName)
 		default:
-			errs = append(errs, fmt.Errorf("unknown type of enumerated value in writeProtoEnums for %s, got: %v, type: %v", enum.name, enum, enum.entry.Type))
+			errs = append(errs, fmt.Errorf("unknown type of enumerated value in writeProtoEnums for %s, got: %v, kind: %v", enum.Name, enum, enum.Kind))
 		}
 
 		var b bytes.Buffer
 		if err := protoEnumTemplate.Execute(&b, p); err != nil {
-			errs = append(errs, fmt.Errorf("cannot generate enumeration for %s: %v", enum.name, err))
+			errs = append(errs, fmt.Errorf("cannot generate enumeration for %s: %v", enum.Name, err))
 			continue
 		}
 		genEnums = append(genEnums, b.String())
@@ -905,37 +829,20 @@ func writeProtoEnums(enums map[string]*yangEnum, annotateEnumNames bool) ([]stri
 // and returns a protoMsgEnum that contains its definition within the proto
 // schema. If the annotateEnumNames bool is set, then the original YANG name
 // is stored with each enum value.
-func genProtoEnum(field *yang.Entry, annotateEnumNames bool) (*protoMsgEnum, error) {
+func genProtoEnum(enum *EnumeratedYANGType, annotateEnumNames, isLeafOrTypedef bool) (*protoMsgEnum, error) {
 	eval := map[int64]protoEnumValue{}
-	names := field.Type.Enum.NameMap()
 	eval[0] = protoEnumValue{ProtoLabel: protoEnumZeroName}
 
-	var defaultValue string
-	// Not having an UNSET only makes sense for non-leaf-lists because
-	// doing this doesn't populate repeated fields.
-	// Typedef enum definitions are never leaf-lists even though they can
-	// be used within a leaf-list.
-	if field.ListAttr == nil || !util.IsYANGBaseType(field.Type) {
-		var ok bool
-		defaultValue, ok = field.SingleDefaultValue()
-		if ok {
-			if _, ok := names[defaultValue]; !ok {
-				return nil, fmt.Errorf("enumeration %s specified a default - %s - that was not a valid value", field.Path(), defaultValue)
-			}
-
-			eval[0] = toProtoEnumValue(safeProtoIdentifierName(defaultValue), defaultValue, annotateEnumNames)
-		}
-	}
-
-	for n := range names {
-		if n == defaultValue {
+	for _, enumDef := range enum.ValToYANGDetails {
+		if isLeafOrTypedef && enumDef.Name == enum.TypeDefaultValue {
 			// Can't happen if there was not a default, since "" is not
 			// a valid enumeration name in YANG.
+			eval[0] = toProtoEnumValue(safeProtoIdentifierName(enum.TypeDefaultValue), enum.TypeDefaultValue, annotateEnumNames)
 			continue
 		}
 		// Names are converted to upper case to follow the protobuf style guide,
 		// adding one to ensure that the 0 value can represent unused values.
-		eval[field.Type.Enum.Value(n)+1] = toProtoEnumValue(safeProtoIdentifierName(n), n, annotateEnumNames)
+		eval[int64(enumDef.Value)+1] = toProtoEnumValue(safeProtoIdentifierName(enumDef.Name), enumDef.Name, annotateEnumNames)
 	}
 
 	return &protoMsgEnum{Values: eval}, nil
@@ -950,22 +857,18 @@ type protoMsgListField struct {
 // protoListDefinition takes an input field described by a yang.Entry, the generator context (the set of proto messages, and the generator
 // state), along with whether path compression is enabled and generates the proto message definition for the list. It returns the definition
 // of the field representing the list as a protoMsgListField and an optional message which stores the key of a keyed list.
-func protoListDefinition(args *protoDefinitionArgs, opts IROptions) (*protoMsgListField, *protoMsg, error) {
-	listMsg, ok := args.definedDirectories[args.field.Path()]
+func protoListDefinition(args *protoDefinitionArgs) (*protoMsgListField, *protoMsg, error) {
+	listMsg, ok := args.ir.Directories[args.field.YANGDetails.Path]
 	if !ok {
-		return nil, nil, fmt.Errorf("proto: could not resolve list %s into a defined message", args.field.Path())
+		return nil, nil, fmt.Errorf("proto: could not resolve list %s into a defined message", args.field.YANGDetails.Path)
 	}
 
-	listMsgName, ok := args.protogen.uniqueDirectoryNames[args.field.Path()]
-	if !ok {
-		return nil, nil, fmt.Errorf("proto: could not find unique message name for %s", args.field.Path())
-	}
-
-	childPkg := args.protogen.protobufPackage(listMsg.Entry, args.cfg.compressPaths)
+	listMsgName := listMsg.Name
+	childPkg := listMsg.PackageName
 
 	var listKeyMsg *protoMsg
 	var listDef *protoMsgListField
-	if !util.IsKeyedList(listMsg.Entry) {
+	if len(listMsg.ListKeys) == 0 {
 		// In proto3 we represent unkeyed lists as a
 		// repeated field of the list message.
 		listDef = &protoMsgListField{
@@ -986,12 +889,12 @@ func protoListDefinition(args *protoDefinitionArgs, opts IROptions) (*protoMsgLi
 		listKeyMsg, err = genListKeyProto(childPkg, listMsgName, &protoDefinitionArgs{
 			field:     args.field,
 			directory: listMsg,
-			protogen:  args.protogen,
+			ir:        args.ir,
 			cfg:       args.cfg,
 			parentPkg: args.parentPkg,
-		}, opts)
+		})
 		if err != nil {
-			return nil, nil, fmt.Errorf("proto: could not build mapping for list entry %s: %v", args.field.Path(), err)
+			return nil, nil, fmt.Errorf("proto: could not build mapping for list entry %s: %v", args.field.YANGDetails.Path, err)
 		}
 		// The type of this field is just the key message's name, since it
 		// will be in the same package as the field's parent.
@@ -1015,28 +918,24 @@ type protoDefinedLeaf struct {
 // protoLeafDefinition takes an input leafName, and a set of protoDefinitionArgs specifying the context
 // for the leaf definition, and returns a protoDefinedLeaf describing how it is to be mapped within the
 // protobuf parent message.
-func protoLeafDefinition(leafName string, args *protoDefinitionArgs, opts IROptions) (*protoDefinedLeaf, error) {
-	protoType, err := args.protogen.yangTypeToProtoType(resolveTypeArgs{
-		yangType:     args.field.Type,
-		contextEntry: args.field,
-	}, resolveProtoTypeArgs{
-		basePackageName: args.cfg.basePackageName,
-		enumPackageName: args.cfg.enumPackageName,
-	}, opts)
-	if err != nil {
-		return nil, err
-	}
+func protoLeafDefinition(leafName string, args *protoDefinitionArgs) (*protoDefinedLeaf, error) {
+	protoType := args.field.LangType
 
 	d := &protoDefinedLeaf{
 		protoType: protoType.NativeType,
 		enums:     map[string]*protoMsgEnum{},
 	}
 
+	var enum *EnumeratedYANGType
+	if protoType.IsEnumeratedValue {
+		enum = args.ir.Enums[protoType.EnumeratedYANGTypeKey]
+	}
+
 	switch {
-	case util.IsSimpleEnumerationType(args.field.Type):
+	case protoType.IsEnumeratedValue && enum.Kind == SimpleEnumerationType:
 		// For fields that are simple enumerations within a message, then we embed an enumeration
 		// within the Protobuf message.
-		e, err := genProtoEnum(args.field, args.cfg.annotateEnumNames)
+		e, err := genProtoEnum(enum, args.cfg.annotateEnumNames, args.field.Type == LeafNode)
 		if err != nil {
 			return nil, err
 		}
@@ -1044,10 +943,10 @@ func protoLeafDefinition(leafName string, args *protoDefinitionArgs, opts IROpti
 		d.protoType = genutil.MakeNameUnique(protoType.NativeType, args.definedFieldNames)
 		d.enums = map[string]*protoMsgEnum{}
 		d.enums[d.protoType] = e
-	case util.IsEnumeratedType(args.field.Type):
+	case protoType.IsEnumeratedValue:
 		d.globalEnum = true
 	case protoType.UnionTypes != nil:
-		u, err := unionFieldToOneOf(leafName, args.field, args.field.Path(), protoType, args.cfg.annotateEnumNames)
+		u, err := unionFieldToOneOf(leafName, args.field, args.field.YANGDetails.Path, protoType, args.ir.Enums, args.cfg.annotateEnumNames)
 		if err != nil {
 			return nil, err
 		}
@@ -1099,8 +998,8 @@ func safeProtoIdentifierName(name string) string {
 }
 
 // protoTagForEntry returns a protobuf tag value for the entry e.
-func protoTagForEntry(e *yang.Entry) (uint32, error) {
-	return fieldTag(e.Path())
+func protoTagForEntry(n YANGNodeDetails) (uint32, error) {
+	return fieldTag(n.Path)
 }
 
 // fieldTag takes an input string and calculates a FNV hash for the value. If the
@@ -1123,11 +1022,11 @@ func fieldTag(s string) (uint32, error) {
 // the key of a list for YANG lists. It takes a Directory pointer to the list being
 // described, the name of the list, the package name that the list is within, and the
 // current generator state. It returns the definition of the list key proto.
-func genListKeyProto(listPackage string, listName string, args *protoDefinitionArgs, opts IROptions) (*protoMsg, error) {
+func genListKeyProto(listPackage string, listName string, args *protoDefinitionArgs) (*protoMsg, error) {
 	n := fmt.Sprintf("%s%s", listName, protoListKeyMessageSuffix)
 	km := &protoMsg{
 		Name:     n,
-		YANGPath: args.field.Path(),
+		YANGPath: args.field.YANGDetails.Path,
 		Enums:    map[string]*protoMsgEnum{},
 	}
 
@@ -1137,73 +1036,24 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 
 	definedFieldNames := map[string]bool{}
 	ctag := uint32(1)
-	// unionEntries keeps track of union keys such that if two keys point
+	// unionSubtypePaths keeps track of union keys such that if two keys point
 	// to the same union entry, such a conflict when creating field tags
 	// for them can be detected to avoid a tag collision.
-	unionEntries := map[*yang.Entry]bool{}
-	for _, k := range strings.Fields(args.field.Key) {
+	unionSubtypePaths := map[string]bool{}
+	//for _, k := range strings.Fields(args.field.Key) {
+	for _, k := range args.directory.OrderedListKeyNames() {
+		scalarType := args.directory.ListKeys[k].LangType
 		kf, ok := args.directory.Fields[k]
 		if !ok {
-			return nil, fmt.Errorf("list %s included a key %s that did not exist", args.field.Path(), k)
+			return nil, fmt.Errorf("list %s included a key %s that did not exist", args.field.YANGDetails.Path, k)
 		}
-
-		scalarType, err := args.protogen.yangTypeToProtoScalarType(resolveTypeArgs{
-			yangType:     kf.Type,
-			contextEntry: kf,
-		}, resolveProtoTypeArgs{
-			basePackageName: args.cfg.basePackageName,
-			enumPackageName: args.cfg.enumPackageName,
-			// When there is a union within a list key that has a single type within it
-			// e.g.,:
-			// list foo {
-			//   key "bar";
-			//   leaf bar {
-			//     type union {
-			//       type string { pattern "a.*" }
-			//			 type string { pattern "b.*" }
-			//     }
-			//   }
-			// }
-			// Then we want to use the scalar type rather than the wrapper type in
-			// this message since all keys must be set. We therefore signal this in
-			// the call to the type resolution.
-			scalarTypeInSingleTypeUnion: true,
-		}, opts)
-		if err != nil {
-			return nil, fmt.Errorf("list %s included a key %s that did not have a valid proto type: %v", args.field.Path(), k, kf.Type)
-		}
-
-		var enumEntry *yang.Entry
-		var unionEntry *yang.Entry
-		switch {
-		case kf.Type.Kind == yang.Yleafref:
-			target, err := args.protogen.schematree.resolveLeafrefTarget(kf.Type.Path, kf)
-			if err != nil {
-				return nil, fmt.Errorf("error generating type for list %s key %s: type %v", args.field.Path(), k, kf.Type)
-			}
-
-			if util.IsSimpleEnumerationType(target.Type) {
-				enumEntry = target
-			}
-
-			if scalarType.UnionTypes != nil {
-				unionEntry = target
-			}
-
-			if util.IsIdentityrefLeaf(target) {
-				km.Imports = append(km.Imports, importPath(args.cfg.baseImportPath, args.cfg.basePackageName, args.cfg.enumPackageName))
-			}
-		case util.IsSimpleEnumerationType(kf.Type):
-			enumEntry = kf
-		case util.IsUnionType(kf.Type) && scalarType.UnionTypes != nil:
-			unionEntry = kf
-		}
+		fieldName := kf.Name
 
 		// Make the name of the key unique. We handle the case that the list name
 		// matches the key field name by appending the protoMatchingListNameKeySuffix
 		// to the field name, as described in the definition of protoMatchingListNameKeySuffix.
-		fName := genutil.MakeNameUnique(safeProtoIdentifierName(k), definedFieldNames)
-		if args.field.Name == k {
+		fName := genutil.MakeNameUnique(fieldName, definedFieldNames)
+		if args.field.Name == fieldName {
 			fName = fmt.Sprintf("%s_%s", fName, protoMatchingListNameKeySuffix)
 		}
 
@@ -1211,31 +1061,41 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 			Name: fName,
 			Tag:  ctag,
 		}
+
+		var enum *EnumeratedYANGType
+		if scalarType.IsEnumeratedValue {
+			enum = args.ir.Enums[scalarType.EnumeratedYANGTypeKey]
+		}
 		switch {
-		case enumEntry != nil:
-			enum, err := genProtoEnum(enumEntry, args.cfg.annotateEnumNames)
+		case scalarType.IsEnumeratedValue && enum.Kind == IdentityType:
+			km.Imports = append(km.Imports, importPath(args.cfg.baseImportPath, args.cfg.basePackageName, args.cfg.enumPackageName))
+			fd.Type = scalarType.NativeType
+		case scalarType.IsEnumeratedValue:
+			// list keys must be leafs and not leaf-lists.
+			e, err := genProtoEnum(enum, args.cfg.annotateEnumNames, true)
 			if err != nil {
-				return nil, fmt.Errorf("error generating type for list %s key %s, type %v", args.field.Path(), k, enumEntry.Type)
+				return nil, fmt.Errorf("error generating type for list %s key %s, type %v", args.field.YANGDetails.Path, k, enum.Kind)
 			}
 			tn := genutil.MakeNameUnique(scalarType.NativeType, definedFieldNames)
 			fd.Type = tn
-			km.Enums[tn] = enum
-		case unionEntry != nil:
+			km.Enums[tn] = e
+		case scalarType.UnionTypes != nil:
 			fd.IsOneOf = true
-			path := unionEntry.Path()
-			if unionEntries[unionEntry] {
+			path := kf.YANGDetails.LeafrefTargetPath
+			if path != "" && !unionSubtypePaths[path] {
+				unionSubtypePaths[path] = true
+			} else {
 				// It is possible for two keys to point to the same resolved unionEntry.
 				// In this case, the path we use to generate the proto tag numbers needs
 				// to be different to avoid a collision, and here we use the path of the
 				// (leafref) key field. The reason the first instance uses the resolved
 				// unionEntry is for backwards compatibility
 				// (https://github.com/openconfig/ygot/pull/610#discussion_r781510037).
-				path = kf.Path()
+				path = kf.YANGDetails.Path
 			}
-			unionEntries[unionEntry] = true
-			u, err := unionFieldToOneOf(fd.Name, unionEntry, path, scalarType, args.cfg.annotateEnumNames)
+			u, err := unionFieldToOneOf(fd.Name, kf, path, scalarType, args.ir.Enums, args.cfg.annotateEnumNames)
 			if err != nil {
-				return nil, fmt.Errorf("error generating type for union list key %s in list %s", k, args.field.Path())
+				return nil, fmt.Errorf("error generating type for union list key %s in list %s", k, args.field.YANGDetails.Path)
 			}
 			fd.OneOfFields = append(fd.OneOfFields, u.oneOfFields...)
 			for n, e := range u.enums {
@@ -1285,42 +1145,23 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 // enumInProtoUnionField parses an enum that is within a union and returns the generated
 // enumeration that should be included within a protobuf message for it. If annotateEnumNames
 // is set to true, the enumerated value's original names are stored.
-func enumInProtoUnionField(name string, args resolveTypeArgs, annotateEnumNames bool) (map[string]*protoMsgEnum, error) {
+func enumInProtoUnionField(name string, field *NodeDetails, Enums map[string]*EnumeratedYANGType, annotateEnumNames bool) (map[string]*protoMsgEnum, error) {
 	enums := map[string]*protoMsgEnum{}
-	for _, t := range args.yangType.Type {
-		if util.IsSimpleEnumerationType(t) {
-			definingType, err := util.DefiningType(t, args.contextEntry.Type)
-			if err != nil {
-				return nil, err
-			}
-			if !util.IsYANGBaseType(definingType) {
-				// If the enumeration is within a typedef
-				// union, then we don't generate a nested
-				// version, and instead use the global version.
-				continue
-			}
-			mappedType, err := yangEnumTypeToProtoType(resolveTypeArgs{yangType: t, contextEntry: args.contextEntry})
-			if err != nil {
-				return nil, err
-			}
-			enum, err := genProtoEnum(&yang.Entry{
-				Name: mappedType.NativeType,
-				Type: t,
-			}, annotateEnumNames)
-			if err != nil {
-				return nil, err
-			}
-			enums[mappedType.NativeType] = enum
+	for genName, subtype := range field.LangType.UnionTypeInfos {
+		if subtype.EnumeratedYANGTypeKey == "" {
+			continue
 		}
-
-		if util.IsUnionType(t) {
-			es, err := enumInProtoUnionField(name, resolveTypeArgs{yangType: t, contextEntry: args.contextEntry}, annotateEnumNames)
+		enum, ok := Enums[subtype.EnumeratedYANGTypeKey]
+		if !ok {
+			return nil, fmt.Errorf("enumerated type within union %s not found in IR, field path: %s", genName, field.YANGDetails.Path)
+		}
+		switch enum.Kind {
+		case SimpleEnumerationType, UnionEnumerationType:
+			protoEnum, err := genProtoEnum(enum, annotateEnumNames, field.Type == LeafNode)
 			if err != nil {
 				return nil, err
 			}
-			for name, enum := range es {
-				enums[name] = enum
-			}
+			enums[genName] = protoEnum
 		}
 	}
 
@@ -1341,8 +1182,8 @@ type protoUnionField struct {
 // containing the proto type that the entry has been mapped to, and returns a definition of a union
 // field within the protobuf message. If the annotateEnumNames boolean is set, then any enumerated types
 // within the union have their original names within the YANG schema appended.
-func unionFieldToOneOf(fieldName string, e *yang.Entry, path string, mtype *MappedType, annotateEnumNames bool) (*protoUnionField, error) {
-	enums, err := enumInProtoUnionField(fieldName, resolveTypeArgs{yangType: e.Type, contextEntry: e}, annotateEnumNames)
+func unionFieldToOneOf(fieldName string, field *NodeDetails, path string, mtype *MappedType, Enums map[string]*EnumeratedYANGType, annotateEnumNames bool) (*protoUnionField, error) {
+	enums, err := enumInProtoUnionField(fieldName, field, Enums, annotateEnumNames)
 	if err != nil {
 		return nil, err
 	}
@@ -1371,7 +1212,7 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, path string, mtype *Mapp
 		// underscores.
 		ft, err := fieldTag(fmt.Sprintf("%s_%s", path, strings.ToLower(tn)))
 		if err != nil {
-			return nil, fmt.Errorf("could not calculate tag number for %s, type %s in oneof", e.Path(), tn)
+			return nil, fmt.Errorf("could not calculate tag number for %s, type %s in oneof", field.YANGDetails.Path, tn)
 		}
 		st := &protoMsgField{
 			Name: fmt.Sprintf("%s_%s", fieldName, strings.ToLower(tn)),
@@ -1381,13 +1222,13 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, path string, mtype *Mapp
 		oofs = append(oofs, st)
 	}
 
-	if e.IsLeafList() {
+	if field.Type == LeafListNode {
 		// In this case, we cannot return a oneof, since it is not possible to have a repeated
 		// oneof, therefore we return a message that contains the protoMsgFields that are defined
 		// above.
 		p := &protoMsg{
 			Name:     fmt.Sprintf("%sUnion", yang.CamelCase(fieldName)),
-			YANGPath: fmt.Sprintf("%s union field %s", e.Path(), e.Name),
+			YANGPath: fmt.Sprintf("%s union field %s", field.YANGDetails.Path, field.YANGDetails.Name),
 			Fields:   oofs,
 		}
 
@@ -1418,12 +1259,9 @@ func protoPackageToFilePath(pkg string) []string {
 
 // protoSchemaPathAnnotation takes a protobuf message and field, and returns the protobuf
 // field option definitions required to annotate it with its schema path(s).
-func protoSchemaPathAnnotation(msg *Directory, fieldName string, compressPaths bool) (*protoOption, error) {
+func protoSchemaPathAnnotation(msg *ParsedDirectory, fieldName string, compressPaths bool) (*protoOption, error) {
 	// protobuf paths are always absolute.
-	smapp, _, err := findMapPaths(msg, fieldName, compressPaths, false, true)
-	if err != nil {
-		return nil, err
-	}
+	smapp := msg.Fields[fieldName].MappedPaths
 	var b bytes.Buffer
 	b.WriteRune('"')
 	for i, p := range smapp {
