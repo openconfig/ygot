@@ -1839,17 +1839,93 @@ func TestCopyStruct(t *testing.T) {
 		inSrc:   &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
 		inDst:   &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
 		wantDst: &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
-	},
-		{
-			name:  "overwrite, slice fields not unique",
-			inSrc: &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
-			inDst: &copyTest{StringSlice: []string{"kingfisher"}},
-			inOpts: []MergeOpt{
-				&MergeOverwriteExistingFields{},
-			},
-			wantDst: &copyTest{StringSlice: []string{"kingfisher", "mikkeler-draft-bear"}},
+	}, {
+		name:  "overwrite, slice fields not unique",
+		inSrc: &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
+		inDst: &copyTest{StringSlice: []string{"kingfisher"}},
+		inOpts: []MergeOpt{
+			&MergeOverwriteExistingFields{},
 		},
-	}
+		wantDst: &copyTest{StringSlice: []string{"kingfisher", "mikkeler-draft-bear"}},
+	}, {
+		name: "dst struct pointer with no populated field",
+		inSrc: &copyTest{
+			StringField: String("lagunitas-aunt-sally"),
+			StructPointer: &copyTest{
+				StructPointer: &copyTest{},
+			},
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			StringField: String("lagunitas-aunt-sally"),
+			StructPointer: &copyTest{
+				StructPointer: &copyTest{},
+			},
+		},
+	}, {
+		name:  "src struct pointer with no populated field",
+		inSrc: &copyTest{},
+		inDst: &copyTest{
+			StringField: String("lagunitas-aunt-sally"),
+			StructPointer: &copyTest{
+				StructPointer: &copyTest{},
+			},
+		},
+		wantDst: &copyTest{
+			StringField: String("lagunitas-aunt-sally"),
+			StructPointer: &copyTest{
+				StructPointer: &copyTest{},
+			},
+		},
+	}, {
+		name: "dst single-key map with no elements",
+		inSrc: &copyTest{
+			StringMap: map[string]*copyTest{},
+		},
+		inDst: &copyTest{},
+		inOpts: []MergeOpt{
+			&MergeEmptyMaps{},
+		},
+		wantDst: &copyTest{
+			StringMap: map[string]*copyTest{},
+		},
+	}, {
+		name:  "dst single-key map with no elements",
+		inSrc: &copyTest{},
+		inDst: &copyTest{
+			StringMap: map[string]*copyTest{},
+		},
+		inOpts: []MergeOpt{
+			&MergeEmptyMaps{},
+		},
+		wantDst: &copyTest{
+			StringMap: map[string]*copyTest{},
+		},
+	}, {
+		name: "dst struct map with no elements",
+		inSrc: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{},
+		},
+		inDst: &copyTest{},
+		inOpts: []MergeOpt{
+			&MergeEmptyMaps{},
+		},
+		wantDst: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{},
+		},
+	}, {
+		name:  "src struct map with no elements",
+		inSrc: &copyTest{},
+		inDst: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{},
+		},
+		inOpts: []MergeOpt{
+			&MergeEmptyMaps{},
+		},
+		wantDst: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{},
+		},
+	}}
 
 	for _, tt := range tests {
 		dst, src := reflect.ValueOf(tt.inDst).Elem(), reflect.ValueOf(tt.inSrc).Elem()
@@ -1867,7 +1943,7 @@ func TestCopyStruct(t *testing.T) {
 			continue
 		}
 
-		if diff := pretty.Compare(dst.Interface(), wantDst.Interface()); diff != "" {
+		if diff := cmp.Diff(dst.Interface(), wantDst.Interface()); diff != "" {
 			t.Errorf("%s: copyStruct(%v, %v): did not get expected copied struct, diff(-got,+want):\n%s", tt.name, tt.inSrc, tt.inDst, diff)
 		}
 	}
