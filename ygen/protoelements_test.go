@@ -135,6 +135,21 @@ func TestYangTypeToProtoType(t *testing.T) {
 		wantWrapper: &MappedType{NativeType: "ywrapper.StringValue"},
 		wantSame:    true,
 	}, {
+		name: "union of string, unsupported instance identifier",
+		in: []resolveTypeArgs{
+			{
+				yangType: &yang.YangType{
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{
+						{Kind: yang.Ystring, Name: "string"},
+						{Kind: yang.YinstanceIdentifier, Name: "inst-ident"},
+					},
+				},
+			},
+		},
+		wantErr:  true,
+		wantSame: true,
+	}, {
 		name: "enumeration in union as the lone type with default",
 		in: []resolveTypeArgs{{
 			contextEntry: &yang.Entry{
@@ -590,7 +605,9 @@ func TestYangTypeToProtoType(t *testing.T) {
 				return
 			}
 
-			s := NewProtoLangMapper(st, enumSet)
+			s := NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
+			s.SetSchemaTree(st)
+			s.SetEnumSet(enumSet)
 
 			for _, st := range tt.in {
 				gotWrapper, err := s.yangTypeToProtoType(st, rpt, IROptions{
@@ -733,7 +750,8 @@ func TestProtoMsgName(t *testing.T) {
 
 	for _, tt := range tests {
 		for compress, want := range map[bool]string{true: tt.wantCompress, false: tt.wantUncompress} {
-			s := NewProtoLangMapper(nil, nil)
+			s := NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
+
 			// Seed the proto message names with some known input.
 			if tt.inUniqueProtoMsgNames != nil {
 				s.uniqueProtoMsgNames = tt.inUniqueProtoMsgNames
@@ -868,7 +886,7 @@ func TestProtoPackageName(t *testing.T) {
 
 	for _, tt := range tests {
 		for compress, want := range map[bool]string{true: tt.wantCompress, false: tt.wantUncompress} {
-			s := NewProtoLangMapper(nil, nil)
+			s := NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
 			if tt.inDefinedGlobals != nil {
 				s.definedGlobals = tt.inDefinedGlobals
 			}

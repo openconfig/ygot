@@ -1363,7 +1363,8 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				}
 				gogen := NewGoLangMapper(true)
 				gogen.SetSchemaTree(st)
-				protogen := NewProtoLangMapper(st, nil)
+				protogen := NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
+				protogen.SetSchemaTree(st)
 
 				structs := make(map[string]*yang.Entry)
 				enums := make(map[string]*yang.Entry)
@@ -1507,17 +1508,6 @@ func enumMapFromArgs(args []resolveTypeArgs) map[string]*yang.Entry {
 func enumMapFromEntry(entry *yang.Entry) map[string]*yang.Entry {
 	enumMap := map[string]*yang.Entry{}
 	addEnumsToEnumMap(entry, enumMap)
-	return enumMap
-}
-
-// enumMapFromEntries recursively finds enumerated values from a directory and
-// returns an enumMap. The input enumMap is intended for findEnumSet.
-func enumMapFromDirectory(dir *Directory) map[string]*yang.Entry {
-	enumMap := map[string]*yang.Entry{}
-	addEnumsToEnumMap(dir.Entry, enumMap)
-	for _, e := range dir.Fields {
-		addEnumsToEnumMap(e, enumMap)
-	}
 	return enumMap
 }
 

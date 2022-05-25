@@ -192,6 +192,20 @@ func protoIR(nestedDirectories bool) *IR {
 						ShadowMappedPaths:       nil,
 						ShadowMappedPathModules: nil,
 					},
+					"unkeyed-list": {
+						Name: "unkeyed_list",
+						YANGDetails: YANGNodeDetails{
+							Name:              "unkeyed-list",
+							BelongingModule:   "openconfig-complex",
+							RootElementModule: "openconfig-complex",
+							DefiningModule:    "openconfig-complex",
+							Path:              "/openconfig-complex/model/c/unkeyed-list",
+							SchemaPath:        "/model/c/unkeyed-list",
+						},
+						Type:              ListNode,
+						MappedPaths:       [][]string{{"", "model", "c", "unkeyed-list"}},
+						MappedPathModules: [][]string{{"", "openconfig-complex", "openconfig-complex", "openconfig-complex"}},
+					},
 				},
 				ListKeys:          nil,
 				PackageName:       "",
@@ -668,7 +682,7 @@ func protoIR(nestedDirectories bool) *IR {
 							ShadowSchemaPath:  "/model/b/multi-key/state/key1",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Type:              &YANGType{Name: "uint32"},
+							Type:              &YANGType{Name: "union"},
 						},
 						Type:     LeafNode,
 						LangType: &MappedType{NativeType: "ywrapper.UintValue"},
@@ -787,6 +801,34 @@ func protoIR(nestedDirectories bool) *IR {
 				RootElementModule: "openconfig-complex",
 				DefiningModule:    "openconfig-complex",
 			},
+			"/openconfig-complex/model/c/unkeyed-list": {
+				Name: "UnkeyedList",
+				Type: List,
+				Path: "/openconfig-complex/model/c/unkeyed-list",
+				Fields: map[string]*NodeDetails{
+					"field": {
+						Name: "field",
+						YANGDetails: YANGNodeDetails{
+							Name:              "field",
+							BelongingModule:   "openconfig-complex",
+							RootElementModule: "openconfig-complex",
+							DefiningModule:    "openconfig-complex",
+							Path:              "/openconfig-complex/model/c/unkeyed-list/field",
+							SchemaPath:        "/model/c/unkeyed-list/field",
+							Type:              &YANGType{Name: "binary"},
+						},
+						Type:              LeafNode,
+						LangType:          &MappedType{NativeType: "ywrapper.BytesValue"},
+						MappedPaths:       [][]string{{"", "model", "c", "unkeyed-list", "field"}},
+						MappedPathModules: [][]string{{"", "openconfig-complex", "openconfig-complex", "openconfig-complex", "openconfig-complex"}},
+					},
+				},
+				PackageName:       packageName,
+				BelongingModule:   "openconfig-complex",
+				RootElementModule: "openconfig-complex",
+				DefiningModule:    "openconfig-complex",
+				ConfigFalse:       true,
+			},
 		},
 		Enums: map[string]*EnumeratedYANGType{
 			"/openconfig-complex/cyclone-scales": {
@@ -797,10 +839,12 @@ func protoIR(nestedDirectories bool) *IR {
 					{
 						Name:           "NORMAL",
 						DefiningModule: "",
+						Value:          0,
 					},
 					{
 						Name:           "SUPER",
 						DefiningModule: "",
+						Value:          1,
 					},
 				},
 			},
@@ -820,10 +864,12 @@ func protoIR(nestedDirectories bool) *IR {
 					{
 						Name:           "RED",
 						DefiningModule: "",
+						Value:          0,
 					},
 					{
 						Name:           "BLUE",
 						DefiningModule: "",
+						Value:          1,
 					},
 				},
 			},
@@ -835,10 +881,12 @@ func protoIR(nestedDirectories bool) *IR {
 					{
 						Name:           "SATURDAY",
 						DefiningModule: "",
+						Value:          0,
 					},
 					{
 						Name:           "SUNDAY",
 						DefiningModule: "",
+						Value:          1,
 					},
 				},
 			},
@@ -850,14 +898,17 @@ func protoIR(nestedDirectories bool) *IR {
 					{
 						Name:           "ONE",
 						DefiningModule: "",
+						Value:          0,
 					},
 					{
 						Name:           "TWO",
 						DefiningModule: "",
+						Value:          1,
 					},
 					{
 						Name:           "THREE",
 						DefiningModule: "",
+						Value:          2,
 					},
 				},
 			},
@@ -869,14 +920,17 @@ func protoIR(nestedDirectories bool) *IR {
 					{
 						Name:           "UN",
 						DefiningModule: "",
+						Value:          0,
 					},
 					{
 						Name:           "DEUX",
 						DefiningModule: "",
+						Value:          1,
 					},
 					{
 						Name:           "TROIS",
 						DefiningModule: "",
+						Value:          2,
 					},
 				},
 			},
@@ -1183,9 +1237,11 @@ func TestGenerateIR(t *testing.T) {
 					Kind:     SimpleEnumerationType,
 					TypeName: "enumeration",
 					ValToYANGDetails: []ygot.EnumDefinition{{
-						Name: "ONE",
+						Name:  "ONE",
+						Value: 0,
 					}, {
-						Name: "TWO",
+						Name:  "TWO",
+						Value: 1,
 					}},
 				},
 			},
@@ -1476,9 +1532,11 @@ func TestGenerateIR(t *testing.T) {
 					Kind:     SimpleEnumerationType,
 					TypeName: "enumeration",
 					ValToYANGDetails: []ygot.EnumDefinition{{
-						Name: "ONE",
+						Name:  "ONE",
+						Value: 0,
 					}, {
-						Name: "TWO",
+						Name:  "TWO",
+						Value: 1,
 					}},
 				},
 			},
@@ -1994,10 +2052,16 @@ func TestGenerateIR(t *testing.T) {
 			},
 			Enums: map[string]*EnumeratedYANGType{
 				"/openconfig-simple/parent-config/three": {
-					Name:             "Simple_Parent_Child_Config_Three",
-					Kind:             1,
-					TypeName:         "enumeration",
-					ValToYANGDetails: []ygot.EnumDefinition{{Name: "ONE"}, {Name: "TWO"}},
+					Name:     "Simple_Parent_Child_Config_Three",
+					Kind:     1,
+					TypeName: "enumeration",
+					ValToYANGDetails: []ygot.EnumDefinition{{
+						Name:  "ONE",
+						Value: 0,
+					}, {
+						Name:  "TWO",
+						Value: 1,
+					}},
 				},
 			},
 			ModelData: []*gpb.ModelData{{Name: "openconfig-remote"}, {Name: "openconfig-simple"}, {Name: "openconfig-simple-augment2"}, {Name: "openconfig-simple-grouping"}},
@@ -2230,6 +2294,20 @@ func TestGenerateIR(t *testing.T) {
 							MappedPathModules:       [][]string{{"openconfig-complex", "openconfig-complex"}},
 							ShadowMappedPaths:       nil,
 							ShadowMappedPathModules: nil,
+						},
+						"unkeyed-list": {
+							Name: "UnkeyedList",
+							YANGDetails: YANGNodeDetails{
+								Name:              "unkeyed-list",
+								BelongingModule:   "openconfig-complex",
+								RootElementModule: "openconfig-complex",
+								DefiningModule:    "openconfig-complex",
+								Path:              "/openconfig-complex/model/c/unkeyed-list",
+								SchemaPath:        "/model/c/unkeyed-list",
+							},
+							Type:              ListNode,
+							MappedPaths:       [][]string{{"c", "unkeyed-list"}},
+							MappedPathModules: [][]string{{"openconfig-complex", "openconfig-complex"}},
 						},
 					},
 					ListKeys:          nil,
@@ -2528,10 +2606,14 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/model/b/multi-key/state/key1",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "uint32"},
+								Type:              &YANGType{Name: "union"},
 							},
-							Type:                    LeafNode,
-							LangType:                &MappedType{NativeType: "uint32", ZeroValue: "0"},
+							Type: LeafNode,
+							LangType: &MappedType{
+								NativeType: "uint32",
+								UnionTypes: map[string]int{"uint32": 0},
+								ZeroValue:  "0",
+							},
 							MappedPaths:             [][]string{{"config", "key1"}, {"key1"}},
 							MappedPathModules:       [][]string{{"openconfig-complex", "openconfig-complex"}, {"openconfig-complex"}},
 							ShadowMappedPaths:       [][]string{{"state", "key1"}, {"key1"}},
@@ -2562,8 +2644,12 @@ func TestGenerateIR(t *testing.T) {
 					},
 					ListKeys: map[string]*ListKey{
 						"key1": {
-							Name:     "Key1",
-							LangType: &MappedType{NativeType: "uint32", ZeroValue: "0"},
+							Name: "Key1",
+							LangType: &MappedType{
+								NativeType: "uint32",
+								UnionTypes: map[string]int{"uint32": 0},
+								ZeroValue:  "0",
+							},
 						},
 						"key2": {
 							Name:     "Key2",
@@ -2577,6 +2663,33 @@ func TestGenerateIR(t *testing.T) {
 					RootElementModule: "openconfig-complex",
 					DefiningModule:    "openconfig-complex",
 				},
+				"/openconfig-complex/model/c/unkeyed-list": {
+					Name: "Model_UnkeyedList",
+					Type: List,
+					Path: "/openconfig-complex/model/c/unkeyed-list",
+					Fields: map[string]*NodeDetails{
+						"field": {
+							Name: "Field",
+							YANGDetails: YANGNodeDetails{
+								Name:              "field",
+								BelongingModule:   "openconfig-complex",
+								RootElementModule: "openconfig-complex",
+								DefiningModule:    "openconfig-complex",
+								Path:              "/openconfig-complex/model/c/unkeyed-list/field",
+								SchemaPath:        "/model/c/unkeyed-list/field",
+								Type:              &YANGType{Name: "binary"},
+							},
+							Type:              LeafNode,
+							LangType:          &MappedType{NativeType: "Binary", ZeroValue: "nil"},
+							MappedPaths:       [][]string{{"field"}},
+							MappedPathModules: [][]string{{"openconfig-complex"}},
+						},
+					},
+					BelongingModule:   "openconfig-complex",
+					RootElementModule: "openconfig-complex",
+					DefiningModule:    "openconfig-complex",
+					ConfigFalse:       true,
+				},
 			},
 			Enums: map[string]*EnumeratedYANGType{
 				"/openconfig-complex/cyclone-scales": {
@@ -2587,10 +2700,12 @@ func TestGenerateIR(t *testing.T) {
 						{
 							Name:           "NORMAL",
 							DefiningModule: "",
+							Value:          0,
 						},
 						{
 							Name:           "SUPER",
 							DefiningModule: "",
+							Value:          1,
 						},
 					},
 				},
@@ -2610,10 +2725,12 @@ func TestGenerateIR(t *testing.T) {
 						{
 							Name:           "RED",
 							DefiningModule: "",
+							Value:          0,
 						},
 						{
 							Name:           "BLUE",
 							DefiningModule: "",
+							Value:          1,
 						},
 					},
 				},
@@ -2625,10 +2742,12 @@ func TestGenerateIR(t *testing.T) {
 						{
 							Name:           "SATURDAY",
 							DefiningModule: "",
+							Value:          0,
 						},
 						{
 							Name:           "SUNDAY",
 							DefiningModule: "",
+							Value:          1,
 						},
 					},
 				},
@@ -2640,14 +2759,17 @@ func TestGenerateIR(t *testing.T) {
 						{
 							Name:           "ONE",
 							DefiningModule: "",
+							Value:          0,
 						},
 						{
 							Name:           "TWO",
 							DefiningModule: "",
+							Value:          1,
 						},
 						{
 							Name:           "THREE",
 							DefiningModule: "",
+							Value:          2,
 						},
 					},
 				},
@@ -2659,14 +2781,17 @@ func TestGenerateIR(t *testing.T) {
 						{
 							Name:           "UN",
 							DefiningModule: "",
+							Value:          0,
 						},
 						{
 							Name:           "DEUX",
 							DefiningModule: "",
+							Value:          1,
 						},
 						{
 							Name:           "TROIS",
 							DefiningModule: "",
+							Value:          2,
 						},
 					},
 				},
@@ -2677,10 +2802,7 @@ func TestGenerateIR(t *testing.T) {
 		desc:        "complex openconfig test with compression using ProtoLangMapper with nested directories",
 		inYANGFiles: []string{filepath.Join(datapath, "openconfig-complex.yang")},
 		inLangMapper: func() LangMapper {
-			lm := NewProtoLangMapper(nil, nil)
-			lm.basePackageName = DefaultBasePackageName
-			lm.enumPackageName = DefaultEnumPackageName
-			return lm
+			return NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
 		}(),
 		inOpts: IROptions{
 			NestedDirectories: true,
@@ -2700,10 +2822,7 @@ func TestGenerateIR(t *testing.T) {
 		desc:        "complex openconfig test with compression using ProtoLangMapper",
 		inYANGFiles: []string{filepath.Join(datapath, "openconfig-complex.yang")},
 		inLangMapper: func() LangMapper {
-			lm := NewProtoLangMapper(nil, nil)
-			lm.basePackageName = DefaultBasePackageName
-			lm.enumPackageName = DefaultEnumPackageName
-			return lm
+			return NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
 		}(),
 		inOpts: IROptions{
 			NestedDirectories: false,
@@ -2726,10 +2845,7 @@ func TestGenerateIR(t *testing.T) {
 			filepath.Join(datapath, "openconfig-simple-augment2.yang"),
 		},
 		inLangMapper: func() LangMapper {
-			lm := NewProtoLangMapper(nil, nil)
-			lm.basePackageName = DefaultBasePackageName
-			lm.enumPackageName = DefaultEnumPackageName
-			return lm
+			return NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
 		}(),
 		inOpts: IROptions{
 			TransformationOptions: TransformationOpts{
@@ -3238,10 +3354,16 @@ func TestGenerateIR(t *testing.T) {
 			},
 			Enums: map[string]*EnumeratedYANGType{
 				"/openconfig-simple/parent-config/three": {
-					Name:             "Simple_Parent_Child_Config_Three",
-					Kind:             1,
-					TypeName:         "enumeration",
-					ValToYANGDetails: []ygot.EnumDefinition{{Name: "ONE"}, {Name: "TWO"}},
+					Name:     "Simple_Parent_Child_Config_Three",
+					Kind:     1,
+					TypeName: "enumeration",
+					ValToYANGDetails: []ygot.EnumDefinition{{
+						Name:  "ONE",
+						Value: 0,
+					}, {
+						Name:  "TWO",
+						Value: 1,
+					}},
 				},
 			},
 			ModelData: []*gpb.ModelData{{Name: "openconfig-remote"}, {Name: "openconfig-simple"}, {Name: "openconfig-simple-augment2"}, {Name: "openconfig-simple-grouping"}},
@@ -3255,7 +3377,7 @@ func TestGenerateIR(t *testing.T) {
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("did not get expected error, %s", diff)
 			}
-			if diff := cmp.Diff(got, tt.wantIR, cmpopts.IgnoreUnexported(IR{}, ParsedDirectory{}), protocmp.Transform()); diff != "" {
+			if diff := cmp.Diff(got, tt.wantIR, cmpopts.IgnoreUnexported(IR{}, ParsedDirectory{}, EnumeratedYANGType{}), protocmp.Transform()); diff != "" {
 				t.Fatalf("did not get expected IR, diff(-got,+want):\n%s", diff)
 			}
 		})

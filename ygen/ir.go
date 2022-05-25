@@ -15,6 +15,7 @@
 package ygen
 
 import (
+	"fmt"
 	"sort"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -72,22 +73,6 @@ type LangMapper interface {
 	// directories will be nested or not since some languages allow nested
 	// structs.
 	PackageName(*yang.Entry, genutil.CompressBehaviour, bool) (string, error)
-
-	// TODO(wenbli): Add this.
-	// EnumeratedValueName maps an input string representing an enumerated
-	// value to a language-safe name for the enumerated value. This function
-	// should ensure that the returned string is sanitised to ensure that
-	// it can be directly output in the generated code.
-	//EnumeratedValueName(string) (string, error)
-
-	// TODO(wenbli): Consider removing this from the IR since the prefix
-	// can depend on the type of the enumeration, so it might make sense to
-	// have the code generation stage do this instead.
-	// EnumeratedTypePrefix specifies a prefix that should be used as a
-	// prefix to types that are mapped from the YANG schema. The prefix
-	// is applied only to the type name - and not to the values within
-	// the enumeration.
-	//EnumeratedTypePrefix(EnumeratedValueType) string
 
 	// SetEnumSet is used to supply a set of enumerated values to the
 	// mapper such that leaves that have enumerated types can be looked up.
@@ -283,6 +268,34 @@ func (d *ParsedDirectory) OrderedFieldNames() []string {
 	return fieldNames
 }
 
+// OrderedFieldNames returns the YANG name of all child directories for
+// ParsedDirectory in lexicographical order.
+// It returns an error if any child directory field doesn't exist in the input IR.
+func (d *ParsedDirectory) ChildDirectories(ir *IR) ([]*ParsedDirectory, error) {
+	var childDirs []*ParsedDirectory
+	for _, fieldName := range d.OrderedFieldNames() {
+		if field := d.Fields[fieldName]; field.Type == ContainerNode || field.Type == ListNode {
+			childDir, ok := ir.Directories[field.YANGDetails.Path]
+			if !ok {
+				return nil, fmt.Errorf("%s field %q with path %q not found in input IR", field.Type, fieldName, field.YANGDetails.Path)
+			}
+			childDirs = append(childDirs, childDir)
+		}
+	}
+	return childDirs, nil
+}
+
+// OrderedFieldNames returns the YANG name of all key fields belonging to the
+// ParsedDirectory in lexicographical order.
+func (d *ParsedDirectory) OrderedListKeyNames() []string {
+	keyNames := []string{}
+	for name := range d.ListKeys {
+		keyNames = append(keyNames, name)
+	}
+	sort.Strings(keyNames)
+	return keyNames
+}
+
 type ListKey struct {
 	// Name is the candidate language-specific name of the list key leaf.
 	Name string
@@ -351,6 +364,10 @@ type NodeDetails struct {
 	// Shadow paths are paths that have sibling config/state values
 	// that have been compressed out due to path compression.
 	ShadowMappedPathModules [][]string
+	// TODO(wenbli): Think about how to add this in an easily-usable way.
+	// Flags contains extra information that can be populated by the
+	// LangMapper during IR generation to assist the code generation stage.
+	//Flags map[string]string
 }
 
 // NodeType describes the different types of node that can
@@ -466,6 +483,7 @@ type YANGNodeDetails struct {
 	// Type is the YANG type which represents the node. It is only
 	// applicable for leaf or leaf-list nodes because only these nodes can
 	// have type statements.
+	// TODO(wenbli): This needs to be replaced using a plugin mechanism.
 	Type *YANGType
 }
 
@@ -502,6 +520,25 @@ const (
 	IdentityType
 )
 
+func (n EnumeratedValueType) String() string {
+	switch n {
+	case UnknownEnumerationType:
+		return "unknown enumeration type"
+	case SimpleEnumerationType:
+		return "simple enumeration"
+	case DerivedEnumerationType:
+		return "derived enumeration"
+	case UnionEnumerationType:
+		return "union enumeration"
+	case DerivedUnionEnumerationType:
+		return "derived union enumeration"
+	case IdentityType:
+		return "identity"
+	default:
+		return "unspecified enumeration type"
+	}
+}
+
 // EnumeratedYANGType is an abstract representation of an enumerated
 // type to be produced in the output code.
 type EnumeratedYANGType struct {
@@ -513,10 +550,20 @@ type EnumeratedYANGType struct {
 	// generation mechanism to select how different enumerated
 	// value types are output.
 	Kind EnumeratedValueType
+	// TODO(wenbli): This needs to be replaced using a plugin mechanism.
+	identityBaseName string
 	// TypeName stores the original YANG type name for the enumeration.
 	TypeName string
+	// TypeDefaultValue stores the default value of the enum type's default
+	// statement (note: this is different from the default statement of the
+	// leaf type).
+	TypeDefaultValue string
 	// ValToYANGDetails stores the YANG-ordered set of enumeration value
 	// and its YANG-specific details (as defined by the
 	// ygot.EnumDefinition).
 	ValToYANGDetails []ygot.EnumDefinition
+	// TODO(wenbli): Think about how to add this in an easily-usable way.
+	// Flags contains extra information that can be populated by the
+	// LangMapper during IR generation to assist the code generation stage.
+	//Flags map[string]string
 }

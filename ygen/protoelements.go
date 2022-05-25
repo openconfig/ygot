@@ -61,14 +61,14 @@ type ProtoLangMapper struct {
 
 // NewProtoLangMapper creates a new ProtoLangMapper instance, initialised with the
 // default state required for code generation.
-func NewProtoLangMapper(schematree *schemaTree, eSet *enumSet) *ProtoLangMapper {
+func NewProtoLangMapper(basePackageName, enumPackageName string) *ProtoLangMapper {
 	return &ProtoLangMapper{
-		enumSet:              eSet,
-		schematree:           schematree,
 		definedGlobals:       map[string]bool{},
 		uniqueDirectoryNames: map[string]string{},
 		uniqueProtoMsgNames:  map[string]map[string]bool{},
 		uniqueProtoPackages:  map[string]string{},
+		basePackageName:      basePackageName,
+		enumPackageName:      enumPackageName,
 	}
 }
 
