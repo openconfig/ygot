@@ -53,12 +53,6 @@ type IROptions struct {
 	// to true.
 	// NOTE: This flag will be removed by v1 release.
 	AppendEnumSuffixForSimpleUnionEnums bool
-
-	// UseConsistentNamesForProtoUnionEnums, when set, avoids using the schema
-	// path as the name of enumerations under unions in generated proto
-	// code, and also appends a suffix to non-typedef union enums.
-	// NOTE: This flag will be removed by v1 release.
-	UseConsistentNamesForProtoUnionEnums bool
 }
 
 // GenerateIR creates the ygen intermediate representation for a set of
@@ -85,7 +79,7 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 		return nil, errs
 	}
 
-	enumSet, genEnums, errs := findEnumSet(mdef.enumEntries, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.AppendEnumSuffixForSimpleUnionEnums, opts.UseConsistentNamesForProtoUnionEnums, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+	enumSet, genEnums, errs := findEnumSet(mdef.enumEntries, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.AppendEnumSuffixForSimpleUnionEnums, opts.TransformationOptions.EnumOrgPrefixesToTrim)
 	if errs != nil {
 		return nil, errs
 	}
@@ -120,8 +114,12 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 			Kind:     enum.kind,
 			TypeName: enum.entry.Type.Name,
 		}
-		if _, ok := enumDefinitionMap[et.Name]; ok {
+		if _, ok := enumDefinitionMap[enum.id]; ok {
 			return nil, util.AppendErr(errs, fmt.Errorf("Enumeration already created: "+et.Name))
+		}
+
+		if defaultValue, ok := enum.entry.SingleDefaultValue(); ok {
+			et.TypeDefaultValue = defaultValue
 		}
 
 		switch {
@@ -133,17 +131,9 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 			continue
 		}
 
-		if a, ok := enum.entry.Annotation["valuePrefix"]; ok {
-			s, ok := a.([]string)
-			if !ok {
-				errs = append(errs, fmt.Errorf("invalid annotation for valuePrefix of type %T, %v", a, a))
-				continue
-			}
-			et.ValuePrefix = s
-		}
-
 		switch {
 		case enum.entry.Type.IdentityBase != nil:
+			et.identityBaseName = enum.entry.Type.IdentityBase.Name
 			// enum corresponds to an identityref - hence the values are defined
 			// based on the values that the identity has. Since there is no explicit ordering
 			// in an identity, then we go through and put the values in alphabetical order in
@@ -173,12 +163,13 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 			sort.Ints(values)
 			for _, v := range values {
 				et.ValToYANGDetails = append(et.ValToYANGDetails, ygot.EnumDefinition{
-					Name: enum.entry.Type.Enum.ValueMap()[int64(v)],
+					Name:  enum.entry.Type.Enum.ValueMap()[int64(v)],
+					Value: v,
 				})
 			}
 		}
 
-		enumDefinitionMap[et.Name] = et
+		enumDefinitionMap[enum.id] = et
 	}
 
 	if errs != nil {

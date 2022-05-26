@@ -319,6 +319,8 @@ func (s *GoLangMapper) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, s
 		// here.
 		mtype.ZeroValue = "0"
 		mtype.DefaultValue = defVal
+		// Erase this since we don't need it for Go's IR.
+		mtype.EnumeratedYANGTypeKey = ""
 
 		return mtype, nil
 	}
@@ -362,7 +364,7 @@ func (s *GoLangMapper) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, s
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map enum without context")
 		}
-		n, err := s.enumSet.enumName(args.contextEntry, compressOCPaths, false, skipEnumDedup, shortenEnumLeafNames, false, enumOrgPrefixesToTrim)
+		n, _, err := s.enumSet.enumName(args.contextEntry, compressOCPaths, false, skipEnumDedup, shortenEnumLeafNames, false, enumOrgPrefixesToTrim)
 		if err != nil {
 			return nil, err
 		}
@@ -379,7 +381,7 @@ func (s *GoLangMapper) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, s
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map identityref without context")
 		}
-		n, err := s.enumSet.identityrefBaseTypeFromLeaf(args.contextEntry)
+		n, _, err := s.enumSet.identityrefBaseTypeFromLeaf(args.contextEntry)
 		if err != nil {
 			return nil, err
 		}
@@ -515,7 +517,7 @@ func (s *GoLangMapper) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, 
 		// to map enumerated types to their module. This occurs in the case that the subtype
 		// is an identityref - in this case, the context entry that we are carrying is the
 		// leaf that refers to the union, not the specific subtype that is now being examined.
-		baseType, err := s.enumSet.identityrefBaseTypeFromIdentity(subtype.IdentityBase)
+		baseType, _, err := s.enumSet.identityrefBaseTypeFromIdentity(subtype.IdentityBase)
 		if err != nil {
 			return append(errs, err)
 		}
@@ -713,7 +715,7 @@ func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, 
 		if !args.yangType.Enum.IsDefined(value) {
 			return "", yang.Ynone, fmt.Errorf("default value conversion: enum value %q not found in enum with type name %q", value, args.yangType.Name)
 		}
-		n, err := s.enumSet.enumName(args.contextEntry, compressOCPaths, false, skipEnumDedup, shortenEnumLeafNames, false, enumOrgPrefixesToTrim)
+		n, _, err := s.enumSet.enumName(args.contextEntry, compressOCPaths, false, skipEnumDedup, shortenEnumLeafNames, false, enumOrgPrefixesToTrim)
 		if err != nil {
 			return "", yang.Ynone, err
 		}
@@ -731,7 +733,7 @@ func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, 
 		if !args.yangType.IdentityBase.IsDefined(value) {
 			return "", yang.Ynone, fmt.Errorf("default value conversion: identity value %q not found in enum with type name %q", value, args.yangType.Name)
 		}
-		n, err := s.enumSet.identityrefBaseTypeFromIdentity(args.yangType.IdentityBase)
+		n, _, err := s.enumSet.identityrefBaseTypeFromIdentity(args.yangType.IdentityBase)
 		if err != nil {
 			return "", yang.Ynone, err
 		}

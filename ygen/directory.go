@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
@@ -48,8 +49,8 @@ type Directory struct {
 
 // isChildOfModule determines whether the Directory represents a container
 // or list member that is the direct child of a module entry.
-func (y *Directory) isChildOfModule() bool {
-	if y.IsFakeRoot || len(y.Path) == 3 {
+func (y *ParsedDirectory) isChildOfModule() bool {
+	if y.IsFakeRoot || len(strings.Split(y.Path, "/")) == 3 {
 		// If the message has a path length of 3, then it is a top-level entity
 		// within a module, since the  path is in the format []{"", <module>, <element>}.
 		return true
@@ -186,6 +187,7 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 			BelongingModule:   belongingModule,
 			DefiningModule:    definingModuleName,
 			RootElementModule: rootModule,
+			ConfigFalse:       !util.IsConfig(dir.Entry),
 		}
 		switch {
 		case dir.Entry.IsList():
@@ -201,6 +203,7 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 		pd.Fields = make(map[string]*NodeDetails, len(dir.Fields))
 		for _, fn := range GetOrderedFieldNames(dir) {
 			field := dir.Fields[fn]
+			shadowField, hasShadowField := dir.ShadowedFields[fn]
 
 			mp, mm, err := findMapPaths(dir, fn, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), false, opts.AbsoluteMapPaths)
 			if err != nil {
@@ -250,6 +253,9 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 				MappedPathModules:       mm,
 				ShadowMappedPaths:       smp,
 				ShadowMappedPathModules: smm,
+			}
+			if hasShadowField {
+				nd.YANGDetails.ShadowSchemaPath = util.SchemaTreePathNoModule(shadowField)
 			}
 
 			switch {

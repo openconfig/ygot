@@ -559,6 +559,20 @@ type MergeOverwriteExistingFields struct{}
 // IsMergeOpt marks MergeStructOpt as a MergeOpt.
 func (*MergeOverwriteExistingFields) IsMergeOpt() {}
 
+// MergeEmptyMaps is a MergeOpt that allows control of the merge behaviour
+// of MergeStructs and MergeStructInto functions.
+//
+// When used, if both the destination struct and the source struct has an empty
+// map field, but it is non-nil in either one, then that map field in the
+// destination will always be populated with an empty, non-nil map value.
+//
+// NOTE: Since YANG doesn't distinguish between a nil map and an empty map,
+// please consider another approach before using this option.
+type MergeEmptyMaps struct{}
+
+// IsMergeOpt marks MergeEmptyMaps as a MergeOpt.
+func (*MergeEmptyMaps) IsMergeOpt() {}
+
 // MergeStructs takes two input GoStruct and merges their contents,
 // returning a new GoStruct. If the input structs a and b are of
 // different types, an error is returned.
@@ -616,6 +630,18 @@ func fieldOverwriteEnabled(opts []MergeOpt) bool {
 	for _, o := range opts {
 		switch o.(type) {
 		case *MergeOverwriteExistingFields:
+			return true
+		}
+	}
+	return false
+}
+
+// mergeEmptyMapsEnabled returns true if MergeEmptyMaps
+// is present in the slice of MergeOpt.
+func mergeEmptyMapsEnabled(opts []MergeOpt) bool {
+	for _, o := range opts {
+		switch o.(type) {
+		case *MergeEmptyMaps:
 			return true
 		}
 	}
@@ -795,8 +821,11 @@ func copyMapField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 	}
 
 	// Skip cases where there are empty maps in both src and dst.
+	// Exception: user wants an empty map to be merged as well.
 	if srcField.Len() == 0 && dstField.Len() == 0 {
-		return nil
+		if !mergeEmptyMapsEnabled(opts) || srcField.IsNil() {
+			return nil
+		}
 	}
 
 	m, err := validateMap(srcField, dstField)

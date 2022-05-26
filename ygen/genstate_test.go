@@ -1363,7 +1363,8 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				}
 				gogen := NewGoLangMapper(true)
 				gogen.SetSchemaTree(st)
-				protogen := newProtoGenState(st, nil)
+				protogen := NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
+				protogen.SetSchemaTree(st)
 
 				structs := make(map[string]*yang.Entry)
 				enums := make(map[string]*yang.Entry)
@@ -1392,10 +1393,9 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 							UseDefiningModuleForTypedefEnumNames: true,
 							EnumOrgPrefixesToTrim:                nil,
 						},
-						NestedDirectories:                    false,
-						AbsoluteMapPaths:                     false,
-						AppendEnumSuffixForSimpleUnionEnums:  true,
-						UseConsistentNamesForProtoUnionEnums: false,
+						NestedDirectories:                   false,
+						AbsoluteMapPaths:                    false,
+						AppendEnumSuffixForSimpleUnionEnums: true,
 					})
 				case protobuf:
 					got, errs = buildDirectoryDefinitions(protogen, structs, IROptions{
@@ -1409,10 +1409,9 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 							UseDefiningModuleForTypedefEnumNames: true,
 							EnumOrgPrefixesToTrim:                nil,
 						},
-						NestedDirectories:                    true,
-						AbsoluteMapPaths:                     true,
-						AppendEnumSuffixForSimpleUnionEnums:  true,
-						UseConsistentNamesForProtoUnionEnums: true,
+						NestedDirectories:                   true,
+						AbsoluteMapPaths:                    true,
+						AppendEnumSuffixForSimpleUnionEnums: true,
 					})
 				}
 				if errs != nil {
@@ -1509,17 +1508,6 @@ func enumMapFromArgs(args []resolveTypeArgs) map[string]*yang.Entry {
 func enumMapFromEntry(entry *yang.Entry) map[string]*yang.Entry {
 	enumMap := map[string]*yang.Entry{}
 	addEnumsToEnumMap(entry, enumMap)
-	return enumMap
-}
-
-// enumMapFromEntries recursively finds enumerated values from a directory and
-// returns an enumMap. The input enumMap is intended for findEnumSet.
-func enumMapFromDirectory(dir *Directory) map[string]*yang.Entry {
-	enumMap := map[string]*yang.Entry{}
-	addEnumsToEnumMap(dir.Entry, enumMap)
-	for _, e := range dir.Fields {
-		addEnumsToEnumMap(e, enumMap)
-	}
 	return enumMap
 }
 
@@ -2271,7 +2259,7 @@ func TestBuildListKey(t *testing.T) {
 			}
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.in, enumMap)
-			enumSet, _, errs := findEnumSet(enumMap, tt.inCompress, false, tt.inSkipEnumDedup, true, true, true, true, nil)
+			enumSet, _, errs := findEnumSet(enumMap, tt.inCompress, false, tt.inSkipEnumDedup, true, true, true, nil)
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)
@@ -2299,10 +2287,9 @@ func TestBuildListKey(t *testing.T) {
 					EnumOrgPrefixesToTrim:                nil,
 					EnumerationsUseUnderscores:           true,
 				},
-				NestedDirectories:                    false,
-				AbsoluteMapPaths:                     false,
-				AppendEnumSuffixForSimpleUnionEnums:  true,
-				UseConsistentNamesForProtoUnionEnums: false,
+				NestedDirectories:                   false,
+				AbsoluteMapPaths:                    false,
+				AppendEnumSuffixForSimpleUnionEnums: true,
 			})
 			if err != nil && !tt.wantErr {
 				t.Errorf("%s: could not build list key successfully %v", tt.name, err)
