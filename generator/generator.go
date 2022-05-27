@@ -103,7 +103,7 @@ var (
 	listBuilderKeyThreshold = flag.Uint("list_builder_key_threshold", 0, "The threshold equal or over which the path structs' builder API is used for key population. 0 means infinity. This flag is only meaningful when wildcard paths are generated.")
 	pathStructSuffix        = flag.String("path_struct_suffix", "Path", "The suffix string appended to each generated path struct in order to differentiate their names from their corresponding schema struct names.")
 	splitByModule           = flag.Bool("split_pathstructs_by_module", false, "Whether to split path struct generation by module.")
-	trimOCPackage           = flag.Bool("trim_path_package_oc_prefix", false, "Whether to trim openconfig- from generated package names, when split_pathstructs_by_module=true.")
+	trimPackagePrefix       = flag.String("trim_package_prefix", "", "Module prefix to trim from generated package names (e.g. 'openconfig-'), when split_pathstructs_by_module=true.")
 	baseImportPath          = flag.String("base_import_path", "", "Base import path used to concatenate with module package relative paths for path struct imports when split_pathstructs_by_module=true.")
 	packageSuffix           = flag.String("path_struct_package_suffix", "path", "Suffix to append to generated Go package names, when split_pathstructs_by_module=true.")
 )
@@ -442,7 +442,7 @@ func main() {
 		ListBuilderKeyThreshold: *listBuilderKeyThreshold,
 		GenerateWildcardPaths:   *generateWildcardPaths,
 		SimplifyWildcardPaths:   *simplifyWildcardPaths,
-		TrimOCPackage:           *trimOCPackage,
+		TrimPackagePrefix:       *trimPackagePrefix,
 		SplitByModule:           *splitByModule,
 		BaseImportPath:          *baseImportPath,
 		PackageSuffix:           *packageSuffix,
