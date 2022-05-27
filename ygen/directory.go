@@ -271,9 +271,6 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 
 				nd.Type = t
 				nd.LangType = mtype
-				nd.YANGDetails.Type = &YANGType{
-					Name: field.Type.Name,
-				}
 			case field.IsList():
 				nd.Type = ListNode
 			case util.IsAnydata(field):

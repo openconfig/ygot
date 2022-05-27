@@ -520,21 +520,6 @@ type YANGNodeDetails struct {
 	PresenceStatement *string
 	// Description contains the description of the node.
 	Description string
-	// Type is the YANG type which represents the node. It is only
-	// applicable for leaf or leaf-list nodes because only these nodes can
-	// have type statements.
-	// TODO(wenbli): This needs to be replaced using a plugin mechanism.
-	Type *YANGType
-}
-
-// YANGType represents a YANG type.
-type YANGType struct {
-	// Name is the YANG type name of the type.
-	Name string
-	// TODO(wenbli): Add this.
-	// Module is the name of the module which defined the type. This is
-	// only applicable if the type were a typedef.
-	//Module string
 }
 
 // EnumeratedValueType is used to indicate the source YANG type
