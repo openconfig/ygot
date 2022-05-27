@@ -849,9 +849,10 @@ func protoIR(nestedDirectories bool) *IR {
 				},
 			},
 			"/openconfig-complex/SOFTWARE": {
-				Name:     "ComplexSOFTWARE",
-				Kind:     IdentityType,
-				TypeName: "identityref",
+				Name:             "ComplexSOFTWARE",
+				Kind:             IdentityType,
+				IdentityBaseName: "SOFTWARE",
+				TypeName:         "identityref",
 				ValToYANGDetails: []ygot.EnumDefinition{
 					{Name: "OS", DefiningModule: "openconfig-complex"},
 				},
@@ -2710,9 +2711,10 @@ func TestGenerateIR(t *testing.T) {
 					},
 				},
 				"/openconfig-complex/SOFTWARE": {
-					Name:     "Complex_SOFTWARE",
-					Kind:     IdentityType,
-					TypeName: "identityref",
+					Name:             "Complex_SOFTWARE",
+					Kind:             IdentityType,
+					IdentityBaseName: "SOFTWARE",
+					TypeName:         "identityref",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{Name: "OS", DefiningModule: "openconfig-complex"},
 					},

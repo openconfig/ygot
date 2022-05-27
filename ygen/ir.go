@@ -550,8 +550,10 @@ type EnumeratedYANGType struct {
 	// generation mechanism to select how different enumerated
 	// value types are output.
 	Kind EnumeratedValueType
-	// TODO(wenbli): This needs to be replaced using a plugin mechanism.
-	identityBaseName string
+	// IdentityBaseName, which is present only when the enumerated type is
+	// an IdentityType, is the name of the base identity from which all
+	// valid identity values are derived.
+	IdentityBaseName string
 	// TypeName stores the original YANG type name for the enumeration.
 	TypeName string
 	// TypeDefaultValue stores the default value of the enum type's default
