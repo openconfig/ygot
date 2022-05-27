@@ -154,6 +154,10 @@ type GoLangMapper struct {
 	// union subtypes in the generated code instead of using wrapper types.
 	// NOTE: This flag will be removed as part of ygot's v1 release.
 	simpleUnions bool
+
+	// UnimplementedLangMapperExt ensures GoLangMapper implements the
+	// LangMapperExt interface for forwards compatibility.
+	UnimplementedLangMapperExt
 }
 
 // NewGoLangMapper creates a new GoLangMapper instance, initialised with the

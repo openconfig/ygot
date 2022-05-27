@@ -57,6 +57,10 @@ type ProtoLangMapper struct {
 	// enumPackageName is the name of the package within which global enumerated values
 	// are defined (i.e., typedefs that contain enumerations, or YANG identities).
 	enumPackageName string
+
+	// UnimplementedLangMapperExt ensures GoLangMapper implements the
+	// LangMapperExt interface for forwards compatibility.
+	UnimplementedLangMapperExt
 }
 
 // NewProtoLangMapper creates a new ProtoLangMapper instance, initialised with the

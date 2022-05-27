@@ -292,6 +292,8 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 				}
 			}
 
+			nd.Flags = langMapper.PopulateFieldFlags(*nd, field)
+
 			pd.Fields[fn] = nd
 		}
 		dirDets[dir.Entry.Path()] = pd

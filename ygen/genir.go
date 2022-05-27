@@ -169,6 +169,8 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 			}
 		}
 
+		et.Flags = langMapper.PopulateEnumFlags(*et, enum.entry.Type)
+
 		enumDefinitionMap[enum.id] = et
 	}
 

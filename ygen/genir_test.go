@@ -22,6 +22,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/gnmi/errdiff"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
+	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/ygot"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -940,6 +941,26 @@ func protoIR(nestedDirectories bool) *IR {
 	}
 }
 
+type goLangMapper struct {
+	*GoLangMapper
+}
+
+// PopulateFieldFlags populates extra information given a particular
+// field of a ParsedDirectory and the corresponding AST node.
+func (goLangMapper) PopulateFieldFlags(nd NodeDetails, field *yang.Entry) map[string]string {
+	if field.Path() == "/openconfig-simple/parent" {
+		return map[string]string{"foo": "bar"}
+	} else {
+		return nil
+	}
+}
+
+// PopulateEnumFlags populates extra information given a particular
+// enumerated type its corresponding AST representation.
+func (goLangMapper) PopulateEnumFlags(et EnumeratedYANGType, yangtype *yang.YangType) map[string]string {
+	return map[string]string{"typename": yangtype.Name}
+}
+
 func TestGenerateIR(t *testing.T) {
 	tests := []struct {
 		desc             string
@@ -956,7 +977,7 @@ func TestGenerateIR(t *testing.T) {
 			filepath.Join(datapath, "openconfig-simple.yang"),
 			filepath.Join(datapath, "openconfig-simple-augment2.yang"),
 		},
-		inLangMapper: NewGoLangMapper(true),
+		inLangMapper: goLangMapper{GoLangMapper: NewGoLangMapper(true)},
 		inOpts: IROptions{
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
@@ -994,6 +1015,7 @@ func TestGenerateIR(t *testing.T) {
 							MappedPathModules:       [][]string{{"openconfig-simple"}},
 							ShadowMappedPaths:       nil,
 							ShadowMappedPathModules: nil,
+							Flags:                   map[string]string{"foo": "bar"},
 						},
 						"remote-container": {
 							Name: "RemoteContainer",
@@ -1244,6 +1266,7 @@ func TestGenerateIR(t *testing.T) {
 						Name:  "TWO",
 						Value: 1,
 					}},
+					Flags: map[string]string{"typename": "enumeration"},
 				},
 			},
 			ModelData: []*gpb.ModelData{{Name: "openconfig-remote"}, {Name: "openconfig-simple"}, {Name: "openconfig-simple-augment2"}, {Name: "openconfig-simple-grouping"}},

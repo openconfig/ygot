@@ -89,6 +89,45 @@ type LangMapper interface {
 	// the mapped such that leaves of type leafref can be resolved to
 	// their target leaves.
 	SetSchemaTree(*schemaTree)
+
+	// LangMapperExt contains extensions that the LangMapper instance
+	// should implement if extra information from the IR is required.
+	// When implementing this, UnimplementedLangMapperExt should be
+	// embedded in the implementation type in order to ensure forward
+	// compatibility.
+	LangMapperExt
+}
+
+// LangMapperExt contains extensions that the LangMapper instance should
+// implement if extra information from the IR is required. These flag values
+// are expected to contain information rarely used but needed from goyang's
+// AST. Values that are expected to be used more often should be placed in the
+// IR itself so that other users can get access to the same information without
+// implementing it themselves.
+type LangMapperExt interface {
+	// PopulateFieldFlags populates extra information given a particular
+	// field of a ParsedDirectory and the corresponding AST node.
+	PopulateFieldFlags(NodeDetails, *yang.Entry) map[string]string
+	// PopulateEnumFlags populates extra information given a particular
+	// enumerated type its corresponding AST representation.
+	PopulateEnumFlags(EnumeratedYANGType, *yang.YangType) map[string]string
+}
+
+// UnimplementedLangMapperExt should be embedded to have forward compatible
+// implementations.
+type UnimplementedLangMapperExt struct {
+}
+
+// PopulateFieldFlags populates extra information given a particular
+// field of a ParsedDirectory and the corresponding AST node.
+func (UnimplementedLangMapperExt) PopulateFieldFlags(NodeDetails, *yang.Entry) map[string]string {
+	return nil
+}
+
+// PopulateEnumFlags populates extra information given a particular
+// enumerated type its corresponding AST representation.
+func (UnimplementedLangMapperExt) PopulateEnumFlags(EnumeratedYANGType, *yang.YangType) map[string]string {
+	return nil
 }
 
 // IR represents the returned intermediate representation produced by ygen to
@@ -364,10 +403,11 @@ type NodeDetails struct {
 	// Shadow paths are paths that have sibling config/state values
 	// that have been compressed out due to path compression.
 	ShadowMappedPathModules [][]string
-	// TODO(wenbli): Think about how to add this in an easily-usable way.
+	// LangMapper during IR generation to assist the code generation stage.
 	// Flags contains extra information that can be populated by the
 	// LangMapper during IR generation to assist the code generation stage.
-	//Flags map[string]string
+	// It needs to implement the LangMapperExt interface.
+	Flags map[string]string
 }
 
 // NodeType describes the different types of node that can
@@ -564,8 +604,8 @@ type EnumeratedYANGType struct {
 	// and its YANG-specific details (as defined by the
 	// ygot.EnumDefinition).
 	ValToYANGDetails []ygot.EnumDefinition
-	// TODO(wenbli): Think about how to add this in an easily-usable way.
 	// Flags contains extra information that can be populated by the
 	// LangMapper during IR generation to assist the code generation stage.
-	//Flags map[string]string
+	// It needs to implement the LangMapperExt interface.
+	Flags map[string]string
 }
