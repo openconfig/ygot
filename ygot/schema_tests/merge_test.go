@@ -23,20 +23,39 @@ import (
 )
 
 func TestMergeEmptyMap(t *testing.T) {
-	src := &oc.Device{Interface: map[string]*oc.Interface{}}
+	want := &oc.Device{Interface: map[string]*oc.Interface{}}
 
-	dst := &oc.Device{}
-	got, err := ygot.MergeStructs(dst, src, &ygot.MergeEmptyMaps{})
+	hasNil := &oc.Device{}
+	hasEmpty := &oc.Device{Interface: map[string]*oc.Interface{}}
+	got, err := ygot.MergeStructs(hasNil, hasEmpty, &ygot.MergeEmptyMaps{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if diff := cmp.Diff(got, src); diff != "" {
-		t.Errorf("MergeStructs (-got, +want):\n%s", diff)
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("MergeStructs empty to nil (-got, +want):\n%s", diff)
 	}
 
-	dst = &oc.Device{}
-	ygot.MergeStructInto(dst, src, &ygot.MergeEmptyMaps{})
-	if diff := cmp.Diff(dst, src); diff != "" {
-		t.Errorf("MergeStructs (-got, +want):\n%s", diff)
+	hasNil = &oc.Device{}
+	hasEmpty = &oc.Device{Interface: map[string]*oc.Interface{}}
+	got, err = ygot.MergeStructs(hasEmpty, hasNil, &ygot.MergeEmptyMaps{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("MergeStructs nil to empty (-got, +want):\n%s", diff)
+	}
+
+	hasNil = &oc.Device{}
+	hasEmpty = &oc.Device{Interface: map[string]*oc.Interface{}}
+	ygot.MergeStructInto(hasNil, hasEmpty, &ygot.MergeEmptyMaps{})
+	if diff := cmp.Diff(hasNil, want); diff != "" {
+		t.Errorf("MergeStructInto empty to nil (-got, +want):\n%s", diff)
+	}
+
+	hasNil = &oc.Device{}
+	hasEmpty = &oc.Device{Interface: map[string]*oc.Interface{}}
+	ygot.MergeStructInto(hasEmpty, hasNil, &ygot.MergeEmptyMaps{})
+	if diff := cmp.Diff(hasEmpty, want); diff != "" {
+		t.Errorf("MergeStructInto nil to empty (-got, +want):\n%s", diff)
 	}
 }
