@@ -24,14 +24,17 @@ import (
 	"github.com/openconfig/ygot/util"
 )
 
+// Ensure at compile time that the ProtoLangMapper implements the LangMapper interface.
+var _ LangMapper = &ProtoLangMapper{}
+
 // ProtoLangMapper contains the functionality and state for generating proto
 // names for the generated code.
 type ProtoLangMapper struct {
-	// enumSet contains the generated enum names which can be queried.
-	enumSet *enumSet
-	// schematree is a copy of the YANG schema tree, containing only leaf
-	// entries, such that schema paths can be referenced.
-	schematree *schemaTree
+	// LangMapperBase being embedded is a requirement for ProtoLangMapper
+	// to implement the LangMapper interface, and also gives it access to
+	// built-in methods.
+	LangMapperBase
+
 	// definedGlobals specifies the global proto names used during code
 	// generation to avoid conflicts.
 	definedGlobals map[string]bool
@@ -185,19 +188,6 @@ func (s *ProtoLangMapper) PackageName(e *yang.Entry, compressBehaviour genutil.C
 	return s.protobufPackage(e, compressPaths), nil
 }
 
-// SetEnumSet is used to supply a set of enumerated values to the
-// mapper such that leaves that have enumerated types can be looked up.
-func (s *ProtoLangMapper) SetEnumSet(e *enumSet) {
-	s.enumSet = e
-}
-
-// SetSchemaTree is used to supply a copy of the YANG schema tree to
-// the mapped such that leaves of type leafref can be resolved to
-// their target leaves.
-func (s *ProtoLangMapper) SetSchemaTree(st *schemaTree) {
-	s.schematree = st
-}
-
 // resolveProtoTypeArgs specifies input parameters required for resolving types
 // from YANG to protobuf.
 // TODO(robjs): Consider embedding resolveProtoTypeArgs in this struct per
@@ -260,7 +250,7 @@ func yangEnumTypeToProtoType(args resolveTypeArgs) (*MappedType, error) {
 // for additional details as to the transformation from YANG to Protobuf.
 func (s *ProtoLangMapper) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoTypeArgs, opts IROptions) (*MappedType, error) {
 	// Handle typedef cases.
-	typedefName, key, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
+	typedefName, key, err := s.EnumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +280,7 @@ func (s *ProtoLangMapper) yangTypeToProtoType(args resolveTypeArgs, pargs resolv
 	case yang.Yleafref:
 		// We look up the leafref in the schema tree to be able to
 		// determine what type to map to.
-		target, err := s.schematree.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
+		target, err := s.ResolveLeafrefTarget(args.yangType.Path, args.contextEntry)
 		if err != nil {
 			return nil, err
 		}
@@ -300,7 +290,7 @@ func (s *ProtoLangMapper) yangTypeToProtoType(args resolveTypeArgs, pargs resolv
 		if err != nil {
 			return nil, err
 		}
-		_, key, err := s.enumSet.enumName(args.contextEntry, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, false, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+		_, key, err := s.EnumName(args.contextEntry, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, false, opts.TransformationOptions.EnumOrgPrefixesToTrim)
 		if err != nil {
 			return nil, err
 		}
@@ -339,7 +329,7 @@ func (s *ProtoLangMapper) yangTypeToProtoType(args resolveTypeArgs, pargs resolv
 // value cannot be nil/unset.
 func (s *ProtoLangMapper) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolveProtoTypeArgs, opts IROptions) (*MappedType, error) {
 	// Handle typedef cases.
-	typedefName, key, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
+	typedefName, key, err := s.EnumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
 	if err != nil {
 		return nil, err
 	}
@@ -368,7 +358,7 @@ func (s *ProtoLangMapper) yangTypeToProtoScalarType(args resolveTypeArgs, pargs 
 		// as there is not an equivalent Protobuf type.
 		return &MappedType{NativeType: ywrapperAccessor + "Decimal64Value"}, nil
 	case yang.Yleafref:
-		target, err := s.schematree.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
+		target, err := s.ResolveLeafrefTarget(args.yangType.Path, args.contextEntry)
 		if err != nil {
 			return nil, err
 		}
@@ -378,7 +368,7 @@ func (s *ProtoLangMapper) yangTypeToProtoScalarType(args resolveTypeArgs, pargs 
 		if err != nil {
 			return nil, err
 		}
-		_, key, err := s.enumSet.enumName(args.contextEntry, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, false, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+		_, key, err := s.EnumName(args.contextEntry, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, false, opts.TransformationOptions.EnumOrgPrefixesToTrim)
 		if err != nil {
 			return nil, err
 		}
@@ -623,7 +613,7 @@ func (s *ProtoLangMapper) protobufPackage(e *yang.Entry, compressPaths bool) str
 
 // protoIdentityName returns the name that should be used for an identityref base.
 func (s *ProtoLangMapper) protoIdentityName(pargs resolveProtoTypeArgs, i *yang.Identity) (string, string, error) {
-	n, key, err := s.enumSet.identityrefBaseTypeFromIdentity(i)
+	n, key, err := s.IdentityrefBaseTypeFromIdentity(i)
 	if err != nil {
 		return "", "", err
 	}

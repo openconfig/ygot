@@ -47,6 +47,10 @@ import (
 // parameter does not affect the output. Do not depend on the same order of
 // method calls on langMapper by GenerateIR.
 type LangMapper interface {
+	// LangMapperBaseSetup defines setup methods that are required for all
+	// LangMapper instances.
+	LangMapperBaseSetup
+
 	// FieldName maps an input yang.Entry to the name that should be used
 	// in the intermediate representation. It is called for each field of
 	// a defined directory.
@@ -74,6 +78,17 @@ type LangMapper interface {
 	// structs.
 	PackageName(*yang.Entry, genutil.CompressBehaviour, bool) (string, error)
 
+	// LangMapperExt contains extensions that the LangMapper instance
+	// should implement if extra information from the IR is required.
+	// When implementing this, UnimplementedLangMapperExt should be
+	// embedded in the implementation type in order to ensure forward
+	// compatibility.
+	LangMapperExt
+}
+
+// LangMapperBaseSetup defines setup methods that are required for all
+// LangMapper instances.
+type LangMapperBaseSetup interface {
 	// SetEnumSet is used to supply a set of enumerated values to the
 	// mapper such that leaves that have enumerated types can be looked up.
 	// An enumSet provides lookup methods that allow:
@@ -89,13 +104,101 @@ type LangMapper interface {
 	// the mapped such that leaves of type leafref can be resolved to
 	// their target leaves.
 	SetSchemaTree(*schemaTree)
+}
 
-	// LangMapperExt contains extensions that the LangMapper instance
-	// should implement if extra information from the IR is required.
-	// When implementing this, UnimplementedLangMapperExt should be
-	// embedded in the implementation type in order to ensure forward
-	// compatibility.
-	LangMapperExt
+// LangMapperBase contains unexported base types and exported built-in methods
+// that all LangMapper implementation instances should embed. These built-in
+// methods are available for use anywhere in the LangMapper implementation
+// instance.
+type LangMapperBase struct {
+	// enumSet contains the generated enum names which can be queried.
+	enumSet *enumSet
+
+	// schematree is a copy of the YANG schema tree, containing only leaf
+	// entries, such that schema paths can be referenced.
+	schematree *schemaTree
+}
+
+// SetEnumSet is used to supply a set of enumerated values to the
+// mapper such that leaves that have enumerated types can be looked up.
+//
+// NB: This method is a set-up method that the user does not need to be invoked
+// within the GenerateIR context. In testing contexts outside of GenerateIR,
+// however, this needs to be called prior to certain built-in methods of
+// LangMapperBase are available for use.
+func (s *LangMapperBase) SetEnumSet(e *enumSet) {
+	s.enumSet = e
+}
+
+// SetSchemaTree is used to supply a copy of the YANG schema tree to
+// the mapped such that leaves of type leafref can be resolved to
+// their target leaves.
+//
+// NB: This method is a set-up method that the user does not need to be invoked
+// within the GenerateIR context. In testing contexts outside of GenerateIR,
+// however, this needs to be called prior to certain built-in methods of
+// LangMapperBase are available for use.
+func (s *LangMapperBase) SetSchemaTree(st *schemaTree) {
+	s.schematree = st
+}
+
+// ResolveLeafrefTarget takes an input path and context entry and
+// determines the type of the leaf that is referred to by the path, such that
+// it can be mapped to a native language type. It returns the yang.YangType that
+// is associated with the target, and the target yang.Entry, such that the
+// caller can map this to the relevant language type.
+//
+// This function requires SetSchemaTree to be called prior to being usable.
+func (b *LangMapperBase) ResolveLeafrefTarget(path string, contextEntry *yang.Entry) (*yang.Entry, error) {
+	return b.schematree.resolveLeafrefTarget(path, contextEntry)
+}
+
+// EnumeratedTypedefTypeName retrieves the name of an enumerated typedef (i.e.,
+// a typedef which is either an identityref or an enumeration). The resolved
+// name is prefixed with the prefix supplied. If the type that was supplied
+// within the resolveTypeArgs struct is not a type definition which includes an
+// enumerated type, the MappedType returned is nil, otherwise it should be
+// populated.
+//
+// This function requires SetEnumSet to be called prior to being usable.
+func (b *LangMapperBase) EnumeratedTypedefTypeName(args resolveTypeArgs, prefix string, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (string, string, error) {
+	return b.enumSet.enumeratedTypedefTypeName(args, prefix, noUnderscores, useDefiningModuleForTypedefEnumNames)
+}
+
+// EnumName retrieves the type name of the input enum *yang.Entry that will be
+// used in the generated code, which is the first returned value. The second
+// value returned is a string key that uniquely identifies this enumerated
+// value among all possible enumerated values in the input set of YANG files.
+//
+// This function requires SetEnumSet to be called prior to being usable.
+func (b *LangMapperBase) EnumName(e *yang.Entry, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames, addEnumeratedUnionSuffix bool, enumOrgPrefixesToTrim []string) (string, string, error) {
+	return b.enumSet.enumName(e, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames, addEnumeratedUnionSuffix, enumOrgPrefixesToTrim)
+}
+
+// IdentityrefBaseTypeFromIdentity retrieves the generated type name of the
+// input *yang.Identity. The first value returned is the defining module
+// followed by the CamelCase-ified version of the identity's name. The second
+// value returned is a string key that uniquely identifies this enumerated
+// value among all possible enumerated values in the input set of YANG files.
+//
+// This function requires SetEnumSet to be called prior to being usable.
+func (b *LangMapperBase) IdentityrefBaseTypeFromIdentity(i *yang.Identity) (string, string, error) {
+	return b.enumSet.identityrefBaseTypeFromIdentity(i)
+}
+
+// IdentityrefBaseTypeFromLeaf retrieves the mapped name of an identityref's
+// base such that it can be used in generated code. The first value returned is
+// the defining module name followed by the CamelCase-ified version of the
+// base's name. The second value returned is a string key that uniquely
+// identifies this enumerated value among all possible enumerated values in the
+// input set of YANG files.
+// This function wraps the identityrefBaseTypeFromIdentity function since it
+// covers the common case that the caller is interested in determining the name
+// from an identityref leaf, rather than directly from the identity.
+//
+// This function requires SetEnumSet to be called prior to being usable.
+func (b *LangMapperBase) IdentityrefBaseTypeFromLeaf(idr *yang.Entry) (string, string, error) {
+	return b.enumSet.identityrefBaseTypeFromIdentity(idr.Type.IdentityBase)
 }
 
 // LangMapperExt contains extensions that the LangMapper instance should
