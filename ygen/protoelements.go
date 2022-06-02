@@ -260,14 +260,18 @@ func yangEnumTypeToProtoType(args resolveTypeArgs) (*MappedType, error) {
 // for additional details as to the transformation from YANG to Protobuf.
 func (s *ProtoLangMapper) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoTypeArgs, opts IROptions) (*MappedType, error) {
 	// Handle typedef cases.
-	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
+	typedefName, key, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
 	if err != nil {
 		return nil, err
 	}
-	if mtype != nil {
-		// mtype is set to non-nil when this was a valid enumeration
-		// within a typedef.
-		return mtype, nil
+	// typedefName is set to non-empty-string when this was a valid enumeration
+	// within a typedef.
+	if typedefName != "" {
+		return &MappedType{
+			NativeType:            typedefName,
+			IsEnumeratedValue:     true,
+			EnumeratedYANGTypeKey: key,
+		}, nil
 	}
 
 	switch args.yangType.Kind {
@@ -335,14 +339,18 @@ func (s *ProtoLangMapper) yangTypeToProtoType(args resolveTypeArgs, pargs resolv
 // value cannot be nil/unset.
 func (s *ProtoLangMapper) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolveProtoTypeArgs, opts IROptions) (*MappedType, error) {
 	// Handle typedef cases.
-	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
+	typedefName, key, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
 	if err != nil {
 		return nil, err
 	}
-	if mtype != nil {
-		// mtype is set to non-nil when this was a valid enumeration
-		// within a typedef.
-		return mtype, nil
+	// typedefName is set to non-empty-string when this was a valid enumeration
+	// within a typedef.
+	if typedefName != "" {
+		return &MappedType{
+			NativeType:            typedefName,
+			IsEnumeratedValue:     true,
+			EnumeratedYANGTypeKey: key,
+		}, nil
 	}
 	switch args.yangType.Kind {
 	case yang.Yint8, yang.Yint16, yang.Yint32, yang.Yint64:

@@ -204,16 +204,18 @@ func (s *enumSet) enumName(e *yang.Entry, compressPaths, noUnderscores, skipDedu
 // a typedef which is either an identityref or an enumeration). The resolved
 // name is prefixed with the prefix supplied. If the type that was supplied
 // within the resolveTypeArgs struct is not a type definition which includes an
-// enumerated type, the MappedType returned is nil, otherwise it should be
-// populated.
-func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (*MappedType, error) {
+// enumerated type, an empty string is returned as the first returned value;
+// otherwise it should be populated. The second value returned is a string key
+// that uniquely identifies this enumerated value among all possible enumerated
+// values in the input set of YANG files.
+func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (string, string, error) {
 	switch args.yangType.Kind {
 	case yang.Yenum, yang.Yidentityref:
 		// In the case of a typedef that specifies an enumeration or identityref
 		// then generate a enumerated type in the Go code according to the contextEntry
 		// which has been provided by the calling code.
 		if args.contextEntry == nil {
-			return nil, fmt.Errorf("error mapping node %s due to lack of context", args.yangType.Name)
+			return "", "", fmt.Errorf("error mapping node %s due to lack of context", args.yangType.Name)
 		}
 		// If the type that is specified is not a built-in type (i.e., one of those
 		// types which is defined in RFC6020/RFC7950) then we establish what the type
@@ -221,23 +223,19 @@ func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string,
 		// the type that is specified in the schema.
 		definingType, err := util.DefiningType(args.yangType, args.contextEntry.Type)
 		if err != nil {
-			return nil, err
+			return "", "", err
 		}
 		enumIsTypedef := args.yangType.Kind == yang.Yenum && !util.IsYANGBaseType(definingType)
 		if !util.IsYANGBaseType(args.yangType) || (useDefiningModuleForTypedefEnumNames && enumIsTypedef) {
 			tn, key, err := s.typedefEnumeratedName(args, noUnderscores, useDefiningModuleForTypedefEnumNames)
 			if err != nil {
-				return nil, err
+				return "", "", err
 			}
 
-			return &MappedType{
-				NativeType:            fmt.Sprintf("%s%s", prefix, tn),
-				IsEnumeratedValue:     true,
-				EnumeratedYANGTypeKey: key,
-			}, nil
+			return fmt.Sprintf("%s%s", prefix, tn), key, nil
 		}
 	}
-	return nil, nil
+	return "", "", nil
 }
 
 // typedefEnumeratedName retrieves the generated name of the input *yang.Entry

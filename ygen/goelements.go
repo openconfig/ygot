@@ -310,23 +310,23 @@ func (s *GoLangMapper) SetSchemaTree(st *schemaTree) {
 func (s *GoLangMapper) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (*MappedType, error) {
 	defVal := genutil.TypeDefaultValue(args.yangType)
 	// Handle the case of a typedef which is actually an enumeration.
-	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
+	typedefName, _, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
 	if err != nil {
 		// err is non nil when this was a typedef which included
 		// an invalid enumerated type.
 		return nil, err
 	}
 
-	if mtype != nil {
-		// mtype is set to non-nil when this was a valid enumeration
-		// within a typedef. We explicitly set the zero and default values
-		// here.
-		mtype.ZeroValue = "0"
-		mtype.DefaultValue = defVal
-		// Erase this since we don't need it for Go's IR.
-		mtype.EnumeratedYANGTypeKey = ""
-
-		return mtype, nil
+	if typedefName != "" {
+		return &MappedType{
+			NativeType:        typedefName,
+			IsEnumeratedValue: true,
+			// mtype is set to non-nil when this was a valid enumeration
+			// within a typedef. We explicitly set the zero and default values
+			// here.
+			ZeroValue:    "0",
+			DefaultValue: defVal,
+		}, nil
 	}
 
 	// Perform the actual mapping of the type to the Go type.
@@ -404,7 +404,7 @@ func (s *GoLangMapper) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, s
 		if err != nil {
 			return nil, err
 		}
-		mtype, err = s.yangTypeToGoType(resolveTypeArgs{yangType: target.Type, contextEntry: target}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
+		mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: target.Type, contextEntry: target}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
 		if err != nil {
 			return nil, err
 		}
@@ -621,13 +621,13 @@ func generateGoDefaultValue(field *yang.Entry, mtype *MappedType, gogen *GoLangM
 // type for each leaf is created.
 func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, isSingletonUnion, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (string, yang.TypeKind, error) {
 	// Handle the case of a typedef which is actually an enumeration.
-	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
+	typedefName, _, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
 	if err != nil {
 		// err is non nil when this was a typedef which included
 		// an invalid enumerated type.
 		return "", yang.Ynone, err
 	}
-	if mtype != nil {
+	if typedefName != "" {
 		if strings.Contains(value, ":") {
 			value = strings.Split(value, ":")[1]
 		}
@@ -641,7 +641,7 @@ func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, 
 				return "", yang.Ynone, fmt.Errorf("default value conversion: typedef identity value %q not found in enum with type name %q", value, args.yangType.Name)
 			}
 		}
-		return enumDefaultValue(mtype.NativeType, value, goEnumPrefix), args.yangType.Kind, nil
+		return enumDefaultValue(typedefName, value, goEnumPrefix), args.yangType.Kind, nil
 	}
 
 	signed := false
