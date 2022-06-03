@@ -281,19 +281,6 @@ func (s *GoLangMapper) PackageName(*yang.Entry, genutil.CompressBehaviour, bool)
 	return "", nil
 }
 
-// SetEnumSet is used to supply a set of enumerated values to the
-// mapper such that leaves that have enumerated types can be looked up.
-func (s *GoLangMapper) SetEnumSet(e *enumSet) {
-	s.enumSet = e
-}
-
-// SetSchemaTree is used to supply a copy of the YANG schema tree to
-// the mapped such that leaves of type leafref can be resolved to
-// their target leaves.
-func (s *GoLangMapper) SetSchemaTree(st *schemaTree) {
-	s.schematree = st
-}
-
 // yangTypeToGoType takes a yang.YangType (YANG type definition) and maps it
 // to the type that should be used to represent it in the generated Go code.
 // A resolveTypeArgs structure is used as the input argument which specifies a

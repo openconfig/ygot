@@ -89,7 +89,7 @@ type LangMapper interface {
 // LangMapperBaseSetup defines setup methods that are required for all
 // LangMapper instances.
 type LangMapperBaseSetup interface {
-	// SetEnumSet is used to supply a set of enumerated values to the
+	// setEnumSet is used to supply a set of enumerated values to the
 	// mapper such that leaves that have enumerated types can be looked up.
 	// An enumSet provides lookup methods that allow:
 	//  - simple enumerated types
@@ -98,12 +98,24 @@ type LangMapperBaseSetup interface {
 	//  - identityrefs within typedefs
 	// to be resolved to the corresponding type that is to be used in
 	// the IR.
-	SetEnumSet(*enumSet)
+	setEnumSet(*enumSet)
 
-	// SetSchemaTree is used to supply a copy of the YANG schema tree to
+	// setSchemaTree is used to supply a copy of the YANG schema tree to
 	// the mapped such that leaves of type leafref can be resolved to
 	// their target leaves.
-	SetSchemaTree(*schemaTree)
+	setSchemaTree(*schemaTree)
+
+	// SetupEnumSet is intended to be called by unit tests in order to set up the
+	// LangMapperBase such that generated enumeration/identity names can be looked
+	// up. The input parameters correspond to fields in IROptions.
+	// It returns an error if there is a failure to generate the enumerated
+	// values' names.
+	SetupEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums bool, enumOrgPrefixesToTrim []string) error
+
+	// SetupSchemaTree is intended to be called by unit tests in order to set up
+	// the LangMapperBase such that leafrefs targets may be looked up.
+	// It returns an error if there is duplication within the set of entries.
+	SetupSchemaTree(entries []*yang.Entry) error
 }
 
 // LangMapperBase contains unexported base types and exported built-in methods
@@ -119,18 +131,18 @@ type LangMapperBase struct {
 	schematree *schemaTree
 }
 
-// SetEnumSet is used to supply a set of enumerated values to the
+// setEnumSet is used to supply a set of enumerated values to the
 // mapper such that leaves that have enumerated types can be looked up.
 //
 // NB: This method is a set-up method that the user does not need to be invoked
 // within the GenerateIR context. In testing contexts outside of GenerateIR,
 // however, this needs to be called prior to certain built-in methods of
 // LangMapperBase are available for use.
-func (s *LangMapperBase) SetEnumSet(e *enumSet) {
+func (s *LangMapperBase) setEnumSet(e *enumSet) {
 	s.enumSet = e
 }
 
-// SetSchemaTree is used to supply a copy of the YANG schema tree to
+// setSchemaTree is used to supply a copy of the YANG schema tree to
 // the mapped such that leaves of type leafref can be resolved to
 // their target leaves.
 //
@@ -138,8 +150,37 @@ func (s *LangMapperBase) SetEnumSet(e *enumSet) {
 // within the GenerateIR context. In testing contexts outside of GenerateIR,
 // however, this needs to be called prior to certain built-in methods of
 // LangMapperBase are available for use.
-func (s *LangMapperBase) SetSchemaTree(st *schemaTree) {
+func (s *LangMapperBase) setSchemaTree(st *schemaTree) {
 	s.schematree = st
+}
+
+// SetupEnumSet is intended to be called by unit tests in order to set up the
+// LangMapperBase such that generated enumeration/identity names can be looked
+// up. It walks the input map of enumerated value leaves keyed by path and
+// creates generates names for them. The input parameters correspond to fields
+// in IROptions.
+// It returns an error if there is a failure to generate the enumerated values'
+// names.
+func (s *LangMapperBase) SetupEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums bool, enumOrgPrefixesToTrim []string) error {
+	enumSet, _, errs := findEnumSet(entries, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums, enumOrgPrefixesToTrim)
+	if errs != nil {
+		return fmt.Errorf("%v", errs)
+	}
+	s.setEnumSet(enumSet)
+	return nil
+}
+
+// SetupSchemaTree is intended to be called by unit tests in order to set up
+// the LangMapperBase such that leafrefs targets may be looked up. It maps a
+// set of yang.Entry pointers into a ctree structure.
+// It returns an error if there is duplication within the set of entries.
+func (s *LangMapperBase) SetupSchemaTree(entries []*yang.Entry) error {
+	schematree, err := buildSchemaTree(entries)
+	if err != nil {
+		return err
+	}
+	s.setSchemaTree(schematree)
+	return nil
 }
 
 // ResolveLeafrefTarget takes an input path and context entry and
@@ -148,7 +189,8 @@ func (s *LangMapperBase) SetSchemaTree(st *schemaTree) {
 // is associated with the target, and the target yang.Entry, such that the
 // caller can map this to the relevant language type.
 //
-// This function requires SetSchemaTree to be called prior to being usable.
+// In testing contexts, this function requires SetupSchemaTree to be called
+// prior to being usable.
 func (b *LangMapperBase) ResolveLeafrefTarget(path string, contextEntry *yang.Entry) (*yang.Entry, error) {
 	return b.schematree.resolveLeafrefTarget(path, contextEntry)
 }
@@ -160,7 +202,8 @@ func (b *LangMapperBase) ResolveLeafrefTarget(path string, contextEntry *yang.En
 // enumerated type, the MappedType returned is nil, otherwise it should be
 // populated.
 //
-// This function requires SetEnumSet to be called prior to being usable.
+// In testing contexts, this function requires SetupEnumSet to be called prior
+// to being usable.
 func (b *LangMapperBase) EnumeratedTypedefTypeName(args resolveTypeArgs, prefix string, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (string, string, error) {
 	return b.enumSet.enumeratedTypedefTypeName(args, prefix, noUnderscores, useDefiningModuleForTypedefEnumNames)
 }
@@ -170,7 +213,8 @@ func (b *LangMapperBase) EnumeratedTypedefTypeName(args resolveTypeArgs, prefix 
 // value returned is a string key that uniquely identifies this enumerated
 // value among all possible enumerated values in the input set of YANG files.
 //
-// This function requires SetEnumSet to be called prior to being usable.
+// In testing contexts, this function requires SetupEnumSet to be called prior
+// to being usable.
 func (b *LangMapperBase) EnumName(e *yang.Entry, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames, addEnumeratedUnionSuffix bool, enumOrgPrefixesToTrim []string) (string, string, error) {
 	return b.enumSet.enumName(e, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames, addEnumeratedUnionSuffix, enumOrgPrefixesToTrim)
 }
@@ -181,7 +225,8 @@ func (b *LangMapperBase) EnumName(e *yang.Entry, compressPaths, noUnderscores, s
 // value returned is a string key that uniquely identifies this enumerated
 // value among all possible enumerated values in the input set of YANG files.
 //
-// This function requires SetEnumSet to be called prior to being usable.
+// In testing contexts, this function requires SetupEnumSet to be called prior
+// to being usable.
 func (b *LangMapperBase) IdentityrefBaseTypeFromIdentity(i *yang.Identity) (string, string, error) {
 	return b.enumSet.identityrefBaseTypeFromIdentity(i)
 }
@@ -196,7 +241,8 @@ func (b *LangMapperBase) IdentityrefBaseTypeFromIdentity(i *yang.Identity) (stri
 // covers the common case that the caller is interested in determining the name
 // from an identityref leaf, rather than directly from the identity.
 //
-// This function requires SetEnumSet to be called prior to being usable.
+// In testing contexts, this function requires SetupEnumSet to be called prior
+// to being usable.
 func (b *LangMapperBase) IdentityrefBaseTypeFromLeaf(idr *yang.Entry) (string, string, error) {
 	return b.enumSet.identityrefBaseTypeFromIdentity(idr.Type.IdentityBase)
 }

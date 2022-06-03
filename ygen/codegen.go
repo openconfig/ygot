@@ -709,8 +709,8 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 
 	// Store the returned schematree and enumSet within the state for this code generation.
 	gogen := NewGoLangMapper(cg.GoOptions.GenerateSimpleUnions)
-	gogen.SetEnumSet(enumSet)
-	gogen.SetSchemaTree(mdef.schematree)
+	gogen.setEnumSet(enumSet)
+	gogen.setSchemaTree(mdef.schematree)
 
 	directoryMap, errs := buildDirectoryDefinitions(gogen, mdef.directoryEntries, opts)
 	if errs != nil {
