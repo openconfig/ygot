@@ -114,8 +114,8 @@ jobs:
             fi
             filename=$(basename $f)
             f_prefix="${filename%%.*}"
-            ygen_file="ygen/testdata/structs/${f_prefix}.formatted-txt"
-            test-go-build $f $ygen_file
+            go_file="gogen/testdata/structs/${f_prefix}.formatted-txt"
+            test-go-build $f $go_file
           done
 
   static_analysis:
