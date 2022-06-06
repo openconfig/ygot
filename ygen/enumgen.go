@@ -25,9 +25,9 @@ import (
 )
 
 const (
-	// enumeratedUnionSuffix is the type name suffix given to enumerations
+	// EnumeratedUnionSuffix is the type name suffix given to enumerations
 	// defined as part of a union type.
-	enumeratedUnionSuffix = "Enum"
+	EnumeratedUnionSuffix = "Enum"
 )
 
 // enumSet contains generated enum names which can be queried.
@@ -282,9 +282,9 @@ func (s *enumSet) enumeratedTypedefKey(args resolveTypeArgs, noUnderscores, useD
 	if (useDefiningModuleForTypedefEnumNames && definingType.Kind == yang.Yunion) || (!useDefiningModuleForTypedefEnumNames && args.contextEntry.Type.Kind == yang.Yunion) {
 		// We specifically say that this is an enumeration within the leaf.
 		if noUnderscores {
-			typeName = fmt.Sprintf("%s%s", definingType.Name, enumeratedUnionSuffix)
+			typeName = fmt.Sprintf("%s%s", definingType.Name, EnumeratedUnionSuffix)
 		} else {
-			typeName = fmt.Sprintf("%s_%s", definingType.Name, enumeratedUnionSuffix)
+			typeName = fmt.Sprintf("%s_%s", definingType.Name, EnumeratedUnionSuffix)
 		}
 	}
 	if args.contextEntry.Node == nil {
@@ -336,7 +336,7 @@ func (s *enumSet) enumLeafKey(e *yang.Entry, compressPaths, noUnderscores, skipD
 			nameElements = append([]string{genutil.ParentModulePrettyName(e.Node, enumOrgPrefixesToTrim...)}, nameElements...)
 		}
 		if addEnumeratedUnionSuffix {
-			nameElements = append(nameElements, enumeratedUnionSuffix)
+			nameElements = append(nameElements, EnumeratedUnionSuffix)
 		}
 		compressName = strings.Join(nameElements, delimiter)
 

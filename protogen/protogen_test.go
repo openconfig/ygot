@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ygen
+package protogen
 
 import (
 	"sort"
@@ -22,6 +22,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
+	"github.com/openconfig/ygot/ygen"
 	"github.com/openconfig/ygot/ygot"
 	"google.golang.org/protobuf/testing/protocmp"
 )
@@ -62,8 +63,8 @@ func TestGenProto3Msg(t *testing.T) {
 
 	tests := []struct {
 		name                  string
-		inMsg                 *ParsedDirectory
-		inIR                  *IR
+		inMsg                 *ygen.ParsedDirectory
+		inIR                  *ygen.IR
 		inCompressPaths       bool
 		inBasePackage         string
 		inEnumPackage         string
@@ -75,28 +76,28 @@ func TestGenProto3Msg(t *testing.T) {
 		wantErr               bool
 	}{{
 		name: "simple message with only scalar fields",
-		inMsg: &ParsedDirectory{
+		inMsg: &ygen.ParsedDirectory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"field-one": {
 					Name: "field_one",
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType: "ywrapper.StringValue",
 					},
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "field-one",
 						Path: "/field-one",
 					},
 				},
 				"field-two": {
 					Name: "field_two",
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType: "ywrapper.IntValue",
 					},
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "field-two",
 						Path: "/field-two",
 					},
@@ -123,17 +124,17 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 	}, {
 		name: "simple message with child messages, ensure no difference in logic",
-		inMsg: &ParsedDirectory{
+		inMsg: &ygen.ParsedDirectory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"field-one": {
 					Name: "field_one",
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType: "ywrapper.StringValue",
 					},
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "field-one",
 						Path: "/field-one",
 					},
@@ -161,44 +162,44 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 	}, {
 		name: "simple message with union leaf and leaf-list",
-		inMsg: &ParsedDirectory{
+		inMsg: &ygen.ParsedDirectory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"field-one": {
 					Name: "field_one",
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						UnionTypes: map[string]int{
 							"string": 0,
 							"sint64": 1,
 						},
-						UnionTypeInfos: map[string]MappedUnionSubtype{
+						UnionTypeInfos: map[string]ygen.MappedUnionSubtype{
 							"string": {},
 							"sint64": {},
 						},
 					},
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "field-one",
 						Path: "/field-one",
 					},
 				},
 				"field-two": {
 					Name: "field_two",
-					Type: LeafListNode,
-					LangType: &MappedType{
+					Type: ygen.LeafListNode,
+					LangType: &ygen.MappedType{
 						UnionTypes: map[string]int{
 							"sint64":                     0,
 							"base.enums.BaseDerivedEnum": 1,
 						},
-						UnionTypeInfos: map[string]MappedUnionSubtype{
+						UnionTypeInfos: map[string]ygen.MappedUnionSubtype{
 							"sint64": {},
 							"base.enums.BaseDerivedEnum": {
 								EnumeratedYANGTypeKey: "/root/derived-enum",
 							},
 						},
 					},
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "field-two",
 						Path: "/parent/field-two",
 					},
@@ -206,11 +207,11 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 			Path: "/root/message-name",
 		},
-		inIR: &IR{
-			Enums: map[string]*EnumeratedYANGType{
+		inIR: &ygen.IR{
+			Enums: map[string]*ygen.EnumeratedYANGType{
 				"/root/derived-enum": {
 					Name:     "BaseDerivedEnum",
-					Kind:     DerivedEnumerationType,
+					Kind:     ygen.DerivedEnumerationType,
 					TypeName: "derived-enum",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{
@@ -266,25 +267,25 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 	}, {
 		name: "simple message with leaf-list and a message child, compression on",
-		inMsg: &ParsedDirectory{
+		inMsg: &ygen.ParsedDirectory{
 			Name: "AMessage",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"leaf-list": {
 					Name: "leaf_list",
-					Type: LeafListNode,
-					LangType: &MappedType{
+					Type: ygen.LeafListNode,
+					LangType: &ygen.MappedType{
 						NativeType: "ywrapper.StringValue",
 					},
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "leaf-list",
 						Path: "/leaf-list",
 					},
 				},
 				"container-child": {
 					Name: "container_child",
-					Type: ContainerNode,
-					YANGDetails: YANGNodeDetails{
+					Type: ygen.ContainerNode,
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "container-child",
 						Path: "/root/a-message/container-child",
 					},
@@ -292,11 +293,11 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 			Path: "/root/a-message",
 		},
-		inIR: &IR{
-			Directories: map[string]*ParsedDirectory{
+		inIR: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/root/a-message/container-child": {
 					Name:        "ContainerChild",
-					Type:        Container,
+					Type:        ygen.Container,
 					Path:        "/root/a-message/container-child",
 					PackageName: "a_message",
 				},
@@ -324,25 +325,25 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 	}, {
 		name: "simple message with leaf-list and a message child, compression off",
-		inMsg: &ParsedDirectory{
+		inMsg: &ygen.ParsedDirectory{
 			Name: "AMessage",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"leaf-list": {
 					Name: "leaf_list",
-					Type: LeafListNode,
-					LangType: &MappedType{
+					Type: ygen.LeafListNode,
+					LangType: &ygen.MappedType{
 						NativeType: "ywrapper.StringValue",
 					},
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "leaf-list",
 						Path: "/leaf-list",
 					},
 				},
 				"container-child": {
 					Name: "container_child",
-					Type: ContainerNode,
-					YANGDetails: YANGNodeDetails{
+					Type: ygen.ContainerNode,
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "container-child",
 						Path: "/root/a-message/container-child",
 					},
@@ -350,11 +351,11 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 			Path: "/root/a-message",
 		},
-		inIR: &IR{
-			Directories: map[string]*ParsedDirectory{
+		inIR: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/root/a-message/container-child": {
 					Name:        "ContainerChild",
-					Type:        Container,
+					Type:        ygen.Container,
 					Path:        "/root/a-message/container-child",
 					PackageName: "root.a_message",
 				},
@@ -381,14 +382,14 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 	}, {
 		name: "message with list",
-		inMsg: &ParsedDirectory{
+		inMsg: &ygen.ParsedDirectory{
 			Name: "AMessageWithAList",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"list": {
 					Name: "list",
-					Type: ListNode,
-					YANGDetails: YANGNodeDetails{
+					Type: ygen.ListNode,
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "list",
 						Path: "/a-message-with-a-list/list",
 					},
@@ -396,27 +397,27 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 			Path: "/a-message-with-a-list/list",
 		},
-		inIR: &IR{
-			Directories: map[string]*ParsedDirectory{
+		inIR: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/a-message-with-a-list/list": {
-					Name:        "List",
-					Type:        List,
+					Name:        "ygen.List",
+					Type:        ygen.List,
 					Path:        "/a-message-with-a-list/list",
 					PackageName: "a_message_with_a_list",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"key": {
 							Name: "key",
-							Type: LeafNode,
-							YANGDetails: YANGNodeDetails{
+							Type: ygen.LeafNode,
+							YANGDetails: ygen.YANGNodeDetails{
 								Name: "key",
 								Path: "/key",
 							},
 						},
 					},
-					ListKeys: map[string]*ListKey{
+					ListKeys: map[string]*ygen.ListKey{
 						"key": {
 							Name: "key",
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType: "string",
 							},
 						},
@@ -432,13 +433,13 @@ func TestGenProto3Msg(t *testing.T) {
 				YANGPath: "/a-message-with-a-list/list",
 				Fields: []*protoMsgField{{
 					Name:       "list",
-					Type:       "ListKey",
+					Type:       "ygen.ListKey",
 					Tag:        200573382,
 					IsRepeated: true,
 				}},
 			},
-			"ListKey": {
-				Name:     "ListKey",
+			"ygen.ListKey": {
+				Name:     "ygen.ListKey",
 				YANGPath: "/a-message-with-a-list/list",
 				Fields: []*protoMsgField{{
 					Tag:        1,
@@ -448,21 +449,21 @@ func TestGenProto3Msg(t *testing.T) {
 				}, {
 					Tag:  2,
 					Name: "list",
-					Type: "a_message_with_a_list.List",
+					Type: "a_message_with_a_list.ygen.List",
 				}},
 				Imports: []string{"base/a_message_with_a_list/a_message_with_a_list.proto"},
 			},
 		},
 	}, {
 		name: "message with list, where the key has the same name as list",
-		inMsg: &ParsedDirectory{
+		inMsg: &ygen.ParsedDirectory{
 			Name: "AMessageWithAList",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"list": {
 					Name: "list",
-					Type: ListNode,
-					YANGDetails: YANGNodeDetails{
+					Type: ygen.ListNode,
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "list",
 						Path: "/a-message-with-a-list/list",
 					},
@@ -470,27 +471,27 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 			Path: "/a-message-with-a-list/list",
 		},
-		inIR: &IR{
-			Directories: map[string]*ParsedDirectory{
+		inIR: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/a-message-with-a-list/list": {
-					Name:        "List",
-					Type:        List,
+					Name:        "ygen.List",
+					Type:        ygen.List,
 					Path:        "/a-message-with-a-list/list",
 					PackageName: "a_message_with_a_list",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"list": {
 							Name: "list",
-							Type: LeafNode,
-							YANGDetails: YANGNodeDetails{
+							Type: ygen.LeafNode,
+							YANGDetails: ygen.YANGNodeDetails{
 								Name: "list",
 								Path: "/list",
 							},
 						},
 					},
-					ListKeys: map[string]*ListKey{
+					ListKeys: map[string]*ygen.ListKey{
 						"list": {
 							Name: "list",
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType: "string",
 							},
 						},
@@ -506,13 +507,13 @@ func TestGenProto3Msg(t *testing.T) {
 				YANGPath: "/a-message-with-a-list/list",
 				Fields: []*protoMsgField{{
 					Name:       "list",
-					Type:       "ListKey",
+					Type:       "ygen.ListKey",
 					Tag:        200573382,
 					IsRepeated: true,
 				}},
 			},
-			"ListKey": {
-				Name:     "ListKey",
+			"ygen.ListKey": {
+				Name:     "ygen.ListKey",
 				YANGPath: "/a-message-with-a-list/list",
 				Fields: []*protoMsgField{{
 					Tag:        1,
@@ -522,21 +523,21 @@ func TestGenProto3Msg(t *testing.T) {
 				}, {
 					Tag:  2,
 					Name: "list",
-					Type: "a_message_with_a_list.List",
+					Type: "a_message_with_a_list.ygen.List",
 				}},
 				Imports: []string{"base/a_message_with_a_list/a_message_with_a_list.proto"},
 			},
 		},
 	}, {
 		name: "message with missing directory",
-		inMsg: &ParsedDirectory{
+		inMsg: &ygen.ParsedDirectory{
 			Name: "Foo",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"bar": {
 					Name: "bar",
-					Type: ContainerNode,
-					YANGDetails: YANGNodeDetails{
+					Type: ygen.ContainerNode,
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "bar",
 						Path: "/bar",
 					},
@@ -544,32 +545,32 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 			Path: "/foo",
 		},
-		inIR: &IR{
-			Directories: map[string]*ParsedDirectory{},
+		inIR: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{},
 		},
 		wantErr: true,
 	}, {
 		name: "message with any anydata field",
-		inMsg: &ParsedDirectory{
+		inMsg: &ygen.ParsedDirectory{
 			Name: "MessageWithAnydata",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"any-data": {
 					Name:     "any_data",
-					Type:     AnyDataNode,
+					Type:     ygen.AnyDataNode,
 					LangType: nil,
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "any-data",
 						Path: "/any-data",
 					},
 				},
 				"leaf": {
 					Name: "leaf",
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType: "ywrapper.StringValue",
 					},
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "leaf",
 						Path: "/leaf",
 					},
@@ -597,17 +598,17 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 	}, {
 		name: "message with annotate schema paths enabled",
-		inMsg: &ParsedDirectory{
+		inMsg: &ygen.ParsedDirectory{
 			Name: "MessageWithAnnotations",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"leaf": {
 					Name: "leaf",
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType: "ywrapper.StringValue",
 					},
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "leaf",
 						Path: "/one/two/leaf",
 					},
@@ -730,13 +731,13 @@ func TestWriteProtoMsg(t *testing.T) {
 	tests := []struct {
 		name string
 		// inMsg should be used if msg is the same between compressed and uncompressed.
-		inMsg           *ParsedDirectory
-		inMsgCompress   *ParsedDirectory
-		inMsgUncompress *ParsedDirectory
-		inIR            *IR
-		// inIR should be used if IR is the same between compressed and uncompressed.
-		inIRCompress      *IR
-		inIRUncompress    *IR
+		inMsg           *ygen.ParsedDirectory
+		inMsgCompress   *ygen.ParsedDirectory
+		inMsgUncompress *ygen.ParsedDirectory
+		inIR            *ygen.IR
+		// inIR should be used if ygen.IR is the same between compressed and uncompressed.
+		inIRCompress      *ygen.IR
+		inIRUncompress    *ygen.IR
 		inBasePackageName string
 		inEnumPackageName string
 		inBaseImportPath  string
@@ -747,17 +748,17 @@ func TestWriteProtoMsg(t *testing.T) {
 		wantUncompressErr bool
 	}{{
 		name: "simple message with scalar fields",
-		inMsgCompress: &ParsedDirectory{
+		inMsgCompress: &ygen.ParsedDirectory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"field-one": {
 					Name: "field_one",
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType: "ywrapper.StringValue",
 					},
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "field-one",
 						Path: "/field-one",
 					},
@@ -766,17 +767,17 @@ func TestWriteProtoMsg(t *testing.T) {
 			PackageName: "container",
 			Path:        "/module/container/message-name",
 		},
-		inMsgUncompress: &ParsedDirectory{
+		inMsgUncompress: &ygen.ParsedDirectory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"field-one": {
 					Name: "field_one",
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType: "ywrapper.StringValue",
 					},
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "field-one",
 						Path: "/field-one",
 					},
@@ -805,14 +806,14 @@ message MessageName {
 		},
 	}, {
 		name: "simple message with other messages embedded",
-		inMsgCompress: &ParsedDirectory{
+		inMsgCompress: &ygen.ParsedDirectory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"child": {
 					Name: "child",
-					Type: ContainerNode,
-					YANGDetails: YANGNodeDetails{
+					Type: ygen.ContainerNode,
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "child",
 						Path: "/module/message-name/child",
 					},
@@ -821,14 +822,14 @@ message MessageName {
 			Path:        "/module/message-name",
 			PackageName: "",
 		},
-		inMsgUncompress: &ParsedDirectory{
+		inMsgUncompress: &ygen.ParsedDirectory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"child": {
 					Name: "child",
-					Type: ContainerNode,
-					YANGDetails: YANGNodeDetails{
+					Type: ygen.ContainerNode,
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "child",
 						Path: "/module/message-name/child",
 					},
@@ -837,21 +838,21 @@ message MessageName {
 			Path:        "/module/message-name",
 			PackageName: "module",
 		},
-		inIRCompress: &IR{
-			Directories: map[string]*ParsedDirectory{
+		inIRCompress: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/module/message-name/child": {
 					Name:        "Child",
-					Type:        Container,
+					Type:        ygen.Container,
 					Path:        "/module/message-name/child",
 					PackageName: "message_name",
 				},
 			},
 		},
-		inIRUncompress: &IR{
-			Directories: map[string]*ParsedDirectory{
+		inIRUncompress: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/module/message-name/child": {
 					Name:        "Child",
-					Type:        Container,
+					Type:        ygen.Container,
 					Path:        "/module/message-name/child",
 					PackageName: "module.message_name",
 				},
@@ -879,14 +880,14 @@ message MessageName {
 		},
 	}, {
 		name: "simple message with other messages embedded - with nested messages",
-		inMsgCompress: &ParsedDirectory{
+		inMsgCompress: &ygen.ParsedDirectory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"child": {
 					Name: "child",
-					Type: ContainerNode,
-					YANGDetails: YANGNodeDetails{
+					Type: ygen.ContainerNode,
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "child",
 						Path: "/module/message-name/child",
 					},
@@ -895,19 +896,19 @@ message MessageName {
 			Path:        "/module/message-name",
 			PackageName: "",
 		},
-		inIRCompress: &IR{
-			Directories: map[string]*ParsedDirectory{
+		inIRCompress: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/module/message-name/child": {
 					Name: "Child",
-					Type: Container,
-					Fields: map[string]*NodeDetails{
+					Type: ygen.Container,
+					Fields: map[string]*ygen.NodeDetails{
 						"leaf": {
 							Name: "leaf",
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType: "ywrapper.StringValue",
 							},
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name: "leaf",
 								Path: "/leaf",
 							},
@@ -918,14 +919,14 @@ message MessageName {
 				},
 			},
 		},
-		inMsgUncompress: &ParsedDirectory{
+		inMsgUncompress: &ygen.ParsedDirectory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"child": {
 					Name: "child",
-					Type: ContainerNode,
-					YANGDetails: YANGNodeDetails{
+					Type: ygen.ContainerNode,
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "child",
 						Path: "/module/message-name/child",
 					},
@@ -934,19 +935,19 @@ message MessageName {
 			Path:        "/module/message-name",
 			PackageName: "module",
 		},
-		inIRUncompress: &IR{
-			Directories: map[string]*ParsedDirectory{
+		inIRUncompress: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/module/message-name/child": {
 					Name: "Child",
-					Type: Container,
-					Fields: map[string]*NodeDetails{
+					Type: ygen.Container,
+					Fields: map[string]*ygen.NodeDetails{
 						"leaf": {
 							Name: "leaf",
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType: "ywrapper.StringValue",
 							},
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name: "leaf",
 								Path: "/leaf",
 							},
@@ -982,19 +983,19 @@ message MessageName {
 		},
 	}, {
 		name: "simple message with an enumeration leaf",
-		inMsgCompress: &ParsedDirectory{
+		inMsgCompress: &ygen.ParsedDirectory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"enum": {
 					Name: "enum",
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType:            "Enum",
 						IsEnumeratedValue:     true,
 						EnumeratedYANGTypeKey: "/module/message-name/enum",
 					},
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "enum",
 						Path: "/module/message-name/enum",
 					},
@@ -1003,19 +1004,19 @@ message MessageName {
 			Path:        "/module/message-name",
 			PackageName: "",
 		},
-		inMsgUncompress: &ParsedDirectory{
+		inMsgUncompress: &ygen.ParsedDirectory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"enum": {
 					Name: "enum",
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType:            "Enum",
 						IsEnumeratedValue:     true,
 						EnumeratedYANGTypeKey: "/module/message-name/enum",
 					},
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "enum",
 						Path: "/module/message-name/enum",
 					},
@@ -1024,11 +1025,11 @@ message MessageName {
 			Path:        "/module/message-name",
 			PackageName: "module",
 		},
-		inIR: &IR{
-			Enums: map[string]*EnumeratedYANGType{
+		inIR: &ygen.IR{
+			Enums: map[string]*ygen.EnumeratedYANGType{
 				"/module/message-name/enum": {
 					Name:     "ModuleMessageNameEnum",
-					Kind:     SimpleEnumerationType,
+					Kind:     ygen.SimpleEnumerationType,
 					TypeName: "enumeration",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{
@@ -1073,14 +1074,14 @@ message MessageName {
 		},
 	}, {
 		name: "simple message with a list",
-		inMsgUncompress: &ParsedDirectory{
+		inMsgUncompress: &ygen.ParsedDirectory{
 			Name: "AMessage",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"list": {
 					Name: "list",
-					Type: ListNode,
-					YANGDetails: YANGNodeDetails{
+					Type: ygen.ListNode,
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "list",
 						Path: "/module/a-message/surrounding-container/list",
 					},
@@ -1089,25 +1090,25 @@ message MessageName {
 			Path:        "/module/a-message",
 			PackageName: "module",
 		},
-		inIRUncompress: &IR{
-			Directories: map[string]*ParsedDirectory{
+		inIRUncompress: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/module/a-message/surrounding-container/list": {
-					Name: "List",
-					Type: List,
-					Fields: map[string]*NodeDetails{
+					Name: "ygen.List",
+					Type: ygen.List,
+					Fields: map[string]*ygen.NodeDetails{
 						"keyfield": {
 							Name: "keyfield",
-							Type: LeafNode,
-							YANGDetails: YANGNodeDetails{
+							Type: ygen.LeafNode,
+							YANGDetails: ygen.YANGNodeDetails{
 								Name: "keyfield",
 								Path: "/keyfield",
 							},
 						},
 					},
-					ListKeys: map[string]*ListKey{
+					ListKeys: map[string]*ygen.ListKey{
 						"keyfield": {
 							Name: "keyfield",
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType: "string",
 							},
 						},
@@ -1117,14 +1118,14 @@ message MessageName {
 				},
 			},
 		},
-		inMsgCompress: &ParsedDirectory{
+		inMsgCompress: &ygen.ParsedDirectory{
 			Name: "AMessage",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"list": {
 					Name: "list",
-					Type: ListNode,
-					YANGDetails: YANGNodeDetails{
+					Type: ygen.ListNode,
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "list",
 						Path: "/module/a-message/surrounding-container/list",
 					},
@@ -1133,25 +1134,25 @@ message MessageName {
 			Path:        "/module/a-message",
 			PackageName: "",
 		},
-		inIRCompress: &IR{
-			Directories: map[string]*ParsedDirectory{
+		inIRCompress: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/module/a-message/surrounding-container/list": {
-					Name: "List",
-					Type: List,
-					Fields: map[string]*NodeDetails{
+					Name: "ygen.List",
+					Type: ygen.List,
+					Fields: map[string]*ygen.NodeDetails{
 						"keyfield": {
 							Name: "keyfield",
-							Type: LeafNode,
-							YANGDetails: YANGNodeDetails{
+							Type: ygen.LeafNode,
+							YANGDetails: ygen.YANGNodeDetails{
 								Name: "keyfield",
 								Path: "/keyfield",
 							},
 						},
 					},
-					ListKeys: map[string]*ListKey{
+					ListKeys: map[string]*ygen.ListKey{
 						"keyfield": {
 							Name: "keyfield",
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType: "string",
 							},
 						},
@@ -1166,43 +1167,43 @@ message MessageName {
 		wantCompress: &generatedProto3Message{
 			PackageName: "",
 			MessageCode: `
-// ListKey represents the /module/a-message/surrounding-container/list YANG schema element.
-message ListKey {
+// ygen.ListKey represents the /module/a-message/surrounding-container/list YANG schema element.
+message ygen.ListKey {
   string keyfield = 1;
-  a_message.List list = 2;
+  a_message.ygen.List list = 2;
 }
 
 // AMessage represents the /module/a-message YANG schema element.
 message AMessage {
-  repeated ListKey list = 486198550;
+  repeated ygen.ListKey list = 486198550;
 }`,
 			RequiredImports: []string{"base/a_message/a_message.proto"},
 		},
 		wantUncompress: &generatedProto3Message{
 			PackageName: "module",
 			MessageCode: `
-// ListKey represents the /module/a-message/surrounding-container/list YANG schema element.
-message ListKey {
+// ygen.ListKey represents the /module/a-message/surrounding-container/list YANG schema element.
+message ygen.ListKey {
   string keyfield = 1;
-  a_message.surrounding_container.List list = 2;
+  a_message.surrounding_container.ygen.List list = 2;
 }
 
 // AMessage represents the /module/a-message YANG schema element.
 message AMessage {
-  repeated ListKey list = 486198550;
+  repeated ygen.ListKey list = 486198550;
 }`,
 			RequiredImports: []string{"base/module/a_message/surrounding_container/surrounding_container.proto"},
 		},
 	}, {
 		name: "simple message with a list - nested messages",
-		inMsgUncompress: &ParsedDirectory{
+		inMsgUncompress: &ygen.ParsedDirectory{
 			Name: "AMessage",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"list": {
 					Name: "list",
-					Type: ListNode,
-					YANGDetails: YANGNodeDetails{
+					Type: ygen.ListNode,
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "list",
 						Path: "/module/a-message/surrounding-container/list",
 					},
@@ -1211,28 +1212,28 @@ message AMessage {
 			Path:        "/module/a-message",
 			PackageName: "module",
 		},
-		inIRUncompress: &IR{
-			Directories: map[string]*ParsedDirectory{
+		inIRUncompress: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/module/a-message/surrounding-container/list": {
-					Name: "List",
-					Type: List,
-					Fields: map[string]*NodeDetails{
+					Name: "ygen.List",
+					Type: ygen.List,
+					Fields: map[string]*ygen.NodeDetails{
 						"keyfield": {
 							Name: "keyfield",
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType: "ywrapper.StringValue",
 							},
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name: "keyfield",
 								Path: "/keyfield",
 							},
 						},
 					},
-					ListKeys: map[string]*ListKey{
+					ListKeys: map[string]*ygen.ListKey{
 						"keyfield": {
 							Name: "keyfield",
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType: "string",
 							},
 						},
@@ -1242,14 +1243,14 @@ message AMessage {
 				},
 			},
 		},
-		inMsgCompress: &ParsedDirectory{
+		inMsgCompress: &ygen.ParsedDirectory{
 			Name: "AMessage",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"list": {
 					Name: "list",
-					Type: ListNode,
-					YANGDetails: YANGNodeDetails{
+					Type: ygen.ListNode,
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "list",
 						Path: "/module/a-message/surrounding-container/list",
 					},
@@ -1258,28 +1259,28 @@ message AMessage {
 			Path:        "/module/a-message",
 			PackageName: "",
 		},
-		inIRCompress: &IR{
-			Directories: map[string]*ParsedDirectory{
+		inIRCompress: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/module/a-message/surrounding-container/list": {
-					Name: "List",
-					Type: List,
-					Fields: map[string]*NodeDetails{
+					Name: "ygen.List",
+					Type: ygen.List,
+					Fields: map[string]*ygen.NodeDetails{
 						"keyfield": {
 							Name: "keyfield",
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType: "ywrapper.StringValue",
 							},
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name: "keyfield",
 								Path: "/keyfield",
 							},
 						},
 					},
-					ListKeys: map[string]*ListKey{
+					ListKeys: map[string]*ygen.ListKey{
 						"keyfield": {
 							Name: "keyfield",
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType: "string",
 							},
 						},
@@ -1296,38 +1297,38 @@ message AMessage {
 			PackageName: "",
 			MessageCode: `
 message AMessage {
-  message List {
+  message ygen.List {
   }
-  message ListKey {
+  message ygen.ListKey {
     string keyfield = 1;
-    List list = 2;
+    ygen.List list = 2;
   }
-  repeated ListKey list = 486198550;
+  repeated ygen.ListKey list = 486198550;
 }`,
 		},
 		wantUncompress: &generatedProto3Message{
 			PackageName: "module",
 			MessageCode: `
 message AMessage {
-  message List {
+  message ygen.List {
   }
-  message ListKey {
+  message ygen.ListKey {
     string keyfield = 1;
-    List list = 2;
+    ygen.List list = 2;
   }
-  repeated ListKey list = 486198550;
+  repeated ygen.ListKey list = 486198550;
 }`,
 		},
 	}, {
 		name: "simple message with unkeyed list - nested messages",
-		inMsgUncompress: &ParsedDirectory{
+		inMsgUncompress: &ygen.ParsedDirectory{
 			Name: "AMessage",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"list": {
 					Name: "list",
-					Type: ListNode,
-					YANGDetails: YANGNodeDetails{
+					Type: ygen.ListNode,
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "list",
 						Path: "/module/a-message/surrounding-container/list",
 					},
@@ -1336,19 +1337,19 @@ message AMessage {
 			Path:        "/module/a-message",
 			PackageName: "module",
 		},
-		inIRUncompress: &IR{
-			Directories: map[string]*ParsedDirectory{
+		inIRUncompress: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/module/a-message/surrounding-container/list": {
-					Name: "List",
-					Type: List,
-					Fields: map[string]*NodeDetails{
+					Name: "ygen.List",
+					Type: ygen.List,
+					Fields: map[string]*ygen.NodeDetails{
 						"keyfield": {
 							Name: "keyfield",
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType: "ywrapper.StringValue",
 							},
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name: "keyfield",
 								Path: "/keyfield",
 							},
@@ -1359,14 +1360,14 @@ message AMessage {
 				},
 			},
 		},
-		inMsgCompress: &ParsedDirectory{
+		inMsgCompress: &ygen.ParsedDirectory{
 			Name: "AMessage",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"list": {
 					Name: "list",
-					Type: ListNode,
-					YANGDetails: YANGNodeDetails{
+					Type: ygen.ListNode,
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "list",
 						Path: "/module/a-message/surrounding-container/list",
 					},
@@ -1375,19 +1376,19 @@ message AMessage {
 			Path:        "/module/a-message",
 			PackageName: "",
 		},
-		inIRCompress: &IR{
-			Directories: map[string]*ParsedDirectory{
+		inIRCompress: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/module/a-message/surrounding-container/list": {
-					Name: "List",
-					Type: List,
-					Fields: map[string]*NodeDetails{
+					Name: "ygen.List",
+					Type: ygen.List,
+					Fields: map[string]*ygen.NodeDetails{
 						"keyfield": {
 							Name: "keyfield",
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType: "ywrapper.StringValue",
 							},
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name: "keyfield",
 								Path: "/keyfield",
 							},
@@ -1405,27 +1406,27 @@ message AMessage {
 			PackageName: "",
 			MessageCode: `
 message AMessage {
-  message List {
+  message ygen.List {
     ywrapper.StringValue keyfield = 411968747;
   }
-  repeated List list = 486198550;
+  repeated ygen.List list = 486198550;
 }`,
 		},
 		wantUncompress: &generatedProto3Message{
 			PackageName: "module",
 			MessageCode: `
 message AMessage {
-  message List {
+  message ygen.List {
     ywrapper.StringValue keyfield = 411968747;
   }
-  repeated List list = 486198550;
+  repeated ygen.List list = 486198550;
 }`,
 		},
 	}, {
 		name: "message skipped due to path length",
-		inMsg: &ParsedDirectory{
+		inMsg: &ygen.ParsedDirectory{
 			Name: "MessageName",
-			Type: Container,
+			Type: ygen.Container,
 			Path: "one/two",
 		},
 		inBasePackageName: "base",
@@ -1435,19 +1436,19 @@ message AMessage {
 		wantUncompress:    nil,
 	}, {
 		name: "simple message with an identityref leaf",
-		inMsgUncompress: &ParsedDirectory{
+		inMsgUncompress: &ygen.ParsedDirectory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"identityref": {
 					Name: "identityref",
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType:            "base.enums.TestModuleFooIdentity",
 						IsEnumeratedValue:     true,
 						EnumeratedYANGTypeKey: "/module/foo-identity",
 					},
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "identityref",
 						Path: "/module/message-name/identityref",
 					},
@@ -1456,19 +1457,19 @@ message AMessage {
 			PackageName: "module",
 			Path:        "/module-name/message-name",
 		},
-		inMsgCompress: &ParsedDirectory{
+		inMsgCompress: &ygen.ParsedDirectory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"identityref": {
 					Name: "identityref",
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType:            "base.enums.TestModuleFooIdentity",
 						IsEnumeratedValue:     true,
 						EnumeratedYANGTypeKey: "/module/foo-identity",
 					},
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name: "identityref",
 						Path: "/module/message-name/identityref",
 					},
@@ -1477,11 +1478,11 @@ message AMessage {
 			PackageName: "",
 			Path:        "/module-name/message-name",
 		},
-		inIR: &IR{
-			Enums: map[string]*EnumeratedYANGType{
+		inIR: &ygen.IR{
+			Enums: map[string]*ygen.EnumeratedYANGType{
 				"/module/foo-identity": {
 					Name:     "TestModuleFooIdentity",
-					Kind:     IdentityType,
+					Kind:     ygen.IdentityType,
 					TypeName: "identityref",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{
@@ -1591,31 +1592,31 @@ func TestGenListKeyProto(t *testing.T) {
 		inListPackage: "pkg",
 		inListName:    "list",
 		inArgs: &protoDefinitionArgs{
-			field: &NodeDetails{
+			field: &ygen.NodeDetails{
 				Name: "list",
-				Type: ListNode,
-				YANGDetails: YANGNodeDetails{
+				Type: ygen.ListNode,
+				YANGDetails: ygen.YANGNodeDetails{
 					Path: "/list",
 				},
 			},
-			directory: &ParsedDirectory{
-				Name: "List",
-				Type: List,
-				Fields: map[string]*NodeDetails{
+			directory: &ygen.ParsedDirectory{
+				Name: "ygen.List",
+				Type: ygen.List,
+				Fields: map[string]*ygen.NodeDetails{
 					"key": {
 						Name: "key",
-						LangType: &MappedType{
+						LangType: &ygen.MappedType{
 							NativeType: "string",
 						},
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Path: "/list/key",
 						},
 					},
 				},
-				ListKeys: map[string]*ListKey{
+				ListKeys: map[string]*ygen.ListKey{
 					"key": {
 						Name: "key",
-						LangType: &MappedType{
+						LangType: &ygen.MappedType{
 							NativeType: "string",
 						},
 					},
@@ -1646,43 +1647,43 @@ func TestGenListKeyProto(t *testing.T) {
 		inListPackage: "pkg",
 		inListName:    "list",
 		inArgs: &protoDefinitionArgs{
-			field: &NodeDetails{
+			field: &ygen.NodeDetails{
 				Name: "list",
-				Type: ListNode,
-				YANGDetails: YANGNodeDetails{
+				Type: ygen.ListNode,
+				YANGDetails: ygen.YANGNodeDetails{
 					Path: "/list",
 				},
 			},
-			directory: &ParsedDirectory{
-				Name: "List",
-				Type: List,
-				Fields: map[string]*NodeDetails{
+			directory: &ygen.ParsedDirectory{
+				Name: "ygen.List",
+				Type: ygen.List,
+				Fields: map[string]*ygen.NodeDetails{
 					"key": {
 						Name: "key",
-						LangType: &MappedType{
+						LangType: &ygen.MappedType{
 							UnionTypes: map[string]int{
 								"string": 0,
 								"sint64": 1,
 							},
-							UnionTypeInfos: map[string]MappedUnionSubtype{
+							UnionTypeInfos: map[string]ygen.MappedUnionSubtype{
 								"string": {},
 								"sint64": {},
 							},
 						},
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Path: "/key",
 						},
 					},
 				},
-				ListKeys: map[string]*ListKey{
+				ListKeys: map[string]*ygen.ListKey{
 					"key": {
 						Name: "key",
-						LangType: &MappedType{
+						LangType: &ygen.MappedType{
 							UnionTypes: map[string]int{
 								"string": 0,
 								"sint64": 1,
 							},
-							UnionTypeInfos: map[string]MappedUnionSubtype{
+							UnionTypeInfos: map[string]ygen.MappedUnionSubtype{
 								"string": {},
 								"sint64": {},
 							},
@@ -1690,7 +1691,7 @@ func TestGenListKeyProto(t *testing.T) {
 					},
 				},
 			},
-			ir: &IR{},
+			ir: &ygen.IR{},
 			cfg: &protoMsgConfig{
 				compressPaths:   false,
 				basePackageName: "base",
@@ -1752,16 +1753,16 @@ func TestWriteProtoEnums(t *testing.T) {
 
 	tests := []struct {
 		name                string
-		inEnums             map[string]*EnumeratedYANGType
+		inEnums             map[string]*ygen.EnumeratedYANGType
 		inAnnotateEnumNames bool
 		wantEnums           []string
 		wantErr             bool
 	}{{
 		name: "skipped enumeration type",
-		inEnums: map[string]*EnumeratedYANGType{
+		inEnums: map[string]*ygen.EnumeratedYANGType{
 			"/field-name|enum": {
 				Name:     "SomeEnumType",
-				Kind:     SimpleEnumerationType,
+				Kind:     ygen.SimpleEnumerationType,
 				TypeName: "enumeration",
 				ValToYANGDetails: []ygot.EnumDefinition{{
 					Name:  "SPEED_2.5G",
@@ -1775,10 +1776,10 @@ func TestWriteProtoEnums(t *testing.T) {
 		wantEnums: []string{},
 	}, {
 		name: "enum for identityref",
-		inEnums: map[string]*EnumeratedYANGType{
+		inEnums: map[string]*ygen.EnumeratedYANGType{
 			"/field-name|enum": {
 				Name:             "EnumeratedValue",
-				Kind:             IdentityType,
+				Kind:             ygen.IdentityType,
 				IdentityBaseName: "IdentityValue",
 				ValToYANGDetails: []ygot.EnumDefinition{{
 					Name:           "VALUE_A",
@@ -1801,10 +1802,10 @@ enum EnumeratedValue {
 		},
 	}, {
 		name: "enum for typedef enumeration",
-		inEnums: map[string]*EnumeratedYANGType{
+		inEnums: map[string]*ygen.EnumeratedYANGType{
 			"e": {
 				Name:     "EnumName",
-				Kind:     DerivedEnumerationType,
+				Kind:     ygen.DerivedEnumerationType,
 				TypeName: "typedef",
 				ValToYANGDetails: []ygot.EnumDefinition{{
 					Name:  "SPEED_2.5G",
@@ -1816,7 +1817,7 @@ enum EnumeratedValue {
 			},
 			"f": {
 				Name:     "SecondEnum",
-				Kind:     DerivedEnumerationType,
+				Kind:     ygen.DerivedEnumerationType,
 				TypeName: "derived",
 				ValToYANGDetails: []ygot.EnumDefinition{{
 					Name:  "VALUE_1",
@@ -1869,11 +1870,11 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	tests := []struct {
 		name    string
 		inName  string
-		inField *NodeDetails
+		inField *ygen.NodeDetails
 		// inPath is populated with field.YANGDetails.Path if not set.
 		inPath              string
-		inMappedType        *MappedType
-		inEnums             map[string]*EnumeratedYANGType
+		inMappedType        *ygen.MappedType
+		inEnums             map[string]*ygen.EnumeratedYANGType
 		inAnnotateEnumNames bool
 		wantFields          []*protoMsgField
 		wantEnums           map[string]*protoMsgEnum
@@ -1882,20 +1883,20 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}{{
 		name:   "simple string union",
 		inName: "FieldName",
-		inField: &NodeDetails{
+		inField: &ygen.NodeDetails{
 			Name: "field-name",
-			Type: LeafNode,
-			YANGDetails: YANGNodeDetails{
+			Type: ygen.LeafNode,
+			YANGDetails: ygen.YANGNodeDetails{
 				Path: "/field-name",
 			},
-			LangType: &MappedType{
-				UnionTypeInfos: map[string]MappedUnionSubtype{
+			LangType: &ygen.MappedType{
+				UnionTypeInfos: map[string]ygen.MappedUnionSubtype{
 					"string": {},
 					"sint64": {},
 				},
 			},
 		},
-		inMappedType: &MappedType{
+		inMappedType: &ygen.MappedType{
 			UnionTypes: map[string]int{
 				"string": 0,
 				"sint64": 0,
@@ -1914,17 +1915,17 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}, {
 		name:   "simple string union with a non-empty path argument",
 		inName: "FieldName",
-		inField: &NodeDetails{
+		inField: &ygen.NodeDetails{
 			Name: "field-name",
-			Type: LeafNode,
-			LangType: &MappedType{
-				UnionTypeInfos: map[string]MappedUnionSubtype{
+			Type: ygen.LeafNode,
+			LangType: &ygen.MappedType{
+				UnionTypeInfos: map[string]ygen.MappedUnionSubtype{
 					"string": {},
 					"sint64": {},
 				},
 			},
 		},
-		inMappedType: &MappedType{
+		inMappedType: &ygen.MappedType{
 			UnionTypes: map[string]int{
 				"string": 0,
 				"sint64": 0,
@@ -1944,20 +1945,20 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}, {
 		name:   "decimal64 union",
 		inName: "FieldName",
-		inField: &NodeDetails{
+		inField: &ygen.NodeDetails{
 			Name: "field-name",
-			Type: LeafNode,
-			YANGDetails: YANGNodeDetails{
+			Type: ygen.LeafNode,
+			YANGDetails: ygen.YANGNodeDetails{
 				Path: "/field-name",
 			},
-			LangType: &MappedType{
-				UnionTypeInfos: map[string]MappedUnionSubtype{
+			LangType: &ygen.MappedType{
+				UnionTypeInfos: map[string]ygen.MappedUnionSubtype{
 					"string":             {},
 					"ywrapper.Decimal64": {},
 				},
 			},
 		},
-		inMappedType: &MappedType{
+		inMappedType: &ygen.MappedType{
 			UnionTypes: map[string]int{
 				"string":             0,
 				"ywrapper.Decimal64": 1,
@@ -1976,14 +1977,14 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}, {
 		name:   "union with an enumeration",
 		inName: "FieldName",
-		inField: &NodeDetails{
+		inField: &ygen.NodeDetails{
 			Name: "field-name",
-			Type: LeafNode,
-			YANGDetails: YANGNodeDetails{
+			Type: ygen.LeafNode,
+			YANGDetails: ygen.YANGNodeDetails{
 				Path: "/field-name",
 			},
-			LangType: &MappedType{
-				UnionTypeInfos: map[string]MappedUnionSubtype{
+			LangType: &ygen.MappedType{
+				UnionTypeInfos: map[string]ygen.MappedUnionSubtype{
 					"SomeEnumType": {
 						EnumeratedYANGTypeKey: "/field-name|enum",
 					},
@@ -1991,16 +1992,16 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				},
 			},
 		},
-		inMappedType: &MappedType{
+		inMappedType: &ygen.MappedType{
 			UnionTypes: map[string]int{
 				"SomeEnumType": 0,
 				"string":       1,
 			},
 		},
-		inEnums: map[string]*EnumeratedYANGType{
+		inEnums: map[string]*ygen.EnumeratedYANGType{
 			"/field-name|enum": {
 				Name:     "SomeEnumType",
-				Kind:     SimpleEnumerationType,
+				Kind:     ygen.SimpleEnumerationType,
 				TypeName: "enumeration",
 				ValToYANGDetails: []ygot.EnumDefinition{{
 					Name:  "SPEED_2.5G",
@@ -2033,14 +2034,14 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}, {
 		name:   "union with an enumeration, but union is typedef",
 		inName: "FieldName",
-		inField: &NodeDetails{
+		inField: &ygen.NodeDetails{
 			Name: "field-name",
-			Type: LeafNode,
-			YANGDetails: YANGNodeDetails{
+			Type: ygen.LeafNode,
+			YANGDetails: ygen.YANGNodeDetails{
 				Path: "/field-name",
 			},
-			LangType: &MappedType{
-				UnionTypeInfos: map[string]MappedUnionSubtype{
+			LangType: &ygen.MappedType{
+				UnionTypeInfos: map[string]ygen.MappedUnionSubtype{
 					"SomeEnumType": {
 						EnumeratedYANGTypeKey: "/field-name|enum",
 					},
@@ -2048,16 +2049,16 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				},
 			},
 		},
-		inMappedType: &MappedType{
+		inMappedType: &ygen.MappedType{
 			UnionTypes: map[string]int{
 				"SomeEnumType": 0,
 				"string":       1,
 			},
 		},
-		inEnums: map[string]*EnumeratedYANGType{
+		inEnums: map[string]*ygen.EnumeratedYANGType{
 			"/field-name|enum": {
 				Name:     "SomeEnumType",
-				Kind:     DerivedUnionEnumerationType,
+				Kind:     ygen.DerivedUnionEnumerationType,
 				TypeName: "derived-union",
 				ValToYANGDetails: []ygot.EnumDefinition{{
 					Name:  "SPEED_2.5G",
@@ -2082,21 +2083,21 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}, {
 		name:   "leaflist of union",
 		inName: "FieldName",
-		inField: &NodeDetails{
+		inField: &ygen.NodeDetails{
 			Name: "field-name",
-			Type: LeafListNode,
-			YANGDetails: YANGNodeDetails{
+			Type: ygen.LeafListNode,
+			YANGDetails: ygen.YANGNodeDetails{
 				Name: "field-name",
 				Path: "/parent/field-name",
 			},
-			LangType: &MappedType{
-				UnionTypeInfos: map[string]MappedUnionSubtype{
+			LangType: &ygen.MappedType{
+				UnionTypeInfos: map[string]ygen.MappedUnionSubtype{
 					"string": {},
 					"sint64": {},
 				},
 			},
 		},
-		inMappedType: &MappedType{
+		inMappedType: &ygen.MappedType{
 			UnionTypes: map[string]int{
 				"string": 0,
 				"uint64": 1,

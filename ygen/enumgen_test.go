@@ -4773,7 +4773,7 @@ func TestFindEnumSet(t *testing.T) {
 				}
 				for _, appendEnumSuffixForSimpleUnionEnums := range []bool{false, true} {
 					if appendEnumSuffixForSimpleUnionEnums && tt.isSimpleEnumeratedUnionLeaf && useDefiningModuleForTypedefEnumNames {
-						enumSuffix := enumeratedUnionSuffix
+						enumSuffix := EnumeratedUnionSuffix
 						if !tt.inOmitUnderscores {
 							enumSuffix = "_" + enumSuffix
 						}

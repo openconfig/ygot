@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ygen
+package protogen
 
 import (
 	"testing"
@@ -21,7 +21,55 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
+	"github.com/openconfig/ygot/internal/igenutil"
+	"github.com/openconfig/ygot/ygen"
 )
+
+// enumMapFromEntries recursively finds enumerated values from a slice of
+// entries and returns an enumMap. The input enumMap is intended for
+// findEnumSet.
+func enumMapFromEntries(entries []*yang.Entry) map[string]*yang.Entry {
+	enumMap := map[string]*yang.Entry{}
+	for _, e := range entries {
+		addEnumsToEnumMap(e, enumMap)
+	}
+	return enumMap
+}
+
+// enumMapFromEntries recursively finds enumerated values from a slice of
+// resolveTypeArgs and returns an enumMap. The input enumMap is intended for
+// findEnumSet.
+func enumMapFromArgs(args []resolveTypeArgs) map[string]*yang.Entry {
+	enumMap := map[string]*yang.Entry{}
+	for _, a := range args {
+		addEnumsToEnumMap(a.contextEntry, enumMap)
+	}
+	return enumMap
+}
+
+// enumMapFromEntries recursively finds enumerated values from an entry and
+// returns an enumMap. The input enumMap is intended for findEnumSet.
+func enumMapFromEntry(entry *yang.Entry) map[string]*yang.Entry {
+	enumMap := map[string]*yang.Entry{}
+	addEnumsToEnumMap(entry, enumMap)
+	return enumMap
+}
+
+// addEnumsToEnumMap recursively finds enumerated values and adds them to the
+// input enumMap. The input enumMap is intended for findEnumSet, so that tests
+// that need generated enumerated names have an easy time generating them, and
+// subsequently adding them to their generated state during setup.
+func addEnumsToEnumMap(entry *yang.Entry, enumMap map[string]*yang.Entry) {
+	if entry == nil {
+		return
+	}
+	if e := igenutil.MappableLeaf(entry); e != nil {
+		enumMap[entry.Path()] = e
+	}
+	for _, e := range entry.Dir {
+		addEnumsToEnumMap(e, enumMap)
+	}
+}
 
 func TestYangTypeToProtoType(t *testing.T) {
 	tests := []struct {
@@ -29,8 +77,8 @@ func TestYangTypeToProtoType(t *testing.T) {
 		in                     []resolveTypeArgs
 		inResolveProtoTypeArgs *resolveProtoTypeArgs
 		inEntries              []*yang.Entry
-		wantWrapper            *MappedType
-		wantScalar             *MappedType
+		wantWrapper            *ygen.MappedType
+		wantScalar             *ygen.MappedType
 		wantSame               bool
 		wantErr                bool
 	}{{
@@ -41,8 +89,8 @@ func TestYangTypeToProtoType(t *testing.T) {
 			{yangType: &yang.YangType{Kind: yang.Yint32}},
 			{yangType: &yang.YangType{Kind: yang.Yint64}},
 		},
-		wantWrapper: &MappedType{NativeType: "ywrapper.IntValue"},
-		wantScalar:  &MappedType{NativeType: "sint64"},
+		wantWrapper: &ygen.MappedType{NativeType: "ywrapper.IntValue"},
+		wantScalar:  &ygen.MappedType{NativeType: "sint64"},
 	}, {
 		name: "unsigned integer types",
 		in: []resolveTypeArgs{
@@ -51,16 +99,16 @@ func TestYangTypeToProtoType(t *testing.T) {
 			{yangType: &yang.YangType{Kind: yang.Yuint32}},
 			{yangType: &yang.YangType{Kind: yang.Yuint64}},
 		},
-		wantWrapper: &MappedType{NativeType: "ywrapper.UintValue"},
-		wantScalar:  &MappedType{NativeType: "uint64"},
+		wantWrapper: &ygen.MappedType{NativeType: "ywrapper.UintValue"},
+		wantScalar:  &ygen.MappedType{NativeType: "uint64"},
 	}, {
 		name: "bool types",
 		in: []resolveTypeArgs{
 			{yangType: &yang.YangType{Kind: yang.Ybool}},
 			{yangType: &yang.YangType{Kind: yang.Yempty}},
 		},
-		wantWrapper: &MappedType{NativeType: "ywrapper.BoolValue"},
-		wantScalar:  &MappedType{NativeType: "bool"},
+		wantWrapper: &ygen.MappedType{NativeType: "ywrapper.BoolValue"},
+		wantScalar:  &ygen.MappedType{NativeType: "bool"},
 	}, {
 		name: "missing leafref path",
 		in: []resolveTypeArgs{
@@ -85,17 +133,17 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}, {
 		name:        "string",
 		in:          []resolveTypeArgs{{yangType: &yang.YangType{Kind: yang.Ystring}}},
-		wantWrapper: &MappedType{NativeType: "ywrapper.StringValue"},
-		wantScalar:  &MappedType{NativeType: "string"},
+		wantWrapper: &ygen.MappedType{NativeType: "ywrapper.StringValue"},
+		wantScalar:  &ygen.MappedType{NativeType: "string"},
 	}, {
 		name:        "binary",
 		in:          []resolveTypeArgs{{yangType: &yang.YangType{Kind: yang.Ybinary}}},
-		wantWrapper: &MappedType{NativeType: "ywrapper.BytesValue"},
-		wantScalar:  &MappedType{NativeType: "bytes"},
+		wantWrapper: &ygen.MappedType{NativeType: "ywrapper.BytesValue"},
+		wantScalar:  &ygen.MappedType{NativeType: "bytes"},
 	}, {
 		name:        "decimal64",
 		in:          []resolveTypeArgs{{yangType: &yang.YangType{Kind: yang.Ydecimal64}}},
-		wantWrapper: &MappedType{NativeType: "ywrapper.Decimal64Value"},
+		wantWrapper: &ygen.MappedType{NativeType: "ywrapper.Decimal64Value"},
 		wantSame:    true,
 	}, {
 		name: "unmapped types",
@@ -116,9 +164,9 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		},
-		wantWrapper: &MappedType{
+		wantWrapper: &ygen.MappedType{
 			UnionTypes:     map[string]int{"string": 0, "uint64": 1},
-			UnionTypeInfos: map[string]MappedUnionSubtype{"string": {}, "uint64": {}},
+			UnionTypeInfos: map[string]ygen.MappedUnionSubtype{"string": {}, "uint64": {}},
 		},
 		wantSame: true,
 	}, {
@@ -132,7 +180,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		}},
-		wantWrapper: &MappedType{NativeType: "ywrapper.StringValue"},
+		wantWrapper: &ygen.MappedType{NativeType: "ywrapper.StringValue"},
 		wantSame:    true,
 	}, {
 		name: "union of string, unsupported instance identifier",
@@ -168,7 +216,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		}},
-		wantWrapper: &MappedType{
+		wantWrapper: &ygen.MappedType{
 			NativeType:        "UnionLeafEnum",
 			IsEnumeratedValue: true,
 		},
@@ -194,7 +242,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		}},
-		wantWrapper: &MappedType{
+		wantWrapper: &ygen.MappedType{
 			NativeType:        "UnionLeafEnum",
 			IsEnumeratedValue: true,
 		},
@@ -221,7 +269,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				Parent: &yang.Entry{Name: "base-module"},
 			},
 		}},
-		wantWrapper: &MappedType{
+		wantWrapper: &ygen.MappedType{
 			NativeType:        "basePackage.enumPackage.BaseModuleDerivedIdentityref",
 			IsEnumeratedValue: true,
 		},
@@ -259,7 +307,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		}},
-		wantWrapper: &MappedType{
+		wantWrapper: &ygen.MappedType{
 			NativeType:        "basePackage.enumPackage.BaseModuleBaseIdentity",
 			IsEnumeratedValue: true,
 		},
@@ -291,7 +339,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				Parent: &yang.Entry{Name: "base-module"},
 			},
 		}},
-		wantWrapper: &MappedType{
+		wantWrapper: &ygen.MappedType{
 			NativeType:        "EnumerationLeaf",
 			IsEnumeratedValue: true,
 		},
@@ -318,7 +366,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				Parent: &yang.Entry{Name: "base-module"},
 			},
 		}},
-		wantWrapper: &MappedType{NativeType: "basePackage.enumPackage.BaseModuleDerivedEnumeration", IsEnumeratedValue: true},
+		wantWrapper: &ygen.MappedType{NativeType: "basePackage.enumPackage.BaseModuleDerivedEnumeration", IsEnumeratedValue: true},
 		wantSame:    true,
 	}, {
 		name: "identityref",
@@ -343,7 +391,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				Parent: &yang.Entry{Name: "test-module"},
 			},
 		}},
-		wantWrapper: &MappedType{NativeType: "basePackage.enumPackage.TestModuleBaseIdentity", IsEnumeratedValue: true},
+		wantWrapper: &ygen.MappedType{NativeType: "basePackage.enumPackage.TestModuleBaseIdentity", IsEnumeratedValue: true},
 		wantSame:    true,
 	}, {
 		name: "identityref with underscore in identity name",
@@ -372,7 +420,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				Parent: &yang.Entry{Name: "test-module"},
 			},
 		}},
-		wantWrapper: &MappedType{NativeType: "basePackage.enumPackage.TestModuleBASEIDENTITY", IsEnumeratedValue: true},
+		wantWrapper: &ygen.MappedType{NativeType: "basePackage.enumPackage.TestModuleBASEIDENTITY", IsEnumeratedValue: true},
 		wantSame:    true,
 	}, {
 		name: "single type union with scalars requested",
@@ -395,7 +443,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 			enumPackageName:             "enumPackage",
 			scalarTypeInSingleTypeUnion: true,
 		},
-		wantWrapper: &MappedType{NativeType: "string"},
+		wantWrapper: &ygen.MappedType{NativeType: "string"},
 		wantSame:    true,
 	}, {
 		name: "leafref with bad path",
@@ -440,8 +488,8 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		},
-		wantWrapper: &MappedType{NativeType: "ywrapper.StringValue"},
-		wantScalar:  &MappedType{NativeType: "string"},
+		wantWrapper: &ygen.MappedType{NativeType: "ywrapper.StringValue"},
+		wantScalar:  &ygen.MappedType{NativeType: "string"},
 	}, {
 		name: "leafref to leafref",
 		in: []resolveTypeArgs{{
@@ -499,7 +547,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		},
-		wantWrapper: &MappedType{NativeType: "basePackage.enumPackage.EnumModule", IsEnumeratedValue: true},
+		wantWrapper: &ygen.MappedType{NativeType: "basePackage.enumPackage.EnumModule", IsEnumeratedValue: true},
 		wantSame:    true,
 	}, {
 		name: "leafref to union",
@@ -558,9 +606,9 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		},
-		wantWrapper: &MappedType{
+		wantWrapper: &ygen.MappedType{
 			UnionTypes:     map[string]int{"bool": 0, "string": 1},
-			UnionTypeInfos: map[string]MappedUnionSubtype{"bool": {}, "string": {}},
+			UnionTypeInfos: map[string]ygen.MappedUnionSubtype{"bool": {}, "string": {}},
 		},
 		wantSame: true,
 	}}
@@ -606,8 +654,8 @@ func TestYangTypeToProtoType(t *testing.T) {
 			}
 
 			for _, st := range tt.in {
-				gotWrapper, err := s.yangTypeToProtoType(st, rpt, IROptions{
-					TransformationOptions: TransformationOpts{
+				gotWrapper, err := s.yangTypeToProtoType(st, rpt, ygen.IROptions{
+					TransformationOptions: ygen.TransformationOpts{
 						CompressBehaviour:                    genutil.Uncompressed,
 						IgnoreShadowSchemaPaths:              false,
 						GenerateFakeRoot:                     true,
@@ -626,14 +674,14 @@ func TestYangTypeToProtoType(t *testing.T) {
 					continue
 				}
 
-				// NOTE: We ignore testing "MappedType.EnumeratedYANGTypeKey" because it is a reference value,
+				// NOTE: We ignore testing "ygen.MappedType.EnumeratedYANGTypeKey" because it is a reference value,
 				// and is best tested in an integration test where we can ensure that this value actually points to an enum value in the enum map.
-				if diff := cmp.Diff(gotWrapper, tt.wantWrapper, cmpopts.IgnoreFields(MappedType{}, "EnumeratedYANGTypeKey")); diff != "" {
+				if diff := cmp.Diff(gotWrapper, tt.wantWrapper, cmpopts.IgnoreFields(ygen.MappedType{}, "EnumeratedYANGTypeKey")); diff != "" {
 					t.Errorf("%s: yangTypeToProtoType(%v): did not get correct type, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 				}
 
-				gotScalar, err := s.yangTypeToProtoScalarType(st, rpt, IROptions{
-					TransformationOptions: TransformationOpts{
+				gotScalar, err := s.yangTypeToProtoScalarType(st, rpt, ygen.IROptions{
+					TransformationOptions: ygen.TransformationOpts{
 						CompressBehaviour:                    genutil.Uncompressed,
 						IgnoreShadowSchemaPaths:              false,
 						GenerateFakeRoot:                     true,
@@ -655,9 +703,9 @@ func TestYangTypeToProtoType(t *testing.T) {
 				if tt.wantSame {
 					wantScalar = tt.wantWrapper
 				}
-				// NOTE: We ignore testing "MappedType.EnumeratedYANGTypeKey" because it is a reference value,
+				// NOTE: We ignore testing "ygen.MappedType.EnumeratedYANGTypeKey" because it is a reference value,
 				// and is best tested in an integration test where we can ensure that this value actually points to an enum value in the enum map.
-				if diff := cmp.Diff(gotScalar, wantScalar, cmpopts.IgnoreFields(MappedType{}, "EnumeratedYANGTypeKey")); diff != "" {
+				if diff := cmp.Diff(gotScalar, wantScalar, cmpopts.IgnoreFields(ygen.MappedType{}, "EnumeratedYANGTypeKey")); diff != "" {
 					t.Errorf("%s: yangTypeToProtoScalarType(%v): did not get correct type, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 				}
 			}
