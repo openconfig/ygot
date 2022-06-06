@@ -144,7 +144,7 @@ jobs:
 
       - name: Run coverage
         run: |
-          overalls -project ${GITHUB_WORKSPACE} -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ytypes/schema_tests,ypathgen/generator -- -coverpkg=all"
+          overalls -project ${GITHUB_WORKSPACE} -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ytypes/schema_tests,ypathgen/generator" -- -coverpkg=./ygen
 
       - name: Submit coverage
         uses: shogo82148/actions-goveralls@v1
