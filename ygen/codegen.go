@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package ygen contains a library to generate Go structs from a YANG model.
+// Package ygen contains a library and base configuration options that can be
+// extended to generate language-specific structs from a YANG model.
 // The Goyang parsing library is used to parse YANG. The output can consider
 // OpenConfig-specific conventions such that the schema is compressed.
+// The output of this library is an intermediate representation (IR) designed
+// to reduce the need for working with the Goyang parsing library's AST.
 package ygen
 
 import (
@@ -30,14 +33,6 @@ import (
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
-
-// YANGCodeGenerator is a structure that is used to pass arguments as to
-// how the output Go code should be generated.
-// TODO(wenbli): Delete this.
-type YANGCodeGenerator struct {
-	// Config stores the configuration parameters used for code generation.
-	Config GeneratorConfig
-}
 
 // GeneratorConfig stores the configuration options used for code generation.
 type GeneratorConfig struct {
@@ -145,18 +140,6 @@ type TransformationOpts struct {
 	EnumerationsUseUnderscores bool
 }
 
-// NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
-// struct to the calling function.
-func NewYANGCodeGenerator(c *GeneratorConfig) *YANGCodeGenerator {
-	cg := &YANGCodeGenerator{}
-
-	if c != nil {
-		cg.Config = *c
-	}
-
-	return cg
-}
-
 // yangEnum represents an enumerated type in YANG that is to be output in the
 // Go code. The enumerated type may be a YANG 'identity' or enumeration.
 type yangEnum struct {
@@ -169,16 +152,6 @@ type yangEnum struct {
 	// id is a unique synthesized key for the enumerated type.
 	id string
 }
-
-// generatedLanguage represents a language supported in this package.
-type generatedLanguage int64
-
-const (
-	// golang indicates that Go code is being generated.
-	golang generatedLanguage = iota
-	// protobuf indicates that Protobuf messages are being generated.
-	protobuf
-)
 
 // processModules takes a list of the filenames of YANG modules (yangFiles),
 // and a list of paths in which included modules or submodules may be found,
