@@ -22,9 +22,6 @@ import (
 	"github.com/openconfig/ygot/internal/igenutil"
 )
 
-// datapath is the path to common YANG test modules.
-const datapath = "../testdata/modules"
-
 // TestFindMappableEntities tests the extraction of elements that are to be mapped
 // into Go code from a YANG schema.
 func TestFindMappableEntities(t *testing.T) {
