@@ -170,16 +170,6 @@ type yangEnum struct {
 	id string
 }
 
-// generatedLanguage represents a language supported in this package.
-type generatedLanguage int64
-
-const (
-	// golang indicates that Go code is being generated.
-	golang generatedLanguage = iota
-	// protobuf indicates that Protobuf messages are being generated.
-	protobuf
-)
-
 // processModules takes a list of the filenames of YANG modules (yangFiles),
 // and a list of paths in which included modules or submodules may be found,
 // and returns a processed set of yang.Entry pointers which correspond to the

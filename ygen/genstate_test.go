@@ -1504,14 +1504,6 @@ func enumMapFromArgs(args []resolveTypeArgs) map[string]*yang.Entry {
 	return enumMap
 }
 
-// enumMapFromEntries recursively finds enumerated values from an entry and
-// returns an enumMap. The input enumMap is intended for findEnumSet.
-func enumMapFromEntry(entry *yang.Entry) map[string]*yang.Entry {
-	enumMap := map[string]*yang.Entry{}
-	addEnumsToEnumMap(entry, enumMap)
-	return enumMap
-}
-
 // addEnumsToEnumMap recursively finds enumerated values and adds them to the
 // input enumMap. The input enumMap is intended for findEnumSet, so that tests
 // that need generated enumerated names have an easy time generating them, and
