@@ -204,8 +204,8 @@ func (b *LangMapperBase) ResolveLeafrefTarget(path string, contextEntry *yang.En
 //
 // In testing contexts, this function requires SetupEnumSet to be called prior
 // to being usable.
-func (b *LangMapperBase) EnumeratedTypedefTypeName(args resolveTypeArgs, prefix string, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (string, string, error) {
-	return b.enumSet.enumeratedTypedefTypeName(args, prefix, noUnderscores, useDefiningModuleForTypedefEnumNames)
+func (b *LangMapperBase) EnumeratedTypedefTypeName(yangType *yang.YangType, contextEntry *yang.Entry, prefix string, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (string, string, error) {
+	return b.enumSet.enumeratedTypedefTypeName(resolveTypeArgs{yangType: yangType, contextEntry: contextEntry}, prefix, noUnderscores, useDefiningModuleForTypedefEnumNames)
 }
 
 // EnumName retrieves the type name of the input enum *yang.Entry that will be

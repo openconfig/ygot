@@ -21,6 +21,7 @@ import (
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
+	"github.com/openconfig/ygot/internal/igenutil"
 	"github.com/openconfig/ygot/util"
 )
 
@@ -77,6 +78,22 @@ func NewProtoLangMapper(basePackageName, enumPackageName string) *ProtoLangMappe
 		basePackageName:      basePackageName,
 		enumPackageName:      enumPackageName,
 	}
+}
+
+// resolveTypeArgs is a structure used as an input argument to the yangTypeToGoType
+// function which allows extra context to be handed on. This provides the ability
+// to use not only the YangType but also the yang.Entry that the type was part of
+// to resolve the possible type name.
+type resolveTypeArgs struct {
+	// yangType is a pointer to the yang.YangType that is to be mapped.
+	yangType *yang.YangType
+	// contextEntry is an optional yang.Entry which is supplied where a
+	// type requires knowledge of the leaf that it is used within to be
+	// mapped. For example, where a leaf is defined to have a type of a
+	// user-defined type (typedef) that in turn has enumerated values - the
+	// context of the yang.Entry is required such that the leaf's context
+	// can be established.
+	contextEntry *yang.Entry
 }
 
 // DirectoryName generates the proto message name to be used for a particular
@@ -150,7 +167,7 @@ func (s *ProtoLangMapper) KeyLeafType(e *yang.Entry, opts IROptions) (*MappedTyp
 func (s *ProtoLangMapper) PackageName(e *yang.Entry, compressBehaviour genutil.CompressBehaviour, nestedMessages bool) (string, error) {
 	compressPaths := compressBehaviour.CompressEnabled()
 	switch {
-	case IsFakeRoot(e):
+	case igenutil.IsFakeRoot(e):
 		// In this case, we explicitly leave the package name as nil, which is interpeted
 		// as meaning that the base package is used throughout the handling code.
 		return "", nil
@@ -250,7 +267,7 @@ func yangEnumTypeToProtoType(args resolveTypeArgs) (*MappedType, error) {
 // for additional details as to the transformation from YANG to Protobuf.
 func (s *ProtoLangMapper) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoTypeArgs, opts IROptions) (*MappedType, error) {
 	// Handle typedef cases.
-	typedefName, key, err := s.EnumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
+	typedefName, key, err := s.EnumeratedTypedefTypeName(args.yangType, args.contextEntry, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +346,7 @@ func (s *ProtoLangMapper) yangTypeToProtoType(args resolveTypeArgs, pargs resolv
 // value cannot be nil/unset.
 func (s *ProtoLangMapper) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolveProtoTypeArgs, opts IROptions) (*MappedType, error) {
 	// Handle typedef cases.
-	typedefName, key, err := s.EnumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
+	typedefName, key, err := s.EnumeratedTypedefTypeName(args.yangType, args.contextEntry, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
 	if err != nil {
 		return nil, err
 	}
@@ -566,7 +583,7 @@ func (s *ProtoLangMapper) protoMsgName(e *yang.Entry, compressPaths bool) string
 // becomes interface (since modules, surrounding containers, and config/state containers
 // are not considered with path compression enabled.
 func (s *ProtoLangMapper) protobufPackage(e *yang.Entry, compressPaths bool) string {
-	if IsFakeRoot(e) {
+	if igenutil.IsFakeRoot(e) {
 		return ""
 	}
 

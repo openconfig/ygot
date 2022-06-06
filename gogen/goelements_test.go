@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ygen
+package gogen
 
 import (
 	"encoding/base64"
@@ -23,6 +23,8 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
+	"github.com/openconfig/ygot/internal/igenutil"
+	"github.com/openconfig/ygot/ygen"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -41,7 +43,7 @@ func TestUnionSubTypes(t *testing.T) {
 		// entry as a parameter to goUnionSubTypes without the context entry.
 		inNoContext bool
 		want        []string
-		wantMtypes  map[int]*MappedType
+		wantMtypes  map[int]*ygen.MappedType
 		wantErr     bool
 	}{{
 		name: "union of strings",
@@ -57,7 +59,7 @@ func TestUnionSubTypes(t *testing.T) {
 			},
 		},
 		want: []string{"string"},
-		wantMtypes: map[int]*MappedType{
+		wantMtypes: map[int]*ygen.MappedType{
 			0: {
 				NativeType:        "string",
 				UnionTypes:        nil,
@@ -80,7 +82,7 @@ func TestUnionSubTypes(t *testing.T) {
 			},
 		},
 		want: []string{"int8", "string"},
-		wantMtypes: map[int]*MappedType{
+		wantMtypes: map[int]*ygen.MappedType{
 			0: {
 				NativeType:        "int8",
 				UnionTypes:        nil,
@@ -122,7 +124,7 @@ func TestUnionSubTypes(t *testing.T) {
 			},
 		},
 		want: []string{"string", "int32", "uint64", "int16"},
-		wantMtypes: map[int]*MappedType{
+		wantMtypes: map[int]*ygen.MappedType{
 			0: {
 				NativeType:        "string",
 				UnionTypes:        nil,
@@ -218,7 +220,7 @@ func TestUnionSubTypes(t *testing.T) {
 			},
 		},
 		want: []string{"E_TypedefModule_DerivedEnum", "int16"},
-		wantMtypes: map[int]*MappedType{
+		wantMtypes: map[int]*ygen.MappedType{
 			0: {
 				NativeType:        "E_TypedefModule_DerivedEnum",
 				IsEnumeratedValue: true,
@@ -263,7 +265,7 @@ func TestUnionSubTypes(t *testing.T) {
 			},
 		},
 		want: []string{"E_UnionModule_DerivedUnion_Enum", "int16"},
-		wantMtypes: map[int]*MappedType{
+		wantMtypes: map[int]*ygen.MappedType{
 			0: {
 				NativeType:        "E_UnionModule_DerivedUnion_Enum",
 				IsEnumeratedValue: true,
@@ -317,7 +319,7 @@ func TestUnionSubTypes(t *testing.T) {
 			},
 		},
 		want: []string{"E_TypedefModule_DerivedEnum", "int16"},
-		wantMtypes: map[int]*MappedType{
+		wantMtypes: map[int]*ygen.MappedType{
 			0: {
 				NativeType:        "E_TypedefModule_DerivedEnum",
 				IsEnumeratedValue: true,
@@ -350,7 +352,7 @@ func TestUnionSubTypes(t *testing.T) {
 			},
 		},
 		want: []string{"E_BaseModule_UnionLeaf_Enum"},
-		wantMtypes: map[int]*MappedType{
+		wantMtypes: map[int]*ygen.MappedType{
 			0: {
 				NativeType:        "E_BaseModule_UnionLeaf_Enum",
 				IsEnumeratedValue: true,
@@ -383,7 +385,7 @@ func TestUnionSubTypes(t *testing.T) {
 			},
 		},
 		want: []string{"E_Basemod_Id", "E_Basemod2_Id2"},
-		wantMtypes: map[int]*MappedType{
+		wantMtypes: map[int]*ygen.MappedType{
 			0: {
 				NativeType:        "E_Basemod_Id",
 				UnionTypes:        nil,
@@ -427,7 +429,7 @@ func TestUnionSubTypes(t *testing.T) {
 			},
 		},
 		want: []string{"E_BaseModule_BaseIdentity"},
-		wantMtypes: map[int]*MappedType{
+		wantMtypes: map[int]*ygen.MappedType{
 			0: {
 				NativeType:        "E_BaseModule_BaseIdentity",
 				UnionTypes:        nil,
@@ -445,7 +447,7 @@ func TestUnionSubTypes(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			mtypes := make(map[int]*MappedType)
+			mtypes := make(map[int]*ygen.MappedType)
 			ctypes := make(map[string]int)
 			ctxEntry := tt.inCtxEntry
 			if tt.inNoContext {
@@ -477,7 +479,7 @@ func TestUnionSubTypes(t *testing.T) {
 				}
 			}
 
-			if diff := cmp.Diff(tt.wantMtypes, mtypes, cmp.AllowUnexported(MappedType{}), cmpopts.EquateEmpty()); diff != "" {
+			if diff := cmp.Diff(tt.wantMtypes, mtypes, cmp.AllowUnexported(ygen.MappedType{}), cmpopts.EquateEmpty()); diff != "" {
 				t.Errorf("mtypes not as expected (-want, +got):\n%s", diff)
 			}
 		})
@@ -495,48 +497,48 @@ func TestYangTypeToGoType(t *testing.T) {
 		inEnumEntries   []*yang.Entry // inEnumEntries is used to add more state for findEnumSet to test enum name generation.
 		inSkipEnumDedup bool
 		inCompressPath  bool
-		want            *MappedType
+		want            *ygen.MappedType
 		wantErr         bool
 	}{{
 		name: "simple lookup resolution",
 		in:   &yang.YangType{Kind: yang.Yint32, Name: "int32"},
-		want: &MappedType{NativeType: "int32", ZeroValue: "0"},
+		want: &ygen.MappedType{NativeType: "int32", ZeroValue: "0"},
 	}, {
 		name: "int32 with default",
 		in:   &yang.YangType{Kind: yang.Yint32, Name: "int32", Default: "42"},
-		want: &MappedType{NativeType: "int32", ZeroValue: "0", DefaultValue: ygot.String("42")},
+		want: &ygen.MappedType{NativeType: "int32", ZeroValue: "0", DefaultValue: ygot.String("42")},
 	}, {
 		name: "decimal64",
 		in:   &yang.YangType{Kind: yang.Ydecimal64, Name: "decimal64", Default: "4.2"},
-		want: &MappedType{NativeType: "float64", ZeroValue: "0.0", DefaultValue: ygot.String("4.2")},
+		want: &ygen.MappedType{NativeType: "float64", ZeroValue: "0.0", DefaultValue: ygot.String("4.2")},
 	}, {
 		name: "binary lookup resolution",
 		in:   &yang.YangType{Kind: yang.Ybinary, Name: "binary"},
-		want: &MappedType{NativeType: "Binary", ZeroValue: "nil"},
+		want: &ygen.MappedType{NativeType: "Binary", ZeroValue: "nil"},
 	}, {
 		name: "unknown lookup resolution",
 		in:   &yang.YangType{Kind: yang.YinstanceIdentifier, Name: "instanceIdentifier"},
-		want: &MappedType{NativeType: "interface{}", ZeroValue: "nil"},
+		want: &ygen.MappedType{NativeType: "interface{}", ZeroValue: "nil"},
 	}, {
 		name: "simple empty resolution",
 		in:   &yang.YangType{Kind: yang.Yempty, Name: "empty"},
-		want: &MappedType{NativeType: "YANGEmpty", ZeroValue: "false"},
+		want: &ygen.MappedType{NativeType: "YANGEmpty", ZeroValue: "false"},
 	}, {
 		name: "simple boolean resolution",
 		in:   &yang.YangType{Kind: yang.Ybool, Name: "bool"},
-		want: &MappedType{NativeType: "bool", ZeroValue: "false"},
+		want: &ygen.MappedType{NativeType: "bool", ZeroValue: "false"},
 	}, {
 		name: "simple int64 resolution",
 		in:   &yang.YangType{Kind: yang.Yint64, Name: "int64"},
-		want: &MappedType{NativeType: "int64", ZeroValue: "0"},
+		want: &ygen.MappedType{NativeType: "int64", ZeroValue: "0"},
 	}, {
 		name: "simple uint8 resolution",
 		in:   &yang.YangType{Kind: yang.Yuint8, Name: "uint8"},
-		want: &MappedType{NativeType: "uint8", ZeroValue: "0"},
+		want: &ygen.MappedType{NativeType: "uint8", ZeroValue: "0"},
 	}, {
 		name: "simple uint16 resolution",
 		in:   &yang.YangType{Kind: yang.Yuint16, Name: "uint16"},
-		want: &MappedType{NativeType: "uint16", ZeroValue: "0"},
+		want: &ygen.MappedType{NativeType: "uint16", ZeroValue: "0"},
 	}, {
 		name:    "leafref without valid path",
 		in:      &yang.YangType{Kind: yang.Yleafref, Name: "leafref"},
@@ -582,7 +584,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				Default: "42",
 			},
 		},
-		want: &MappedType{
+		want: &ygen.MappedType{
 			NativeType:   "Module_Container_Leaf_Union",
 			UnionTypes:   map[string]int{"string": 0, "int8": 1},
 			ZeroValue:    "nil",
@@ -597,7 +599,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				{Kind: yang.Ystring, Name: "string"},
 			},
 		},
-		want: &MappedType{
+		want: &ygen.MappedType{
 			NativeType: "string",
 			UnionTypes: map[string]int{"string": 0},
 			ZeroValue:  `""`,
@@ -623,7 +625,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Module{Name: "base-module"},
 			},
 		},
-		want: &MappedType{
+		want: &ygen.MappedType{
 			NativeType:        "E_BaseModule_DerivedIdentityref",
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
@@ -650,7 +652,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Module{Name: "base-module"},
 			},
 		},
-		want: &MappedType{
+		want: &ygen.MappedType{
 			NativeType:        "E_BaseModule_DerivedIdentityref",
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
@@ -670,7 +672,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Module{Name: "base-module"},
 			},
 		},
-		want: &MappedType{
+		want: &ygen.MappedType{
 			NativeType:        "E_BaseModule_EnumerationLeaf",
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
@@ -690,7 +692,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Module{Name: "base-module"},
 			},
 		},
-		want: &MappedType{
+		want: &ygen.MappedType{
 			NativeType:        "E_BaseModule_EnumerationLeaf",
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
@@ -714,7 +716,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Module{Name: "base-module"},
 			},
 		},
-		want: &MappedType{
+		want: &ygen.MappedType{
 			NativeType:        "E_BaseModule_UnionLeaf_Enum",
 			UnionTypes:        map[string]int{"E_BaseModule_UnionLeaf_Enum": 0},
 			IsEnumeratedValue: true,
@@ -740,7 +742,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				},
 			},
 		},
-		want: &MappedType{
+		want: &ygen.MappedType{
 			NativeType:        "E_BaseModule_DerivedEnumeration",
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
@@ -764,7 +766,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				},
 			},
 		},
-		want: &MappedType{
+		want: &ygen.MappedType{
 			NativeType:        "E_BaseModule_UnionLeaf_Enum",
 			UnionTypes:        map[string]int{"E_BaseModule_UnionLeaf_Enum": 0},
 			IsEnumeratedValue: true,
@@ -790,7 +792,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				},
 			},
 		},
-		want: &MappedType{
+		want: &ygen.MappedType{
 			NativeType:        "E_BaseModule_DerivedEnumeration",
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
@@ -816,7 +818,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				},
 			},
 		},
-		want: &MappedType{
+		want: &ygen.MappedType{
 			NativeType:        "E_TestModule_BaseIdentity",
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
@@ -842,7 +844,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				},
 			},
 		},
-		want: &MappedType{
+		want: &ygen.MappedType{
 			NativeType:        "E_TestModule_BaseIdentity",
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
@@ -875,7 +877,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				},
 			},
 		},
-		want: &MappedType{
+		want: &ygen.MappedType{
 			NativeType:        "E_BaseModule_BaseIdentity",
 			UnionTypes:        map[string]int{"E_BaseModule_BaseIdentity": 0},
 			IsEnumeratedValue: true,
@@ -898,7 +900,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			},
 		},
 		inCompressPath: true,
-		want: &MappedType{
+		want: &ygen.MappedType{
 			NativeType:        "E_Container_Eleaf",
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
@@ -914,7 +916,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			},
 		},
 		inCompressPath: true,
-		want:           &MappedType{NativeType: "E_Container_Eleaf", IsEnumeratedValue: true, ZeroValue: "0"},
+		want:           &ygen.MappedType{NativeType: "E_Container_Eleaf", IsEnumeratedValue: true, ZeroValue: "0"},
 	}, {
 		name: "leafref",
 		ctx: &yang.Entry{
@@ -956,7 +958,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Entry{Name: "module"},
 			},
 		},
-		want: &MappedType{NativeType: "uint32", ZeroValue: "0"},
+		want: &ygen.MappedType{NativeType: "uint32", ZeroValue: "0"},
 	}, {
 		name: "enumeration from grouping used in multiple places - skip deduplication",
 		ctx: &yang.Entry{
@@ -998,14 +1000,14 @@ func TestYangTypeToGoType(t *testing.T) {
 			Parent: &yang.Entry{
 				Name: "config",
 				Parent: &yang.Entry{
-					Name:   "container",
+					Name:   "a-container-lexicographically-earlier",
 					Parent: &yang.Entry{Name: "base-module"},
 				},
 			},
 		}},
 		inCompressPath:  true,
 		inSkipEnumDedup: true,
-		want:            &MappedType{NativeType: "E_Bar_Leaf", IsEnumeratedValue: true, ZeroValue: "0"},
+		want:            &ygen.MappedType{NativeType: "E_Bar_Leaf", IsEnumeratedValue: true, ZeroValue: "0"},
 	}, {
 		name: "enumeration from grouping used in multiple places - with deduplication",
 		ctx: &yang.Entry{
@@ -1051,7 +1053,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			},
 		}},
 		inCompressPath: true,
-		want:           &MappedType{NativeType: "E_AContainerLexicographicallyEarlier_EnumLeaf", IsEnumeratedValue: true, ZeroValue: "0"},
+		want:           &ygen.MappedType{NativeType: "E_AContainerLexicographicallyEarlier_EnumLeaf", IsEnumeratedValue: true, ZeroValue: "0"},
 	}}
 
 	for _, tt := range tests {
@@ -1076,11 +1078,9 @@ func TestYangTypeToGoType(t *testing.T) {
 			}
 
 			if tt.inEntries != nil {
-				st, err := buildSchemaTree(tt.inEntries)
-				if err != nil {
-					t.Fatalf("buildSchemaTree(%v): could not build schema tree: %v", tt.inEntries, err)
+				if err := s.SetupSchemaTree(tt.inEntries); err != nil {
+					t.Fatalf("SetupSchemaTree(%v): could not build schema tree: %v", tt.inEntries, err)
 				}
-				s.schematree = st
 			}
 
 			args := resolveTypeArgs{
@@ -1254,6 +1254,52 @@ func TestStructName(t *testing.T) {
 	}
 }
 
+// enumMapFromEntries recursively finds enumerated values from a slice of
+// entries and returns an enumMap. The input enumMap is intended for
+// findEnumSet.
+func enumMapFromEntries(entries []*yang.Entry) map[string]*yang.Entry {
+	enumMap := map[string]*yang.Entry{}
+	for _, e := range entries {
+		addEnumsToEnumMap(e, enumMap)
+	}
+	return enumMap
+}
+
+// enumMapFromEntries recursively finds enumerated values from a slice of
+// resolveTypeArgs and returns an enumMap. The input enumMap is intended for
+// findEnumSet.
+func enumMapFromArgs(args []resolveTypeArgs) map[string]*yang.Entry {
+	enumMap := map[string]*yang.Entry{}
+	for _, a := range args {
+		addEnumsToEnumMap(a.contextEntry, enumMap)
+	}
+	return enumMap
+}
+
+// enumMapFromEntries recursively finds enumerated values from an entry and
+// returns an enumMap. The input enumMap is intended for findEnumSet.
+func enumMapFromEntry(entry *yang.Entry) map[string]*yang.Entry {
+	enumMap := map[string]*yang.Entry{}
+	addEnumsToEnumMap(entry, enumMap)
+	return enumMap
+}
+
+// addEnumsToEnumMap recursively finds enumerated values and adds them to the
+// input enumMap. The input enumMap is intended for findEnumSet, so that tests
+// that need generated enumerated names have an easy time generating them, and
+// subsequently adding them to their generated state during setup.
+func addEnumsToEnumMap(entry *yang.Entry, enumMap map[string]*yang.Entry) {
+	if entry == nil {
+		return
+	}
+	if e := igenutil.MappableLeaf(entry); e != nil {
+		enumMap[entry.Path()] = e
+	}
+	for _, e := range entry.Dir {
+		addEnumsToEnumMap(e, enumMap)
+	}
+}
+
 // TestTypeResolutionManyToOne tests cases where there can be many leaves that target the
 // same underlying typedef or identity, ensuring that generated names are reused where required.
 func TestTypeResolutionManyToOne(t *testing.T) {
@@ -1267,8 +1313,8 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 		inCompressOCPaths bool
 		inSkipEnumDedup   bool
 		// wantTypes is a map, keyed by the path of the yang.Entry within inLeaves and
-		// describing the MappedType that is expected to be output.
-		wantTypes map[string]*MappedType
+		// describing the ygen.MappedType that is expected to be output.
+		wantTypes map[string]*ygen.MappedType
 	}{{
 		name: "identity with multiple identityref leaves",
 		inLeaves: []*yang.Entry{{
@@ -1316,7 +1362,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 				},
 			},
 		}},
-		wantTypes: map[string]*MappedType{
+		wantTypes: map[string]*ygen.MappedType{
 			"/test-module/leaf-one": {NativeType: "E_TestModule_BaseIdentity", IsEnumeratedValue: true, ZeroValue: "0"},
 			"/test-module/leaf-two": {NativeType: "E_TestModule_BaseIdentity", IsEnumeratedValue: true, ZeroValue: "0"},
 		},
@@ -1361,7 +1407,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 				},
 			},
 		}},
-		wantTypes: map[string]*MappedType{
+		wantTypes: map[string]*ygen.MappedType{
 			"/base-module/leaf-one": {NativeType: "E_BaseModule_DefinedType", IsEnumeratedValue: true, ZeroValue: "0"},
 			"/base-module/leaf-two": {NativeType: "E_BaseModule_DefinedType", IsEnumeratedValue: true, ZeroValue: "0"},
 		},
@@ -1398,7 +1444,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 				},
 			},
 		}},
-		wantTypes: map[string]*MappedType{
+		wantTypes: map[string]*ygen.MappedType{
 			"/base-module/leaf-one": {NativeType: "E_BaseModule_LeafOne", IsEnumeratedValue: true, ZeroValue: "0"},
 			"/base-module/leaf-two": {NativeType: "E_BaseModule_LeafOne", IsEnumeratedValue: true, ZeroValue: "0"},
 		},
@@ -1436,7 +1482,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 			},
 		}},
 		inSkipEnumDedup: true,
-		wantTypes: map[string]*MappedType{
+		wantTypes: map[string]*ygen.MappedType{
 			"/base-module/leaf-one": {NativeType: "E_BaseModule_LeafOne", IsEnumeratedValue: true, ZeroValue: "0"},
 			"/base-module/leaf-two": {NativeType: "E_BaseModule_LeafTwo", IsEnumeratedValue: true, ZeroValue: "0"},
 		},
@@ -1449,7 +1495,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 				t.Fatalf("findEnumSet failed: %v", err)
 			}
 
-			gotTypes := make(map[string]*MappedType)
+			gotTypes := make(map[string]*ygen.MappedType)
 			for _, leaf := range tt.inLeaves {
 				mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf}, tt.inCompressOCPaths, tt.inSkipEnumDedup, true, true, nil)
 				if err != nil {
@@ -2457,11 +2503,9 @@ func TestYangDefaultValueToGo(t *testing.T) {
 				}
 
 				if tt.inEntries != nil {
-					st, err := buildSchemaTree(tt.inEntries)
-					if err != nil {
-						t.Fatalf("buildSchemaTree(%v): could not build schema tree: %v", tt.inEntries, err)
+					if err := s.SetupSchemaTree(tt.inEntries); err != nil {
+						t.Fatalf("SetupSchemaTree(%v): could not build schema tree: %v", tt.inEntries, err)
 					}
-					s.schematree = st
 				}
 
 				args := resolveTypeArgs{
@@ -2816,11 +2860,9 @@ func TestYangDefaultValueToGo(t *testing.T) {
 			}
 
 			if tt.inEntries != nil {
-				st, err := buildSchemaTree(tt.inEntries)
-				if err != nil {
-					t.Fatalf("buildSchemaTree(%v): could not build schema tree: %v", tt.inEntries, err)
+				if err := s.SetupSchemaTree(tt.inEntries); err != nil {
+					t.Fatalf("SetupSchemaTree(%v): could not build schema tree: %v", tt.inEntries, err)
 				}
-				s.schematree = st
 			}
 
 			args := resolveTypeArgs{

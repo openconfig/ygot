@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ygen
+package gogen
 
 import (
 	"bytes"
@@ -20,13 +20,14 @@ import (
 	"io"
 	"sort"
 	"strings"
-	"text/template"
 
 	"github.com/openconfig/gnmi/errlist"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
+	"github.com/openconfig/ygot/internal/igenutil"
 	"github.com/openconfig/ygot/util"
+	"github.com/openconfig/ygot/ygen"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -295,7 +296,7 @@ type generatedDefaultMethod struct {
 
 var (
 	// goCommonHeaderTemplate is populated and output at the top of the generated code package
-	goCommonHeaderTemplate = mustMakeTemplate("commonHeader", `
+	goCommonHeaderTemplate = igenutil.MustMakeTemplate("commonHeader", `
 {{- /**/ -}}
 /*
 Package {{ .PackageName }} is a generated package which contains definitions
@@ -334,7 +335,7 @@ import (
 
 	// goOneOffHeaderTemplate defines the template for package code that should
 	// be output in only one file.
-	goOneOffHeaderTemplate = mustMakeTemplate("oneoffHeader", `
+	goOneOffHeaderTemplate = igenutil.MustMakeTemplate("oneoffHeader", `
 // {{ .BinaryTypeName }} is a type that is used for fields that have a YANG type of
 // binary. It is used such that binary fields can be distinguished from
 // leaf-lists of uint8s (which are mapped to []uint8, equivalent to
@@ -475,7 +476,7 @@ var ΓModelData = []*gpb.ModelData{
 	// them. The logic populating the generatedGoStruct handles non-scalar child schema
 	// nodes: leaf-lists are mapped into slices; lists are mapped into a map or slice of
 	// structs; and containers are mapped into structs.
-	goStructTemplate = mustMakeTemplate("struct", `
+	goStructTemplate = igenutil.MustMakeTemplate("struct", `
 // {{ .StructName }} represents the {{ .YANGPath }} YANG schema element.
 type {{ .StructName }} struct {
 {{- range $idx, $field := .Fields }}
@@ -496,7 +497,7 @@ func (*{{ .StructName }}) IsYANGGoStruct() {}
 	// goStructValidatorTemplate takes an input generatedGoStruct, which contains
 	// a definition of a YANG schema node, and generates the Go validation code
 	// from it.
-	goStructValidatorTemplate = mustMakeTemplate("structValidator", `
+	goStructValidatorTemplate = igenutil.MustMakeTemplate("structValidator", `
 // Validate validates s against the YANG schema corresponding to its type.
 func (t *{{ .StructName }}) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["{{ .StructName }}"], t, opts...); err != nil {
@@ -508,7 +509,7 @@ func (t *{{ .StructName }}) ΛValidate(opts ...ygot.ValidationOption) error {
 
 	// goStructValidatorProxyTemplate creates a proxy for the ΛValidate function with the
 	// user definable name.
-	goStructValidatorProxyTemplate = mustMakeTemplate("structValidatorProxy", `
+	goStructValidatorProxyTemplate = igenutil.MustMakeTemplate("structValidatorProxy", `
 // Validate validates s against the YANG schema corresponding to its type.
 func (t *{{ .StructName }}) {{ .ValidateProxyFnName }}(opts ...ygot.ValidationOption) error {
 	return t.ΛValidate(opts...)
@@ -517,7 +518,7 @@ func (t *{{ .StructName }}) {{ .ValidateProxyFnName }}(opts ...ygot.ValidationOp
 
 	// goContainerGetterTemplate defines a template that generates a getter function
 	// for the field of a generated struct. It is generated only for YANG containers.
-	goContainerGetterTemplate = mustMakeTemplate("getContainer", `
+	goContainerGetterTemplate = igenutil.MustMakeTemplate("getContainer", `
 // Get{{ .Field.Name }} returns the value of the {{ .Field.Name }} struct pointer
 // from {{ .StructName }}. If the receiver or the field {{ .Field.Name }} is nil, nil
 // is returned such that the Get* methods can be safely chained.
@@ -532,7 +533,7 @@ func (t *{{ .StructName }}) Get{{ .Field.Name }}() {{ .Field.Type }} {
 	// goGetOrCreateStructTemplate is a template that generates a getter
 	// function for a struct field of the receiver struct. The function generated
 	// creates the field if it does not exist.
-	goGetOrCreateStructTemplate = mustMakeTemplate("getOrCreateStruct", `
+	goGetOrCreateStructTemplate = igenutil.MustMakeTemplate("getOrCreateStruct", `
 // GetOrCreate{{ .Field.Name }} retrieves the value of the {{ .Field.Name }} field
 // or returns the existing field if it already exists.
 func (t *{{ .StructName }}) GetOrCreate{{ .Field.Name }}() {{ .Field.Type }} {
@@ -565,7 +566,7 @@ func (t *{{ .StructName }}) GetOrCreate{{ .Field.Name }}() {{ .Field.Type }} {
 	//
 	// This struct is then used as the key of the map representing the list L, in
 	// the generated struct representing the container A.
-	goListKeyTemplate = mustMakeTemplate("listkey", `
+	goListKeyTemplate = igenutil.MustMakeTemplate("listkey", `
 // {{ .KeyStructName }} represents the key for list {{ .ListName }} of element {{ .ParentPath }}.
 type {{ .KeyStructName }} struct {
 {{- range $idx, $key := .Keys }}
@@ -577,7 +578,7 @@ type {{ .KeyStructName }} struct {
 	// goEnumDefinitionTemplate takes an input generatedGoEnumeration struct
 	// and outputs the Go code that is associated with the enumerated type to be
 	// generated.
-	goEnumDefinitionTemplate = mustMakeTemplate("enumDefinition", `
+	goEnumDefinitionTemplate = igenutil.MustMakeTemplate("enumDefinition", `
 // E_{{ .EnumerationPrefix }} is a derived int64 type which is used to represent
 // the enumerated node {{ .EnumerationPrefix }}. An additional value named
 // {{ .EnumerationPrefix }}_UNSET is added to the enumeration which is used as
@@ -611,7 +612,7 @@ const (
 	// of a struct within a keyed YANG list, and populates the map key, and the
 	// key fields of the list's struct according to the input arguments of the
 	// function.
-	goNewListMemberTemplate = mustMakeTemplate("newListEntry", `
+	goNewListMemberTemplate = igenutil.MustMakeTemplate("newListEntry", `
 // New{{ .ListName }} creates a new entry in the {{ .ListName }} list of the
 // {{ .Receiver}} struct. The keys of the list are populated from the input
 // arguments.
@@ -671,7 +672,7 @@ func (t *{{ .Receiver }}) New{{ .ListName }}(
 
 	// goListGetterTemplate defines a template for a function that, for a particular
 	// list key, gets an existing map value.
-	goListGetterTemplate = mustMakeTemplate("getList", `
+	goListGetterTemplate = igenutil.MustMakeTemplate("getList", `
 // Get{{ .ListName }} retrieves the value with the specified key from
 // the {{ .ListName }} map field of {{ .Receiver }}. If the receiver is nil, or
 // the specified key is not present in the list, nil is returned such that Get*
@@ -710,7 +711,7 @@ func (t *{{ .Receiver }}) Get{{ .ListName }}(
 	// goGetOrCreateListTemplate defines a template for a function that, for a
 	// particular list key, gets an existing map value, or creates it if it doesn't
 	// exist.
-	goGetOrCreateListTemplate = mustMakeTemplate("getOrCreateList", `
+	goGetOrCreateListTemplate = igenutil.MustMakeTemplate("getOrCreateList", `
 // GetOrCreate{{ .ListName }} retrieves the value with the specified keys from
 // the receiver {{ .Receiver }}. If the entry does not exist, then it is created.
 // It returns the existing or new list member.
@@ -753,7 +754,7 @@ func (t *{{ .Receiver }}) GetOrCreate{{ .ListName }}(
 
 	// goLeafGetterTemplate defines a template for a function that, for a
 	// particular leaf, generates a getter method.
-	goLeafGetterTemplate = mustMakeTemplate("getLeaf", `
+	goLeafGetterTemplate = igenutil.MustMakeTemplate("getLeaf", `
 // Get{{ .Name }} retrieves the value of the leaf {{ .Name }} from the {{ .Receiver }}
 // struct. If the field is unset but has a default value in the YANG schema,
 // then the default value will be returned.
@@ -777,7 +778,7 @@ func (t *{{ .Receiver }}) Get{{ .Name }}() {{ .Type }} {
 
 	// goDefaultMethodTemplate is a template for generating a PopulateDefaults method
 	// for a GoStruct that recursively populates default values within the subtree.
-	goDefaultMethodTemplate = mustMakeTemplate("populateDefaults", `
+	goDefaultMethodTemplate = igenutil.MustMakeTemplate("populateDefaults", `
 // PopulateDefaults recursively populates unset leaf fields in the {{ .Receiver }}
 // with default values as specified in the YANG schema, instantiating any nil
 // container fields.
@@ -812,7 +813,7 @@ func (t *{{ .Receiver }}) PopulateDefaults() {
 
 	// goDeleteListTemplate defines a template for a function that, for a
 	// particular list key, deletes an existing map value.
-	goDeleteListTemplate = mustMakeTemplate("deleteList", `
+	goDeleteListTemplate = igenutil.MustMakeTemplate("deleteList", `
 // Delete{{ .ListName }} deletes the value with the specified keys from
 // the receiver {{ .Receiver }}. If there is no such element, the function
 // is a no-op.
@@ -845,7 +846,7 @@ func (t *{{ .Receiver }}) Delete{{ .ListName }}(
 	// within values by default, we must invert the "IsScalarField" check to
 	// ensure that we dereference elements that are pointers in the generated
 	// code.
-	goListAppendTemplate = mustMakeTemplate("appendList", `
+	goListAppendTemplate = igenutil.MustMakeTemplate("appendList", `
 // Append{{ .ListName }} appends the supplied {{ .ListType }} struct to the
 // list {{ .ListName }} of {{ .Receiver }}. If the key value(s) specified in
 // the supplied {{ .ListType }} already exist in the list, an error is
@@ -909,7 +910,7 @@ func (t *{{ .Receiver }}) Append{{ .ListName }}(v *{{ .ListType }}) error {
 	// goListMemberRenameTemplate provides a template for a function which renames
 	// an entry within a list. It is used to generate functions for each list within
 	// a generated Go struct.
-	goListMemberRenameTemplate = mustMakeTemplate("renameListEntry", `
+	goListMemberRenameTemplate = igenutil.MustMakeTemplate("renameListEntry", `
 // Rename{{ .ListName }} renames an entry in the list {{ .ListName }} within
 // the {{ .Receiver }} struct. The entry with key oldK is renamed to newK updating
 // the key within the value.
@@ -957,7 +958,7 @@ func (t *{{ .Receiver }}) Rename{{ .ListName }}(
 	// goKeyMapTemplate defines the template for a function that is generated for a YANG
 	// list type. It returns a map[string]interface{} keyed by the YANG leaf identifier of each
 	// key leaf, and containing their values within the struct.
-	goKeyMapTemplate = mustMakeTemplate("keyHelper", `
+	goKeyMapTemplate = igenutil.MustMakeTemplate("keyHelper", `
 // ΛListKeyMap returns the keys of the {{ .Receiver }} struct, which is a YANG list entry.
 func (t *{{ .Receiver }}) ΛListKeyMap() (map[string]interface{}, error) {
 {{- range $key := .Keys -}}{{ if $key.IsPtr }}
@@ -979,7 +980,7 @@ func (t *{{ .Receiver }}) ΛListKeyMap() (map[string]interface{}, error) {
 	// goEnumMapTemplate provides a template to output a constant map which
 	// can be used to resolve the string value of any enumeration within the
 	// schema.
-	goEnumMapTemplate = mustMakeTemplate("enumMap", `
+	goEnumMapTemplate = igenutil.MustMakeTemplate("enumMap", `
 // ΛEnum is a map, keyed by the name of the type defined for each enum in the
 // generated Go code, which provides a mapping between the constant int64 value
 // of each value of the enumeration, and the string that is used to represent it
@@ -1003,7 +1004,7 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 	// goEnumTypeMapTemplate provides a template to output a constant map which
 	// can be used to resolve a schemapath to the set of enumerated types that
 	// are valid for the leaf or leaf-list defined at the path specified.
-	goEnumTypeMapTemplate = mustMakeTemplate("enumTypeMap", `
+	goEnumTypeMapTemplate = igenutil.MustMakeTemplate("enumTypeMap", `
 // ΛEnumTypes is a map, keyed by a YANG schema path, of the enumerated types that
 // correspond with the leaf. The type is represented as a reflect.Type. The naming
 // of the map ensures that there are no clashes with valid YANG identifiers.
@@ -1023,7 +1024,7 @@ func initΛEnumTypes(){
 	// goEnumTypeMapAccessTemplate provides a template to output an accessor
 	// function with a generated struct as receiver, it returns the enum type
 	// map associated with the generated code.
-	goEnumTypeMapAccessTemplate = mustMakeTemplate("enumTypeMapAccessor", `
+	goEnumTypeMapAccessTemplate = igenutil.MustMakeTemplate("enumTypeMapAccessor", `
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *{{ .StructName }}) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
@@ -1032,7 +1033,7 @@ func (t *{{ .StructName }}) ΛEnumTypeMap() map[string][]reflect.Type { return �
 	// goBelongingModuleTemplate provides a template to output a
 	// function that has a generated struct as receiver, and returns the
 	// name of the module in which namespace the generated struct belongs.
-	goBelongingModuleTemplate = mustMakeTemplate("belongingModuleMethod", `
+	goBelongingModuleTemplate = igenutil.MustMakeTemplate("belongingModuleMethod", `
 // ΛBelongingModule returns the name of the module that defines the namespace
 // of {{ .StructName }}.
 func (*{{ .StructName }}) ΛBelongingModule() string {
@@ -1043,7 +1044,7 @@ func (*{{ .StructName }}) ΛBelongingModule() string {
 	// schemaVarTemplate provides a template to output a constant byte
 	// slice which contains the serialised schema of the YANG modules for
 	// which code generation was performed.
-	schemaVarTemplate = mustMakeTemplate("schemaVar", `
+	schemaVarTemplate = igenutil.MustMakeTemplate("schemaVar", `
 var (
 	// {{ .VarName }} is a byte slice contain a gzip compressed representation of the
 	// YANG schema from which the Go code was generated. When uncompressed the
@@ -1061,7 +1062,7 @@ var (
 
 	// unionTypeTemplate outputs the type that corresponds to a multi-type union
 	// in the YANG schema.
-	unionTypeTemplate = mustMakeTemplate("unionType", `
+	unionTypeTemplate = igenutil.MustMakeTemplate("unionType", `
 // {{ .Name }} is an interface that is implemented by valid types for the union
 // for the leaf {{ .LeafPath }} within the YANG schema.
 type {{ .Name }} interface {
@@ -1085,7 +1086,7 @@ func (*{{ $intfName }}_{{ $typeName }}) Is_{{ $intfName }}() {}
 	// unionHelperTemplate defines a template that defines a helper method
 	// with a particular receiver type that allows an input type to be converted
 	// to its corresponding type in the union type.
-	unionHelperTemplate = mustMakeTemplate("unionHelper", `
+	unionHelperTemplate = igenutil.MustMakeTemplate("unionHelper", `
 {{- $intfName := .Name }}
 {{- $path := .LeafPath }}
 // To_{{ .Name }} takes an input interface{} and attempts to convert it to a struct
@@ -1111,7 +1112,7 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 
 	// unionTypeSimpleTemplate outputs the type that corresponds to a multi-type union
 	// in the YANG schema. It does so by enhancing generated typedefs.
-	unionTypeSimpleTemplate = mustMakeTemplate("unionTypeSimple", `
+	unionTypeSimpleTemplate = igenutil.MustMakeTemplate("unionTypeSimple", `
 // {{ .Name }} is an interface that is implemented by valid types for the union
 // for the leaf {{ .LeafPath }} within the YANG schema.
 // Union type can be one of [{{ .SubtypeDocumentation }}].
@@ -1131,7 +1132,7 @@ func ({{ $typeName }}) Documentation_for_{{ $intfName }}() {}
 	// unionHelperSimpleTemplate defines a template that defines a helper method
 	// with a particular receiver type that allows an input type to be converted
 	// to its corresponding type in the union type.
-	unionHelperSimpleTemplate = mustMakeTemplate("unionHelperSimple", `
+	unionHelperSimpleTemplate = igenutil.MustMakeTemplate("unionHelperSimple", `
 {{- $intfName := .Name }}
 {{- $path := .LeafPath }}
 // To_{{ .Name }} takes an input interface{} and attempts to convert it to a struct
@@ -1162,45 +1163,7 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 	]", i, i)
 }
 `)
-
-	// templateHelperFunctions specifies a set of functions that are supplied as
-	// helpers to the templates that are used within this file.
-	templateHelperFunctions = template.FuncMap{
-		// inc provides a means to add 1 to a number, and is used within templates
-		// to check whether the index of an element within a loop is the last one,
-		// such that special handling can be provided for it (e.g., not following
-		// it with a comma in a list of arguments).
-		"inc": func(i int) int {
-			return i + 1
-		},
-		"toUpper": strings.ToUpper,
-		"indentLines": func(s string) string {
-			var b bytes.Buffer
-			p := strings.Split(s, "\n")
-			b.WriteRune('\n')
-			for i, l := range p {
-				if l == "" {
-					continue
-				}
-				b.WriteString(fmt.Sprintf("  %s", l))
-				if i != len(p)-1 {
-					b.WriteRune('\n')
-				}
-			}
-			return b.String()
-		},
-		// stripAsteriskPrefix provides a template helper that removes an asterisk
-		// from the start of a string. It is used to remove "*" from the start of
-		// pointer types.
-		"stripAsteriskPrefix": func(s string) string { return strings.TrimPrefix(s, "*") },
-	}
 )
-
-// mustMakeTemplate generates a template.Template for a particular named source
-// template; with a common set of helper functions.
-func mustMakeTemplate(name, src string) *template.Template {
-	return template.Must(template.New(name).Funcs(templateHelperFunctions).Parse(src))
-}
 
 // writeGoHeader outputs the package header, including the package name and
 // comments that is to be included with the generated code. The input set of
@@ -1217,14 +1180,14 @@ func mustMakeTemplate(name, src string) *template.Template {
 // The header returned is split into two strings, the common header is a header that
 // should be used for all files within the output package. The one off header should
 // be included in only one file of the package.
-func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig, rootName string, modelData []*gpb.ModelData) (string, string, error) {
+func writeGoHeader(yangFiles, includePaths []string, cfg *GoCodeGenerator, rootName string, modelData []*gpb.ModelData) (string, string, error) {
 	// Determine the running binary's name.
-	if cfg.Caller == "" {
-		cfg.Caller = genutil.CallerName()
+	if cfg.Config.Caller == "" {
+		cfg.Config.Caller = genutil.CallerName()
 	}
 
-	if cfg.PackageName == "" {
-		cfg.PackageName = defaultPackageName
+	if cfg.Config.PackageName == "" {
+		cfg.Config.PackageName = defaultPackageName
 	}
 
 	if cfg.GoOptions.YgotImportPath == "" {
@@ -1255,12 +1218,12 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig, rootNa
 		FakeRootName     string           // FakeRootName is the name of the fake root struct in the YANG type
 		ModelData        []*gpb.ModelData // ModelData contains the gNMI ModelData definition for the input types.
 	}{
-		PackageName:      cfg.PackageName,
+		PackageName:      cfg.Config.PackageName,
 		YANGFiles:        yangFiles,
 		IncludePaths:     includePaths,
-		CompressEnabled:  cfg.TransformationOptions.CompressBehaviour.CompressEnabled(),
-		GeneratingBinary: cfg.Caller,
-		GenerateSchema:   cfg.GenerateJSONSchema,
+		CompressEnabled:  cfg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(),
+		GeneratingBinary: cfg.Config.Caller,
+		GenerateSchema:   cfg.Config.GenerateJSONSchema,
 		GoOptions:        cfg.GoOptions,
 		BinaryTypeName:   ygot.BinaryTypeName,
 		EmptyTypeName:    ygot.EmptyTypeName,
@@ -1268,7 +1231,7 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig, rootNa
 	}
 
 	s.FakeRootName = "nil"
-	if cfg.TransformationOptions.GenerateFakeRoot && rootName != "" {
+	if cfg.Config.TransformationOptions.GenerateFakeRoot && rootName != "" {
 		s.FakeRootName = fmt.Sprintf("&%s{}", rootName)
 	}
 
@@ -1287,10 +1250,10 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig, rootNa
 
 // IsScalarField determines which fields should be converted to pointers when
 // outputting structs; this is done to allow checks against nil.
-func IsScalarField(field *NodeDetails) bool {
+func IsScalarField(field *ygen.NodeDetails) bool {
 	switch {
 	// A non-singleton-leaf always has a generated type for which nil is valid.
-	case field.Type != LeafNode:
+	case field.Type != ygen.LeafNode:
 		return false
 	// A union shouldn't be a pointer since its field type is an interface;
 	case len(field.LangType.UnionTypes) >= 2:
@@ -1328,7 +1291,7 @@ func IsScalarField(field *NodeDetails) bool {
 //	   of targetStruct (listKeys).
 //	3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
 //	   list a NewListMember() method is generated.
-func writeGoStruct(targetStruct *ParsedDirectory, goStructElements map[string]*ParsedDirectory, generatedUnions map[string]bool, ignoreShadowSchemaPaths bool, goOpts GoOpts, generateJSONSchema bool) (GoStructCodeSnippet, []error) {
+func writeGoStruct(targetStruct *ygen.ParsedDirectory, goStructElements map[string]*ygen.ParsedDirectory, generatedUnions map[string]bool, ignoreShadowSchemaPaths bool, goOpts GoOpts, generateJSONSchema bool) (GoStructCodeSnippet, []error) {
 	if targetStruct == nil {
 		return GoStructCodeSnippet{}, []error{fmt.Errorf("cannot create code for nil targetStruct")}
 	}
@@ -1387,7 +1350,7 @@ func writeGoStruct(targetStruct *ParsedDirectory, goStructElements map[string]*P
 		})
 	}
 
-	goFieldNameMap := GoFieldNameMap(targetStruct)
+	goFieldNameMap := ygen.GoFieldNameMap(targetStruct)
 	// Alphabetically order fields to produce deterministic output.
 	for _, fName := range targetStruct.OrderedFieldNames() {
 		// Iterate through the fields of the struct that we are generating code for.
@@ -1401,7 +1364,7 @@ func writeGoStruct(targetStruct *ParsedDirectory, goStructElements map[string]*P
 		definedNameMap[fName] = &yangFieldMap{YANGName: fName, GoName: fieldName}
 
 		switch field.Type {
-		case ListNode:
+		case ygen.ListNode:
 			// If the field within the struct is a list, then generate code for this list. This
 			// includes extracting any new types that are required to represent the key of a
 			// list that has multiple keys.
@@ -1427,7 +1390,7 @@ func writeGoStruct(targetStruct *ParsedDirectory, goStructElements map[string]*P
 				associatedListKeyStructs = append(associatedListKeyStructs, multiKeyListKey)
 			}
 
-		case ContainerNode:
+		case ygen.ContainerNode:
 			// This is a YANG container, so it is represented in code using a pointer to the struct type that
 			// is defined for the entity. findMappableEntities has already determined which fields are to
 			// be output, so no filtering of the set of fields is required here.
@@ -1443,7 +1406,7 @@ func writeGoStruct(targetStruct *ParsedDirectory, goStructElements map[string]*P
 				IsYANGContainer: true,
 			}
 			associatedDefaultMethod.ChildContainerNames = append(associatedDefaultMethod.ChildContainerNames, fieldName)
-		case LeafNode, LeafListNode:
+		case ygen.LeafNode, ygen.LeafListNode:
 			// Only if this union has more than one subtype do we generate the union;
 			// otherwise, we use that subtype directly.
 			// Also, make sure to process a union type once and only once within the struct.
@@ -1505,7 +1468,7 @@ func writeGoStruct(targetStruct *ParsedDirectory, goStructElements map[string]*P
 			fType := field.LangType.NativeType
 			zeroValue := field.LangType.ZeroValue
 
-			if field.Type == LeafListNode {
+			if field.Type == ygen.LeafListNode {
 				// We represent a leaf-list in the output
 				// code using a slice of the type that the element was mapped to.
 				fType = fmt.Sprintf("[]%s", fType)
@@ -1592,7 +1555,7 @@ func writeGoStruct(targetStruct *ParsedDirectory, goStructElements map[string]*P
 		metadataTagBuf.WriteString(` ygotAnnotation:"true"`)
 
 		if goOpts.AddYangPresence {
-			if field.Type == ContainerNode && field.YANGDetails.PresenceStatement != nil {
+			if field.Type == ygen.ContainerNode && field.YANGDetails.PresenceStatement != nil {
 				tagBuf.WriteString(` yangPresence:"true"`)
 			}
 		}
@@ -1957,7 +1920,7 @@ func generateListAppend(buf *bytes.Buffer, method *generatedGoListMethod) error 
 //	  "baz": *t.Baz,
 //	}
 //  }
-func generateGetListKey(buf *bytes.Buffer, s *ParsedDirectory, nameMap map[string]*yangFieldMap) error {
+func generateGetListKey(buf *bytes.Buffer, s *ygen.ParsedDirectory, nameMap map[string]*yangFieldMap) error {
 	if s.ListKeys == nil {
 		return nil
 	}
@@ -1994,7 +1957,7 @@ func generateGetListKey(buf *bytes.Buffer, s *ParsedDirectory, nameMap map[strin
 //	  type.
 // In the case that the list has multiple keys, the type generated as the key of the list is returned.
 // If errors are encountered during the type generation for the list, the error is returned.
-func yangListFieldToGoType(listField *NodeDetails, listFieldName string, parent *ParsedDirectory, goStructElements map[string]*ParsedDirectory) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
+func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, parent *ygen.ParsedDirectory, goStructElements map[string]*ygen.ParsedDirectory) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
 	// The list itself, since it is a container, has a struct associated with it. Retrieve
 	// this from the set of Directory structs for which code (a Go struct) will be
 	//  generated such that additional details can be used in the code generation.
@@ -2150,7 +2113,7 @@ func generateBelongingModuleFunction(b io.Writer, s generatedGoStruct) error {
 // provided and stores it in a variable which can be written out to the generated
 // Go code file.
 func writeGoSchema(js []byte, schemaVarName string) (string, error) {
-	jbyte, err := WriteGzippedByteSlice(js)
+	jbyte, err := ygen.WriteGzippedByteSlice(js)
 	if err != nil {
 		return "", fmt.Errorf("could not write Byte slice: %v", err)
 	}
@@ -2165,7 +2128,7 @@ func writeGoSchema(js []byte, schemaVarName string) (string, error) {
 		Schema  []string
 	}{
 		VarName: vn,
-		Schema:  BytesToGoByteSlice(jbyte),
+		Schema:  ygen.BytesToGoByteSlice(jbyte),
 	}
 
 	var buf bytes.Buffer
@@ -2180,7 +2143,7 @@ func writeGoSchema(js []byte, schemaVarName string) (string, error) {
 // is unspecified, the value specified by the type is returned if it is not nil,
 // otherwise nil is returned to indicate no default was specified.
 // TODO(wenbli): This doesn't handle unions. Deprecate this for v1 release.
-func goLeafDefaults(e *yang.Entry, t *MappedType) []string {
+func goLeafDefaults(e *yang.Entry, t *ygen.MappedType) []string {
 	defaultValues := e.DefaultValues()
 	if len(defaultValues) == 0 && t.DefaultValue != nil {
 		defaultValues = []string{*t.DefaultValue}

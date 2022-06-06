@@ -32,6 +32,7 @@ import (
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
+	"github.com/openconfig/ygot/gogen"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygen"
 	"github.com/openconfig/ygot/ygot"
@@ -203,7 +204,7 @@ type GoImports struct {
 }
 
 type goLangMapper struct {
-	*ygen.GoLangMapper
+	*gogen.GoLangMapper
 }
 
 // PopulateFieldFlags populates extra field information for pathgen.
@@ -267,7 +268,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 	}
 
 	var errs util.Errors
-	ir, err := ygen.GenerateIR(yangFiles, includePaths, goLangMapper{GoLangMapper: ygen.NewGoLangMapper(true)}, opts)
+	ir, err := ygen.GenerateIR(yangFiles, includePaths, goLangMapper{GoLangMapper: gogen.NewGoLangMapper(true)}, opts)
 	if err != nil {
 		return nil, nil, util.AppendErr(errs, err)
 	}
@@ -687,7 +688,7 @@ func getNodeDataMap(ir *ygen.IR, fakeRootName, schemaStructPkgAccessor, pathStru
 				GoFieldName:           goFieldNameMap[fieldName],
 				SubsumingGoStructName: subsumingGoStructName,
 				IsLeaf:                isLeaf,
-				IsScalarField:         ygen.IsScalarField(field),
+				IsScalarField:         gogen.IsScalarField(field),
 				HasDefault:            isLeaf && (len(field.YANGDetails.Defaults) > 0 || mType.DefaultValue != nil),
 				YANGTypeName:          yangTypeName,
 				YANGPath:              field.YANGDetails.Path,

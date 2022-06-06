@@ -21,6 +21,7 @@ import (
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
+	"github.com/openconfig/ygot/internal/igenutil"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
@@ -172,7 +173,7 @@ func buildDirectoryDefinitions(langMapper LangMapper, entries map[string]*yang.E
 			elem.Path = strings.Split(util.SchemaTreePath(e), "/")
 
 			// Mark this struct as the fake root if it is specified to be.
-			if IsFakeRoot(e) {
+			if igenutil.IsFakeRoot(e) {
 				elem.IsFakeRoot = true
 			}
 

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/openconfig/ygot/genutil"
+	"github.com/openconfig/ygot/gogen"
 	"github.com/openconfig/ygot/ygen"
 )
 
@@ -22,14 +23,12 @@ func TestGenerateCode(t *testing.T) {
 	tests := []struct {
 		name     string
 		inConfig *ygen.GeneratorConfig
+		inGoOpts *gogen.GoOpts
 		inFiles  []string
 		inPaths  []string
 	}{{
 		name: "openconfig interfaces",
 		inConfig: &ygen.GeneratorConfig{
-			GoOptions: ygen.GoOpts{
-				GenerateSimpleUnions: true,
-			},
 			ParseOptions: ygen.ParseOpts{
 				ExcludeModules: []string{"ietf-interfaces"},
 			},
@@ -39,6 +38,9 @@ func TestGenerateCode(t *testing.T) {
 			},
 			GenerateJSONSchema: true,
 		},
+		inGoOpts: &gogen.GoOpts{
+			GenerateSimpleUnions: true,
+		},
 		inFiles: []string{
 			filepath.Join(TestRoot, "yang", "openconfig-interfaces.yang"),
 			filepath.Join(TestRoot, "yang", "openconfig-if-ip.yang"),
@@ -47,9 +49,6 @@ func TestGenerateCode(t *testing.T) {
 	}, {
 		name: "openconfig interfaces with no compression",
 		inConfig: &ygen.GeneratorConfig{
-			GoOptions: ygen.GoOpts{
-				GenerateSimpleUnions: true,
-			},
 			ParseOptions: ygen.ParseOpts{
 				ExcludeModules: []string{"ietf-interfaces"},
 			},
@@ -57,6 +56,9 @@ func TestGenerateCode(t *testing.T) {
 				GenerateFakeRoot: true,
 			},
 			GenerateJSONSchema: true,
+		},
+		inGoOpts: &gogen.GoOpts{
+			GenerateSimpleUnions: true,
 		},
 		inFiles: []string{
 			filepath.Join(TestRoot, "yang", "openconfig-interfaces.yang"),
@@ -66,7 +68,7 @@ func TestGenerateCode(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		cg := ygen.NewYANGCodeGenerator(tt.inConfig)
+		cg := gogen.NewGoCodeGenerator(tt.inConfig, tt.inGoOpts)
 		got, err := cg.GenerateGoCode(tt.inFiles, tt.inPaths)
 		if err != nil {
 			t.Errorf("%s: GenerateGoCode(%v, %v): Config: %v, got unexpected error: %v", tt.name, tt.inFiles, tt.inPaths, tt.inConfig, err)

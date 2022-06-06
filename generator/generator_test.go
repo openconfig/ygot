@@ -22,19 +22,19 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
-	"github.com/openconfig/ygot/ygen"
+	"github.com/openconfig/ygot/gogen"
 	"github.com/openconfig/ygot/ypathgen"
 )
 
 func TestWriteGoCode(t *testing.T) {
 	tests := []struct {
 		name     string
-		inGoCode *ygen.GeneratedGoCode
+		inGoCode *gogen.GeneratedGoCode
 		wantCode string
 	}{{
 		name: "single element structs and enums",
-		inGoCode: &ygen.GeneratedGoCode{
-			Structs: []ygen.GoStructCodeSnippet{{
+		inGoCode: &gogen.GeneratedGoCode{
+			Structs: []gogen.GoStructCodeSnippet{{
 				StructDef: `structOne`,
 			}},
 			Enums:   []string{`enumOne`},
@@ -46,8 +46,8 @@ enumOne
 `,
 	}, {
 		name: "multi-element structs and enums",
-		inGoCode: &ygen.GeneratedGoCode{
-			Structs: []ygen.GoStructCodeSnippet{{
+		inGoCode: &gogen.GeneratedGoCode{
+			Structs: []gogen.GoStructCodeSnippet{{
 				StructDef: "structOne",
 			}, {
 				StructDef: "structTwo",
@@ -63,7 +63,7 @@ enumTwo
 `,
 	}, {
 		name: "json string code",
-		inGoCode: &ygen.GeneratedGoCode{
+		inGoCode: &gogen.GeneratedGoCode{
 			JSONSchemaCode: "foo",
 		},
 		wantCode: `
@@ -71,7 +71,7 @@ foo
 `,
 	}, {
 		name: "enum type map",
-		inGoCode: &ygen.GeneratedGoCode{
+		inGoCode: &gogen.GeneratedGoCode{
 			EnumTypeMap: "map",
 		},
 		wantCode: `
@@ -95,16 +95,16 @@ map
 func TestSplitCodeByFileN(t *testing.T) {
 	tests := []struct {
 		name             string
-		in               *ygen.GeneratedGoCode
+		in               *gogen.GeneratedGoCode
 		inFileN          int
 		want             map[string]string
 		wantErrSubstring string
 	}{{
 		name: "simple struct with all only structs populated",
-		in: &ygen.GeneratedGoCode{
+		in: &gogen.GeneratedGoCode{
 			CommonHeader: "common_header\n",
 			OneOffHeader: "oneoff_header\n",
-			Structs: []ygen.GoStructCodeSnippet{{
+			Structs: []gogen.GoStructCodeSnippet{{
 				StructName: "name",
 				StructDef:  "def\n",
 				ListKeys:   "name_key",
@@ -122,10 +122,10 @@ func TestSplitCodeByFileN(t *testing.T) {
 		},
 	}, {
 		name: "less than 1 file requested for splitting",
-		in: &ygen.GeneratedGoCode{
+		in: &gogen.GeneratedGoCode{
 			CommonHeader: "common_header\n",
 			OneOffHeader: "oneoff_header\n",
-			Structs: []ygen.GoStructCodeSnippet{{
+			Structs: []gogen.GoStructCodeSnippet{{
 				StructName: "name",
 				StructDef:  "def\n",
 				ListKeys:   "name_key",
@@ -137,10 +137,10 @@ func TestSplitCodeByFileN(t *testing.T) {
 		wantErrSubstring: "requested 0 files",
 	}, {
 		name: "more than # of structs files requested for splitting",
-		in: &ygen.GeneratedGoCode{
+		in: &gogen.GeneratedGoCode{
 			CommonHeader: "common_header\n",
 			OneOffHeader: "oneoff_header\n",
-			Structs: []ygen.GoStructCodeSnippet{{
+			Structs: []gogen.GoStructCodeSnippet{{
 				StructName: "name",
 				StructDef:  "def\n",
 				ListKeys:   "name_key",
@@ -152,10 +152,10 @@ func TestSplitCodeByFileN(t *testing.T) {
 		wantErrSubstring: "requested 2 files",
 	}, {
 		name: "two structs with enums populated",
-		in: &ygen.GeneratedGoCode{
+		in: &gogen.GeneratedGoCode{
 			CommonHeader: "common_header\n",
 			OneOffHeader: "oneoff_header\n",
-			Structs: []ygen.GoStructCodeSnippet{{
+			Structs: []gogen.GoStructCodeSnippet{{
 				StructName: "s1",
 				StructDef:  "s1def\n",
 				ListKeys:   "s1key",
@@ -181,10 +181,10 @@ func TestSplitCodeByFileN(t *testing.T) {
 		},
 	}, {
 		name: "two structs, separated into two files",
-		in: &ygen.GeneratedGoCode{
+		in: &gogen.GeneratedGoCode{
 			CommonHeader: "common_header\n",
 			OneOffHeader: "oneoff_header\n",
-			Structs: []ygen.GoStructCodeSnippet{{
+			Structs: []gogen.GoStructCodeSnippet{{
 				StructName: "s1",
 				StructDef:  "s1def\n",
 				ListKeys:   "s1key",
@@ -210,10 +210,10 @@ func TestSplitCodeByFileN(t *testing.T) {
 		},
 	}, {
 		name: "five structs, separated into four files",
-		in: &ygen.GeneratedGoCode{
+		in: &gogen.GeneratedGoCode{
 			CommonHeader: "common_header\n",
 			OneOffHeader: "oneoff_header\n",
-			Structs: []ygen.GoStructCodeSnippet{{
+			Structs: []gogen.GoStructCodeSnippet{{
 				StructName: "s1",
 				StructDef:  "s1def\n",
 				ListKeys:   "s1key",
@@ -253,10 +253,10 @@ func TestSplitCodeByFileN(t *testing.T) {
 		},
 	}, {
 		name: "five structs, separated into three files",
-		in: &ygen.GeneratedGoCode{
+		in: &gogen.GeneratedGoCode{
 			CommonHeader: "common_header\n",
 			OneOffHeader: "oneoff_header\n",
-			Structs: []ygen.GoStructCodeSnippet{{
+			Structs: []gogen.GoStructCodeSnippet{{
 				StructName: "s1",
 				StructDef:  "s1def\n",
 				ListKeys:   "s1key",
@@ -295,10 +295,10 @@ func TestSplitCodeByFileN(t *testing.T) {
 		},
 	}, {
 		name: "five structs, separated into two files",
-		in: &ygen.GeneratedGoCode{
+		in: &gogen.GeneratedGoCode{
 			CommonHeader: "common_header\n",
 			OneOffHeader: "oneoff_header\n",
-			Structs: []ygen.GoStructCodeSnippet{{
+			Structs: []gogen.GoStructCodeSnippet{{
 				StructName: "s1",
 				StructDef:  "s1def\n",
 				ListKeys:   "s1key",

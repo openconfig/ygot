@@ -15,13 +15,12 @@
 package ygen
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
+	"github.com/openconfig/ygot/internal/igenutil"
 )
 
 func TestOrderedUnionTypes(t *testing.T) {
@@ -85,6 +84,7 @@ func TestOrderedUnionTypes(t *testing.T) {
 	}
 }
 
+/*
 func TestBuildDirectoryDefinitions(t *testing.T) {
 	tests := []struct {
 		name                                    string
@@ -1480,6 +1480,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 		}
 	}
 }
+*/
 
 // enumMapFromEntries recursively finds enumerated values from a slice of
 // entries and returns an enumMap. The input enumMap is intended for
@@ -1519,12 +1520,59 @@ func addEnumsToEnumMap(entry *yang.Entry, enumMap map[string]*yang.Entry) {
 	if entry == nil {
 		return
 	}
-	if e := mappableLeaf(entry); e != nil {
+	if e := igenutil.MappableLeaf(entry); e != nil {
 		enumMap[entry.Path()] = e
 	}
 	for _, e := range entry.Dir {
 		addEnumsToEnumMap(e, enumMap)
 	}
+}
+
+type BuildListKeyMapper struct {
+	// LangMapperBase being embedded is a requirement for GoLangMapper to
+	// implement the LangMapper interface, and also gives it access to
+	// built-in methods.
+	LangMapperBase
+
+	// UnimplementedLangMapperExt ensures BuildListKeyMapper implements the
+	// LangMapperExt interface for forwards compatibility.
+	UnimplementedLangMapperExt
+}
+
+// DirectoryName generates the final name to be used for a particular YANG
+// schema element in the generated Go code. If path compressing is active,
+// schemapaths are compressed, otherwise the name is returned simply as camel
+// case.
+// Although name conversion is lossy, name uniquification occurs at this stage
+// since all generated struct names reside in the package namespace.
+func (*BuildListKeyMapper) DirectoryName(e *yang.Entry, compressBehaviour genutil.CompressBehaviour) (string, error) {
+	return "", nil
+}
+
+// FieldName maps the input entry's name to what the Go name of the field would be.
+// Since this conversion is lossy, a later step should resolve any naming
+// conflicts between different fields.
+func (s *BuildListKeyMapper) FieldName(e *yang.Entry) (string, error) {
+	return genutil.EntryCamelCaseName(e), nil
+}
+
+// LeafType maps the input leaf entry to a MappedType object containing the
+// type information about the field.
+func (s *BuildListKeyMapper) LeafType(e *yang.Entry, opts IROptions) (*MappedType, error) {
+	return nil, nil
+}
+
+// LeafType maps the input list key entry to a MappedType object containing the
+// type information about the key field.
+func (s *BuildListKeyMapper) KeyLeafType(e *yang.Entry, opts IROptions) (*MappedType, error) {
+	return &MappedType{
+		NativeType: e.Type.Kind.String(),
+	}, nil
+}
+
+// PackageName is not used by Go generation.
+func (s *BuildListKeyMapper) PackageName(*yang.Entry, genutil.CompressBehaviour, bool) (string, error) {
+	return "", nil
 }
 
 // TestBuildListKey takes an input yang.Entry and ensures that the correct YangListAttr
@@ -1643,7 +1691,7 @@ func TestBuildListKey(t *testing.T) {
 				"keyleaf": {
 					Name: "Keyleaf",
 					LangType: &MappedType{
-						NativeType: "E_Container_Keyleaf",
+						NativeType: "enumeration",
 					},
 				},
 			},
@@ -2078,7 +2126,7 @@ func TestBuildListKey(t *testing.T) {
 				"keyleafref": {
 					Name: "Keyleafref",
 					LangType: &MappedType{
-						NativeType: "string",
+						NativeType: "leafref",
 					},
 				},
 			},
@@ -2089,168 +2137,11 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 		},
-	}, {
-		name: "list enum key -- already seen",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "keyleaf",
-			Dir: map[string]*yang.Entry{
-				"keyleaf": {
-					Name: "keyleaf",
-					Type: &yang.YangType{
-						Name: "enumeration",
-						Enum: &yang.EnumType{},
-						Kind: yang.Yenum,
-					},
-					Node: &yang.Enum{
-						Name: "enumeration",
-						Parent: &yang.Grouping{
-							Name: "foo",
-							Parent: &yang.Module{
-								Name: "base-module",
-							},
-						},
-					},
-					Parent: &yang.Entry{
-						Name: "config",
-						Parent: &yang.Entry{
-							Name:   "container",
-							Parent: &yang.Entry{Name: "base-module"},
-						},
-					},
-				},
-			},
-		},
-		inEnumEntries: []*yang.Entry{{
-			Name: "enum-leaf-lexicographically-earlier",
-			Type: &yang.YangType{
-				Name: "enumeration",
-				Enum: &yang.EnumType{},
-				Kind: yang.Yenum,
-			},
-			Node: &yang.Enum{
-				Name: "enumeration",
-				Parent: &yang.Grouping{
-					Name: "foo",
-					Parent: &yang.Module{
-						Name: "base-module",
-					},
-				},
-			},
-			Parent: &yang.Entry{
-				Name: "config",
-				Parent: &yang.Entry{
-					Name:   "container",
-					Parent: &yang.Entry{Name: "base-module"},
-				},
-			},
-		}},
-		inCompress: true,
-		want: YangListAttr{
-			Keys: map[string]*ListKey{
-				"keyleaf": {
-					Name: "Keyleaf",
-					LangType: &MappedType{
-						NativeType: "E_Container_EnumLeafLexicographicallyEarlier",
-					},
-				},
-			},
-			KeyElems: []*yang.Entry{
-				{
-					Name: "keyleaf",
-					Type: &yang.YangType{
-						Name: "enumeration",
-						Enum: &yang.EnumType{},
-						Kind: yang.Yenum,
-					},
-				},
-			},
-		},
-	}, {
-		name: "list enum key -- already seen but skip enum dedup",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "keyleaf",
-			Dir: map[string]*yang.Entry{
-				"keyleaf": {
-					Name: "keyleaf",
-					Type: &yang.YangType{
-						Name: "enumeration",
-						Enum: &yang.EnumType{},
-						Kind: yang.Yenum,
-					},
-					Node: &yang.Enum{
-						Name: "enumeration",
-						Parent: &yang.Grouping{
-							Name: "foo",
-							Parent: &yang.Module{
-								Name: "base-module",
-							},
-						},
-					},
-					Parent: &yang.Entry{
-						Name: "config",
-						Parent: &yang.Entry{
-							Name:   "container",
-							Parent: &yang.Entry{Name: "base-module"},
-						},
-					},
-				},
-			},
-		},
-		inEnumEntries: []*yang.Entry{{
-			Name: "enum-leaf-lexicographically-earlier",
-			Type: &yang.YangType{
-				Name: "enumeration",
-				Enum: &yang.EnumType{},
-				Kind: yang.Yenum,
-			},
-			Node: &yang.Enum{
-				Name: "enumeration",
-				Parent: &yang.Grouping{
-					Name: "foo",
-					Parent: &yang.Module{
-						Name: "base-module",
-					},
-				},
-			},
-			Parent: &yang.Entry{
-				Name: "config",
-				Parent: &yang.Entry{
-					Name:   "container",
-					Parent: &yang.Entry{Name: "base-module"},
-				},
-			},
-		}},
-		inCompress:      true,
-		inSkipEnumDedup: true,
-		want: YangListAttr{
-			Keys: map[string]*ListKey{
-				"keyleaf": {
-					Name: "Keyleaf",
-					LangType: &MappedType{
-						NativeType: "E_Container_Keyleaf",
-					},
-				},
-			},
-			KeyElems: []*yang.Entry{
-				{
-					Name: "keyleaf",
-					Type: &yang.YangType{
-						Name: "enumeration",
-						Enum: &yang.EnumType{},
-						Kind: yang.Yenum,
-					},
-				},
-			},
-		},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewGoLangMapper(true)
+			var s LangMapper = &BuildListKeyMapper{}
 
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.in, enumMap)
