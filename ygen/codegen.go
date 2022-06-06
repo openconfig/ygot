@@ -230,16 +230,6 @@ type Proto3Package struct {
 	UsesYextImport     bool     // UsesYextImport indicates whether the yext proto package is used within the generated package.
 }
 
-// generatedLanguage represents a language supported in this package.
-type generatedLanguage int64
-
-const (
-	// golang indicates that Go code is being generated.
-	golang generatedLanguage = iota
-	// protobuf indicates that Protobuf messages are being generated.
-	protobuf
-)
-
 // GenerateProto3 generates Protobuf 3 code for the input set of YANG files.
 // The YANG schemas for which protobufs are to be created is supplied as the
 // yangFiles argument, with included modules being searched for in includePaths.
