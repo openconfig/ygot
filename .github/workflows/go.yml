@@ -87,7 +87,7 @@ jobs:
             # fake ygot and ytype paths specified in generation options.
             "openconfig-options-explicit.formatted-txt.go"
           )
-          for f in ygen/testdata/schema/*.formatted-txt; do
+          for f in gogen/testdata/schema/*.formatted-txt; do
             if [[ ${skipped[@]} =~ $(basename $f) ]]; then
               continue
             fi
@@ -96,7 +96,7 @@ jobs:
 
           skipped=(
           )
-          for f in ygen/testdata/structs/*.formatted-txt; do
+          for f in gogen/testdata/structs/*.formatted-txt; do
             if [[ ${skipped[@]} =~ $(basename $f) ]]; then
               continue
             fi

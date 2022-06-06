@@ -22,15 +22,6 @@ import (
 	"github.com/openconfig/ygot/internal/igenutil"
 )
 
-const (
-	// TestRoot is the root of the test directory such that this is not
-	// repeated when referencing files.
-	TestRoot string = ""
-	// deflakeRuns specifies the number of runs of code generation that
-	// should be performed to check for flakes.
-	deflakeRuns int = 10
-)
-
 // datapath is the path to common YANG test modules.
 const datapath = "../testdata/modules"
 
