@@ -24,3 +24,9 @@ enum ProtoEnumsEnumUnionTypedefEnum {
   PROTOENUMSENUMUNIONTYPEDEFENUM_UNSET = 0;
   PROTOENUMSENUMUNIONTYPEDEFENUM_B_VAL = 1;
 }
+
+// ProtoEnumsIrefTypedef represents an enumerated type generated for the YANG identity BASE_IDENTITY.
+enum ProtoEnumsIrefTypedef {
+  PROTOENUMSIREFTYPEDEF_UNSET = 0;
+  PROTOENUMSIREFTYPEDEF_DERIVED_IDENTITY = 191733515;
+}
