@@ -117,8 +117,14 @@ func TestYangTypeToProtoType(t *testing.T) {
 			},
 		},
 		wantWrapper: &MappedType{
-			UnionTypes:     map[string]int{"string": 0, "uint64": 1},
-			UnionTypeInfos: map[string]MappedUnionSubtype{"string": {}, "uint64": {}},
+			UnionTypes: map[string]MappedUnionSubtype{
+				"string": {
+					Index: 0,
+				},
+				"uint64": {
+					Index: 1,
+				},
+			},
 		},
 		wantSame: true,
 	}, {
@@ -559,8 +565,14 @@ func TestYangTypeToProtoType(t *testing.T) {
 			},
 		},
 		wantWrapper: &MappedType{
-			UnionTypes:     map[string]int{"bool": 0, "string": 1},
-			UnionTypeInfos: map[string]MappedUnionSubtype{"bool": {}, "string": {}},
+			UnionTypes: map[string]MappedUnionSubtype{
+				"bool": {
+					Index: 0,
+				},
+				"string": {
+					Index: 1,
+				},
+			},
 		},
 		wantSame: true,
 	}}
