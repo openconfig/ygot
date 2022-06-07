@@ -107,6 +107,8 @@ type LangMapper interface {
 type LangMapperExt interface {
 	// PopulateFieldFlags populates extra information given a particular
 	// field of a ParsedDirectory and the corresponding AST node.
+	// Fields of a ParsedDirectory can be any non-choice/case node (e.g.
+	// YANG leafs, containers, lists).
 	PopulateFieldFlags(NodeDetails, *yang.Entry) map[string]string
 	// PopulateEnumFlags populates extra information given a particular
 	// enumerated type its corresponding AST representation.
@@ -403,10 +405,10 @@ type NodeDetails struct {
 	// Shadow paths are paths that have sibling config/state values
 	// that have been compressed out due to path compression.
 	ShadowMappedPathModules [][]string
-	// LangMapper during IR generation to assist the code generation stage.
 	// Flags contains extra information that can be populated by the
 	// LangMapper during IR generation to assist the code generation stage.
-	// It needs to implement the LangMapperExt interface.
+	// Specifically, this field is set by the
+	// LangMapperExt.PopulateFieldFlags function.
 	Flags map[string]string
 }
 
@@ -591,6 +593,7 @@ type EnumeratedYANGType struct {
 	ValToYANGDetails []ygot.EnumDefinition
 	// Flags contains extra information that can be populated by the
 	// LangMapper during IR generation to assist the code generation stage.
-	// It needs to implement the LangMapperExt interface.
+	// Specifically, this field is set by the
+	// LangMapperExt.PopulateEnumFlags function.
 	Flags map[string]string
 }

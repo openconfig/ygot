@@ -281,7 +281,6 @@ func protoIR(nestedDirectories bool) *IR {
 						LangType: &MappedType{
 							NativeType:            "openconfig.enums.ComplexSOFTWARE",
 							UnionTypes:            nil,
-							UnionTypeInfos:        nil,
 							IsEnumeratedValue:     true,
 							EnumeratedYANGTypeKey: "/openconfig-complex/SOFTWARE",
 							ZeroValue:             "",
@@ -323,15 +322,13 @@ func protoIR(nestedDirectories bool) *IR {
 						Type: LeafNode,
 						LangType: &MappedType{
 							NativeType: "",
-							UnionTypes: map[string]int{
-								"openconfig.enums.ComplexWeekendDays": 0,
-								"uint64":                              1,
-							},
-							UnionTypeInfos: map[string]MappedUnionSubtype{
+							UnionTypes: map[string]MappedUnionSubtype{
 								"openconfig.enums.ComplexWeekendDays": {
+									Index:                 0,
 									EnumeratedYANGTypeKey: "/openconfig-complex/weekend-days",
 								},
 								"uint64": {
+									Index:                 1,
 									EnumeratedYANGTypeKey: "",
 								},
 							},
@@ -392,15 +389,13 @@ func protoIR(nestedDirectories bool) *IR {
 						Type: LeafNode,
 						LangType: &MappedType{
 							NativeType: "",
-							UnionTypes: map[string]int{
-								"openconfig.enums.ComplexCycloneScalesEnum": 0,
-								"uint64": 1,
-							},
-							UnionTypeInfos: map[string]MappedUnionSubtype{
+							UnionTypes: map[string]MappedUnionSubtype{
 								"openconfig.enums.ComplexCycloneScalesEnum": {
+									Index:                 0,
 									EnumeratedYANGTypeKey: "/openconfig-complex/cyclone-scales",
 								},
 								"uint64": {
+									Index:                 1,
 									EnumeratedYANGTypeKey: "",
 								},
 							},
@@ -445,15 +440,13 @@ func protoIR(nestedDirectories bool) *IR {
 						Type: LeafNode,
 						LangType: &MappedType{
 							NativeType: "",
-							UnionTypes: map[string]int{
-								"SimpleUnionEnumEnum": 0,
-								"uint64":              1,
-							},
-							UnionTypeInfos: map[string]MappedUnionSubtype{
+							UnionTypes: map[string]MappedUnionSubtype{
 								"SimpleUnionEnumEnum": {
+									Index:                 0,
 									EnumeratedYANGTypeKey: "/openconfig-complex/single-key-config/simple-union-enum",
 								},
 								"uint64": {
+									Index:                 1,
 									EnumeratedYANGTypeKey: "",
 								},
 							},
@@ -499,7 +492,6 @@ func protoIR(nestedDirectories bool) *IR {
 						LangType: &MappedType{
 							NativeType:            "SingletonUnionEnumEnum",
 							UnionTypes:            nil,
-							UnionTypeInfos:        nil,
 							IsEnumeratedValue:     true,
 							EnumeratedYANGTypeKey: "/openconfig-complex/single-key-config/singleton-union-enum",
 							ZeroValue:             "",
@@ -542,7 +534,6 @@ func protoIR(nestedDirectories bool) *IR {
 						LangType: &MappedType{
 							NativeType:            "openconfig.enums.ComplexWeekendDays",
 							UnionTypes:            nil,
-							UnionTypeInfos:        nil,
 							IsEnumeratedValue:     true,
 							EnumeratedYANGTypeKey: "/openconfig-complex/weekend-days",
 							ZeroValue:             "",
@@ -584,16 +575,14 @@ func protoIR(nestedDirectories bool) *IR {
 						Type: LeafNode,
 						LangType: &MappedType{
 							NativeType: "",
-							UnionTypes: map[string]int{
+							UnionTypes: map[string]MappedUnionSubtype{
 								// protoLangMapper sorts by name instead of YANG order.
-								"openconfig.enums.ComplexCycloneScalesEnum": 0,
-								"uint64": 1,
-							},
-							UnionTypeInfos: map[string]MappedUnionSubtype{
 								"openconfig.enums.ComplexCycloneScalesEnum": {
+									Index:                 0,
 									EnumeratedYANGTypeKey: "/openconfig-complex/cyclone-scales",
 								},
 								"uint64": {
+									Index:                 1,
 									EnumeratedYANGTypeKey: "",
 								},
 							},
@@ -627,15 +616,13 @@ func protoIR(nestedDirectories bool) *IR {
 						Name: "key",
 						LangType: &MappedType{
 							NativeType: "",
-							UnionTypes: map[string]int{
-								"openconfig.enums.ComplexWeekendDays": 0,
-								"uint64":                              1,
-							},
-							UnionTypeInfos: map[string]MappedUnionSubtype{
+							UnionTypes: map[string]MappedUnionSubtype{
 								"openconfig.enums.ComplexWeekendDays": {
+									Index:                 0,
 									EnumeratedYANGTypeKey: "/openconfig-complex/weekend-days",
 								},
 								"uint64": {
+									Index:                 1,
 									EnumeratedYANGTypeKey: "",
 								},
 							},
@@ -2369,9 +2356,13 @@ func TestGenerateIR(t *testing.T) {
 							Type: LeafNode,
 							LangType: &MappedType{
 								NativeType: "Model_SingleKey_Key_Union",
-								UnionTypes: map[string]int{
-									"E_Complex_WeekendDays": 1,
-									"uint8":                 0,
+								UnionTypes: map[string]MappedUnionSubtype{
+									"E_Complex_WeekendDays": {
+										Index: 1,
+									},
+									"uint8": {
+										Index: 0,
+									},
 								},
 								ZeroValue: "nil",
 							},
@@ -2397,9 +2388,13 @@ func TestGenerateIR(t *testing.T) {
 							Type: LeafNode,
 							LangType: &MappedType{
 								NativeType: "Model_SingleKey_LeafDefaultOverride_Union",
-								UnionTypes: map[string]int{
-									"E_Complex_CycloneScales_Enum": 1,
-									"uint8":                        0,
+								UnionTypes: map[string]MappedUnionSubtype{
+									"E_Complex_CycloneScales_Enum": {
+										Index: 1,
+									},
+									"uint8": {
+										Index: 0,
+									},
 								},
 								ZeroValue:    "nil",
 								DefaultValue: ygot.String("UnionUint8(3)"),
@@ -2426,9 +2421,13 @@ func TestGenerateIR(t *testing.T) {
 							Type: LeafNode,
 							LangType: &MappedType{
 								NativeType: "Model_SingleKey_SimpleUnionEnum_Union",
-								UnionTypes: map[string]int{
-									"E_SingleKey_SimpleUnionEnum_Enum": 1,
-									"uint64":                           0,
+								UnionTypes: map[string]MappedUnionSubtype{
+									"E_SingleKey_SimpleUnionEnum_Enum": {
+										Index: 1,
+									},
+									"uint64": {
+										Index: 0,
+									},
 								},
 								ZeroValue:    "nil",
 								DefaultValue: ygot.String("SingleKey_SimpleUnionEnum_Enum_TWO"),
@@ -2455,8 +2454,10 @@ func TestGenerateIR(t *testing.T) {
 							Type: LeafNode,
 							LangType: &MappedType{
 								NativeType: "E_SingleKey_SingletonUnionEnum_Enum",
-								UnionTypes: map[string]int{
-									"E_SingleKey_SingletonUnionEnum_Enum": 0,
+								UnionTypes: map[string]MappedUnionSubtype{
+									"E_SingleKey_SingletonUnionEnum_Enum": {
+										Index: 0,
+									},
 								},
 								IsEnumeratedValue: true,
 								ZeroValue:         "0",
@@ -2510,9 +2511,13 @@ func TestGenerateIR(t *testing.T) {
 							Type: LeafNode,
 							LangType: &MappedType{
 								NativeType: "Model_SingleKey_TypedefUnionEnum_Union",
-								UnionTypes: map[string]int{
-									"E_Complex_CycloneScales_Enum": 1,
-									"uint8":                        0,
+								UnionTypes: map[string]MappedUnionSubtype{
+									"E_Complex_CycloneScales_Enum": {
+										Index: 1,
+									},
+									"uint8": {
+										Index: 0,
+									},
 								},
 								ZeroValue:    "nil",
 								DefaultValue: ygot.String("Complex_CycloneScales_Enum_SUPER"),
@@ -2528,9 +2533,13 @@ func TestGenerateIR(t *testing.T) {
 							Name: "Key",
 							LangType: &MappedType{
 								NativeType: "Model_SingleKey_Key_Union",
-								UnionTypes: map[string]int{
-									"E_Complex_WeekendDays": 1,
-									"uint8":                 0,
+								UnionTypes: map[string]MappedUnionSubtype{
+									"E_Complex_WeekendDays": {
+										Index: 1,
+									},
+									"uint8": {
+										Index: 0,
+									},
 								},
 								ZeroValue: "nil",
 							},
@@ -2565,8 +2574,12 @@ func TestGenerateIR(t *testing.T) {
 							Type: LeafNode,
 							LangType: &MappedType{
 								NativeType: "uint32",
-								UnionTypes: map[string]int{"uint32": 0},
-								ZeroValue:  "0",
+								UnionTypes: map[string]MappedUnionSubtype{
+									"uint32": {
+										Index: 0,
+									},
+								},
+								ZeroValue: "0",
 							},
 							MappedPaths:             [][]string{{"config", "key1"}, {"key1"}},
 							MappedPathModules:       [][]string{{"openconfig-complex", "openconfig-complex"}, {"openconfig-complex"}},
@@ -2600,8 +2613,12 @@ func TestGenerateIR(t *testing.T) {
 							Name: "Key1",
 							LangType: &MappedType{
 								NativeType: "uint32",
-								UnionTypes: map[string]int{"uint32": 0},
-								ZeroValue:  "0",
+								UnionTypes: map[string]MappedUnionSubtype{
+									"uint32": {
+										Index: 0,
+									},
+								},
+								ZeroValue: "0",
 							},
 						},
 						"key2": {

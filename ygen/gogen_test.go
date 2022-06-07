@@ -244,8 +244,15 @@ func (*Tstruct) ΛBelongingModule() string {
 					},
 					Type: LeafNode,
 					LangType: &MappedType{
-						NativeType:        "InputStruct_U1_Union",
-						UnionTypes:        map[string]int{"string": 0, "int8": 1},
+						NativeType: "InputStruct_U1_Union",
+						UnionTypes: map[string]MappedUnionSubtype{
+							"string": {
+								Index: 0,
+							},
+							"int8": {
+								Index: 1,
+							},
+						},
 						IsEnumeratedValue: false,
 						ZeroValue:         "nil",
 						DefaultValue:      nil,

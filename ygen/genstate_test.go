@@ -33,9 +33,13 @@ func TestOrderedUnionTypes(t *testing.T) {
 		desc: "union type with 2 elements",
 		in: &MappedType{
 			NativeType: "A_Union",
-			UnionTypes: map[string]int{
-				"Binary":  1,
-				"float64": 2,
+			UnionTypes: map[string]MappedUnionSubtype{
+				"Binary": {
+					Index: 1,
+				},
+				"float64": {
+					Index: 2,
+				},
 			},
 		},
 		want: []string{
@@ -46,10 +50,16 @@ func TestOrderedUnionTypes(t *testing.T) {
 		desc: "union type with 3 elements",
 		in: &MappedType{
 			NativeType: "A_Union",
-			UnionTypes: map[string]int{
-				"uint64":  3,
-				"float64": 2,
-				"Binary":  1,
+			UnionTypes: map[string]MappedUnionSubtype{
+				"uint64": {
+					Index: 3,
+				},
+				"float64": {
+					Index: 2,
+				},
+				"Binary": {
+					Index: 1,
+				},
 			},
 		},
 		want: []string{
@@ -67,8 +77,10 @@ func TestOrderedUnionTypes(t *testing.T) {
 		desc: "union type with a single element",
 		in: &MappedType{
 			NativeType: "string",
-			UnionTypes: map[string]int{
-				"string": 0,
+			UnionTypes: map[string]MappedUnionSubtype{
+				"string": {
+					Index: 0,
+				},
 			},
 		},
 		want: []string{
