@@ -1447,6 +1447,28 @@ func TestGenerateIR(t *testing.T) {
 							ShadowMappedPaths:       [][]string{{"state", "iref"}},
 							ShadowMappedPathModules: [][]string{{"openconfig-complex", "openconfig-complex"}},
 						},
+						"iref2": {
+							Name: "Iref2",
+							YANGDetails: ygen.YANGNodeDetails{
+								Name:              "iref2",
+								BelongingModule:   "openconfig-complex",
+								RootElementModule: "openconfig-complex",
+								DefiningModule:    "openconfig-complex",
+								Path:              "/openconfig-complex/model/a/single-key/config/iref2",
+								SchemaPath:        "/model/a/single-key/config/iref2",
+								ShadowSchemaPath:  "/model/a/single-key/state/iref2",
+							},
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
+								NativeType:        "E_Complex_Program",
+								IsEnumeratedValue: true,
+								ZeroValue:         "0",
+							},
+							MappedPaths:             [][]string{{"config", "iref2"}},
+							MappedPathModules:       [][]string{{"openconfig-complex", "openconfig-complex"}},
+							ShadowMappedPaths:       [][]string{{"state", "iref2"}},
+							ShadowMappedPathModules: [][]string{{"openconfig-complex", "openconfig-complex"}},
+						},
 						"key": {
 							Name: "Key",
 							YANGDetails: ygen.YANGNodeDetails{
@@ -1761,6 +1783,15 @@ func TestGenerateIR(t *testing.T) {
 					Kind:             ygen.IdentityType,
 					IdentityBaseName: "SOFTWARE",
 					TypeName:         "identityref",
+					ValToYANGDetails: []ygot.EnumDefinition{
+						{Name: "OS", DefiningModule: "openconfig-complex"},
+					},
+				},
+				"/openconfig-complex/program": {
+					Name:             "Complex_Program",
+					Kind:             ygen.IdentityType,
+					IdentityBaseName: "SOFTWARE",
+					TypeName:         "program",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{Name: "OS", DefiningModule: "openconfig-complex"},
 					},

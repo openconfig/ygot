@@ -17,6 +17,12 @@ module openconfig-complex {
     default 5;
   }
 
+  typedef program {
+    type identityref {
+      base SOFTWARE;
+    }
+  }
+
   typedef weekend-days {
     type enumeration {
       enum SATURDAY;
@@ -59,6 +65,10 @@ module openconfig-complex {
 
     leaf iref {
       type identityref { base "SOFTWARE"; }
+    }
+
+    leaf iref2 {
+      type program;
     }
 
     leaf simple-union-enum {

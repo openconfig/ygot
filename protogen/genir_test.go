@@ -309,6 +309,49 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							},
 						},
 					},
+					"iref2": {
+						Name: "iref2",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:              "iref2",
+							Defaults:          nil,
+							BelongingModule:   "openconfig-complex",
+							RootElementModule: "openconfig-complex",
+							DefiningModule:    "openconfig-complex",
+							Path:              "/openconfig-complex/model/a/single-key/config/iref2",
+							SchemaPath:        "/model/a/single-key/config/iref2",
+							ShadowSchemaPath:  "/model/a/single-key/state/iref2",
+							LeafrefTargetPath: "",
+							Description:       "",
+						},
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
+							NativeType:            "openconfig.enums.ComplexProgram",
+							UnionTypes:            nil,
+							UnionTypeInfos:        nil,
+							IsEnumeratedValue:     true,
+							EnumeratedYANGTypeKey: "/openconfig-complex/program",
+							ZeroValue:             "",
+							DefaultValue:          nil,
+						},
+						MappedPaths: [][]string{
+							{"", "model", "a", "single-key", "config", "iref2"},
+						},
+						MappedPathModules: [][]string{
+							{
+								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
+								"openconfig-complex", "openconfig-complex",
+							},
+						},
+						ShadowMappedPaths: [][]string{
+							{"", "model", "a", "single-key", "state", "iref2"},
+						},
+						ShadowMappedPathModules: [][]string{
+							{
+								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
+								"openconfig-complex", "openconfig-complex",
+							},
+						},
+					},
 					"key": {
 						Name: "key",
 						YANGDetails: ygen.YANGNodeDetails{
@@ -839,6 +882,15 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 				Kind:             ygen.IdentityType,
 				IdentityBaseName: "SOFTWARE",
 				TypeName:         "identityref",
+				ValToYANGDetails: []ygot.EnumDefinition{
+					{Name: "OS", DefiningModule: "openconfig-complex"},
+				},
+			},
+			"/openconfig-complex/program": {
+				Name:             "ComplexProgram",
+				Kind:             ygen.IdentityType,
+				IdentityBaseName: "SOFTWARE",
+				TypeName:         "program",
 				ValToYANGDetails: []ygot.EnumDefinition{
 					{Name: "OS", DefiningModule: "openconfig-complex"},
 				},

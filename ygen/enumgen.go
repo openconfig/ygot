@@ -592,10 +592,14 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 				continue
 			}
 			if _, ok := genEnums[typeName]; !ok {
+				kind := DerivedEnumerationType
+				if e.Type.IdentityBase != nil {
+					kind = IdentityType
+				}
 				genEnums[typeName] = &yangEnum{
 					name:  typeName,
 					entry: e,
-					kind:  DerivedEnumerationType,
+					kind:  kind,
 					id:    key,
 				}
 			}
