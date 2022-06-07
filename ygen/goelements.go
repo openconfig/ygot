@@ -465,7 +465,7 @@ func (s *GoLangMapper) goUnionType(args resolveTypeArgs, compressOCPaths, skipEn
 	// mapped type. A map is used such that other functions that rely checking
 	// whether a particular type is valid when creating mapping code can easily
 	// check, rather than iterating the slice of strings.
-	unionTypes := make(map[string]int)
+	unionTypes := make(map[string]MappedUnionSubtype)
 	for _, subtype := range args.yangType.Type {
 		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, unionTypes, unionMappedTypes, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)...)
 	}
@@ -501,7 +501,7 @@ func (s *GoLangMapper) goUnionType(args resolveTypeArgs, compressOCPaths, skipEn
 // The skipEnumDedup argument specifies whether the current code generation is
 // de-duplicating enumerations where they are used in more than one place in
 // the schema.
-func (s *GoLangMapper) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, unionMappedTypes map[int]*MappedType, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) []error {
+func (s *GoLangMapper) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]MappedUnionSubtype, unionMappedTypes map[int]*MappedType, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) []error {
 	var errs []error
 	// If subtype.Type is not empty then this means that this type is defined to
 	// be a union itself.
@@ -548,7 +548,9 @@ func (s *GoLangMapper) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, 
 	// simply represent this as one string.
 	if _, ok := currentTypes[mtype.NativeType]; !ok {
 		index := len(currentTypes)
-		currentTypes[mtype.NativeType] = index
+		currentTypes[mtype.NativeType] = MappedUnionSubtype{
+			Index: index,
+		}
 		unionMappedTypes[index] = mtype
 	}
 	return errs
