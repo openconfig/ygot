@@ -144,7 +144,7 @@ jobs:
 
       - name: Run coverage
         run: |
-          overalls -project ${GITHUB_WORKSPACE} -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ytypes/schema_tests,ypathgen/generator" -- -coverpkg=./...
+          overalls -project ${GITHUB_WORKSPACE} -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ytypes/schema_tests,ypathgen/generator" -- -coverpkg="$(go list ./... | grep -v 'github.com/openconfig/ygot/exampleoc' | grep -v 'github.com/openconfig/ygot/uexampleoc' | grep -v 'github.com/openconfig/ygot/proto/' | grep -v 'github.com/openconfig/ygot/demo/' | grep -v 'github.com/openconfig/ygot/integration_tests' | sed -e 's/^github\.com\/openconfig\/ygot\///' | tr '\n' ' ')"
 
       - name: Submit coverage
         uses: shogo82148/actions-goveralls@v1
