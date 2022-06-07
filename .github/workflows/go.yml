@@ -150,6 +150,11 @@ jobs:
             go test -covermode count -coverprofile profile.coverprofile -outputdir $dir $p
           done
 
+          # Overwrite results for gogen/protogen since they also cover ygen's
+          # code.
+          go test -covermode count -coverprofile profile.coverprofile -outputdir gogen -coverpkg github.com/openconfig/ygot/gogen,github.com/openconfig/ygot/ygen github.com/openconfig/ygot/gogen
+          #go test -covermode count -coverprofile profile.coverprofile -outputdir protogen -coverpkg github.com/openconfig/ygot/protogen,github.com/openconfig/ygot/ygen github.com/openconfig/ygot/protogen
+
           echo 'mode: count' > overalls.coverprofile
           for p in $pkgs; do
             dir=$(echo $p | sed -e 's/^github\.com\/openconfig\/ygot\///')
