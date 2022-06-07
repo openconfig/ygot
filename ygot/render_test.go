@@ -4179,7 +4179,7 @@ func TestMarshal7951(t *testing.T) {
 		in:   (map[string]*renderExample)(nil),
 		// While not specified by RFC7951 section 5.4, using null to
 		// represent a non-initialized map is the behaviour that has
-		// been longstanding within ygot.
+		// been longstanding within ygot (Hyrum's Law).
 		want: `null`,
 	}, {
 		desc: "nil string pointer",
