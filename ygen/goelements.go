@@ -310,14 +310,14 @@ func (s *GoLangMapper) SetSchemaTree(st *schemaTree) {
 func (s *GoLangMapper) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (*MappedType, error) {
 	defVal := genutil.TypeDefaultValue(args.yangType)
 	// Handle the case of a typedef which is actually an enumeration.
-	typedefName, _, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
+	typedefName, _, isTypedef, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
 	if err != nil {
 		// err is non nil when this was a typedef which included
 		// an invalid enumerated type.
 		return nil, err
 	}
 
-	if typedefName != "" {
+	if isTypedef {
 		return &MappedType{
 			NativeType:        typedefName,
 			IsEnumeratedValue: true,
@@ -621,13 +621,13 @@ func generateGoDefaultValue(field *yang.Entry, mtype *MappedType, gogen *GoLangM
 // type for each leaf is created.
 func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, isSingletonUnion, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (string, yang.TypeKind, error) {
 	// Handle the case of a typedef which is actually an enumeration.
-	typedefName, _, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
+	typedefName, _, isTypedef, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
 	if err != nil {
 		// err is non nil when this was a typedef which included
 		// an invalid enumerated type.
 		return "", yang.Ynone, err
 	}
-	if typedefName != "" {
+	if isTypedef {
 		if strings.Contains(value, ":") {
 			value = strings.Split(value, ":")[1]
 		}

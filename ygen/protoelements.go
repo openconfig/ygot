@@ -260,13 +260,13 @@ func yangEnumTypeToProtoType(args resolveTypeArgs) (*MappedType, error) {
 // for additional details as to the transformation from YANG to Protobuf.
 func (s *ProtoLangMapper) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoTypeArgs, opts IROptions) (*MappedType, error) {
 	// Handle typedef cases.
-	typedefName, key, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
+	typedefName, key, isTypedef, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
 	if err != nil {
 		return nil, err
 	}
 	// typedefName is set to non-empty-string when this was a valid enumeration
 	// within a typedef.
-	if typedefName != "" {
+	if isTypedef {
 		return &MappedType{
 			NativeType:            typedefName,
 			IsEnumeratedValue:     true,
@@ -339,13 +339,13 @@ func (s *ProtoLangMapper) yangTypeToProtoType(args resolveTypeArgs, pargs resolv
 // value cannot be nil/unset.
 func (s *ProtoLangMapper) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolveProtoTypeArgs, opts IROptions) (*MappedType, error) {
 	// Handle typedef cases.
-	typedefName, key, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
+	typedefName, key, isTypedef, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
 	if err != nil {
 		return nil, err
 	}
 	// typedefName is set to non-empty-string when this was a valid enumeration
 	// within a typedef.
-	if typedefName != "" {
+	if isTypedef {
 		return &MappedType{
 			NativeType:            typedefName,
 			IsEnumeratedValue:     true,
