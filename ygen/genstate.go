@@ -39,17 +39,9 @@ type MappedType struct {
 	// NativeType is the candidate language-specific type name which is to
 	// be used for the mapped entity.
 	NativeType string
-	// UnionTypes is a map, keyed by the generated type name, of the types
-	// specified as valid for a union. The value of the map indicates the
-	// order of the type, since order is important for unions in YANG.
-	// Where two types are mapped to the same generated language type
-	// (e.g., string) then only the order of the first is maintained. Since
-	// the generated code from the structs maintains only type validation,
-	// this is not currently a limitation.
-	UnionTypes map[string]int
-	// UnionTypeInfos stores other information about each union subtype.
-	// It uses the same key as UnionTypes (NativeType of the subtype).
-	UnionTypeInfos map[string]MappedUnionSubtype
+	// UnionTypes is a map, keyed by the generated type name (NativeType of
+	// the subtype), of information about each union subtype.
+	UnionTypes map[string]MappedUnionSubtype
 	// IsEnumeratedValue specifies whether the NativeType that is returned
 	// is a generated enumerated value. Such entities are reflected as
 	// derived types with constant values, and are hence not represented
@@ -73,6 +65,14 @@ type MappedType struct {
 // MappedUnionSubtype stores information associated with a union subtype within
 // a MappedType.
 type MappedUnionSubtype struct {
+	// Index, which starts from 0, indicates the order of the subtype
+	// within the union definition, since order is important for unions in
+	// YANG.
+	// Where two types are mapped to the same generated language type
+	// (e.g., string) then only the order of the first is maintained. Since
+	// the generated code from the structs maintains only type validation,
+	// this is not currently a limitation.
+	Index int
 	// EnumeratedYANGTypeKey stores a globally-unique key that can be
 	// used to key into IR's EnumeratedYANGTypes map containing all of the
 	// enumeration definitions. This value should only be populated when
@@ -112,8 +112,8 @@ func (u unionTypeList) Less(i, j int) bool {
 // empty), then a nil slice is returned.
 func (t *MappedType) OrderedUnionTypes() []string {
 	var unionTypes unionTypeList
-	for name, index := range t.UnionTypes {
-		unionTypes = append(unionTypes, unionType{name: name, index: index})
+	for name, subtype := range t.UnionTypes {
+		unionTypes = append(unionTypes, unionType{name: name, index: subtype.Index})
 	}
 	sort.Sort(unionTypes)
 

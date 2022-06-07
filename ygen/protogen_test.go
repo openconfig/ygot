@@ -169,13 +169,13 @@ func TestGenProto3Msg(t *testing.T) {
 					Name: "field_one",
 					Type: LeafNode,
 					LangType: &MappedType{
-						UnionTypes: map[string]int{
-							"string": 0,
-							"sint64": 1,
-						},
-						UnionTypeInfos: map[string]MappedUnionSubtype{
-							"string": {},
-							"sint64": {},
+						UnionTypes: map[string]MappedUnionSubtype{
+							"string": {
+								Index: 0,
+							},
+							"sint64": {
+								Index: 1,
+							},
 						},
 					},
 					YANGDetails: YANGNodeDetails{
@@ -187,13 +187,12 @@ func TestGenProto3Msg(t *testing.T) {
 					Name: "field_two",
 					Type: LeafListNode,
 					LangType: &MappedType{
-						UnionTypes: map[string]int{
-							"sint64":                     0,
-							"base.enums.BaseDerivedEnum": 1,
-						},
-						UnionTypeInfos: map[string]MappedUnionSubtype{
-							"sint64": {},
+						UnionTypes: map[string]MappedUnionSubtype{
+							"sint64": {
+								Index: 0,
+							},
 							"base.enums.BaseDerivedEnum": {
+								Index:                 1,
 								EnumeratedYANGTypeKey: "/root/derived-enum",
 							},
 						},
@@ -1660,13 +1659,13 @@ func TestGenListKeyProto(t *testing.T) {
 					"key": {
 						Name: "key",
 						LangType: &MappedType{
-							UnionTypes: map[string]int{
-								"string": 0,
-								"sint64": 1,
-							},
-							UnionTypeInfos: map[string]MappedUnionSubtype{
-								"string": {},
-								"sint64": {},
+							UnionTypes: map[string]MappedUnionSubtype{
+								"string": {
+									Index: 0,
+								},
+								"sint64": {
+									Index: 1,
+								},
 							},
 						},
 						YANGDetails: YANGNodeDetails{
@@ -1678,13 +1677,13 @@ func TestGenListKeyProto(t *testing.T) {
 					"key": {
 						Name: "key",
 						LangType: &MappedType{
-							UnionTypes: map[string]int{
-								"string": 0,
-								"sint64": 1,
-							},
-							UnionTypeInfos: map[string]MappedUnionSubtype{
-								"string": {},
-								"sint64": {},
+							UnionTypes: map[string]MappedUnionSubtype{
+								"string": {
+									Index: 0,
+								},
+								"sint64": {
+									Index: 1,
+								},
 							},
 						},
 					},
@@ -1889,16 +1888,24 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				Path: "/field-name",
 			},
 			LangType: &MappedType{
-				UnionTypeInfos: map[string]MappedUnionSubtype{
-					"string": {},
-					"sint64": {},
+				UnionTypes: map[string]MappedUnionSubtype{
+					"string": {
+						Index: 0,
+					},
+					"sint64": {
+						Index: 1,
+					},
 				},
 			},
 		},
 		inMappedType: &MappedType{
-			UnionTypes: map[string]int{
-				"string": 0,
-				"sint64": 0,
+			UnionTypes: map[string]MappedUnionSubtype{
+				"string": {
+					Index: 0,
+				},
+				"sint64": {
+					Index: 1,
+				},
 			},
 		},
 		wantFields: []*protoMsgField{{
@@ -1918,16 +1925,24 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			Name: "field-name",
 			Type: LeafNode,
 			LangType: &MappedType{
-				UnionTypeInfos: map[string]MappedUnionSubtype{
-					"string": {},
-					"sint64": {},
+				UnionTypes: map[string]MappedUnionSubtype{
+					"string": {
+						Index: 0,
+					},
+					"sint64": {
+						Index: 1,
+					},
 				},
 			},
 		},
 		inMappedType: &MappedType{
-			UnionTypes: map[string]int{
-				"string": 0,
-				"sint64": 0,
+			UnionTypes: map[string]MappedUnionSubtype{
+				"string": {
+					Index: 0,
+				},
+				"sint64": {
+					Index: 1,
+				},
 			},
 		},
 		inPath: "a/b/c/d",
@@ -1951,16 +1966,24 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				Path: "/field-name",
 			},
 			LangType: &MappedType{
-				UnionTypeInfos: map[string]MappedUnionSubtype{
-					"string":             {},
-					"ywrapper.Decimal64": {},
+				UnionTypes: map[string]MappedUnionSubtype{
+					"string": {
+						Index: 0,
+					},
+					"ywrapper.Decimal64": {
+						Index: 1,
+					},
 				},
 			},
 		},
 		inMappedType: &MappedType{
-			UnionTypes: map[string]int{
-				"string":             0,
-				"ywrapper.Decimal64": 1,
+			UnionTypes: map[string]MappedUnionSubtype{
+				"string": {
+					Index: 0,
+				},
+				"ywrapper.Decimal64": {
+					Index: 1,
+				},
 			},
 		},
 		wantFields: []*protoMsgField{{
@@ -1983,18 +2006,26 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				Path: "/field-name",
 			},
 			LangType: &MappedType{
-				UnionTypeInfos: map[string]MappedUnionSubtype{
+				UnionTypes: map[string]MappedUnionSubtype{
 					"SomeEnumType": {
+						Index:                 0,
 						EnumeratedYANGTypeKey: "/field-name|enum",
 					},
-					"string": {},
+					"string": {
+						Index: 1,
+					},
 				},
 			},
 		},
 		inMappedType: &MappedType{
-			UnionTypes: map[string]int{
-				"SomeEnumType": 0,
-				"string":       1,
+			UnionTypes: map[string]MappedUnionSubtype{
+				"SomeEnumType": {
+					Index:                 0,
+					EnumeratedYANGTypeKey: "/field-name|enum",
+				},
+				"string": {
+					Index: 1,
+				},
 			},
 		},
 		inEnums: map[string]*EnumeratedYANGType{
@@ -2040,18 +2071,26 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				Path: "/field-name",
 			},
 			LangType: &MappedType{
-				UnionTypeInfos: map[string]MappedUnionSubtype{
+				UnionTypes: map[string]MappedUnionSubtype{
 					"SomeEnumType": {
+						Index:                 0,
 						EnumeratedYANGTypeKey: "/field-name|enum",
 					},
-					"string": {},
+					"string": {
+						Index: 1,
+					},
 				},
 			},
 		},
 		inMappedType: &MappedType{
-			UnionTypes: map[string]int{
-				"SomeEnumType": 0,
-				"string":       1,
+			UnionTypes: map[string]MappedUnionSubtype{
+				"SomeEnumType": {
+					Index:                 0,
+					EnumeratedYANGTypeKey: "/field-name|enum",
+				},
+				"string": {
+					Index: 1,
+				},
 			},
 		},
 		inEnums: map[string]*EnumeratedYANGType{
@@ -2090,16 +2129,24 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				Path: "/parent/field-name",
 			},
 			LangType: &MappedType{
-				UnionTypeInfos: map[string]MappedUnionSubtype{
-					"string": {},
-					"sint64": {},
+				UnionTypes: map[string]MappedUnionSubtype{
+					"string": {
+						Index: 0,
+					},
+					"uint64": {
+						Index: 1,
+					},
 				},
 			},
 		},
 		inMappedType: &MappedType{
-			UnionTypes: map[string]int{
-				"string": 0,
-				"uint64": 1,
+			UnionTypes: map[string]MappedUnionSubtype{
+				"string": {
+					Index: 0,
+				},
+				"uint64": {
+					Index: 1,
+				},
 			},
 		},
 		wantRepeatedMsg: &protoMsg{
