@@ -157,9 +157,6 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 			// Goyang entry construct. The values are accessed in a map keyed by an int64
 			// and with a value of the name of the enumerated value - retrieved via ValueMap().
 			var values []int
-			if enum.entry.Type.Enum == nil {
-				fmt.Println(enum.entry.Path(), et)
-			}
 			for v := range enum.entry.Type.Enum.ValueMap() {
 				values = append(values, int(v))
 			}
