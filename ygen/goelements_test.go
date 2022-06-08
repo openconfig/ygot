@@ -441,12 +441,12 @@ func TestUnionSubTypes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewGoLangMapper(true)
-			if err := s.SetupEnumSet(enumMapFromEntry(tt.inCtxEntry), false, false, false, true, true, true, nil); err != nil {
+			if err := s.InjectEnumSet(enumMapFromEntry(tt.inCtxEntry), false, false, false, true, true, true, nil); err != nil {
 				t.Fatal(err)
 			}
 
 			mtypes := make(map[int]*MappedType)
-			ctypes := make(map[string]int)
+			ctypes := make(map[string]MappedUnionSubtype)
 			ctxEntry := tt.inCtxEntry
 			if tt.inNoContext {
 				ctxEntry = nil
@@ -456,11 +456,11 @@ func TestUnionSubTypes(t *testing.T) {
 			}
 
 			for i, wt := range tt.want {
-				if unionidx, ok := ctypes[wt]; !ok {
+				if subtype, ok := ctypes[wt]; !ok {
 					t.Errorf("could not find expected type in ctypes: %s", wt)
 					continue
-				} else if i != unionidx {
-					t.Errorf("index of type %s was not as expected (%d != %d)", wt, i, unionidx)
+				} else if i != subtype.Index {
+					t.Errorf("index of type %s was not as expected (%d != %d)", wt, i, subtype.Index)
 				}
 			}
 
@@ -583,8 +583,15 @@ func TestYangTypeToGoType(t *testing.T) {
 			},
 		},
 		want: &MappedType{
-			NativeType:   "Module_Container_Leaf_Union",
-			UnionTypes:   map[string]int{"string": 0, "int8": 1},
+			NativeType: "Module_Container_Leaf_Union",
+			UnionTypes: map[string]MappedUnionSubtype{
+				"string": {
+					Index: 0,
+				},
+				"int8": {
+					Index: 1,
+				},
+			},
 			ZeroValue:    "nil",
 			DefaultValue: ygot.String("42"),
 		},
@@ -599,8 +606,12 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType: "string",
-			UnionTypes: map[string]int{"string": 0},
-			ZeroValue:  `""`,
+			UnionTypes: map[string]MappedUnionSubtype{
+				"string": {
+					Index: 0,
+				},
+			},
+			ZeroValue: `""`,
 		},
 	}, {
 		name: "derived identityref",
@@ -715,8 +726,12 @@ func TestYangTypeToGoType(t *testing.T) {
 			},
 		},
 		want: &MappedType{
-			NativeType:        "E_BaseModule_UnionLeaf_Enum",
-			UnionTypes:        map[string]int{"E_BaseModule_UnionLeaf_Enum": 0},
+			NativeType: "E_BaseModule_UnionLeaf_Enum",
+			UnionTypes: map[string]MappedUnionSubtype{
+				"E_BaseModule_UnionLeaf_Enum": {
+					Index: 0,
+				},
+			},
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
 			DefaultValue:      ygot.String("prefix:BLUE"),
@@ -765,8 +780,12 @@ func TestYangTypeToGoType(t *testing.T) {
 			},
 		},
 		want: &MappedType{
-			NativeType:        "E_BaseModule_UnionLeaf_Enum",
-			UnionTypes:        map[string]int{"E_BaseModule_UnionLeaf_Enum": 0},
+			NativeType: "E_BaseModule_UnionLeaf_Enum",
+			UnionTypes: map[string]MappedUnionSubtype{
+				"E_BaseModule_UnionLeaf_Enum": {
+					Index: 0,
+				},
+			},
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
 		},
@@ -876,8 +895,12 @@ func TestYangTypeToGoType(t *testing.T) {
 			},
 		},
 		want: &MappedType{
-			NativeType:        "E_BaseModule_BaseIdentity",
-			UnionTypes:        map[string]int{"E_BaseModule_BaseIdentity": 0},
+			NativeType: "E_BaseModule_BaseIdentity",
+			UnionTypes: map[string]MappedUnionSubtype{
+				"E_BaseModule_BaseIdentity": {
+					Index: 0,
+				},
+			},
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
 			DefaultValue:      ygot.String("prefix:CHIPS"),
@@ -1068,7 +1091,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			s := NewGoLangMapper(true)
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.ctx, enumMap)
-			if err := s.SetupEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
+			if err := s.InjectEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", err)
 				}
@@ -1445,7 +1468,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewGoLangMapper(true)
-			if err := s.SetupEnumSet(enumMapFromEntries(tt.inLeaves), tt.inCompressOCPaths, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
+			if err := s.InjectEnumSet(enumMapFromEntries(tt.inLeaves), tt.inCompressOCPaths, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
 				t.Fatalf("findEnumSet failed: %v", err)
 			}
 
@@ -2449,7 +2472,7 @@ func TestYangDefaultValueToGo(t *testing.T) {
 				s := NewGoLangMapper(true)
 				enumMap := enumMapFromEntries(tt.inEnumEntries)
 				addEnumsToEnumMap(tt.inCtx, enumMap)
-				if err := s.SetupEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
+				if err := s.InjectEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
 					if !tt.wantErr {
 						t.Errorf("findEnumSet failed: %v", err)
 					}
@@ -2808,7 +2831,7 @@ func TestYangDefaultValueToGo(t *testing.T) {
 			s := NewGoLangMapper(true)
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.inCtx, enumMap)
-			if err := s.SetupEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
+			if err := s.InjectEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", err)
 				}
