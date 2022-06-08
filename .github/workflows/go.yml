@@ -51,7 +51,7 @@ jobs:
         working-directory: go/src/github.com/openconfig/ygot
 
       - name: Generate dependencies
-        run: go generate ./...
+        run: make generate
         working-directory: go/src/github.com/openconfig/ygot
 
       - name: Build packages
@@ -117,6 +117,10 @@ jobs:
             go_file="gogen/testdata/structs/${f_prefix}.formatted-txt"
             test-go-build $f $go_file
           done
+
+      - name: Make sure exampleoc doesn't error or panic
+        run: go generate ./...
+        working-directory: go/src/github.com/openconfig/ygot
 
   static_analysis:
     name: Static Analysis
