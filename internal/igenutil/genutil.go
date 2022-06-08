@@ -72,12 +72,6 @@ var (
 	}
 )
 
-// MustMakeTemplate generates a template.Template for a particular named source
-// template; with a common set of helper functions.
-func MustMakeTemplate(name, src string) *template.Template {
-	return template.Must(template.New(name).Funcs(TemplateHelperFunctions).Parse(src))
-}
-
 // IsFakeRoot checks whether a given entry is the generated fake root.
 func IsFakeRoot(e *yang.Entry) bool {
 	return e != nil && e.Node != nil && e.Node.NName() == RootElementNodeName

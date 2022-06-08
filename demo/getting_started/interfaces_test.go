@@ -68,10 +68,10 @@ func TestGenerateCode(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		cg := gogen.NewGoCodeGenerator(tt.inConfig, tt.inGoOpts)
-		got, err := cg.GenerateGoCode(tt.inFiles, tt.inPaths)
+		cg := gogen.NewCodeGenerator(tt.inConfig, tt.inGoOpts)
+		got, err := cg.Generate(tt.inFiles, tt.inPaths)
 		if err != nil {
-			t.Errorf("%s: GenerateGoCode(%v, %v): Config: %v, got unexpected error: %v", tt.name, tt.inFiles, tt.inPaths, tt.inConfig, err)
+			t.Errorf("%s: Generate(%v, %v): Config: %v, got unexpected error: %v", tt.name, tt.inFiles, tt.inPaths, tt.inConfig, err)
 			continue
 		}
 
