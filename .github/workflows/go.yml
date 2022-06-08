@@ -51,7 +51,7 @@ jobs:
         working-directory: go/src/github.com/openconfig/ygot
 
       - name: Generate dependencies
-        run: make generate
+        run: go generate ./...
         working-directory: go/src/github.com/openconfig/ygot
 
       - name: Build packages
