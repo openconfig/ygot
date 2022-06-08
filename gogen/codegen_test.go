@@ -39,11 +39,11 @@ type yangTestCase struct {
 	wantSchemaFile      string               // wantSchemaFile is the path to the schema JSON that the output of the test should be compared to.
 }
 
-// TestSimpleStructs tests the processModules, GenerateGoCode and writeGoCode
+// TestSimpleStructs tests the processModules, Generate and writeGoCode
 // functions. It takes the set of YANG modules described in the slice of
 // yangTestCases and generates the struct code for them, comparing the output
 // to the wantStructsCodeFile.  In order to simplify the files that are used,
-// the GenerateGoCode structs are concatenated before comparison with the
+// the Generate structs are concatenated before comparison with the
 // expected output. If the generated code matches the expected output, it is
 // run against the Go parser to ensure that the code is valid Go - this is
 // expected, but it ensures that the input file does not contain Go which is
@@ -866,7 +866,7 @@ func TestSimpleStructs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			genCode := func() (*GeneratedGoCode, string, map[string]interface{}, error) {
+			genCode := func() (*GeneratedCode, string, map[string]interface{}, error) {
 				// Set defaults within the supplied configuration for these tests.
 				if tt.inConfig.Caller == "" {
 					// Set the name of the caller explicitly to avoid issues when
@@ -876,9 +876,9 @@ func TestSimpleStructs(t *testing.T) {
 				tt.inConfig.StoreRawSchema = true
 				tt.inConfig.ParseOptions.ExcludeModules = tt.inExcludeModules
 
-				cg := NewGoCodeGenerator(&tt.inConfig, &tt.inGoOptions)
+				cg := NewCodeGenerator(&tt.inConfig, &tt.inGoOptions)
 
-				gotGeneratedCode, errs := cg.GenerateGoCode(tt.inFiles, tt.inIncludePaths)
+				gotGeneratedCode, errs := cg.Generate(tt.inFiles, tt.inIncludePaths)
 				var err error
 				if len(errs) > 0 {
 					err = fmt.Errorf("%w", errs)
@@ -937,7 +937,7 @@ func TestSimpleStructs(t *testing.T) {
 
 				if !cmp.Equal(gotJSON, wantJSON) {
 					diff, _ := testutil.GenerateUnifiedDiff(string(wantSchema), string(gotGeneratedCode.RawJSONSchema))
-					t.Fatalf("%s: GenerateGoCode(%v, %v), Config: %+v, did not return correct JSON (file: %v), diff: \n%s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantSchemaFile, diff)
+					t.Fatalf("%s: Generate(%v, %v), Config: %+v, did not return correct JSON (file: %v), diff: \n%s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantSchemaFile, diff)
 				}
 			}
 
@@ -953,7 +953,7 @@ func TestSimpleStructs(t *testing.T) {
 				// two code snippets such that this is simpler to debug
 				// in the test output.
 				diff, _ := testutil.GenerateUnifiedDiff(wantCode, gotCode)
-				t.Errorf("%s: GenerateGoCode(%v, %v), Config: %+v, did not return correct code (file: %v), diff:\n%s",
+				t.Errorf("%s: Generate(%v, %v), Config: %+v, did not return correct code (file: %v), diff:\n%s",
 					tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantStructsCodeFile, diff)
 			}
 
