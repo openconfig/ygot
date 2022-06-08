@@ -45,9 +45,9 @@ func TestGenerateErrs(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		gcg := gogen.NewGoCodeGenerator(&tt.inConfig, nil)
+		gcg := gogen.NewCodeGenerator(&tt.inConfig, nil)
 
-		_, goErr := gcg.GenerateGoCode(tt.inFiles, tt.inPath)
+		_, goErr := gcg.Generate(tt.inFiles, tt.inPath)
 		switch {
 		case tt.wantGoOK && goErr != nil:
 			t.Errorf("%s: gcg.GenerateGoCode(%v, %v): got unexpected error, got: %v, want: nil", tt.name, tt.inFiles, tt.inPath, goErr)

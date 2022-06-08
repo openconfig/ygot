@@ -165,8 +165,14 @@ func TestYangTypeToProtoType(t *testing.T) {
 			},
 		},
 		wantWrapper: &ygen.MappedType{
-			UnionTypes:     map[string]int{"string": 0, "uint64": 1},
-			UnionTypeInfos: map[string]ygen.MappedUnionSubtype{"string": {}, "uint64": {}},
+			UnionTypes: map[string]ygen.MappedUnionSubtype{
+				"string": {
+					Index: 0,
+				},
+				"uint64": {
+					Index: 1,
+				},
+			},
 		},
 		wantSame: true,
 	}, {
@@ -607,8 +613,14 @@ func TestYangTypeToProtoType(t *testing.T) {
 			},
 		},
 		wantWrapper: &ygen.MappedType{
-			UnionTypes:     map[string]int{"bool": 0, "string": 1},
-			UnionTypeInfos: map[string]ygen.MappedUnionSubtype{"bool": {}, "string": {}},
+			UnionTypes: map[string]ygen.MappedUnionSubtype{
+				"bool": {
+					Index: 0,
+				},
+				"string": {
+					Index: 1,
+				},
+			},
 		},
 		wantSame: true,
 	}}
@@ -636,8 +648,8 @@ func TestYangTypeToProtoType(t *testing.T) {
 			// Seed the schema tree with the injected entries, used to ensure leafrefs can
 			// be resolved.
 			if tt.inEntries != nil {
-				if err := s.SetupSchemaTree(tt.inEntries); err != nil {
-					t.Fatalf("%s: SetupSchemaTree(%v): got unexpected error, got: %v, want: nil", tt.name, tt.inEntries, err)
+				if err := s.InjectSchemaTree(tt.inEntries); err != nil {
+					t.Fatalf("%s: InjectSchemaTree(%v): got unexpected error, got: %v, want: nil", tt.name, tt.inEntries, err)
 				}
 			}
 			// Seed the enumSet with the injected enum entries,
@@ -646,9 +658,9 @@ func TestYangTypeToProtoType(t *testing.T) {
 			for _, e := range enumMapFromEntries(tt.inEntries) {
 				addEnumsToEnumMap(e, enumMap)
 			}
-			if err := s.SetupEnumSet(enumMap, false, true, false, true, true, true, nil); err != nil {
+			if err := s.InjectEnumSet(enumMap, false, true, false, true, true, true, nil); err != nil {
 				if !tt.wantErr {
-					t.Errorf("SetupEnumSet failed: %v", err)
+					t.Errorf("InjectEnumSet failed: %v", err)
 				}
 				return
 			}

@@ -12,9 +12,9 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
-// GoCodeGenerator is a structure that is used to pass arguments as to
+// CodeGenerator is a structure that is used to pass arguments as to
 // how the output Go code should be generated.
-type GoCodeGenerator struct {
+type CodeGenerator struct {
 	// Config stores the configuration parameters used for code generation.
 	Config ygen.GeneratorConfig
 	// GoOptions stores a struct which stores Go code generation specific
@@ -102,7 +102,7 @@ type GoOpts struct {
 	AppendEnumSuffixForSimpleUnionEnums bool
 }
 
-// GeneratedGoCode contains generated code snippets that can be processed by the calling
+// GeneratedCode contains generated code snippets that can be processed by the calling
 // application. The generated code is divided into two types of objects - both represented
 // as a slice of strings: Structs contains a set of Go structures that have been generated,
 // and Enums contains the code for generated enumerated types (corresponding to identities,
@@ -116,7 +116,7 @@ type GoOpts struct {
 // The keys of the map are strings corresponding to the name of the generated type, with the
 // map values being maps of the int64 identifier for each value of the enumeration to the name of
 // the element, as used in the YANG schema.
-type GeneratedGoCode struct {
+type GeneratedCode struct {
 	Structs      []GoStructCodeSnippet // Structs is the generated set of structs representing containers or lists in the input YANG models.
 	Enums        []string              // Enums is the generated set of enum definitions corresponding to identities and enumerations in the input YANG models.
 	CommonHeader string                // CommonHeader is the header that should be used for all output Go files.
@@ -133,16 +133,16 @@ type GeneratedGoCode struct {
 	//  - structname - the name of the struct that was generated for the schema element.
 	JSONSchemaCode string
 	// RawJSONSchema stores the JSON document which is serialised and stored in JSONSchemaCode.
-	// It is populated only if the StoreRawSchema GoCodeGenerator boolean is set to true.
+	// It is populated only if the StoreRawSchema CodeGenerator boolean is set to true.
 	RawJSONSchema []byte
 	// EnumTypeMap is a Go map that allows YANG schemapaths to be mapped to reflect.Type values.
 	EnumTypeMap string
 }
 
-// NewGoCodeGenerator returns a new instance of the GoCodeGenerator
+// NewCodeGenerator returns a new instance of the CodeGenerator
 // struct to the calling function.
-func NewGoCodeGenerator(c *ygen.GeneratorConfig, goopts *GoOpts) *GoCodeGenerator {
-	cg := &GoCodeGenerator{}
+func NewCodeGenerator(c *ygen.GeneratorConfig, goopts *GoOpts) *CodeGenerator {
+	cg := &CodeGenerator{}
 
 	if c != nil {
 		cg.Config = *c
@@ -173,19 +173,19 @@ func checkForBinaryKeys(dir *ygen.ParsedDirectory) []error {
 	return errs
 }
 
-// GenerateGoCode takes a slice of strings containing the path to a set of YANG
+// Generate takes a slice of strings containing the path to a set of YANG
 // files which contain YANG modules, and a second slice of strings which
 // specifies the set of paths that are to be searched for associated models (e.g.,
 // modules that are included by the specified set of modules, or submodules of those
 // modules). It extracts the set of modules that are to be generated, and returns
-// a GeneratedGoCode struct which contains:
+// a GeneratedCode struct which contains:
 //	1. A struct definition for each container or list that is within the specified
 //	    set of models.
 //	2. Enumerated values which correspond to the set of enumerated entities (leaves
 //	   of type enumeration, identities, typedefs that reference an enumeration)
 //	   within the specified models.
 // If errors are encountered during code generation, an error is returned.
-func (cg *GoCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*GeneratedGoCode, util.Errors) {
+func (cg *CodeGenerator) Generate(yangFiles, includePaths []string) (*GeneratedCode, util.Errors) {
 	opts := ygen.IROptions{
 		ParseOptions:                        cg.Config.ParseOptions,
 		TransformationOptions:               cg.Config.TransformationOptions,
@@ -282,7 +282,7 @@ func (cg *GoCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*Ge
 				}
 				// Sort the enumerated types into schema order.
 				sort.Slice(enumTypeMap[schemaPath], func(i, j int) bool {
-					return field.LangType.UnionTypes[enumTypeMap[schemaPath][i]] < field.LangType.UnionTypes[enumTypeMap[schemaPath][j]]
+					return field.LangType.UnionTypes[enumTypeMap[schemaPath][i]].Index < field.LangType.UnionTypes[enumTypeMap[schemaPath][j]].Index
 				})
 			}
 		}
@@ -324,7 +324,7 @@ func (cg *GoCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*Ge
 		return nil, codegenErr
 	}
 
-	return &GeneratedGoCode{
+	return &GeneratedCode{
 		CommonHeader:   commonHeader,
 		OneOffHeader:   oneoffHeader,
 		Structs:        structSnippets,

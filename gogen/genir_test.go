@@ -1464,9 +1464,13 @@ func TestGenerateIR(t *testing.T) {
 							Type: ygen.LeafNode,
 							LangType: &ygen.MappedType{
 								NativeType: "Model_SingleKey_Key_Union",
-								UnionTypes: map[string]int{
-									"E_Complex_WeekendDays": 1,
-									"uint8":                 0,
+								UnionTypes: map[string]ygen.MappedUnionSubtype{
+									"E_Complex_WeekendDays": {
+										Index: 1,
+									},
+									"uint8": {
+										Index: 0,
+									},
 								},
 								ZeroValue: "nil",
 							},
@@ -1492,9 +1496,13 @@ func TestGenerateIR(t *testing.T) {
 							Type: ygen.LeafNode,
 							LangType: &ygen.MappedType{
 								NativeType: "Model_SingleKey_LeafDefaultOverride_Union",
-								UnionTypes: map[string]int{
-									"E_Complex_CycloneScales_Enum": 1,
-									"uint8":                        0,
+								UnionTypes: map[string]ygen.MappedUnionSubtype{
+									"E_Complex_CycloneScales_Enum": {
+										Index: 1,
+									},
+									"uint8": {
+										Index: 0,
+									},
 								},
 								ZeroValue:    "nil",
 								DefaultValue: ygot.String("UnionUint8(3)"),
@@ -1521,9 +1529,13 @@ func TestGenerateIR(t *testing.T) {
 							Type: ygen.LeafNode,
 							LangType: &ygen.MappedType{
 								NativeType: "Model_SingleKey_SimpleUnionEnum_Union",
-								UnionTypes: map[string]int{
-									"E_SingleKey_SimpleUnionEnum_Enum": 1,
-									"uint64":                           0,
+								UnionTypes: map[string]ygen.MappedUnionSubtype{
+									"E_SingleKey_SimpleUnionEnum_Enum": {
+										Index: 1,
+									},
+									"uint64": {
+										Index: 0,
+									},
 								},
 								ZeroValue:    "nil",
 								DefaultValue: ygot.String("SingleKey_SimpleUnionEnum_Enum_TWO"),
@@ -1550,8 +1562,10 @@ func TestGenerateIR(t *testing.T) {
 							Type: ygen.LeafNode,
 							LangType: &ygen.MappedType{
 								NativeType: "E_SingleKey_SingletonUnionEnum_Enum",
-								UnionTypes: map[string]int{
-									"E_SingleKey_SingletonUnionEnum_Enum": 0,
+								UnionTypes: map[string]ygen.MappedUnionSubtype{
+									"E_SingleKey_SingletonUnionEnum_Enum": {
+										Index: 0,
+									},
 								},
 								IsEnumeratedValue: true,
 								ZeroValue:         "0",
@@ -1605,9 +1619,13 @@ func TestGenerateIR(t *testing.T) {
 							Type: ygen.LeafNode,
 							LangType: &ygen.MappedType{
 								NativeType: "Model_SingleKey_TypedefUnionEnum_Union",
-								UnionTypes: map[string]int{
-									"E_Complex_CycloneScales_Enum": 1,
-									"uint8":                        0,
+								UnionTypes: map[string]ygen.MappedUnionSubtype{
+									"E_Complex_CycloneScales_Enum": {
+										Index: 1,
+									},
+									"uint8": {
+										Index: 0,
+									},
 								},
 								ZeroValue:    "nil",
 								DefaultValue: ygot.String("Complex_CycloneScales_Enum_SUPER"),
@@ -1623,9 +1641,13 @@ func TestGenerateIR(t *testing.T) {
 							Name: "Key",
 							LangType: &ygen.MappedType{
 								NativeType: "Model_SingleKey_Key_Union",
-								UnionTypes: map[string]int{
-									"E_Complex_WeekendDays": 1,
-									"uint8":                 0,
+								UnionTypes: map[string]ygen.MappedUnionSubtype{
+									"E_Complex_WeekendDays": {
+										Index: 1,
+									},
+									"uint8": {
+										Index: 0,
+									},
 								},
 								ZeroValue: "nil",
 							},
@@ -1660,8 +1682,12 @@ func TestGenerateIR(t *testing.T) {
 							Type: ygen.LeafNode,
 							LangType: &ygen.MappedType{
 								NativeType: "uint32",
-								UnionTypes: map[string]int{"uint32": 0},
-								ZeroValue:  "0",
+								UnionTypes: map[string]ygen.MappedUnionSubtype{
+									"uint32": {
+										Index: 0,
+									},
+								},
+								ZeroValue: "0",
 							},
 							MappedPaths:             [][]string{{"config", "key1"}, {"key1"}},
 							MappedPathModules:       [][]string{{"openconfig-complex", "openconfig-complex"}, {"openconfig-complex"}},
@@ -1695,8 +1721,12 @@ func TestGenerateIR(t *testing.T) {
 							Name: "Key1",
 							LangType: &ygen.MappedType{
 								NativeType: "uint32",
-								UnionTypes: map[string]int{"uint32": 0},
-								ZeroValue:  "0",
+								UnionTypes: map[string]ygen.MappedUnionSubtype{
+									"uint32": {
+										Index: 0,
+									},
+								},
+								ZeroValue: "0",
 							},
 						},
 						"key2": {
