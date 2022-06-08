@@ -131,7 +131,6 @@ jobs:
 
       - name: Install required static analysis tools
         run: |
-          go install github.com/go-playground/overalls@latest
           go install github.com/mattn/goveralls@latest
           go install honnef.co/go/tools/cmd/staticcheck@latest
 
@@ -150,16 +149,16 @@ jobs:
             go test -covermode count -coverprofile profile.coverprofile -outputdir $dir $p
           done
 
-          echo 'mode: count' > overalls.coverprofile
+          echo 'mode: count' > concatenated.coverprofile
           for p in $pkgs; do
             dir=$(echo $p | sed -e 's/^github\.com\/openconfig\/ygot\///')
-            tail -n +2 $dir/profile.coverprofile >> overalls.coverprofile
+            tail -n +2 $dir/profile.coverprofile >> concatenated.coverprofile
           done
 
       - name: Submit coverage
         uses: shogo82148/actions-goveralls@v1
         with:
-          path-to-profile: overalls.coverprofile
+          path-to-profile: concatenated.coverprofile
 
       - name: Go vet
         run: |
