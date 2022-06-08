@@ -58,7 +58,7 @@ func TestGenerateErrs(t *testing.T) {
 			}
 		}
 
-		pcg := protogen.NewProtoCodeGenerator(&tt.inConfig, nil)
+		pcg := protogen.New(&tt.inConfig, nil)
 
 		if tt.wantSameErrSubstring {
 			tt.wantProtoErrSubstring = tt.wantGoErrSubstring

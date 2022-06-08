@@ -101,7 +101,7 @@ func main() {
 	}
 
 	// Perform the code generation.
-	cg := protogen.NewProtoCodeGenerator(&ygen.GeneratorConfig{
+	cg := protogen.New(&ygen.GeneratorConfig{
 		ParseOptions: ygen.ParseOpts{
 			ExcludeModules:        modsExcluded,
 			SkipEnumDeduplication: *skipEnumDedup,

@@ -9,9 +9,9 @@ import (
 	"github.com/openconfig/ygot/ygen"
 )
 
-// ProtoCodeGenerator is a structure that is used to pass arguments as to
+// CodeGenerator is a structure that is used to pass arguments as to
 // how the output protobuf code should be generated.
-type ProtoCodeGenerator struct {
+type CodeGenerator struct {
 	// Config stores the configuration parameters used for code generation.
 	Config ygen.GeneratorConfig
 	// ProtoOptions stores a struct which contains Protobuf specific options.
@@ -58,10 +58,10 @@ type ProtoOpts struct {
 	GoPackageBase string
 }
 
-// NewProtoCodeGenerator returns a new instance of the GoCodeGenerator
+// New returns a new instance of the protobuf code generator
 // struct to the calling function.
-func NewProtoCodeGenerator(c *ygen.GeneratorConfig, protoopts *ProtoOpts) *ProtoCodeGenerator {
-	cg := &ProtoCodeGenerator{}
+func New(c *ygen.GeneratorConfig, protoopts *ProtoOpts) *CodeGenerator {
+	cg := &CodeGenerator{}
 
 	if c != nil {
 		cg.Config = *c
@@ -73,8 +73,8 @@ func NewProtoCodeGenerator(c *ygen.GeneratorConfig, protoopts *ProtoOpts) *Proto
 	return cg
 }
 
-// GeneratedProto3 stores a set of generated Protobuf packages.
-type GeneratedProto3 struct {
+// GeneratedCode stores a set of generated Protobuf packages.
+type GeneratedCode struct {
 	// Packages stores a map, keyed by the Protobuf package name, and containing the contents of the protobuf3
 	// messages defined within the package. The calling application can write out the defined packages to the
 	// files expected by the protoc tool.
@@ -94,9 +94,9 @@ type Proto3Package struct {
 // GenerateProto3 generates Protobuf 3 code for the input set of YANG files.
 // The YANG schemas for which protobufs are to be created is supplied as the
 // yangFiles argument, with included modules being searched for in includePaths.
-// It returns a GeneratedProto3 struct containing the messages that are to be
+// It returns a GeneratedCode struct containing the messages that are to be
 // output, along with any associated values (e.g., enumerations).
-func (cg *ProtoCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto3, util.Errors) {
+func (cg *CodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedCode, util.Errors) {
 	basePackageName := cg.Config.PackageName
 	if basePackageName == "" {
 		basePackageName = DefaultBasePackageName
@@ -134,7 +134,7 @@ func (cg *ProtoCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (
 		return nil, util.NewErrs(err)
 	}
 
-	genProto := &GeneratedProto3{
+	genProto := &GeneratedCode{
 		Packages: map[string]Proto3Package{},
 	}
 

@@ -371,14 +371,14 @@ func TestGenerateProto3(t *testing.T) {
 				return wantPkgs
 			}
 
-			genCode := func() *GeneratedProto3 {
+			genCode := func() *GeneratedCode {
 				if tt.inConfig.Caller == "" {
 					// Override the caller if it is not set, to ensure that test
 					// output is deterministic.
 					tt.inConfig.Caller = "codegen-tests"
 				}
 
-				cg := NewProtoCodeGenerator(&tt.inConfig, &tt.inProtoOpts)
+				cg := New(&tt.inConfig, &tt.inProtoOpts)
 				gotProto, err := cg.GenerateProto3(tt.inFiles, tt.inIncludePaths)
 				if (err != nil) != tt.wantErr {
 					t.Fatalf("cg.GenerateProto3(%v, %v), config: %v: got unexpected error: %v", tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
