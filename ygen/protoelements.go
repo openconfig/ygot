@@ -250,13 +250,13 @@ func yangEnumTypeToProtoType(args resolveTypeArgs) (*MappedType, error) {
 // for additional details as to the transformation from YANG to Protobuf.
 func (s *ProtoLangMapper) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoTypeArgs, opts IROptions) (*MappedType, error) {
 	// Handle typedef cases.
-	typedefName, key, err := s.EnumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
+	typedefName, key, isTypedef, err := s.EnumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
 	if err != nil {
 		return nil, err
 	}
 	// typedefName is set to non-empty-string when this was a valid enumeration
 	// within a typedef.
-	if typedefName != "" {
+	if isTypedef {
 		return &MappedType{
 			NativeType:            typedefName,
 			IsEnumeratedValue:     true,
@@ -329,13 +329,13 @@ func (s *ProtoLangMapper) yangTypeToProtoType(args resolveTypeArgs, pargs resolv
 // value cannot be nil/unset.
 func (s *ProtoLangMapper) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolveProtoTypeArgs, opts IROptions) (*MappedType, error) {
 	// Handle typedef cases.
-	typedefName, key, err := s.EnumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
+	typedefName, key, isTypedef, err := s.EnumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, true)
 	if err != nil {
 		return nil, err
 	}
 	// typedefName is set to non-empty-string when this was a valid enumeration
 	// within a typedef.
-	if typedefName != "" {
+	if isTypedef {
 		return &MappedType{
 			NativeType:            typedefName,
 			IsEnumeratedValue:     true,
@@ -467,23 +467,22 @@ func (s *ProtoLangMapper) protoUnionType(args resolveTypeArgs, pargs resolveProt
 	}
 
 	mtype := &MappedType{
-		UnionTypes:     map[string]int{},
-		UnionTypeInfos: map[string]MappedUnionSubtype{},
+		UnionTypes: map[string]MappedUnionSubtype{},
 	}
 
 	// Rewrite the map to be the expected format for the MappedType return value,
 	// we sort the keys into alphabetical order to avoid test flakes.
 	keys := []string{}
-	for k, t := range unionTypes {
+	for k := range unionTypes {
 		keys = append(keys, k)
-		mtype.UnionTypeInfos[k] = MappedUnionSubtype{
-			EnumeratedYANGTypeKey: t.mtype.EnumeratedYANGTypeKey,
-		}
 	}
 
 	sort.Strings(keys)
 	for _, k := range keys {
-		mtype.UnionTypes[k] = len(mtype.UnionTypes)
+		mtype.UnionTypes[k] = MappedUnionSubtype{
+			Index:                 len(mtype.UnionTypes),
+			EnumeratedYANGTypeKey: unionTypes[k].mtype.EnumeratedYANGTypeKey,
+		}
 	}
 
 	return mtype, nil
