@@ -4110,6 +4110,10 @@ func TestMarshal7951(t *testing.T) {
 		},
 		want: `{"str":"test-string"}`,
 	}, {
+		desc: "nil GoStruct",
+		in:   (*renderExample)(nil),
+		want: `null`,
+	}, {
 		desc: "simple GoStruct with PreferShadowPath",
 		in: &renderExample{
 			Str: String("test-string"),
@@ -4174,6 +4178,16 @@ func TestMarshal7951(t *testing.T) {
 		in:   map[string]*renderExample{},
 		// null as empty array is not valid, RFC7951 section 5.4 specify that the array must be an array, and JSON empty arrays are not null value
 		want: `[]`,
+	}, {
+		desc: "nil map",
+		in:   (map[string]*renderExample)(nil),
+		// While not specified by RFC7951 section 5.4, using null to
+		// represent a non-initialized map is the behaviour that has
+		// been longstanding within ygot (Hyrum's Law).
+		// As with other 'null' representations, it is only shown in
+		// the JSON when the list is directly being marshalled, as
+		// opposed to when an ancestor node is being marshalled.
+		want: `null`,
 	}, {
 		desc: "nil string pointer",
 		in:   (*string)(nil),
