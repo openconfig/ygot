@@ -441,7 +441,7 @@ func TestUnionSubTypes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewGoLangMapper(true)
-			if err := s.SetupEnumSet(enumMapFromEntry(tt.inCtxEntry), false, false, false, true, true, true, nil); err != nil {
+			if err := s.InjectEnumSet(enumMapFromEntry(tt.inCtxEntry), false, false, false, true, true, true, nil); err != nil {
 				t.Fatal(err)
 			}
 
@@ -1091,7 +1091,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			s := NewGoLangMapper(true)
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.ctx, enumMap)
-			if err := s.SetupEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
+			if err := s.InjectEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", err)
 				}
@@ -1468,7 +1468,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewGoLangMapper(true)
-			if err := s.SetupEnumSet(enumMapFromEntries(tt.inLeaves), tt.inCompressOCPaths, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
+			if err := s.InjectEnumSet(enumMapFromEntries(tt.inLeaves), tt.inCompressOCPaths, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
 				t.Fatalf("findEnumSet failed: %v", err)
 			}
 
@@ -2472,7 +2472,7 @@ func TestYangDefaultValueToGo(t *testing.T) {
 				s := NewGoLangMapper(true)
 				enumMap := enumMapFromEntries(tt.inEnumEntries)
 				addEnumsToEnumMap(tt.inCtx, enumMap)
-				if err := s.SetupEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
+				if err := s.InjectEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
 					if !tt.wantErr {
 						t.Errorf("findEnumSet failed: %v", err)
 					}
@@ -2831,7 +2831,7 @@ func TestYangDefaultValueToGo(t *testing.T) {
 			s := NewGoLangMapper(true)
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.inCtx, enumMap)
-			if err := s.SetupEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
+			if err := s.InjectEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", err)
 				}

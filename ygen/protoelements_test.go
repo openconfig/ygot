@@ -600,8 +600,8 @@ func TestYangTypeToProtoType(t *testing.T) {
 			// Seed the schema tree with the injected entries, used to ensure leafrefs can
 			// be resolved.
 			if tt.inEntries != nil {
-				if err := s.SetupSchemaTree(tt.inEntries); err != nil {
-					t.Fatalf("%s: SetupSchemaTree(%v): got unexpected error, got: %v, want: nil", tt.name, tt.inEntries, err)
+				if err := s.InjectSchemaTree(tt.inEntries); err != nil {
+					t.Fatalf("%s: InjectSchemaTree(%v): got unexpected error, got: %v, want: nil", tt.name, tt.inEntries, err)
 				}
 			}
 			// Seed the enumSet with the injected enum entries,
@@ -610,9 +610,9 @@ func TestYangTypeToProtoType(t *testing.T) {
 			for _, e := range enumMapFromEntries(tt.inEntries) {
 				addEnumsToEnumMap(e, enumMap)
 			}
-			if err := s.SetupEnumSet(enumMap, false, true, false, true, true, true, nil); err != nil {
+			if err := s.InjectEnumSet(enumMap, false, true, false, true, true, true, nil); err != nil {
 				if !tt.wantErr {
-					t.Errorf("SetupEnumSet failed: %v", err)
+					t.Errorf("InjectEnumSet failed: %v", err)
 				}
 				return
 			}

@@ -1370,11 +1370,11 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 
 			t.Run(fmt.Sprintf("%s:buildDirectoryDefinitions(CompressBehaviour:%v,Language:%s,excludeState:%v)", tt.name, c.compressBehaviour, langName(c.lang), c.excludeState), func(t *testing.T) {
 				gogen := NewGoLangMapper(true)
-				if err := gogen.SetupSchemaTree(tt.in); err != nil {
+				if err := gogen.InjectSchemaTree(tt.in); err != nil {
 					t.Fatalf("buildSchemaTree(%v), got unexpected err: %v", tt.in, err)
 				}
 				protogen := NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
-				if err := protogen.SetupSchemaTree(tt.in); err != nil {
+				if err := protogen.InjectSchemaTree(tt.in); err != nil {
 					t.Fatalf("buildSchemaTree(%v), got unexpected err: %v", tt.in, err)
 				}
 
@@ -2266,16 +2266,16 @@ func TestBuildListKey(t *testing.T) {
 
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.in, enumMap)
-			if err := s.SetupEnumSet(enumMap, tt.inCompress, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
+			if err := s.InjectEnumSet(enumMap, tt.inCompress, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
 				if !tt.wantErr {
-					t.Errorf("SetupEnumSet failed: %v", err)
+					t.Errorf("InjectEnumSet failed: %v", err)
 				}
 				return
 			}
 
 			if tt.inEntries != nil {
-				if err := s.SetupSchemaTree(tt.inEntries); err != nil {
-					t.Fatalf("%s: SetupSchemaTree(%v), could not build tree: %v", tt.name, tt.inEntries, err)
+				if err := s.InjectSchemaTree(tt.inEntries); err != nil {
+					t.Fatalf("%s: InjectSchemaTree(%v), could not build tree: %v", tt.name, tt.inEntries, err)
 				}
 			}
 
