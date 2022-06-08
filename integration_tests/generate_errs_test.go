@@ -45,9 +45,9 @@ func TestGenerateErrs(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		gcg := gogen.NewGoCodeGenerator(&tt.inConfig, nil)
+		gcg := gogen.NewCodeGenerator(&tt.inConfig, nil)
 
-		_, goErr := gcg.GenerateGoCode(tt.inFiles, tt.inPath)
+		_, goErr := gcg.Generate(tt.inFiles, tt.inPath)
 		switch {
 		case tt.wantGoOK && goErr != nil:
 			t.Errorf("%s: gcg.GenerateGoCode(%v, %v): got unexpected error, got: %v, want: nil", tt.name, tt.inFiles, tt.inPath, goErr)
@@ -58,20 +58,20 @@ func TestGenerateErrs(t *testing.T) {
 			}
 		}
 
-		pcg := protogen.NewProtoCodeGenerator(&tt.inConfig, nil)
+		pcg := protogen.New(&tt.inConfig, nil)
 
 		if tt.wantSameErrSubstring {
 			tt.wantProtoErrSubstring = tt.wantGoErrSubstring
 		}
 
-		_, protoErr := pcg.GenerateProto3(tt.inFiles, tt.inPath)
+		_, protoErr := pcg.Generate(tt.inFiles, tt.inPath)
 		switch {
 		case tt.wantProtoOK && protoErr != nil:
-			t.Errorf("%s: pcg.GenerateProto3(%v, %v): got unexpected error, got: %v, want: nil", tt.name, tt.inFiles, tt.inPath, protoErr)
+			t.Errorf("%s: pcg.Generate(%v, %v): got unexpected error, got: %v, want: nil", tt.name, tt.inFiles, tt.inPath, protoErr)
 		case tt.wantProtoOK:
 		default:
 			if diff := errdiff.Substring(protoErr, tt.wantProtoErrSubstring); diff != "" {
-				t.Errorf("%s: pcg.GenerateProto3(%v, %v): %v", tt.name, tt.inFiles, tt.inPath, diff)
+				t.Errorf("%s: pcg.Generate(%v, %v): %v", tt.name, tt.inFiles, tt.inPath, diff)
 			}
 		}
 

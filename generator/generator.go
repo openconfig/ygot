@@ -109,10 +109,10 @@ var (
 	packageSuffix           = flag.String("path_struct_package_suffix", "path", "Suffix to append to generated Go package names, when split_pathstructs_by_module=true.")
 )
 
-// writeGoCodeSingleFile takes a ygen.GeneratedGoCode struct and writes the Go code
+// writeGoCodeSingleFile takes a gogen.GeneratedCode struct and writes the Go code
 // snippets contained within it to the io.Writer, w, provided as an argument.
 // The output includes a package header which is generated.
-func writeGoCodeSingleFile(w io.Writer, goCode *gogen.GeneratedGoCode) error {
+func writeGoCodeSingleFile(w io.Writer, goCode *gogen.GeneratedCode) error {
 	// Write the package header to the supplier writer.
 	fmt.Fprint(w, goCode.CommonHeader)
 	fmt.Fprint(w, goCode.OneOffHeader)
@@ -152,11 +152,11 @@ func writeGoPathCodeSingleFile(w io.Writer, pathCode *ypathgen.GeneratedPathCode
 
 // splitCodeByFileN generates a map, keyed by filename, to a string containing
 // the code to be output to that filename. It allows division of a
-// ygen.GeneratedGoCode struct into a set of source files. It divides the
+// gogen.GeneratedCode struct into a set of source files. It divides the
 // methods, interfaces, and enumeration code snippets into their own files.
 // Structs are output into files by splitting them evenly among the input split
 // number.
-func splitCodeByFileN(goCode *gogen.GeneratedGoCode, fileN int) (map[string]string, error) {
+func splitCodeByFileN(goCode *gogen.GeneratedCode, fileN int) (map[string]string, error) {
 	structN := len(goCode.Structs)
 	if fileN < 1 || fileN > structN {
 		return nil, fmt.Errorf("requested %d files, but must be between 1 and %d (number of schema structs)", fileN, structN)
@@ -325,7 +325,7 @@ func main() {
 		}
 
 		// Perform the code generation.
-		cg := gogen.NewGoCodeGenerator(&ygen.GeneratorConfig{
+		cg := gogen.NewCodeGenerator(&ygen.GeneratorConfig{
 			ParseOptions: ygen.ParseOpts{
 				ExcludeModules:        modsExcluded,
 				SkipEnumDeduplication: *skipEnumDedup,
@@ -367,7 +367,7 @@ func main() {
 			},
 		)
 
-		generatedGoCode, errs := cg.GenerateGoCode(generateModules, includePaths)
+		generatedGoCode, errs := cg.Generate(generateModules, includePaths)
 		if errs != nil {
 			log.Exitf("ERROR Generating GoStruct Code: %v\n", errs)
 		}

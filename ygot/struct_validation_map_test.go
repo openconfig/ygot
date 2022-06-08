@@ -793,8 +793,6 @@ func TestBuildEmptyTree(t *testing.T) {
 		name:     "struct with children",
 		inStruct: &emptyTreeTestTwo{},
 		want: &emptyTreeTestTwo{
-			SliceVal:     []*emptyTreeTestTwoChild{},
-			MapVal:       map[string]*emptyTreeTestTwoChild{},
 			StructVal:    &emptyTreeTestTwoChild{},
 			StructValTwo: &emptyTreeTestTwoChild{},
 		},
@@ -815,7 +813,7 @@ func TestBuildEmptyTree(t *testing.T) {
 
 	for _, tt := range tests {
 		BuildEmptyTree(tt.inStruct)
-		if diff := pretty.Compare(tt.inStruct, tt.want); diff != "" {
+		if diff := cmp.Diff(tt.inStruct, tt.want); diff != "" {
 			t.Errorf("%s: did not get expected output, diff(-got,+want):\n%s", tt.name, diff)
 		}
 	}
