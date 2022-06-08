@@ -21,8 +21,8 @@
             },
             "timers": {
                "config": {
-                  "hold-time": "30",
-                  "keepalive-interval": "10"
+                  "hold-time": 30,
+                  "keepalive-interval": 10
                }
             },
             "transport": {
@@ -41,8 +41,8 @@
             "neighbor-address": "2001:DB8::1",
             "timers": {
                "config": {
-                  "hold-time": "90",
-                  "keepalive-interval": "30"
+                  "hold-time": 90,
+                  "keepalive-interval": 30
                }
             }
          }
