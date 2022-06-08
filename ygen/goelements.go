@@ -308,14 +308,14 @@ func (s *GoLangMapper) SetSchemaTree(st *schemaTree) {
 func (s *GoLangMapper) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (*MappedType, error) {
 	defVal := genutil.TypeDefaultValue(args.yangType)
 	// Handle the case of a typedef which is actually an enumeration.
-	typedefName, _, err := s.EnumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
+	typedefName, _, isTypedef, err := s.EnumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
 	if err != nil {
 		// err is non nil when this was a typedef which included
 		// an invalid enumerated type.
 		return nil, err
 	}
 
-	if typedefName != "" {
+	if isTypedef {
 		return &MappedType{
 			NativeType:        typedefName,
 			IsEnumeratedValue: true,
@@ -463,7 +463,7 @@ func (s *GoLangMapper) goUnionType(args resolveTypeArgs, compressOCPaths, skipEn
 	// mapped type. A map is used such that other functions that rely checking
 	// whether a particular type is valid when creating mapping code can easily
 	// check, rather than iterating the slice of strings.
-	unionTypes := make(map[string]int)
+	unionTypes := make(map[string]MappedUnionSubtype)
 	for _, subtype := range args.yangType.Type {
 		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, unionTypes, unionMappedTypes, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)...)
 	}
@@ -499,7 +499,7 @@ func (s *GoLangMapper) goUnionType(args resolveTypeArgs, compressOCPaths, skipEn
 // The skipEnumDedup argument specifies whether the current code generation is
 // de-duplicating enumerations where they are used in more than one place in
 // the schema.
-func (s *GoLangMapper) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, unionMappedTypes map[int]*MappedType, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) []error {
+func (s *GoLangMapper) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]MappedUnionSubtype, unionMappedTypes map[int]*MappedType, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) []error {
 	var errs []error
 	// If subtype.Type is not empty then this means that this type is defined to
 	// be a union itself.
@@ -546,7 +546,9 @@ func (s *GoLangMapper) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, 
 	// simply represent this as one string.
 	if _, ok := currentTypes[mtype.NativeType]; !ok {
 		index := len(currentTypes)
-		currentTypes[mtype.NativeType] = index
+		currentTypes[mtype.NativeType] = MappedUnionSubtype{
+			Index: index,
+		}
 		unionMappedTypes[index] = mtype
 	}
 	return errs
@@ -619,13 +621,13 @@ func generateGoDefaultValue(field *yang.Entry, mtype *MappedType, gogen *GoLangM
 // type for each leaf is created.
 func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, isSingletonUnion, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (string, yang.TypeKind, error) {
 	// Handle the case of a typedef which is actually an enumeration.
-	typedefName, _, err := s.EnumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
+	typedefName, _, isTypedef, err := s.EnumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
 	if err != nil {
 		// err is non nil when this was a typedef which included
 		// an invalid enumerated type.
 		return "", yang.Ynone, err
 	}
-	if typedefName != "" {
+	if isTypedef {
 		if strings.Contains(value, ":") {
 			value = strings.Split(value, ":")[1]
 		}

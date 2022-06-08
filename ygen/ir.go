@@ -157,11 +157,13 @@ func (b *LangMapperBase) ResolveLeafrefTarget(path string, contextEntry *yang.En
 // a typedef which is either an identityref or an enumeration). The resolved
 // name is prefixed with the prefix supplied. If the type that was supplied
 // within the resolveTypeArgs struct is not a type definition which includes an
-// enumerated type, the MappedType returned is nil, otherwise it should be
-// populated.
+// enumerated type, the third returned value (boolean) will be false.
+// The second value returned is a string key that uniquely identifies this
+// enumerated value among all possible enumerated values in the input set of
+// YANG files.
 //
 // This function requires SetEnumSet to be called prior to being usable.
-func (b *LangMapperBase) EnumeratedTypedefTypeName(args resolveTypeArgs, prefix string, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (string, string, error) {
+func (b *LangMapperBase) EnumeratedTypedefTypeName(args resolveTypeArgs, prefix string, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (string, string, bool, error) {
 	return b.enumSet.enumeratedTypedefTypeName(args, prefix, noUnderscores, useDefiningModuleForTypedefEnumNames)
 }
 
@@ -210,6 +212,8 @@ func (b *LangMapperBase) IdentityrefBaseTypeFromLeaf(idr *yang.Entry) (string, s
 type LangMapperExt interface {
 	// PopulateFieldFlags populates extra information given a particular
 	// field of a ParsedDirectory and the corresponding AST node.
+	// Fields of a ParsedDirectory can be any non-choice/case node (e.g.
+	// YANG leafs, containers, lists).
 	PopulateFieldFlags(NodeDetails, *yang.Entry) map[string]string
 	// PopulateEnumFlags populates extra information given a particular
 	// enumerated type its corresponding AST representation.
@@ -506,10 +510,10 @@ type NodeDetails struct {
 	// Shadow paths are paths that have sibling config/state values
 	// that have been compressed out due to path compression.
 	ShadowMappedPathModules [][]string
-	// LangMapper during IR generation to assist the code generation stage.
 	// Flags contains extra information that can be populated by the
 	// LangMapper during IR generation to assist the code generation stage.
-	// It needs to implement the LangMapperExt interface.
+	// Specifically, this field is set by the
+	// LangMapperExt.PopulateFieldFlags function.
 	Flags map[string]string
 }
 
@@ -694,6 +698,7 @@ type EnumeratedYANGType struct {
 	ValToYANGDetails []ygot.EnumDefinition
 	// Flags contains extra information that can be populated by the
 	// LangMapper during IR generation to assist the code generation stage.
-	// It needs to implement the LangMapperExt interface.
+	// Specifically, this field is set by the
+	// LangMapperExt.PopulateEnumFlags function.
 	Flags map[string]string
 }
