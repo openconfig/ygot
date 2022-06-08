@@ -1148,7 +1148,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 // is set to true, the enumerated value's original names are stored.
 func enumInProtoUnionField(name string, field *NodeDetails, Enums map[string]*EnumeratedYANGType, annotateEnumNames bool) (map[string]*protoMsgEnum, error) {
 	enums := map[string]*protoMsgEnum{}
-	for genName, subtype := range field.LangType.UnionTypeInfos {
+	for genName, subtype := range field.LangType.UnionTypes {
 		if subtype.EnumeratedYANGTypeKey == "" {
 			continue
 		}

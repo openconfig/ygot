@@ -280,7 +280,6 @@ func protoIR(nestedDirectories bool) *IR {
 						LangType: &MappedType{
 							NativeType:            "openconfig.enums.ComplexSOFTWARE",
 							UnionTypes:            nil,
-							UnionTypeInfos:        nil,
 							IsEnumeratedValue:     true,
 							EnumeratedYANGTypeKey: "/openconfig-complex/SOFTWARE",
 							ZeroValue:             "",
@@ -322,15 +321,13 @@ func protoIR(nestedDirectories bool) *IR {
 						Type: LeafNode,
 						LangType: &MappedType{
 							NativeType: "",
-							UnionTypes: map[string]int{
-								"openconfig.enums.ComplexWeekendDays": 0,
-								"uint64":                              1,
-							},
-							UnionTypeInfos: map[string]MappedUnionSubtype{
+							UnionTypes: map[string]MappedUnionSubtype{
 								"openconfig.enums.ComplexWeekendDays": {
+									Index:                 0,
 									EnumeratedYANGTypeKey: "/openconfig-complex/weekend-days",
 								},
 								"uint64": {
+									Index:                 1,
 									EnumeratedYANGTypeKey: "",
 								},
 							},
@@ -391,15 +388,13 @@ func protoIR(nestedDirectories bool) *IR {
 						Type: LeafNode,
 						LangType: &MappedType{
 							NativeType: "",
-							UnionTypes: map[string]int{
-								"openconfig.enums.ComplexCycloneScalesEnum": 0,
-								"uint64": 1,
-							},
-							UnionTypeInfos: map[string]MappedUnionSubtype{
+							UnionTypes: map[string]MappedUnionSubtype{
 								"openconfig.enums.ComplexCycloneScalesEnum": {
+									Index:                 0,
 									EnumeratedYANGTypeKey: "/openconfig-complex/cyclone-scales",
 								},
 								"uint64": {
+									Index:                 1,
 									EnumeratedYANGTypeKey: "",
 								},
 							},
@@ -444,15 +439,13 @@ func protoIR(nestedDirectories bool) *IR {
 						Type: LeafNode,
 						LangType: &MappedType{
 							NativeType: "",
-							UnionTypes: map[string]int{
-								"SimpleUnionEnumEnum": 0,
-								"uint64":              1,
-							},
-							UnionTypeInfos: map[string]MappedUnionSubtype{
+							UnionTypes: map[string]MappedUnionSubtype{
 								"SimpleUnionEnumEnum": {
+									Index:                 0,
 									EnumeratedYANGTypeKey: "/openconfig-complex/single-key-config/simple-union-enum",
 								},
 								"uint64": {
+									Index:                 1,
 									EnumeratedYANGTypeKey: "",
 								},
 							},
@@ -498,7 +491,6 @@ func protoIR(nestedDirectories bool) *IR {
 						LangType: &MappedType{
 							NativeType:            "SingletonUnionEnumEnum",
 							UnionTypes:            nil,
-							UnionTypeInfos:        nil,
 							IsEnumeratedValue:     true,
 							EnumeratedYANGTypeKey: "/openconfig-complex/single-key-config/singleton-union-enum",
 							ZeroValue:             "",
@@ -541,7 +533,6 @@ func protoIR(nestedDirectories bool) *IR {
 						LangType: &MappedType{
 							NativeType:            "openconfig.enums.ComplexWeekendDays",
 							UnionTypes:            nil,
-							UnionTypeInfos:        nil,
 							IsEnumeratedValue:     true,
 							EnumeratedYANGTypeKey: "/openconfig-complex/weekend-days",
 							ZeroValue:             "",
@@ -583,16 +574,14 @@ func protoIR(nestedDirectories bool) *IR {
 						Type: LeafNode,
 						LangType: &MappedType{
 							NativeType: "",
-							UnionTypes: map[string]int{
+							UnionTypes: map[string]MappedUnionSubtype{
 								// protoLangMapper sorts by name instead of YANG order.
-								"openconfig.enums.ComplexCycloneScalesEnum": 0,
-								"uint64": 1,
-							},
-							UnionTypeInfos: map[string]MappedUnionSubtype{
 								"openconfig.enums.ComplexCycloneScalesEnum": {
+									Index:                 0,
 									EnumeratedYANGTypeKey: "/openconfig-complex/cyclone-scales",
 								},
 								"uint64": {
+									Index:                 1,
 									EnumeratedYANGTypeKey: "",
 								},
 							},
@@ -626,15 +615,13 @@ func protoIR(nestedDirectories bool) *IR {
 						Name: "key",
 						LangType: &MappedType{
 							NativeType: "",
-							UnionTypes: map[string]int{
-								"openconfig.enums.ComplexWeekendDays": 0,
-								"uint64":                              1,
-							},
-							UnionTypeInfos: map[string]MappedUnionSubtype{
+							UnionTypes: map[string]MappedUnionSubtype{
 								"openconfig.enums.ComplexWeekendDays": {
+									Index:                 0,
 									EnumeratedYANGTypeKey: "/openconfig-complex/weekend-days",
 								},
 								"uint64": {
+									Index:                 1,
 									EnumeratedYANGTypeKey: "",
 								},
 							},
