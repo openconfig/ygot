@@ -521,7 +521,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 				}
 				// Sort the enumerated types into schema order.
 				sort.Slice(enumTypeMap[schemaPath], func(i, j int) bool {
-					return field.LangType.UnionTypes[enumTypeMap[schemaPath][i]] < field.LangType.UnionTypes[enumTypeMap[schemaPath][j]]
+					return field.LangType.UnionTypes[enumTypeMap[schemaPath][i]].Index < field.LangType.UnionTypes[enumTypeMap[schemaPath][j]].Index
 				})
 			}
 		}
