@@ -64,14 +64,14 @@ func TestGenerateErrs(t *testing.T) {
 			tt.wantProtoErrSubstring = tt.wantGoErrSubstring
 		}
 
-		_, protoErr := pcg.GenerateProto3(tt.inFiles, tt.inPath)
+		_, protoErr := pcg.Generate(tt.inFiles, tt.inPath)
 		switch {
 		case tt.wantProtoOK && protoErr != nil:
-			t.Errorf("%s: pcg.GenerateProto3(%v, %v): got unexpected error, got: %v, want: nil", tt.name, tt.inFiles, tt.inPath, protoErr)
+			t.Errorf("%s: pcg.Generate(%v, %v): got unexpected error, got: %v, want: nil", tt.name, tt.inFiles, tt.inPath, protoErr)
 		case tt.wantProtoOK:
 		default:
 			if diff := errdiff.Substring(protoErr, tt.wantProtoErrSubstring); diff != "" {
-				t.Errorf("%s: pcg.GenerateProto3(%v, %v): %v", tt.name, tt.inFiles, tt.inPath, diff)
+				t.Errorf("%s: pcg.Generate(%v, %v): %v", tt.name, tt.inFiles, tt.inPath, diff)
 			}
 		}
 

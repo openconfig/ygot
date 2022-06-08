@@ -379,9 +379,9 @@ func TestGenerateProto3(t *testing.T) {
 				}
 
 				cg := New(&tt.inConfig, &tt.inProtoOpts)
-				gotProto, err := cg.GenerateProto3(tt.inFiles, tt.inIncludePaths)
+				gotProto, err := cg.Generate(tt.inFiles, tt.inIncludePaths)
 				if (err != nil) != tt.wantErr {
-					t.Fatalf("cg.GenerateProto3(%v, %v), config: %v: got unexpected error: %v", tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
+					t.Fatalf("cg.Generate(%v, %v), config: %v: got unexpected error: %v", tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
 				}
 
 				if tt.wantErr || err != nil {
@@ -419,7 +419,7 @@ func TestGenerateProto3(t *testing.T) {
 
 				gotPkg, ok := gotProto.Packages[pkg]
 				if !ok {
-					t.Fatalf("%s: cg.GenerateProto3(%v, %v): did not find expected package %s in output, got: %#v, want key: %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg, protoPkgs(gotProto.Packages), pkg)
+					t.Fatalf("%s: cg.Generate(%v, %v): did not find expected package %s in output, got: %#v, want key: %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg, protoPkgs(gotProto.Packages), pkg)
 				}
 
 				// Mark this package as having been seen.
@@ -446,13 +446,13 @@ func TestGenerateProto3(t *testing.T) {
 					if diffl, _ := testutil.GenerateUnifiedDiff(wantCode, gotCodeBuf.String()); diffl != "" {
 						diff = diffl
 					}
-					t.Errorf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-want, +got):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
+					t.Errorf("%s: cg.Generate(%v, %v) for package %s, did not get expected code (code file: %v), diff(-want, +got):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
 				}
 			}
 
 			for pkg, seen := range seenPkg {
 				if !seen {
-					t.Errorf("%s: cg.GenerateProto3(%v, %v) did not test received package %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg)
+					t.Errorf("%s: cg.Generate(%v, %v) did not test received package %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg)
 				}
 			}
 
@@ -464,7 +464,7 @@ func TestGenerateProto3(t *testing.T) {
 				for _, pkg := range wantPkgs {
 					gotPkg, ok := got.Packages[pkg]
 					if !ok {
-						t.Fatalf("%s: cg.GenerateProto3(%v, %v): did not find expected package %s in output, got: %#v, want key: %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg, protoPkgs(gotProto.Packages), pkg)
+						t.Fatalf("%s: cg.Generate(%v, %v): did not find expected package %s in output, got: %#v, want key: %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg, protoPkgs(gotProto.Packages), pkg)
 					}
 					fmt.Fprintf(&gotCodeBuf, gotPkg.Header)
 					for _, gotMsg := range gotPkg.Messages {

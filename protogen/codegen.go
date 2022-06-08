@@ -91,12 +91,12 @@ type Proto3Package struct {
 	UsesYextImport     bool     // UsesYextImport indicates whether the yext proto package is used within the generated package.
 }
 
-// GenerateProto3 generates Protobuf 3 code for the input set of YANG files.
+// Generate generates Protobuf 3 code for the input set of YANG files.
 // The YANG schemas for which protobufs are to be created is supplied as the
 // yangFiles argument, with included modules being searched for in includePaths.
 // It returns a GeneratedCode struct containing the messages that are to be
 // output, along with any associated values (e.g., enumerations).
-func (cg *CodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedCode, util.Errors) {
+func (cg *CodeGenerator) Generate(yangFiles, includePaths []string) (*GeneratedCode, util.Errors) {
 	basePackageName := cg.Config.PackageName
 	if basePackageName == "" {
 		basePackageName = DefaultBasePackageName

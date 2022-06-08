@@ -129,7 +129,7 @@ func main() {
 		},
 	)
 
-	generatedProtoCode, errs := cg.GenerateProto3(generateModules, includePaths)
+	generatedProtoCode, errs := cg.Generate(generateModules, includePaths)
 	if errs != nil {
 		log.Exitf("%v\n", errs)
 	}
