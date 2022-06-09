@@ -431,7 +431,6 @@ func TestSimpleStructs(t *testing.T) {
 				EnumerationsUseUnderscores:           true,
 			},
 			Caller:             "testcase",
-			StoreRawSchema:     true,
 			GenerateJSONSchema: true,
 		},
 		inGoOptions: GoOpts{
@@ -873,7 +872,6 @@ func TestSimpleStructs(t *testing.T) {
 					// the unit tests are called by external test entities.
 					tt.inConfig.Caller = "codegen-tests"
 				}
-				tt.inConfig.StoreRawSchema = true
 				tt.inConfig.ParseOptions.ExcludeModules = tt.inExcludeModules
 
 				cg := NewCodeGenerator(&tt.inConfig, &tt.inGoOptions)

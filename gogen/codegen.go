@@ -133,7 +133,6 @@ type GeneratedCode struct {
 	//  - structname - the name of the struct that was generated for the schema element.
 	JSONSchemaCode string
 	// RawJSONSchema stores the JSON document which is serialised and stored in JSONSchemaCode.
-	// It is populated only if the StoreRawSchema CodeGenerator boolean is set to true.
 	RawJSONSchema []byte
 	// EnumTypeMap is a Go map that allows YANG schemapaths to be mapped to reflect.Type values.
 	EnumTypeMap string

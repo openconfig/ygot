@@ -46,10 +46,6 @@ type GeneratorConfig struct {
 	// the JSON corresponding to the YANG schema parsed to generate the
 	// output code.
 	GenerateJSONSchema bool
-	// StoreRawSchema the raw JSON schema should be returned by the code
-	// generation function, such that it can be handled by an external
-	// library.
-	StoreRawSchema bool
 	// ParseOptions contains parsing options for a given set of schema files.
 	ParseOptions ParseOpts
 	// TransformationOptions contains options for how the generated code
