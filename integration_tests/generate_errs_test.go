@@ -15,7 +15,7 @@ func TestGenerateErrs(t *testing.T) {
 		name                  string
 		inFiles               []string
 		inPath                []string
-		inConfig              ygen.GeneratorConfig
+		inIROptions           ygen.IROptions
 		wantGoOK              bool
 		wantGoErrSubstring    string
 		wantProtoOK           bool
@@ -45,7 +45,7 @@ func TestGenerateErrs(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		gcg := gogen.NewCodeGenerator(&tt.inConfig, nil)
+		gcg := gogen.New("", tt.inIROptions, gogen.GoOpts{})
 
 		_, goErr := gcg.Generate(tt.inFiles, tt.inPath)
 		switch {
@@ -58,7 +58,7 @@ func TestGenerateErrs(t *testing.T) {
 			}
 		}
 
-		pcg := protogen.New(&tt.inConfig, nil)
+		pcg := protogen.New("", tt.inIROptions, protogen.ProtoOpts{})
 
 		if tt.wantSameErrSubstring {
 			tt.wantProtoErrSubstring = tt.wantGoErrSubstring

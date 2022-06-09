@@ -309,7 +309,7 @@ func (s *ProtoLangMapper) yangTypeToProtoType(args resolveTypeArgs, pargs resolv
 		if err != nil {
 			return nil, err
 		}
-		_, key, err := s.EnumName(args.contextEntry, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, false, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+		_, key, err := s.EnumName(args.contextEntry, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.TransformationOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, false, opts.TransformationOptions.EnumOrgPrefixesToTrim)
 		if err != nil {
 			return nil, err
 		}
@@ -387,7 +387,7 @@ func (s *ProtoLangMapper) yangTypeToProtoScalarType(args resolveTypeArgs, pargs 
 		if err != nil {
 			return nil, err
 		}
-		_, key, err := s.EnumName(args.contextEntry, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, false, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+		_, key, err := s.EnumName(args.contextEntry, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.TransformationOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, false, opts.TransformationOptions.EnumOrgPrefixesToTrim)
 		if err != nil {
 			return nil, err
 		}

@@ -325,29 +325,30 @@ func main() {
 		}
 
 		// Perform the code generation.
-		cg := gogen.NewCodeGenerator(&ygen.GeneratorConfig{
-			ParseOptions: ygen.ParseOpts{
-				ExcludeModules:        modsExcluded,
-				SkipEnumDeduplication: *skipEnumDedup,
-				YANGParseOptions: yang.Options{
-					IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+		cg := gogen.New(
+			"",
+			ygen.IROptions{
+				ParseOptions: ygen.ParseOpts{
+					ExcludeModules: modsExcluded,
+					YANGParseOptions: yang.Options{
+						IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+					},
+				},
+				TransformationOptions: ygen.TransformationOpts{
+					CompressBehaviour:                    compressBehaviour,
+					GenerateFakeRoot:                     *generateFakeRoot,
+					FakeRootName:                         *fakeRootName,
+					SkipEnumDeduplication:                *skipEnumDedup,
+					ShortenEnumLeafNames:                 *shortenEnumLeafNames,
+					EnumOrgPrefixesToTrim:                enumOrgPrefixesToTrim,
+					UseDefiningModuleForTypedefEnumNames: *useDefiningModuleForTypedefEnumNames,
+					EnumerationsUseUnderscores:           true,
 				},
 			},
-			TransformationOptions: ygen.TransformationOpts{
-				CompressBehaviour:                    compressBehaviour,
-				IgnoreShadowSchemaPaths:              *ignoreShadowSchemaPaths,
-				GenerateFakeRoot:                     *generateFakeRoot,
-				FakeRootName:                         *fakeRootName,
-				ShortenEnumLeafNames:                 *shortenEnumLeafNames,
-				EnumOrgPrefixesToTrim:                enumOrgPrefixesToTrim,
-				UseDefiningModuleForTypedefEnumNames: *useDefiningModuleForTypedefEnumNames,
-				EnumerationsUseUnderscores:           true,
-			},
-			PackageName:         *packageName,
-			GenerateJSONSchema:  *generateSchema,
-			IncludeDescriptions: *includeDescriptions,
-		},
-			&gogen.GoOpts{
+			gogen.GoOpts{
+				PackageName:                         *packageName,
+				GenerateJSONSchema:                  *generateSchema,
+				IncludeDescriptions:                 *includeDescriptions,
 				YgotImportPath:                      *ygotImportPath,
 				YtypesImportPath:                    *ytypesImportPath,
 				GoyangImportPath:                    *goyangImportPath,
@@ -364,6 +365,7 @@ func main() {
 				GenerateSimpleUnions:                *generateSimpleUnions,
 				IncludeModelData:                    *includeModelData,
 				AppendEnumSuffixForSimpleUnionEnums: *appendEnumSuffixForSimpleUnionEnums,
+				IgnoreShadowSchemaPaths:             *ignoreShadowSchemaPaths,
 			},
 		)
 
