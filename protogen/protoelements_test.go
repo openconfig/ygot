@@ -669,7 +669,6 @@ func TestYangTypeToProtoType(t *testing.T) {
 				gotWrapper, err := s.yangTypeToProtoType(st, rpt, ygen.IROptions{
 					TransformationOptions: ygen.TransformationOpts{
 						CompressBehaviour:                    genutil.Uncompressed,
-						IgnoreShadowSchemaPaths:              false,
 						GenerateFakeRoot:                     true,
 						ExcludeState:                         false,
 						ShortenEnumLeafNames:                 false,
@@ -695,7 +694,6 @@ func TestYangTypeToProtoType(t *testing.T) {
 				gotScalar, err := s.yangTypeToProtoScalarType(st, rpt, ygen.IROptions{
 					TransformationOptions: ygen.TransformationOpts{
 						CompressBehaviour:                    genutil.Uncompressed,
-						IgnoreShadowSchemaPaths:              false,
 						GenerateFakeRoot:                     true,
 						ExcludeState:                         false,
 						ShortenEnumLeafNames:                 false,

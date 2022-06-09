@@ -17,6 +17,8 @@
 // to generate a Protobuf form of the OpenConfig RIB model.
 package main
 
+//go:generate ./update.sh
+
 import (
 	"fmt"
 

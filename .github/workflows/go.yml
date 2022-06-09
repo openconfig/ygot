@@ -118,6 +118,10 @@ jobs:
             test-go-build $f $go_file
           done
 
+      - name: Make sure exampleoc doesn't error or panic
+        run: go generate ./...
+        working-directory: go/src/github.com/openconfig/ygot
+
   static_analysis:
     name: Static Analysis
     runs-on: ubuntu-latest

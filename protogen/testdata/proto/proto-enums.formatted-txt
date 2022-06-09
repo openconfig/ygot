@@ -26,4 +26,5 @@ message A {
     openconfig.enums.ProtoEnumsBASEIDENTITY e_protoenumsbaseidentity = 261975251;
     string e_string = 222327361;
   }
+  openconfig.enums.ProtoEnumsIrefTypedef f = 314438328;
 }
