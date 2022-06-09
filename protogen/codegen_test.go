@@ -28,8 +28,7 @@ func TestGenerateProto3(t *testing.T) {
 		name           string
 		inFiles        []string
 		inIncludePaths []string
-		inConfig       ygen.GeneratorConfig
-		inProtoOpts    ProtoOpts
+		inConfig       CodeGenerator
 		// wantOutputFiles is a map keyed on protobuf package name with a path
 		// to the file that is expected for each package.
 		wantOutputFiles map[string]string
@@ -37,9 +36,11 @@ func TestGenerateProto3(t *testing.T) {
 	}{{
 		name:    "simple protobuf test with compression",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.yang")},
-		inConfig: ygen.GeneratorConfig{
-			TransformationOptions: ygen.TransformationOpts{
-				CompressBehaviour: genutil.PreferIntendedConfig,
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					CompressBehaviour: genutil.PreferIntendedConfig,
+				},
 			},
 		},
 		wantOutputFiles: map[string]string{
@@ -57,36 +58,46 @@ func TestGenerateProto3(t *testing.T) {
 	}, {
 		name:    "enumeration under unions test with compression",
 		inFiles: []string{filepath.Join(datapath, "enum-union.yang")},
-		inConfig: ygen.GeneratorConfig{
-			TransformationOptions: ygen.TransformationOpts{
-				CompressBehaviour:                    genutil.PreferIntendedConfig,
-				GenerateFakeRoot:                     true,
-				UseDefiningModuleForTypedefEnumNames: true,
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					CompressBehaviour:                    genutil.PreferIntendedConfig,
+					GenerateFakeRoot:                     true,
+					UseDefiningModuleForTypedefEnumNames: true,
+				},
 			},
-		},
-		inProtoOpts: ProtoOpts{
-			AnnotateEnumNames: true,
-			NestedMessages:    true,
-			GoPackageBase:     "github.com/foo/bar",
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames: true,
+				NestedMessages:    true,
+				GoPackageBase:     "github.com/foo/bar",
+			},
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig":       filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.formatted-txt"),
 			"openconfig.enums": filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.enums.formatted-txt"),
 		},
 	}, {
-		name:     "yang schema with a list",
-		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.yang")},
-		inConfig: ygen.GeneratorConfig{TransformationOptions: ygen.TransformationOpts{CompressBehaviour: genutil.PreferIntendedConfig}},
+		name:    "yang schema with a list",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.yang")},
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					CompressBehaviour: genutil.PreferIntendedConfig,
+				},
+			},
+		},
 		wantOutputFiles: map[string]string{
 			"openconfig":        filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.compress.formatted-txt"),
 			"openconfig.device": filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.compress.device.formatted-txt"),
 		},
 	}, {
-		name:     "yang schema with simple enumerations",
-		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.yang")},
-		inConfig: ygen.GeneratorConfig{},
-		inProtoOpts: ProtoOpts{
-			GoPackageBase: "github.com/foo/baz",
+		name:    "yang schema with simple enumerations",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.yang")},
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{},
+			ProtoOptions: ProtoOpts{
+				GoPackageBase: "github.com/foo/baz",
+			},
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig.proto_test_c":              filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.formatted-txt"),
@@ -106,9 +117,11 @@ func TestGenerateProto3(t *testing.T) {
 	}, {
 		name:    "yang schema with unions",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.yang")},
-		inConfig: ygen.GeneratorConfig{
-			TransformationOptions: ygen.TransformationOpts{
-				UseDefiningModuleForTypedefEnumNames: true,
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					UseDefiningModuleForTypedefEnumNames: true,
+				},
 			},
 		},
 		wantOutputFiles: map[string]string{
@@ -129,11 +142,13 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.proto_anydata_test.e": filepath.Join(TestRoot, "testdata", "proto", "proto_anydata_test.e.formatted-txt"),
 		},
 	}, {
-		name:     "yang schema with path annotations",
-		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-f.yang")},
-		inConfig: ygen.GeneratorConfig{},
-		inProtoOpts: ProtoOpts{
-			AnnotateSchemaPaths: true,
+		name:    "yang schema with path annotations",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-f.yang")},
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{},
+			ProtoOptions: ProtoOpts{
+				AnnotateSchemaPaths: true,
+			},
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig.proto_test_f":     filepath.Join(TestRoot, "testdata", "proto", "proto_test_f.uncompressed.proto_test_f.formatted-txt"),
@@ -141,12 +156,14 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.proto_test_f.a.c": filepath.Join(TestRoot, "testdata", "proto", "proto_test_f.uncompressed.proto_test_f.a.c.formatted-txt"),
 		},
 	}, {
-		name:     "yang schema with leafrefs that point to the same path",
-		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-g.yang")},
-		inConfig: ygen.GeneratorConfig{},
-		inProtoOpts: ProtoOpts{
-			GoPackageBase:  "github.com/foo/baz",
-			NestedMessages: true,
+		name:    "yang schema with leafrefs that point to the same path",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-g.yang")},
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{},
+			ProtoOptions: ProtoOpts{
+				GoPackageBase:  "github.com/foo/baz",
+				NestedMessages: true,
+			},
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig.proto_test_g": filepath.Join(TestRoot, "testdata", "proto", "proto-test-g.proto-test-g.formatted-txt"),
@@ -154,14 +171,16 @@ func TestGenerateProto3(t *testing.T) {
 	}, {
 		name:    "yang schema with fake root, path compression and union list key",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.yang")},
-		inConfig: ygen.GeneratorConfig{
-			TransformationOptions: ygen.TransformationOpts{
-				CompressBehaviour: genutil.PreferIntendedConfig,
-				GenerateFakeRoot:  true,
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					CompressBehaviour: genutil.PreferIntendedConfig,
+					GenerateFakeRoot:  true,
+				},
 			},
-		},
-		inProtoOpts: ProtoOpts{
-			AnnotateSchemaPaths: true,
+			ProtoOptions: ProtoOpts{
+				AnnotateSchemaPaths: true,
+			},
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig":                filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.compressed.openconfig.formatted-txt"),
@@ -170,13 +189,15 @@ func TestGenerateProto3(t *testing.T) {
 	}, {
 		name:    "yang schema with fakeroot, and union list key",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.yang")},
-		inConfig: ygen.GeneratorConfig{
-			TransformationOptions: ygen.TransformationOpts{
-				GenerateFakeRoot: true,
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					GenerateFakeRoot: true,
+				},
 			},
-		},
-		inProtoOpts: ProtoOpts{
-			AnnotateSchemaPaths: true,
+			ProtoOptions: ProtoOpts{
+				AnnotateSchemaPaths: true,
+			},
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig":                                                     filepath.Join(TestRoot, "testdata", "proto", "proto-union-list_key.uncompressed.openconfig.formatted-txt"),
@@ -189,9 +210,11 @@ func TestGenerateProto3(t *testing.T) {
 	}, {
 		name:    "enums: yang schema with various types of enums with underscores",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-enums.yang")},
-		inConfig: ygen.GeneratorConfig{
-			TransformationOptions: ygen.TransformationOpts{
-				UseDefiningModuleForTypedefEnumNames: true,
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					UseDefiningModuleForTypedefEnumNames: true,
+				},
 			},
 		},
 		wantOutputFiles: map[string]string{
@@ -204,13 +227,15 @@ func TestGenerateProto3(t *testing.T) {
 			filepath.Join(TestRoot, "testdata", "proto", "proto-enums.yang"),
 			filepath.Join(TestRoot, "testdata", "proto", "proto-enums-addid.yang"),
 		},
-		inConfig: ygen.GeneratorConfig{
-			TransformationOptions: ygen.TransformationOpts{
-				UseDefiningModuleForTypedefEnumNames: true,
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					UseDefiningModuleForTypedefEnumNames: true,
+				},
 			},
-		},
-		inProtoOpts: ProtoOpts{
-			AnnotateEnumNames: true,
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames: true,
+			},
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig.enums":       filepath.Join(TestRoot, "testdata", "proto", "proto-enums-addid.enums.formatted-txt"),
@@ -221,16 +246,18 @@ func TestGenerateProto3(t *testing.T) {
 		inFiles: []string{
 			filepath.Join(TestRoot, "testdata", "proto", "nested-messages.yang"),
 		},
-		inConfig: ygen.GeneratorConfig{
-			TransformationOptions: ygen.TransformationOpts{
-				GenerateFakeRoot:                     true,
-				UseDefiningModuleForTypedefEnumNames: true,
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					GenerateFakeRoot:                     true,
+					UseDefiningModuleForTypedefEnumNames: true,
+				},
 			},
-		},
-		inProtoOpts: ProtoOpts{
-			AnnotateEnumNames:   true,
-			AnnotateSchemaPaths: true,
-			NestedMessages:      true,
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames:   true,
+				AnnotateSchemaPaths: true,
+				NestedMessages:      true,
+			},
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig":                 filepath.Join(TestRoot, "testdata", "proto", "nested-messages.openconfig.formatted-txt"),
@@ -242,18 +269,19 @@ func TestGenerateProto3(t *testing.T) {
 		inFiles: []string{
 			filepath.Join(TestRoot, "testdata", "proto", "nested-messages.yang"),
 		},
-		inConfig: ygen.GeneratorConfig{
-			TransformationOptions: ygen.TransformationOpts{
-				CompressBehaviour:                    genutil.PreferIntendedConfig,
-				IgnoreShadowSchemaPaths:              true,
-				GenerateFakeRoot:                     true,
-				UseDefiningModuleForTypedefEnumNames: true,
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					CompressBehaviour:                    genutil.PreferIntendedConfig,
+					GenerateFakeRoot:                     true,
+					UseDefiningModuleForTypedefEnumNames: true,
+				},
 			},
-		},
-		inProtoOpts: ProtoOpts{
-			AnnotateEnumNames:   true,
-			AnnotateSchemaPaths: true,
-			NestedMessages:      true,
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames:   true,
+				AnnotateSchemaPaths: true,
+				NestedMessages:      true,
+			},
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig.enums": filepath.Join(TestRoot, "testdata", "proto", "nested-messages.compressed.enums.formatted-txt"),
@@ -264,16 +292,18 @@ func TestGenerateProto3(t *testing.T) {
 		inFiles: []string{
 			filepath.Join(TestRoot, "testdata", "proto", "union-list-key.yang"),
 		},
-		inConfig: ygen.GeneratorConfig{
-			TransformationOptions: ygen.TransformationOpts{
-				GenerateFakeRoot:                     true,
-				UseDefiningModuleForTypedefEnumNames: true,
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					GenerateFakeRoot:                     true,
+					UseDefiningModuleForTypedefEnumNames: true,
+				},
 			},
-		},
-		inProtoOpts: ProtoOpts{
-			AnnotateEnumNames:   true,
-			AnnotateSchemaPaths: true,
-			NestedMessages:      true,
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames:   true,
+				AnnotateSchemaPaths: true,
+				NestedMessages:      true,
+			},
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig.enums":          filepath.Join(TestRoot, "testdata", "proto", "union-list-key.enums.formatted-txt"),
@@ -285,16 +315,18 @@ func TestGenerateProto3(t *testing.T) {
 		inFiles: []string{
 			filepath.Join(datapath, "openconfig-config-false.yang"),
 		},
-		inConfig: ygen.GeneratorConfig{
-			TransformationOptions: ygen.TransformationOpts{
-				GenerateFakeRoot:  true,
-				CompressBehaviour: genutil.UncompressedExcludeDerivedState,
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					GenerateFakeRoot:  true,
+					CompressBehaviour: genutil.UncompressedExcludeDerivedState,
+				},
 			},
-		},
-		inProtoOpts: ProtoOpts{
-			AnnotateEnumNames:   true,
-			AnnotateSchemaPaths: true,
-			NestedMessages:      true,
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames:   true,
+				AnnotateSchemaPaths: true,
+				NestedMessages:      true,
+			},
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig":                         filepath.Join(TestRoot, "testdata", "proto", "excluded-config-false.compressed.formatted-txt"),
@@ -305,17 +337,19 @@ func TestGenerateProto3(t *testing.T) {
 		inFiles: []string{
 			filepath.Join(datapath, "openconfig-config-false.yang"),
 		},
-		inConfig: ygen.GeneratorConfig{
-			TransformationOptions: ygen.TransformationOpts{
-				GenerateFakeRoot:  true,
-				CompressBehaviour: genutil.ExcludeDerivedState,
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					GenerateFakeRoot:  true,
+					CompressBehaviour: genutil.ExcludeDerivedState,
+				},
 			},
-		},
-		inProtoOpts: ProtoOpts{
-			AnnotateEnumNames:   true,
-			AnnotateSchemaPaths: true,
-			NestedMessages:      true,
-			GoPackageBase:       "github.com/openconfig/a/package",
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames:   true,
+				AnnotateSchemaPaths: true,
+				NestedMessages:      true,
+				GoPackageBase:       "github.com/openconfig/a/package",
+			},
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig": filepath.Join(TestRoot, "testdata", "proto", "excluded-config-false.uncompressed.formatted-txt"),
@@ -326,13 +360,15 @@ func TestGenerateProto3(t *testing.T) {
 			filepath.Join(TestRoot, "testdata", "proto", "cross-ref-target.yang"),
 			filepath.Join(TestRoot, "testdata", "proto", "cross-ref-src.yang"),
 		},
-		inConfig: ygen.GeneratorConfig{
-			ParseOptions: ygen.ParseOpts{
-				ExcludeModules: []string{"cross-ref-target"},
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				ParseOptions: ygen.ParseOpts{
+					ExcludeModules: []string{"cross-ref-target"},
+				},
 			},
-		},
-		inProtoOpts: ProtoOpts{
-			NestedMessages: true,
+			ProtoOptions: ProtoOpts{
+				NestedMessages: true,
+			},
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig.cross_ref_src": filepath.Join(TestRoot, "testdata", "proto", "cross-ref-src.formatted-txt"),
@@ -343,16 +379,18 @@ func TestGenerateProto3(t *testing.T) {
 			filepath.Join(TestRoot, "testdata", "proto", "fakeroot-multimod-one.yang"),
 			filepath.Join(TestRoot, "testdata", "proto", "fakeroot-multimod-two.yang"),
 		},
-		inConfig: ygen.GeneratorConfig{
-			TransformationOptions: ygen.TransformationOpts{
-				GenerateFakeRoot:  true,
-				CompressBehaviour: genutil.PreferIntendedConfig,
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					GenerateFakeRoot:  true,
+					CompressBehaviour: genutil.PreferIntendedConfig,
+				},
 			},
-		},
-		inProtoOpts: ProtoOpts{
-			NestedMessages:      true,
-			AnnotateEnumNames:   true,
-			AnnotateSchemaPaths: true,
+			ProtoOptions: ProtoOpts{
+				NestedMessages:      true,
+				AnnotateEnumNames:   true,
+				AnnotateSchemaPaths: true,
+			},
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig": filepath.Join(TestRoot, "testdata", "proto", "fakeroot-multimod.formatted-txt"),
@@ -378,7 +416,7 @@ func TestGenerateProto3(t *testing.T) {
 					tt.inConfig.Caller = "codegen-tests"
 				}
 
-				cg := New(&tt.inConfig, &tt.inProtoOpts)
+				cg := New(tt.inConfig.Caller, tt.inConfig.IROptions, tt.inConfig.ProtoOptions)
 				gotProto, err := cg.Generate(tt.inFiles, tt.inIncludePaths)
 				if (err != nil) != tt.wantErr {
 					t.Fatalf("cg.Generate(%v, %v), config: %v: got unexpected error: %v", tt.inFiles, tt.inIncludePaths, tt.inConfig, err)

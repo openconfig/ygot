@@ -1396,11 +1396,11 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				case golang:
 					got, errs = buildDirectoryDefinitions(gogen, structs, IROptions{
 						ParseOptions: ParseOpts{
-							SkipEnumDeduplication: false,
 						},
 						TransformationOptions: TransformationOpts{
 							CompressBehaviour:                    c.compressBehaviour,
 							GenerateFakeRoot:                     false,
+							SkipEnumDeduplication: false,
 							ShortenEnumLeafNames:                 true,
 							UseDefiningModuleForTypedefEnumNames: true,
 							EnumOrgPrefixesToTrim:                nil,
@@ -1412,11 +1412,11 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				case protobuf:
 					got, errs = buildDirectoryDefinitions(protogen, structs, IROptions{
 						ParseOptions: ParseOpts{
-							SkipEnumDeduplication: false,
 						},
 						TransformationOptions: TransformationOpts{
 							CompressBehaviour:                    c.compressBehaviour,
 							GenerateFakeRoot:                     false,
+							SkipEnumDeduplication: false,
 							ShortenEnumLeafNames:                 true,
 							UseDefiningModuleForTypedefEnumNames: true,
 							EnumOrgPrefixesToTrim:                nil,
@@ -2157,12 +2157,11 @@ func TestBuildListKey(t *testing.T) {
 			}
 
 			got, err := buildListKey(tt.in, s, IROptions{
-				ParseOptions: ParseOpts{
-					SkipEnumDeduplication: tt.inSkipEnumDedup,
-				},
+				ParseOptions: ParseOpts{},
 				TransformationOptions: TransformationOpts{
 					CompressBehaviour:                    compressBehaviour,
 					GenerateFakeRoot:                     true,
+					SkipEnumDeduplication:                tt.inSkipEnumDedup,
 					ShortenEnumLeafNames:                 true,
 					UseDefiningModuleForTypedefEnumNames: true,
 					EnumOrgPrefixesToTrim:                nil,
