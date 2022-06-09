@@ -77,13 +77,13 @@ func CreateDemoBGPInstance() (*oc.NetworkInstance_Protocol_Bgp, error) {
 	// Initialize all containers underneath the newly created peer. This allows us
 	// to now specify containers in the hierarchy that we didn't yet initialize.
 	ygot.BuildEmptyTree(nPeer)
-	nPeer.Timers.HoldTime = ygot.Float64(30)
+	nPeer.Timers.HoldTime = ygot.Uint16(30)
 
 	// Elements of the schema that themselves are containers have a struct
 	// generated for them which can be set directly.
 	nPeer.Timers = &oc.NetworkInstance_Protocol_Bgp_Neighbor_Timers{
-		HoldTime:          ygot.Float64(90.0),
-		KeepaliveInterval: ygot.Float64(30.0),
+		HoldTime:          ygot.Uint16(90.0),
+		KeepaliveInterval: ygot.Uint16(30.0),
 	}
 
 	// An entry in a list can be directly defined as a map entry, with the multi-key
@@ -93,8 +93,8 @@ func CreateDemoBGPInstance() (*oc.NetworkInstance_Protocol_Bgp, error) {
 		NeighborAddress: ygot.String("192.0.2.1"),
 		Description:     ygot.String("BT UK"),
 		Timers: &oc.NetworkInstance_Protocol_Bgp_Neighbor_Timers{
-			HoldTime:          ygot.Float64(30.0),
-			KeepaliveInterval: ygot.Float64(10.0),
+			HoldTime:          ygot.Uint16(30.0),
+			KeepaliveInterval: ygot.Uint16(10.0),
 		},
 		Transport: &oc.NetworkInstance_Protocol_Bgp_Neighbor_Transport{
 			PassiveMode: ygot.Bool(true),
