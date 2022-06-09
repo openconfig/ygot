@@ -249,14 +249,14 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 
 	opts := ygen.IROptions{
 		ParseOptions: ygen.ParseOpts{
-			YANGParseOptions:      cg.YANGParseOptions,
-			ExcludeModules:        cg.ExcludeModules,
-			SkipEnumDeduplication: cg.SkipEnumDeduplication,
+			YANGParseOptions: cg.YANGParseOptions,
+			ExcludeModules:   cg.ExcludeModules,
 		},
 		TransformationOptions: ygen.TransformationOpts{
 			CompressBehaviour:                    compressBehaviour,
 			GenerateFakeRoot:                     true,
 			FakeRootName:                         cg.FakeRootName,
+			SkipEnumDeduplication:                cg.SkipEnumDeduplication,
 			ShortenEnumLeafNames:                 cg.ShortenEnumLeafNames,
 			EnumOrgPrefixesToTrim:                cg.EnumOrgPrefixesToTrim,
 			UseDefiningModuleForTypedefEnumNames: cg.UseDefiningModuleForTypedefEnumNames,

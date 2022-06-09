@@ -101,23 +101,24 @@ func main() {
 	}
 
 	// Perform the code generation.
-	cg := protogen.New(&ygen.GeneratorConfig{
-		ParseOptions: ygen.ParseOpts{
-			ExcludeModules:        modsExcluded,
-			SkipEnumDeduplication: *skipEnumDedup,
-			YANGParseOptions: yang.Options{
-				IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+	cg := protogen.New(
+		*callerName,
+		ygen.IROptions{
+			ParseOptions: ygen.ParseOpts{
+				ExcludeModules: modsExcluded,
+				YANGParseOptions: yang.Options{
+					IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+				},
+			},
+			TransformationOptions: ygen.TransformationOpts{
+				CompressBehaviour:     compressBehaviour,
+				GenerateFakeRoot:      *generateFakeRoot,
+				FakeRootName:          *fakeRootName,
+				SkipEnumDeduplication: *skipEnumDedup,
 			},
 		},
-		TransformationOptions: ygen.TransformationOpts{
-			CompressBehaviour: compressBehaviour,
-			GenerateFakeRoot:  *generateFakeRoot,
-			FakeRootName:      *fakeRootName,
-		},
-		PackageName: *packageName,
-		Caller:      *callerName,
-	},
-		&protogen.ProtoOpts{
+		protogen.ProtoOpts{
+			PackageName:         *packageName,
 			BaseImportPath:      *baseImportPath,
 			YwrapperPath:        *ywrapperPath,
 			YextPath:            *yextPath,

@@ -15,19 +15,31 @@ import (
 // CodeGenerator is a structure that is used to pass arguments as to
 // how the output Go code should be generated.
 type CodeGenerator struct {
-	// Config stores the configuration parameters used for code generation.
-	Config ygen.GeneratorConfig
+	// Caller is the name of the binary calling the generator library, it is
+	// included in the header of output files for debugging purposes. If a
+	// string is not specified, the location of the library is utilised.
+	Caller string
+	// IROptions stores the configuration parameters used for IR generation.
+	IROptions ygen.IROptions
 	// GoOptions stores a struct which stores Go code generation specific
-	// options for the code generaton.
+	// options for code generaton post IR generation.
 	GoOptions GoOpts
 }
 
 // GoOpts stores Go specific options for the code generation library.
 type GoOpts struct {
+	// PackageName is the name that should be used for the generating package.
+	PackageName string
+	// GenerateJSONSchema stores a boolean which defines whether to generate
+	// the JSON corresponding to the YANG schema parsed to generate the
+	// output code.
+	GenerateJSONSchema bool
+	// IncludeDescriptions specifies that YANG entry descriptions are added
+	// to the JSON schema. Is false by default, to reduce the size of generated schema
+	IncludeDescriptions bool
 	// SchemaVarName is the name for the variable which stores the compressed
 	// JSON schema in the generated Go code. JSON schema output is only
-	// produced if the GenerateJSONSchema YANGCodeGenerator field is set to
-	// true.
+	// produced if the GenerateJSONSchema field is set to true.
 	SchemaVarName string
 	// GoyangImportPath specifies the path that should be used in the generated
 	// code for importing the goyang/pkg/yang package.
@@ -100,6 +112,10 @@ type GoOpts struct {
 	// only applies when useDefiningModuleForTypedefEnumNames is also set
 	// to true.
 	AppendEnumSuffixForSimpleUnionEnums bool
+	// IgnoreShadowSchemaPaths indicates whether when OpenConfig path
+	// compression is enabled, that the shadowed paths are to be ignored
+	// while while unmarshalling.
+	IgnoreShadowSchemaPaths bool
 }
 
 // GeneratedCode contains generated code snippets that can be processed by the calling
@@ -138,19 +154,14 @@ type GeneratedCode struct {
 	EnumTypeMap string
 }
 
-// NewCodeGenerator returns a new instance of the CodeGenerator
+// New returns a new instance of the CodeGenerator
 // struct to the calling function.
-func NewCodeGenerator(c *ygen.GeneratorConfig, goopts *GoOpts) *CodeGenerator {
-	cg := &CodeGenerator{}
-
-	if c != nil {
-		cg.Config = *c
+func New(callerName string, opts ygen.IROptions, goOpts GoOpts) *CodeGenerator {
+	return &CodeGenerator{
+		Caller:    callerName,
+		IROptions: opts,
+		GoOptions: goOpts,
 	}
-	if goopts != nil {
-		cg.GoOptions = *goopts
-	}
-
-	return cg
 }
 
 // checkForBinaryKeys returns a non-empty list of errors if the input directory
@@ -186,8 +197,8 @@ func checkForBinaryKeys(dir *ygen.ParsedDirectory) []error {
 // If errors are encountered during code generation, an error is returned.
 func (cg *CodeGenerator) Generate(yangFiles, includePaths []string) (*GeneratedCode, util.Errors) {
 	opts := ygen.IROptions{
-		ParseOptions:                        cg.Config.ParseOptions,
-		TransformationOptions:               cg.Config.TransformationOptions,
+		ParseOptions:                        cg.IROptions.ParseOptions,
+		TransformationOptions:               cg.IROptions.TransformationOptions,
 		NestedDirectories:                   false,
 		AbsoluteMapPaths:                    false,
 		AppendEnumSuffixForSimpleUnionEnums: cg.GoOptions.AppendEnumSuffixForSimpleUnionEnums,
@@ -200,8 +211,8 @@ func (cg *CodeGenerator) Generate(yangFiles, includePaths []string) (*GeneratedC
 	}
 
 	var rootName string
-	if cg.Config.TransformationOptions.GenerateFakeRoot {
-		rootName = cg.Config.TransformationOptions.FakeRootName
+	if cg.IROptions.TransformationOptions.GenerateFakeRoot {
+		rootName = cg.IROptions.TransformationOptions.FakeRootName
 		if rootName == "" {
 			rootName = igenutil.DefaultRootName
 		}
@@ -239,7 +250,7 @@ func (cg *CodeGenerator) Generate(yangFiles, includePaths []string) (*GeneratedC
 			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue
 		}
-		structOut, errs := writeGoStruct(dir, ir.Directories, generatedUnions, opts.TransformationOptions.IgnoreShadowSchemaPaths, cg.GoOptions, cg.Config.GenerateJSONSchema)
+		structOut, errs := writeGoStruct(dir, ir.Directories, generatedUnions, cg.GoOptions)
 		if errs != nil {
 			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue
@@ -300,9 +311,9 @@ func (cg *CodeGenerator) Generate(yangFiles, includePaths []string) (*GeneratedC
 	var rawSchema []byte
 	var jsonSchema string
 	var enumTypeMapCode string
-	if cg.Config.GenerateJSONSchema {
+	if cg.GoOptions.GenerateJSONSchema {
 		var err error
-		rawSchema, err = ir.SchemaTree(cg.Config.IncludeDescriptions)
+		rawSchema, err = ir.SchemaTree(cg.GoOptions.IncludeDescriptions)
 		if err != nil {
 			codegenErr = util.AppendErr(codegenErr, fmt.Errorf("error marshalling JSON schema: %v", err))
 		}

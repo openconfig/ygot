@@ -255,12 +255,12 @@ func (s *GoLangMapper) FieldName(e *yang.Entry) (string, error) {
 // LeafType maps the input leaf entry to a MappedType object containing the
 // type information about the field.
 func (s *GoLangMapper) LeafType(e *yang.Entry, opts ygen.IROptions) (*ygen.MappedType, error) {
-	mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: e.Type, contextEntry: e}, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+	mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: e.Type, contextEntry: e}, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), opts.TransformationOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.TransformationOptions.EnumOrgPrefixesToTrim)
 	if err != nil {
 		return nil, err
 	}
 
-	defaultValue, err := generateGoDefaultValue(e, mtype, s, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.TransformationOptions.EnumOrgPrefixesToTrim, s.simpleUnions)
+	defaultValue, err := generateGoDefaultValue(e, mtype, s, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), opts.TransformationOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.TransformationOptions.EnumOrgPrefixesToTrim, s.simpleUnions)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +272,7 @@ func (s *GoLangMapper) LeafType(e *yang.Entry, opts ygen.IROptions) (*ygen.Mappe
 // LeafType maps the input list key entry to a MappedType object containing the
 // type information about the key field.
 func (s *GoLangMapper) KeyLeafType(e *yang.Entry, opts ygen.IROptions) (*ygen.MappedType, error) {
-	return s.yangTypeToGoType(resolveTypeArgs{yangType: e.Type, contextEntry: e}, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+	return s.yangTypeToGoType(resolveTypeArgs{yangType: e.Type, contextEntry: e}, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), opts.TransformationOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.TransformationOptions.EnumOrgPrefixesToTrim)
 }
 
 // PackageName is not used by Go generation.
