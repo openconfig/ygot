@@ -40,14 +40,14 @@ import (
 // To debug a schema node subtree, any of the following can be used:
 //
 // 1. Print hierarchy without details (good for viewing large subtrees):
-//      fmt.Println(schemaTreeString(oc.SchemaTree["LocalRoutes_Static"], ""))
+//      fmt.Println(schemaTreeString(oc.SchemaTree["NetworkInstance_Protocol_Static"], ""))
 //
 // 2. Print in-memory structure representations. Replace is needed due to large
 //    default util.Indentations:
-//      fmt.Println(strings.Replace(pretty.Sprint(oc.SchemaTree["LocalRoutes_Static"].Dir["next-hops"].Dir["next-hop"].Dir["config"].Dir["next-hop"])[0:], "              ", "  ", -1))
+//      fmt.Println(strings.Replace(pretty.Sprint(oc.SchemaTree["NetworkInstance_Protocol_Static"].Dir["next-hops"].Dir["next-hop"].Dir["config"].Dir["next-hop"])[0:], "              ", "  ", -1))
 //
 // 3. Detailed representation in JSON format:
-//      j, _ := json.MarshalIndent(oc.SchemaTree["LocalRoutes_Static"].Dir["next-hops"].Dir["next-hop"].Dir["config"].Dir["next-hop"], "", "  ")
+//      j, _ := json.MarshalIndent(oc.SchemaTree["NetworkInstance_Protocol_Static"].Dir["next-hops"].Dir["next-hop"].Dir["config"].Dir["next-hop"], "", "  ")
 //      fmt.Println(string(j))
 //
 // 4. Combination of schema and data trees:
@@ -511,8 +511,8 @@ func TestValidateBGP(t *testing.T) {
 
 func TestValidateLocalRoutes(t *testing.T) {
 	// This schema element contains a union of union.
-	lrs := &oc.LocalRoutes_Static{
-		NextHop: map[string]*oc.LocalRoutes_Static_NextHop{
+	lrs := &oc.NetworkInstance_Protocol_Static{
+		NextHop: map[string]*oc.NetworkInstance_Protocol_Static_NextHop{
 			"10.10.10.10": {
 				Index:   ygot.String("10.10.10.10"),
 				NextHop: oc.UnionString("10.10.10.1"),
