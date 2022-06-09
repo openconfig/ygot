@@ -84,8 +84,8 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 		return nil, errs
 	}
 
-	langMapper.SetEnumSet(enumSet)
-	langMapper.SetSchemaTree(mdef.schematree)
+	langMapper.setEnumSet(enumSet)
+	langMapper.setSchemaTree(mdef.schematree)
 
 	directoryMap, errs := buildDirectoryDefinitions(langMapper, mdef.directoryEntries, opts)
 	if errs != nil {
@@ -131,9 +131,9 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 			continue
 		}
 
-		switch {
-		case enum.entry.Type.IdentityBase != nil:
-			et.identityBaseName = enum.entry.Type.IdentityBase.Name
+		switch enum.kind {
+		case IdentityType:
+			et.IdentityBaseName = enum.entry.Type.IdentityBase.Name
 			// enum corresponds to an identityref - hence the values are defined
 			// based on the values that the identity has. Since there is no explicit ordering
 			// in an identity, then we go through and put the values in alphabetical order in
@@ -168,6 +168,8 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 				})
 			}
 		}
+
+		et.Flags = langMapper.PopulateEnumFlags(*et, enum.entry.Type)
 
 		enumDefinitionMap[enum.id] = et
 	}

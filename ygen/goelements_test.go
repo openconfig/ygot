@@ -440,12 +440,10 @@ func TestUnionSubTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			enumSet, _, errs := findEnumSet(enumMapFromEntry(tt.inCtxEntry), false, false, false, true, true, true, nil)
-			if errs != nil {
-				t.Fatal(errs)
-			}
 			s := NewGoLangMapper(true)
-			s.SetEnumSet(enumSet)
+			if err := s.InjectEnumSet(enumMapFromEntry(tt.inCtxEntry), false, false, false, true, true, true, nil); err != nil {
+				t.Fatal(err)
+			}
 
 			mtypes := make(map[int]*MappedType)
 			ctypes := make(map[string]MappedUnionSubtype)
@@ -1090,17 +1088,15 @@ func TestYangTypeToGoType(t *testing.T) {
 				tt.in = tt.ctx.Type
 			}
 
+			s := NewGoLangMapper(true)
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.ctx, enumMap)
-			enumSet, _, errs := findEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil)
-			if errs != nil {
+			if err := s.InjectEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
 				if !tt.wantErr {
-					t.Errorf("findEnumSet failed: %v", errs)
+					t.Errorf("findEnumSet failed: %v", err)
 				}
 				return
 			}
-			s := NewGoLangMapper(true)
-			s.SetEnumSet(enumSet)
 
 			if tt.inEntries != nil {
 				st, err := buildSchemaTree(tt.inEntries)
@@ -1471,12 +1467,10 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			enumSet, _, errs := findEnumSet(enumMapFromEntries(tt.inLeaves), tt.inCompressOCPaths, false, tt.inSkipEnumDedup, true, true, true, nil)
-			if errs != nil {
-				t.Fatalf("findEnumSet failed: %v", errs)
-			}
 			s := NewGoLangMapper(true)
-			s.SetEnumSet(enumSet)
+			if err := s.InjectEnumSet(enumMapFromEntries(tt.inLeaves), tt.inCompressOCPaths, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
+				t.Fatalf("findEnumSet failed: %v", err)
+			}
 
 			gotTypes := make(map[string]*MappedType)
 			for _, leaf := range tt.inLeaves {
@@ -2475,17 +2469,15 @@ func TestYangDefaultValueToGo(t *testing.T) {
 
 			// --- Test ---
 			t.Run(tt.name, func(t *testing.T) {
+				s := NewGoLangMapper(true)
 				enumMap := enumMapFromEntries(tt.inEnumEntries)
 				addEnumsToEnumMap(tt.inCtx, enumMap)
-				enumSet, _, errs := findEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil)
-				if errs != nil {
+				if err := s.InjectEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
 					if !tt.wantErr {
-						t.Errorf("findEnumSet failed: %v", errs)
+						t.Errorf("findEnumSet failed: %v", err)
 					}
 					return
 				}
-				s := NewGoLangMapper(true)
-				s.SetEnumSet(enumSet)
 
 				if tt.inEntries != nil {
 					st, err := buildSchemaTree(tt.inEntries)
@@ -2836,17 +2828,15 @@ func TestYangDefaultValueToGo(t *testing.T) {
 
 		// --- Test ---
 		t.Run("singleton union "+tt.name, func(t *testing.T) {
+			s := NewGoLangMapper(true)
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.inCtx, enumMap)
-			enumSet, _, errs := findEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil)
-			if errs != nil {
+			if err := s.InjectEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
 				if !tt.wantErr {
-					t.Errorf("findEnumSet failed: %v", errs)
+					t.Errorf("findEnumSet failed: %v", err)
 				}
 				return
 			}
-			s := NewGoLangMapper(true)
-			s.SetEnumSet(enumSet)
 
 			if tt.inEntries != nil {
 				st, err := buildSchemaTree(tt.inEntries)

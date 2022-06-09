@@ -1778,7 +1778,7 @@ func TestWriteProtoEnums(t *testing.T) {
 			"/field-name|enum": {
 				Name:             "EnumeratedValue",
 				Kind:             IdentityType,
-				identityBaseName: "IdentityValue",
+				IdentityBaseName: "IdentityValue",
 				ValToYANGDetails: []ygot.EnumDefinition{{
 					Name:           "VALUE_A",
 					DefiningModule: "mod",

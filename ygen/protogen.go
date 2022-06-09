@@ -785,7 +785,7 @@ func writeProtoEnums(enums map[string]*EnumeratedYANGType, annotateEnumNames boo
 			for _, enumDef := range enum.ValToYANGDetails {
 				// Calculate a tag value for the identity values, since otherwise when another
 				// module augments this module then the enum values may be subject to change.
-				tag, err := fieldTag(fmt.Sprintf("%s%s", enum.identityBaseName, enumDef.Name))
+				tag, err := fieldTag(fmt.Sprintf("%s%s", enum.IdentityBaseName, enumDef.Name))
 				if err != nil {
 					errs = append(errs, fmt.Errorf("cannot calculate tag for %s: %v", enumDef.Name, err))
 				}
@@ -795,7 +795,7 @@ func writeProtoEnums(enums map[string]*EnumeratedYANGType, annotateEnumNames boo
 			}
 			p.Values = values
 			p.ValuePrefix = strings.ToUpper(enum.Name)
-			p.Description = fmt.Sprintf("YANG identity %s", enum.identityBaseName)
+			p.Description = fmt.Sprintf("YANG identity %s", enum.IdentityBaseName)
 		case DerivedEnumerationType, DerivedUnionEnumerationType:
 			ge, err := genProtoEnum(enum, annotateEnumNames, true)
 			if err != nil {

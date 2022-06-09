@@ -22,6 +22,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/gnmi/errdiff"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
+	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/ygot"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -52,7 +53,6 @@ func protoIR(nestedDirectories bool) *IR {
 							SchemaPath:        "/model",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Type:              nil,
 						},
 						Type:                    ContainerNode,
 						LangType:                nil,
@@ -74,7 +74,6 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "",
 							PresenceStatement: ygot.String("This is an example presence container"),
 							Description:       "",
-							Type:              nil,
 						},
 						Type:                    ContainerNode,
 						LangType:                nil,
@@ -116,7 +115,6 @@ func protoIR(nestedDirectories bool) *IR {
 							SchemaPath:        "/model/anydata-leaf",
 							LeafrefTargetPath: "",
 							Description:       "some anydata leaf",
-							Type:              nil,
 						},
 						Type:                    AnyDataNode,
 						LangType:                nil,
@@ -137,7 +135,6 @@ func protoIR(nestedDirectories bool) *IR {
 							SchemaPath:        "/model/dateref",
 							LeafrefTargetPath: "/openconfig-complex/model/a/single-key/config/dates",
 							Description:       "",
-							Type:              &YANGType{Name: "leafref"},
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -162,7 +159,6 @@ func protoIR(nestedDirectories bool) *IR {
 							SchemaPath:        "/model/b/multi-key",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Type:              nil,
 						},
 						Type:                    ListNode,
 						LangType:                nil,
@@ -183,7 +179,6 @@ func protoIR(nestedDirectories bool) *IR {
 							SchemaPath:        "/model/a/single-key",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Type:              nil,
 						},
 						Type:                    ListNode,
 						LangType:                nil,
@@ -231,7 +226,6 @@ func protoIR(nestedDirectories bool) *IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/dates",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Type:              &YANGType{Name: "weekday"},
 						},
 						Type: LeafListNode,
 						LangType: &MappedType{
@@ -257,7 +251,6 @@ func protoIR(nestedDirectories bool) *IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/dates-with-defaults",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Type:              &YANGType{Name: "weekday"},
 						},
 						Type: LeafListNode,
 						LangType: &MappedType{
@@ -283,7 +276,6 @@ func protoIR(nestedDirectories bool) *IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/iref",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Type:              &YANGType{Name: "identityref"},
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -326,7 +318,6 @@ func protoIR(nestedDirectories bool) *IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/key",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Type:              &YANGType{Name: "days-of-week"},
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -394,7 +385,6 @@ func protoIR(nestedDirectories bool) *IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/leaf-default-override",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Type:              &YANGType{Name: "union"},
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -446,7 +436,6 @@ func protoIR(nestedDirectories bool) *IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/simple-union-enum",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Type:              &YANGType{Name: "union"},
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -498,7 +487,6 @@ func protoIR(nestedDirectories bool) *IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/singleton-union-enum",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Type:              &YANGType{Name: "union"},
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -541,7 +529,6 @@ func protoIR(nestedDirectories bool) *IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/typedef-enum",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Type:              &YANGType{Name: "weekend-days"},
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -584,7 +571,6 @@ func protoIR(nestedDirectories bool) *IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/typedef-union-enum",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Type:              &YANGType{Name: "cyclone-scales"},
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -669,7 +655,6 @@ func protoIR(nestedDirectories bool) *IR {
 							ShadowSchemaPath:  "/model/b/multi-key/state/key1",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Type:              &YANGType{Name: "union"},
 						},
 						Type:     LeafNode,
 						LangType: &MappedType{NativeType: "ywrapper.UintValue"},
@@ -721,7 +706,6 @@ func protoIR(nestedDirectories bool) *IR {
 							ShadowSchemaPath:  "/model/b/multi-key/state/key2",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Type:              &YANGType{Name: "enumeration"},
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -802,7 +786,6 @@ func protoIR(nestedDirectories bool) *IR {
 							DefiningModule:    "openconfig-complex",
 							Path:              "/openconfig-complex/model/c/unkeyed-list/field",
 							SchemaPath:        "/model/c/unkeyed-list/field",
-							Type:              &YANGType{Name: "binary"},
 						},
 						Type:              LeafNode,
 						LangType:          &MappedType{NativeType: "ywrapper.BytesValue"},
@@ -836,9 +819,10 @@ func protoIR(nestedDirectories bool) *IR {
 				},
 			},
 			"/openconfig-complex/SOFTWARE": {
-				Name:     "ComplexSOFTWARE",
-				Kind:     IdentityType,
-				TypeName: "identityref",
+				Name:             "ComplexSOFTWARE",
+				Kind:             IdentityType,
+				IdentityBaseName: "SOFTWARE",
+				TypeName:         "identityref",
 				ValToYANGDetails: []ygot.EnumDefinition{
 					{Name: "OS", DefiningModule: "openconfig-complex"},
 				},
@@ -926,6 +910,26 @@ func protoIR(nestedDirectories bool) *IR {
 	}
 }
 
+type goLangMapper struct {
+	*GoLangMapper
+}
+
+// PopulateFieldFlags populates extra information given a particular
+// field of a ParsedDirectory and the corresponding AST node.
+func (goLangMapper) PopulateFieldFlags(nd NodeDetails, field *yang.Entry) map[string]string {
+	if field.Path() == "/openconfig-simple/parent" {
+		return map[string]string{"foo": "bar"}
+	} else {
+		return nil
+	}
+}
+
+// PopulateEnumFlags populates extra information given a particular
+// enumerated type its corresponding AST representation.
+func (goLangMapper) PopulateEnumFlags(et EnumeratedYANGType, yangtype *yang.YangType) map[string]string {
+	return map[string]string{"typename": yangtype.Name}
+}
+
 func TestGenerateIR(t *testing.T) {
 	tests := []struct {
 		desc             string
@@ -942,7 +946,7 @@ func TestGenerateIR(t *testing.T) {
 			filepath.Join(datapath, "openconfig-simple.yang"),
 			filepath.Join(datapath, "openconfig-simple-augment2.yang"),
 		},
-		inLangMapper: NewGoLangMapper(true),
+		inLangMapper: goLangMapper{GoLangMapper: NewGoLangMapper(true)},
 		inOpts: IROptions{
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
@@ -973,13 +977,13 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent",
 								LeafrefTargetPath: "",
 								Description:       "I am a parent container\nthat has 4 children.",
-								Type:              nil,
 							},
 							Type:                    ContainerNode,
 							MappedPaths:             [][]string{{"parent"}},
 							MappedPathModules:       [][]string{{"openconfig-simple"}},
 							ShadowMappedPaths:       nil,
 							ShadowMappedPathModules: nil,
+							Flags:                   map[string]string{"foo": "bar"},
 						},
 						"remote-container": {
 							Name: "RemoteContainer",
@@ -993,7 +997,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:                    ContainerNode,
 							MappedPaths:             [][]string{{"remote-container"}},
@@ -1021,7 +1024,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:                    ContainerNode,
 							LangType:                nil,
@@ -1051,7 +1053,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/zero",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -1076,7 +1077,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/parent/child/state/one",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -1103,7 +1103,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/two",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -1131,7 +1130,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/parent/child/state/three",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "enumeration"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -1159,7 +1157,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/parent/child/state/four",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "binary"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -1197,7 +1194,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/remote-container/state/a-leaf",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -1230,6 +1226,7 @@ func TestGenerateIR(t *testing.T) {
 						Name:  "TWO",
 						Value: 1,
 					}},
+					Flags: map[string]string{"typename": "enumeration"},
 				},
 			},
 			ModelData: []*gpb.ModelData{{Name: "openconfig-remote"}, {Name: "openconfig-simple"}, {Name: "openconfig-simple-augment2"}, {Name: "openconfig-simple-grouping"}},
@@ -1271,7 +1268,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent",
 								LeafrefTargetPath: "",
 								Description:       "I am a parent container\nthat has 4 children.",
-								Type:              nil,
 							},
 							Type:                    ContainerNode,
 							MappedPaths:             [][]string{{"parent"}},
@@ -1291,7 +1287,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:                    ContainerNode,
 							MappedPaths:             [][]string{{"remote-container"}},
@@ -1319,7 +1314,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:                    ContainerNode,
 							LangType:                nil,
@@ -1349,7 +1343,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/zero",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type:                    LeafNode,
 							LangType:                &MappedType{NativeType: "string", ZeroValue: `""`},
@@ -1371,7 +1364,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/parent/child/config/one",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -1398,7 +1390,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/two",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -1426,7 +1417,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/parent/child/config/three",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "enumeration"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -1454,7 +1444,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/parent/child/config/four",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "binary"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -1492,7 +1481,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/remote-container/config/a-leaf",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -1566,7 +1554,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent",
 								LeafrefTargetPath: "",
 								Description:       "I am a parent container\nthat has 4 children.",
-								Type:              nil,
 							},
 							Type:                    ContainerNode,
 							MappedPaths:             [][]string{{"parent"}},
@@ -1586,7 +1573,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:                    ContainerNode,
 							MappedPaths:             [][]string{{"remote-container"}},
@@ -1614,7 +1600,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:                    ContainerNode,
 							LangType:                nil,
@@ -1644,7 +1629,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/config",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:              1,
 							MappedPaths:       [][]string{{"config"}},
@@ -1661,7 +1645,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:              1,
 							MappedPaths:       [][]string{{"state"}},
@@ -1691,7 +1674,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/config/four",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "binary"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -1718,7 +1700,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/config/one",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -1745,7 +1726,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/config/three",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "enumeration"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -1784,7 +1764,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/four",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "binary"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -1811,7 +1790,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/one",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -1838,7 +1816,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/three",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "enumeration"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -1865,7 +1842,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/two",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -1892,7 +1868,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/zero",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -1931,7 +1906,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container/config",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:              1,
 							MappedPaths:       [][]string{{"config"}},
@@ -1948,7 +1922,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container/state",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:              1,
 							MappedPaths:       [][]string{{"state"}},
@@ -1978,7 +1951,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container/config/a-leaf",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -2015,7 +1987,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container/state/a-leaf",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -2087,7 +2058,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/e1",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -2143,7 +2113,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/model",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:                    ContainerNode,
 							LangType:                nil,
@@ -2165,7 +2134,6 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								PresenceStatement: ygot.String("This is an example presence container"),
 								Description:       "",
-								Type:              nil,
 							},
 							Type:                    ContainerNode,
 							LangType:                nil,
@@ -2206,7 +2174,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/model/anydata-leaf",
 								LeafrefTargetPath: "",
 								Description:       "some anydata leaf",
-								Type:              nil,
 							},
 							Type:                    AnyDataNode,
 							LangType:                nil,
@@ -2227,7 +2194,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/model/dateref",
 								LeafrefTargetPath: "/openconfig-complex/model/a/single-key/config/dates",
 								Description:       "",
-								Type:              &YANGType{Name: "leafref"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -2252,7 +2218,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/model/b/multi-key",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:                    ListNode,
 							LangType:                nil,
@@ -2273,7 +2238,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/model/a/single-key",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:                    ListNode,
 							LangType:                nil,
@@ -2321,7 +2285,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/model/a/single-key/state/dates",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "weekday"},
 							},
 							Type:                    LeafListNode,
 							LangType:                &MappedType{NativeType: "uint8", ZeroValue: "0", DefaultValue: ygot.String("[]uint8{5}")},
@@ -2343,7 +2306,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/model/a/single-key/state/dates-with-defaults",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "weekday"},
 							},
 							Type:                    LeafListNode,
 							LangType:                &MappedType{NativeType: "uint8", ZeroValue: "0", DefaultValue: ygot.String("[]uint8{1, 2}")},
@@ -2365,7 +2327,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/model/a/single-key/state/iref",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "identityref"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -2391,7 +2352,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/model/a/single-key/state/key",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "days-of-week"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -2424,7 +2384,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/model/a/single-key/state/leaf-default-override",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "union"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -2458,7 +2417,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/model/a/single-key/state/simple-union-enum",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "union"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -2492,7 +2450,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/model/a/single-key/state/singleton-union-enum",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "union"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -2524,7 +2481,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/model/a/single-key/state/typedef-enum",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "weekend-days"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -2551,7 +2507,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/model/a/single-key/state/typedef-union-enum",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "cyclone-scales"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -2615,7 +2570,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/model/b/multi-key/state/key1",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "union"},
 							},
 							Type: LeafNode,
 							LangType: &MappedType{
@@ -2645,7 +2599,6 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/model/b/multi-key/state/key2",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "enumeration"},
 							},
 							Type:                    LeafNode,
 							LangType:                &MappedType{NativeType: "E_MultiKey_Key2", IsEnumeratedValue: true, ZeroValue: "0"},
@@ -2694,7 +2647,6 @@ func TestGenerateIR(t *testing.T) {
 								DefiningModule:    "openconfig-complex",
 								Path:              "/openconfig-complex/model/c/unkeyed-list/field",
 								SchemaPath:        "/model/c/unkeyed-list/field",
-								Type:              &YANGType{Name: "binary"},
 							},
 							Type:              LeafNode,
 							LangType:          &MappedType{NativeType: "Binary", ZeroValue: "nil"},
@@ -2727,9 +2679,10 @@ func TestGenerateIR(t *testing.T) {
 					},
 				},
 				"/openconfig-complex/SOFTWARE": {
-					Name:     "Complex_SOFTWARE",
-					Kind:     IdentityType,
-					TypeName: "identityref",
+					Name:             "Complex_SOFTWARE",
+					Kind:             IdentityType,
+					IdentityBaseName: "SOFTWARE",
+					TypeName:         "identityref",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{Name: "OS", DefiningModule: "openconfig-complex"},
 					},
@@ -2894,7 +2847,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent",
 								LeafrefTargetPath: "",
 								Description:       "I am a parent container\nthat has 4 children.",
-								Type:              nil,
 							},
 							Type:                    ContainerNode,
 							MappedPaths:             [][]string{{"parent"}},
@@ -2914,7 +2866,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:                    ContainerNode,
 							MappedPaths:             [][]string{{"remote-container"}},
@@ -2942,7 +2893,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:                    ContainerNode,
 							LangType:                nil,
@@ -2973,7 +2923,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/config",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:              1,
 							MappedPaths:       [][]string{{"config"}},
@@ -2990,7 +2939,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:              1,
 							MappedPaths:       [][]string{{"state"}},
@@ -3020,7 +2968,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/config/four",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "binary"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -3047,7 +2994,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/config/one",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -3074,7 +3020,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/config/three",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "enumeration"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -3113,7 +3058,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/four",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "binary"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -3140,7 +3084,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/one",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -3167,7 +3110,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/three",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "enumeration"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -3195,7 +3137,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/two",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -3222,7 +3163,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/zero",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -3261,7 +3201,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container/config",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:              1,
 							MappedPaths:       [][]string{{"config"}},
@@ -3278,7 +3217,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container/state",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              nil,
 							},
 							Type:              1,
 							MappedPaths:       [][]string{{"state"}},
@@ -3308,7 +3246,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container/config/a-leaf",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: 3,
 							LangType: &MappedType{
@@ -3346,7 +3283,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container/state/a-leaf",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "string"},
 							},
 							Type: 3,
 							LangType: &MappedType{
