@@ -118,6 +118,10 @@ jobs:
             test-go-build $f $go_file
           done
 
+      - name: Make sure exampleoc doesn't error or panic
+        run: go generate ./...
+        working-directory: go/src/github.com/openconfig/ygot
+
   static_analysis:
     name: Static Analysis
     runs-on: ubuntu-latest
@@ -152,7 +156,7 @@ jobs:
           # Overwrite results for gogen/protogen since they also cover ygen's
           # code.
           go test -covermode count -coverprofile profile.coverprofile -outputdir gogen -coverpkg github.com/openconfig/ygot/gogen,github.com/openconfig/ygot/ygen github.com/openconfig/ygot/gogen
-          #go test -covermode count -coverprofile profile.coverprofile -outputdir protogen -coverpkg github.com/openconfig/ygot/protogen,github.com/openconfig/ygot/ygen github.com/openconfig/ygot/protogen
+          go test -covermode count -coverprofile profile.coverprofile -outputdir protogen -coverpkg github.com/openconfig/ygot/protogen,github.com/openconfig/ygot/ygen github.com/openconfig/ygot/protogen
 
           echo 'mode: count' > concatenated.coverprofile
           for p in $pkgs; do

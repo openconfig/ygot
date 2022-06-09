@@ -14,25 +14,7 @@
 
 package ygen
 
-// addNewKeys appends entries from the newKeys string slice to the
-// existing map if the entry is not an existing key. The existing
-// map is modified in place.
-func addNewKeys(existing map[string]interface{}, newKeys []string) {
-	for _, n := range newKeys {
-		if _, ok := existing[n]; !ok {
-			existing[n] = true
-		}
-	}
-}
-
-// stringKeys returns the keys of the supplied map as a slice of strings.
-func stringKeys(m map[string]interface{}) []string {
-	var ss []string
-	for k := range m {
-		ss = append(ss, k)
-	}
-	return ss
-}
+import "github.com/openconfig/goyang/pkg/yang"
 
 // resolveRootName resolves the name of the fakeroot by taking configuration
 // and the default values, along with a boolean indicating whether the fake
@@ -48,4 +30,20 @@ func resolveRootName(name, defName string, generateRoot bool) string {
 	}
 
 	return name
+}
+
+// resolveTypeArgs is a structure used as an input argument to the yangTypeToGoType
+// function which allows extra context to be handed on. This provides the ability
+// to use not only the YangType but also the yang.Entry that the type was part of
+// to resolve the possible type name.
+type resolveTypeArgs struct {
+	// yangType is a pointer to the yang.YangType that is to be mapped.
+	yangType *yang.YangType
+	// contextEntry is an optional yang.Entry which is supplied where a
+	// type requires knowledge of the leaf that it is used within to be
+	// mapped. For example, where a leaf is defined to have a type of a
+	// user-defined type (typedef) that in turn has enumerated values - the
+	// context of the yang.Entry is required such that the leaf's context
+	// can be established.
+	contextEntry *yang.Entry
 }

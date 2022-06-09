@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ygen
+package protogen
 
 import (
 	"path/filepath"
@@ -23,26 +23,30 @@ import (
 	"github.com/openconfig/gnmi/errdiff"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/genutil"
+	"github.com/openconfig/ygot/ygen"
 	"github.com/openconfig/ygot/ygot"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
-func protoIR(nestedDirectories bool) *IR {
+// datapath is the path to common YANG test modules.
+const datapath = "../testdata/modules"
+
+func protoIR(nestedDirectories bool) *ygen.IR {
 	packageName := "model"
 	if nestedDirectories {
 		packageName = ""
 	}
 
-	return &IR{
-		Directories: map[string]*ParsedDirectory{
+	return &ygen.IR{
+		Directories: map[string]*ygen.ParsedDirectory{
 			"/device": {
 				Name: "Device",
-				Type: Container,
+				Type: ygen.Container,
 				Path: "/device",
-				Fields: map[string]*NodeDetails{
+				Fields: map[string]*ygen.NodeDetails{
 					"model": {
 						Name: "model",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "model",
 							Defaults:          nil,
 							BelongingModule:   "openconfig-complex",
@@ -53,7 +57,7 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "",
 							Description:       "",
 						},
-						Type:                    ContainerNode,
+						Type:                    ygen.ContainerNode,
 						LangType:                nil,
 						MappedPaths:             [][]string{{"", "model"}},
 						MappedPathModules:       [][]string{{"", "openconfig-complex"}},
@@ -62,7 +66,7 @@ func protoIR(nestedDirectories bool) *IR {
 					},
 					"example-presence": {
 						Name: "example_presence",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "example-presence",
 							Defaults:          nil,
 							BelongingModule:   "openconfig-complex",
@@ -74,7 +78,7 @@ func protoIR(nestedDirectories bool) *IR {
 							PresenceStatement: ygot.String("This is an example presence container"),
 							Description:       "",
 						},
-						Type:                    ContainerNode,
+						Type:                    ygen.ContainerNode,
 						LangType:                nil,
 						MappedPaths:             [][]string{{"", "example-presence"}},
 						MappedPathModules:       [][]string{{"", "openconfig-complex"}},
@@ -87,9 +91,9 @@ func protoIR(nestedDirectories bool) *IR {
 			},
 			"/openconfig-complex/example-presence": {
 				Name:              "ExamplePresence",
-				Type:              Container,
+				Type:              ygen.Container,
 				Path:              "/openconfig-complex/example-presence",
-				Fields:            map[string]*NodeDetails{},
+				Fields:            map[string]*ygen.NodeDetails{},
 				PackageName:       "",
 				ListKeys:          nil,
 				IsFakeRoot:        false,
@@ -99,12 +103,12 @@ func protoIR(nestedDirectories bool) *IR {
 			},
 			"/openconfig-complex/model": {
 				Name: "Model",
-				Type: Container,
+				Type: ygen.Container,
 				Path: "/openconfig-complex/model",
-				Fields: map[string]*NodeDetails{
+				Fields: map[string]*ygen.NodeDetails{
 					"anydata-leaf": {
 						Name: "anydata_leaf",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "anydata-leaf",
 							Defaults:          nil,
 							BelongingModule:   "openconfig-complex",
@@ -115,7 +119,7 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "",
 							Description:       "some anydata leaf",
 						},
-						Type:                    AnyDataNode,
+						Type:                    ygen.AnyDataNode,
 						LangType:                nil,
 						MappedPaths:             [][]string{{"", "model", "anydata-leaf"}},
 						MappedPathModules:       [][]string{{"", "openconfig-complex", "openconfig-complex"}},
@@ -124,7 +128,7 @@ func protoIR(nestedDirectories bool) *IR {
 					},
 					"dateref": {
 						Name: "dateref",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "dateref",
 							Defaults:          nil,
 							BelongingModule:   "openconfig-complex",
@@ -135,8 +139,8 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "/openconfig-complex/model/a/single-key/config/dates",
 							Description:       "",
 						},
-						Type: LeafNode,
-						LangType: &MappedType{
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
 							NativeType:   "ywrapper.UintValue",
 							ZeroValue:    "",
 							DefaultValue: nil,
@@ -148,7 +152,7 @@ func protoIR(nestedDirectories bool) *IR {
 					},
 					"multi-key": {
 						Name: "multi_key",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "multi-key",
 							Defaults:          nil,
 							BelongingModule:   "openconfig-complex",
@@ -159,7 +163,7 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "",
 							Description:       "",
 						},
-						Type:                    ListNode,
+						Type:                    ygen.ListNode,
 						LangType:                nil,
 						MappedPaths:             [][]string{{"", "model", "b", "multi-key"}},
 						MappedPathModules:       [][]string{{"", "openconfig-complex", "openconfig-complex", "openconfig-complex"}},
@@ -168,7 +172,7 @@ func protoIR(nestedDirectories bool) *IR {
 					},
 					"single-key": {
 						Name: "single_key",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "single-key",
 							Defaults:          nil,
 							BelongingModule:   "openconfig-complex",
@@ -179,7 +183,7 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "",
 							Description:       "",
 						},
-						Type:                    ListNode,
+						Type:                    ygen.ListNode,
 						LangType:                nil,
 						MappedPaths:             [][]string{{"", "model", "a", "single-key"}},
 						MappedPathModules:       [][]string{{"", "openconfig-complex", "openconfig-complex", "openconfig-complex"}},
@@ -188,7 +192,7 @@ func protoIR(nestedDirectories bool) *IR {
 					},
 					"unkeyed-list": {
 						Name: "unkeyed_list",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "unkeyed-list",
 							BelongingModule:   "openconfig-complex",
 							RootElementModule: "openconfig-complex",
@@ -196,7 +200,7 @@ func protoIR(nestedDirectories bool) *IR {
 							Path:              "/openconfig-complex/model/c/unkeyed-list",
 							SchemaPath:        "/model/c/unkeyed-list",
 						},
-						Type:              ListNode,
+						Type:              ygen.ListNode,
 						MappedPaths:       [][]string{{"", "model", "c", "unkeyed-list"}},
 						MappedPathModules: [][]string{{"", "openconfig-complex", "openconfig-complex", "openconfig-complex"}},
 					},
@@ -209,12 +213,12 @@ func protoIR(nestedDirectories bool) *IR {
 			},
 			"/openconfig-complex/model/a/single-key": {
 				Name: "SingleKey",
-				Type: List,
+				Type: ygen.List,
 				Path: "/openconfig-complex/model/a/single-key",
-				Fields: map[string]*NodeDetails{
+				Fields: map[string]*ygen.NodeDetails{
 					"dates": {
 						Name: "dates",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "dates",
 							Defaults:          []string{"5"},
 							BelongingModule:   "openconfig-complex",
@@ -226,8 +230,8 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "",
 							Description:       "",
 						},
-						Type: LeafListNode,
-						LangType: &MappedType{
+						Type: ygen.LeafListNode,
+						LangType: &ygen.MappedType{
 							NativeType:   "ywrapper.UintValue",
 							ZeroValue:    "",
 							DefaultValue: nil,
@@ -239,7 +243,7 @@ func protoIR(nestedDirectories bool) *IR {
 					},
 					"dates-with-defaults": {
 						Name: "dates_with_defaults",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "dates-with-defaults",
 							Defaults:          []string{"1", "2"},
 							BelongingModule:   "openconfig-complex",
@@ -251,8 +255,8 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "",
 							Description:       "",
 						},
-						Type: LeafListNode,
-						LangType: &MappedType{
+						Type: ygen.LeafListNode,
+						LangType: &ygen.MappedType{
 							NativeType:   "ywrapper.UintValue",
 							ZeroValue:    "",
 							DefaultValue: nil,
@@ -264,7 +268,7 @@ func protoIR(nestedDirectories bool) *IR {
 					},
 					"iref": {
 						Name: "iref",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "iref",
 							Defaults:          nil,
 							BelongingModule:   "openconfig-complex",
@@ -276,8 +280,8 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "",
 							Description:       "",
 						},
-						Type: LeafNode,
-						LangType: &MappedType{
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
 							NativeType:            "openconfig.enums.ComplexSOFTWARE",
 							UnionTypes:            nil,
 							IsEnumeratedValue:     true,
@@ -304,9 +308,51 @@ func protoIR(nestedDirectories bool) *IR {
 							},
 						},
 					},
+					"iref2": {
+						Name: "iref2",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:              "iref2",
+							Defaults:          nil,
+							BelongingModule:   "openconfig-complex",
+							RootElementModule: "openconfig-complex",
+							DefiningModule:    "openconfig-complex",
+							Path:              "/openconfig-complex/model/a/single-key/config/iref2",
+							SchemaPath:        "/model/a/single-key/config/iref2",
+							ShadowSchemaPath:  "/model/a/single-key/state/iref2",
+							LeafrefTargetPath: "",
+							Description:       "",
+						},
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
+							NativeType:            "openconfig.enums.ComplexProgram",
+							UnionTypes:            nil,
+							IsEnumeratedValue:     true,
+							EnumeratedYANGTypeKey: "/openconfig-complex/program",
+							ZeroValue:             "",
+							DefaultValue:          nil,
+						},
+						MappedPaths: [][]string{
+							{"", "model", "a", "single-key", "config", "iref2"},
+						},
+						MappedPathModules: [][]string{
+							{
+								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
+								"openconfig-complex", "openconfig-complex",
+							},
+						},
+						ShadowMappedPaths: [][]string{
+							{"", "model", "a", "single-key", "state", "iref2"},
+						},
+						ShadowMappedPathModules: [][]string{
+							{
+								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
+								"openconfig-complex", "openconfig-complex",
+							},
+						},
+					},
 					"key": {
 						Name: "key",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "key",
 							Defaults:          nil,
 							BelongingModule:   "openconfig-complex",
@@ -318,10 +364,10 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "",
 							Description:       "",
 						},
-						Type: LeafNode,
-						LangType: &MappedType{
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
 							NativeType: "",
-							UnionTypes: map[string]MappedUnionSubtype{
+							UnionTypes: map[string]ygen.MappedUnionSubtype{
 								"openconfig.enums.ComplexWeekendDays": {
 									Index:                 0,
 									EnumeratedYANGTypeKey: "/openconfig-complex/weekend-days",
@@ -373,7 +419,7 @@ func protoIR(nestedDirectories bool) *IR {
 					},
 					"leaf-default-override": {
 						Name: "leaf_default_override",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "leaf-default-override",
 							Defaults:          []string{"3"},
 							BelongingModule:   "openconfig-complex",
@@ -385,10 +431,10 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "",
 							Description:       "",
 						},
-						Type: LeafNode,
-						LangType: &MappedType{
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
 							NativeType: "",
-							UnionTypes: map[string]MappedUnionSubtype{
+							UnionTypes: map[string]ygen.MappedUnionSubtype{
 								"openconfig.enums.ComplexCycloneScalesEnum": {
 									Index:                 0,
 									EnumeratedYANGTypeKey: "/openconfig-complex/cyclone-scales",
@@ -424,7 +470,7 @@ func protoIR(nestedDirectories bool) *IR {
 					},
 					"simple-union-enum": {
 						Name: "simple_union_enum",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "simple-union-enum",
 							Defaults:          []string{"TWO"},
 							BelongingModule:   "openconfig-complex",
@@ -436,10 +482,10 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "",
 							Description:       "",
 						},
-						Type: LeafNode,
-						LangType: &MappedType{
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
 							NativeType: "",
-							UnionTypes: map[string]MappedUnionSubtype{
+							UnionTypes: map[string]ygen.MappedUnionSubtype{
 								"SimpleUnionEnumEnum": {
 									Index:                 0,
 									EnumeratedYANGTypeKey: "/openconfig-complex/single-key-config/simple-union-enum",
@@ -475,7 +521,7 @@ func protoIR(nestedDirectories bool) *IR {
 					},
 					"singleton-union-enum": {
 						Name: "singleton_union_enum",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "singleton-union-enum",
 							Defaults:          []string{"DEUX"},
 							BelongingModule:   "openconfig-complex",
@@ -487,8 +533,8 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "",
 							Description:       "",
 						},
-						Type: LeafNode,
-						LangType: &MappedType{
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
 							NativeType:            "SingletonUnionEnumEnum",
 							UnionTypes:            nil,
 							IsEnumeratedValue:     true,
@@ -517,7 +563,7 @@ func protoIR(nestedDirectories bool) *IR {
 					},
 					"typedef-enum": {
 						Name: "typedef_enum",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "typedef-enum",
 							Defaults:          []string{"SATURDAY"},
 							BelongingModule:   "openconfig-complex",
@@ -529,8 +575,8 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "",
 							Description:       "",
 						},
-						Type: LeafNode,
-						LangType: &MappedType{
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
 							NativeType:            "openconfig.enums.ComplexWeekendDays",
 							UnionTypes:            nil,
 							IsEnumeratedValue:     true,
@@ -559,7 +605,7 @@ func protoIR(nestedDirectories bool) *IR {
 					},
 					"typedef-union-enum": {
 						Name: "typedef_union_enum",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "typedef-union-enum",
 							Defaults:          []string{"SUPER"},
 							BelongingModule:   "openconfig-complex",
@@ -571,10 +617,10 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "",
 							Description:       "",
 						},
-						Type: LeafNode,
-						LangType: &MappedType{
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
 							NativeType: "",
-							UnionTypes: map[string]MappedUnionSubtype{
+							UnionTypes: map[string]ygen.MappedUnionSubtype{
 								// protoLangMapper sorts by name instead of YANG order.
 								"openconfig.enums.ComplexCycloneScalesEnum": {
 									Index:                 0,
@@ -610,12 +656,12 @@ func protoIR(nestedDirectories bool) *IR {
 						},
 					},
 				},
-				ListKeys: map[string]*ListKey{
+				ListKeys: map[string]*ygen.ListKey{
 					"key": {
 						Name: "key",
-						LangType: &MappedType{
+						LangType: &ygen.MappedType{
 							NativeType: "",
-							UnionTypes: map[string]MappedUnionSubtype{
+							UnionTypes: map[string]ygen.MappedUnionSubtype{
 								"openconfig.enums.ComplexWeekendDays": {
 									Index:                 0,
 									EnumeratedYANGTypeKey: "/openconfig-complex/weekend-days",
@@ -638,12 +684,12 @@ func protoIR(nestedDirectories bool) *IR {
 			},
 			"/openconfig-complex/model/b/multi-key": {
 				Name: "MultiKey",
-				Type: List,
+				Type: ygen.List,
 				Path: "/openconfig-complex/model/b/multi-key",
-				Fields: map[string]*NodeDetails{
+				Fields: map[string]*ygen.NodeDetails{
 					"key1": {
 						Name: "key1",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "key1",
 							Defaults:          nil,
 							BelongingModule:   "openconfig-complex",
@@ -655,8 +701,8 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "",
 							Description:       "",
 						},
-						Type:     LeafNode,
-						LangType: &MappedType{NativeType: "ywrapper.UintValue"},
+						Type:     ygen.LeafNode,
+						LangType: &ygen.MappedType{NativeType: "ywrapper.UintValue"},
 						MappedPaths: [][]string{
 							{"", "model", "b", "multi-key", "config", "key1"},
 							{"", "model", "b", "multi-key", "key1"},
@@ -694,7 +740,7 @@ func protoIR(nestedDirectories bool) *IR {
 					},
 					"key2": {
 						Name: "key2",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "key2",
 							Defaults:          nil,
 							BelongingModule:   "openconfig-complex",
@@ -706,8 +752,8 @@ func protoIR(nestedDirectories bool) *IR {
 							LeafrefTargetPath: "",
 							Description:       "",
 						},
-						Type: LeafNode,
-						LangType: &MappedType{
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
 							NativeType:            "Key2",
 							IsEnumeratedValue:     true,
 							EnumeratedYANGTypeKey: "/openconfig-complex/multi-key-config/key2",
@@ -749,14 +795,14 @@ func protoIR(nestedDirectories bool) *IR {
 						},
 					},
 				},
-				ListKeys: map[string]*ListKey{
+				ListKeys: map[string]*ygen.ListKey{
 					"key1": {
 						Name:     "key1",
-						LangType: &MappedType{NativeType: "uint64", ZeroValue: ""},
+						LangType: &ygen.MappedType{NativeType: "uint64", ZeroValue: ""},
 					},
 					"key2": {
 						Name: "key2",
-						LangType: &MappedType{
+						LangType: &ygen.MappedType{
 							NativeType:            "Key2",
 							IsEnumeratedValue:     true,
 							EnumeratedYANGTypeKey: "/openconfig-complex/multi-key-config/key2",
@@ -773,12 +819,12 @@ func protoIR(nestedDirectories bool) *IR {
 			},
 			"/openconfig-complex/model/c/unkeyed-list": {
 				Name: "UnkeyedList",
-				Type: List,
+				Type: ygen.List,
 				Path: "/openconfig-complex/model/c/unkeyed-list",
-				Fields: map[string]*NodeDetails{
+				Fields: map[string]*ygen.NodeDetails{
 					"field": {
 						Name: "field",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "field",
 							BelongingModule:   "openconfig-complex",
 							RootElementModule: "openconfig-complex",
@@ -786,8 +832,8 @@ func protoIR(nestedDirectories bool) *IR {
 							Path:              "/openconfig-complex/model/c/unkeyed-list/field",
 							SchemaPath:        "/model/c/unkeyed-list/field",
 						},
-						Type:              LeafNode,
-						LangType:          &MappedType{NativeType: "ywrapper.BytesValue"},
+						Type:              ygen.LeafNode,
+						LangType:          &ygen.MappedType{NativeType: "ywrapper.BytesValue"},
 						MappedPaths:       [][]string{{"", "model", "c", "unkeyed-list", "field"}},
 						MappedPathModules: [][]string{{"", "openconfig-complex", "openconfig-complex", "openconfig-complex", "openconfig-complex"}},
 					},
@@ -799,10 +845,10 @@ func protoIR(nestedDirectories bool) *IR {
 				ConfigFalse:       true,
 			},
 		},
-		Enums: map[string]*EnumeratedYANGType{
+		Enums: map[string]*ygen.EnumeratedYANGType{
 			"/openconfig-complex/cyclone-scales": {
 				Name:     "ComplexCycloneScalesEnum",
-				Kind:     DerivedUnionEnumerationType,
+				Kind:     ygen.DerivedUnionEnumerationType,
 				TypeName: "cyclone-scales",
 				ValToYANGDetails: []ygot.EnumDefinition{
 					{
@@ -819,16 +865,25 @@ func protoIR(nestedDirectories bool) *IR {
 			},
 			"/openconfig-complex/SOFTWARE": {
 				Name:             "ComplexSOFTWARE",
-				Kind:             IdentityType,
+				Kind:             ygen.IdentityType,
 				IdentityBaseName: "SOFTWARE",
 				TypeName:         "identityref",
 				ValToYANGDetails: []ygot.EnumDefinition{
 					{Name: "OS", DefiningModule: "openconfig-complex"},
 				},
 			},
+			"/openconfig-complex/program": {
+				Name:             "ComplexProgram",
+				Kind:             ygen.IdentityType,
+				IdentityBaseName: "SOFTWARE",
+				TypeName:         "program",
+				ValToYANGDetails: []ygot.EnumDefinition{
+					{Name: "OS", DefiningModule: "openconfig-complex"},
+				},
+			},
 			"/openconfig-complex/multi-key-config/key2": {
 				Name:     "MultiKeyKey2",
-				Kind:     SimpleEnumerationType,
+				Kind:     ygen.SimpleEnumerationType,
 				TypeName: "enumeration",
 				ValToYANGDetails: []ygot.EnumDefinition{
 					{
@@ -845,7 +900,7 @@ func protoIR(nestedDirectories bool) *IR {
 			},
 			"/openconfig-complex/weekend-days": {
 				Name:     "ComplexWeekendDays",
-				Kind:     DerivedEnumerationType,
+				Kind:     ygen.DerivedEnumerationType,
 				TypeName: "weekend-days",
 				ValToYANGDetails: []ygot.EnumDefinition{
 					{
@@ -862,7 +917,7 @@ func protoIR(nestedDirectories bool) *IR {
 			},
 			"/openconfig-complex/single-key-config/simple-union-enum": {
 				Name:     "SingleKeySimpleUnionEnumEnum",
-				Kind:     UnionEnumerationType,
+				Kind:     ygen.UnionEnumerationType,
 				TypeName: "union",
 				ValToYANGDetails: []ygot.EnumDefinition{
 					{
@@ -884,7 +939,7 @@ func protoIR(nestedDirectories bool) *IR {
 			},
 			"/openconfig-complex/single-key-config/singleton-union-enum": {
 				Name:     "SingleKeySingletonUnionEnumEnum",
-				Kind:     UnionEnumerationType,
+				Kind:     ygen.UnionEnumerationType,
 				TypeName: "union",
 				ValToYANGDetails: []ygot.EnumDefinition{
 					{
@@ -915,20 +970,20 @@ func TestGenerateIR(t *testing.T) {
 		inYANGFiles      []string
 		inIncludePaths   []string
 		inExcludeModules []string
-		inLangMapper     LangMapper
-		inOpts           IROptions
-		wantIR           *IR
+		inLangMapper     ygen.LangMapper
+		inOpts           ygen.IROptions
+		wantIR           *ygen.IR
 		wantErrSubstring string
 	}{{
 		desc:        "complex openconfig test with compression using ProtoLangMapper with nested directories",
 		inYANGFiles: []string{filepath.Join(datapath, "openconfig-complex.yang")},
-		inLangMapper: func() LangMapper {
+		inLangMapper: func() ygen.LangMapper {
 			return NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
 		}(),
-		inOpts: IROptions{
+		inOpts: ygen.IROptions{
 			NestedDirectories: true,
 			AbsoluteMapPaths:  true,
-			TransformationOptions: TransformationOpts{
+			TransformationOptions: ygen.TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				ShortenEnumLeafNames:                 true,
 				EnumOrgPrefixesToTrim:                []string{"openconfig"},
@@ -942,13 +997,13 @@ func TestGenerateIR(t *testing.T) {
 	}, {
 		desc:        "complex openconfig test with compression using ProtoLangMapper",
 		inYANGFiles: []string{filepath.Join(datapath, "openconfig-complex.yang")},
-		inLangMapper: func() LangMapper {
+		inLangMapper: func() ygen.LangMapper {
 			return NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
 		}(),
-		inOpts: IROptions{
+		inOpts: ygen.IROptions{
 			NestedDirectories: false,
 			AbsoluteMapPaths:  true,
-			TransformationOptions: TransformationOpts{
+			TransformationOptions: ygen.TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				ShortenEnumLeafNames:                 true,
 				EnumOrgPrefixesToTrim:                []string{"openconfig"},
@@ -965,11 +1020,11 @@ func TestGenerateIR(t *testing.T) {
 			filepath.Join(datapath, "openconfig-simple.yang"),
 			filepath.Join(datapath, "openconfig-simple-augment2.yang"),
 		},
-		inLangMapper: func() LangMapper {
+		inLangMapper: func() ygen.LangMapper {
 			return NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
 		}(),
-		inOpts: IROptions{
-			TransformationOptions: TransformationOpts{
+		inOpts: ygen.IROptions{
+			TransformationOptions: ygen.TransformationOpts{
 				CompressBehaviour:                    genutil.Uncompressed,
 				ShortenEnumLeafNames:                 true,
 				EnumOrgPrefixesToTrim:                []string{"openconfig"},
@@ -979,16 +1034,16 @@ func TestGenerateIR(t *testing.T) {
 			},
 			AppendEnumSuffixForSimpleUnionEnums: true,
 		},
-		wantIR: &IR{
-			Directories: map[string]*ParsedDirectory{
+		wantIR: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/device": {
 					Name: "Device",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/device",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"parent": {
 							Name: "parent",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "parent",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -999,7 +1054,7 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "I am a parent container\nthat has 4 children.",
 							},
-							Type:                    ContainerNode,
+							Type:                    ygen.ContainerNode,
 							MappedPaths:             [][]string{{"parent"}},
 							MappedPathModules:       [][]string{{"openconfig-simple"}},
 							ShadowMappedPaths:       nil,
@@ -1007,7 +1062,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"remote-container": {
 							Name: "remote_container",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "remote-container",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1018,7 +1073,7 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type:                    ContainerNode,
+							Type:                    ygen.ContainerNode,
 							MappedPaths:             [][]string{{"remote-container"}},
 							MappedPathModules:       [][]string{{"openconfig-simple"}},
 							ShadowMappedPaths:       nil,
@@ -1029,12 +1084,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/parent": {
 					Name: "Parent",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/parent",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"child": {
 							Name: "child",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "child",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1045,7 +1100,7 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type:                    ContainerNode,
+							Type:                    ygen.ContainerNode,
 							LangType:                nil,
 							MappedPaths:             [][]string{{"child"}},
 							MappedPathModules:       [][]string{{"openconfig-simple"}},
@@ -1060,12 +1115,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/parent/child": {
 					Name: "Child",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/parent/child",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"config": {
 							Name: "config",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "config",
 								BelongingModule:   "openconfig-simple",
 								RootElementModule: "openconfig-simple",
@@ -1081,7 +1136,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"state": {
 							Name: "state",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "state",
 								BelongingModule:   "openconfig-simple",
 								RootElementModule: "openconfig-simple",
@@ -1104,12 +1159,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/parent/child/config": {
 					Name: "Config",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/parent/child/config",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"four": {
 							Name: "four",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "four",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1121,7 +1176,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "ywrapper.BytesValue",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1135,7 +1190,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"one": {
 							Name: "one",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "one",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1147,7 +1202,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "ywrapper.StringValue",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1161,7 +1216,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"three": {
 							Name: "three",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "three",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1173,7 +1228,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:            "Three",
 								UnionTypes:            nil,
 								IsEnumeratedValue:     true,
@@ -1194,12 +1249,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/parent/child/state": {
 					Name: "State",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/parent/child/state",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"four": {
 							Name: "four",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "four",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1211,7 +1266,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "ywrapper.BytesValue",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1225,7 +1280,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"one": {
 							Name: "one",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "one",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1237,7 +1292,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "ywrapper.StringValue",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1251,7 +1306,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"three": {
 							Name: "three",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "three",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1263,7 +1318,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:            "Three",
 								UnionTypes:            nil,
 								IsEnumeratedValue:     true,
@@ -1278,7 +1333,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"two": {
 							Name: "two",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "two",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1290,7 +1345,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "ywrapper.StringValue",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1304,7 +1359,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"zero": {
 							Name: "zero",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "zero",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple-augment2",
@@ -1316,7 +1371,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "ywrapper.StringValue",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1338,12 +1393,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/remote-container": {
 					Name: "RemoteContainer",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/remote-container",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"config": {
 							Name: "config",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "config",
 								BelongingModule:   "openconfig-simple",
 								RootElementModule: "openconfig-simple",
@@ -1359,7 +1414,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"state": {
 							Name: "state",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "state",
 								BelongingModule:   "openconfig-simple",
 								RootElementModule: "openconfig-simple",
@@ -1382,12 +1437,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/remote-container/config": {
 					Name: "Config",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/remote-container/config",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"a-leaf": {
 							Name: "a_leaf",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "a-leaf",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1399,7 +1454,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "ywrapper.StringValue",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1419,12 +1474,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/remote-container/state": {
 					Name: "State",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/remote-container/state",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"a-leaf": {
 							Name: "a_leaf",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "a-leaf",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1436,7 +1491,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "ywrapper.StringValue",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1456,7 +1511,7 @@ func TestGenerateIR(t *testing.T) {
 					ConfigFalse:       true,
 				},
 			},
-			Enums: map[string]*EnumeratedYANGType{
+			Enums: map[string]*ygen.EnumeratedYANGType{
 				"/openconfig-simple/parent-config/three": {
 					Name:     "Simple_Parent_Child_Config_Three",
 					Kind:     1,
@@ -1477,11 +1532,11 @@ func TestGenerateIR(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			tt.inOpts.ParseOptions.ExcludeModules = tt.inExcludeModules
-			got, err := GenerateIR(tt.inYANGFiles, tt.inIncludePaths, tt.inLangMapper, tt.inOpts)
+			got, err := ygen.GenerateIR(tt.inYANGFiles, tt.inIncludePaths, tt.inLangMapper, tt.inOpts)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("did not get expected error, %s", diff)
 			}
-			if diff := cmp.Diff(got, tt.wantIR, cmpopts.IgnoreUnexported(IR{}, ParsedDirectory{}, EnumeratedYANGType{}), protocmp.Transform()); diff != "" {
+			if diff := cmp.Diff(got, tt.wantIR, cmpopts.IgnoreUnexported(ygen.IR{}, ygen.ParsedDirectory{}, ygen.EnumeratedYANGType{}), protocmp.Transform()); diff != "" {
 				t.Fatalf("did not get expected IR, diff(-got,+want):\n%s", diff)
 			}
 		})

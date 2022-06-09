@@ -28,6 +28,7 @@ import (
 	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
+	"github.com/openconfig/ygot/protogen"
 	"github.com/openconfig/ygot/ygen"
 )
 
@@ -40,8 +41,8 @@ var (
 	outputDir              = flag.String("output_dir", "", "The path to which files should be output, hierarchical folders are created for the generated messages.")
 	ignoreCircDeps         = flag.Bool("ignore_circdeps", false, "If set to true, circular dependencies between submodules are ignored.")
 	baseImportPath         = flag.String("base_import_path", "", "The base import path that should be used for this package, for example a URL to the GitHub repo that the protobuf messages are stored in.")
-	ywrapperPath           = flag.String("ywrapper_path", ygen.DefaultYwrapperPath, "The path to the ywrapper.proto file, excluding the file name. Used to import the ywrapper protobuf that specifies the wrapper messages for scalar protobuf types.")
-	yextPath               = flag.String("yext_path", ygen.DefaultYextPath, "The path to the yext.proto file, excluding the file name. Used to import the yext protobuf that specifies YANG-specific field options for protobuf.")
+	ywrapperPath           = flag.String("ywrapper_path", protogen.DefaultYwrapperPath, "The path to the ywrapper.proto file, excluding the file name. Used to import the ywrapper protobuf that specifies the wrapper messages for scalar protobuf types.")
+	yextPath               = flag.String("yext_path", protogen.DefaultYextPath, "The path to the yext.proto file, excluding the file name. Used to import the yext protobuf that specifies YANG-specific field options for protobuf.")
 	generateFakeRoot       = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. The fake root's name can be controlled with the fakeroot_name flag.")
 	fakeRootName           = flag.String("fakeroot_name", "Device", "The name of the fake root entity.")
 	annotateSchemaPaths    = flag.Bool("add_schemapaths", true, "If set to true, the schema path of each YANG entity is added as a protobuf field option")
@@ -100,22 +101,24 @@ func main() {
 	}
 
 	// Perform the code generation.
-	cg := ygen.NewYANGCodeGenerator(&ygen.GeneratorConfig{
-		ParseOptions: ygen.ParseOpts{
-			ExcludeModules:        modsExcluded,
-			SkipEnumDeduplication: *skipEnumDedup,
-			YANGParseOptions: yang.Options{
-				IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+	cg := protogen.New(
+		*callerName,
+		ygen.IROptions{
+			ParseOptions: ygen.ParseOpts{
+				ExcludeModules: modsExcluded,
+				YANGParseOptions: yang.Options{
+					IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+				},
+			},
+			TransformationOptions: ygen.TransformationOpts{
+				CompressBehaviour:     compressBehaviour,
+				GenerateFakeRoot:      *generateFakeRoot,
+				FakeRootName:          *fakeRootName,
+				SkipEnumDeduplication: *skipEnumDedup,
 			},
 		},
-		TransformationOptions: ygen.TransformationOpts{
-			CompressBehaviour: compressBehaviour,
-			GenerateFakeRoot:  *generateFakeRoot,
-			FakeRootName:      *fakeRootName,
-		},
-		PackageName: *packageName,
-		Caller:      *callerName,
-		ProtoOptions: ygen.ProtoOpts{
+		protogen.ProtoOpts{
+			PackageName:         *packageName,
 			BaseImportPath:      *baseImportPath,
 			YwrapperPath:        *ywrapperPath,
 			YextPath:            *yextPath,
@@ -125,9 +128,9 @@ func main() {
 			EnumPackageName:     *enumPackageName,
 			GoPackageBase:       *goPackageBase,
 		},
-	})
+	)
 
-	generatedProtoCode, errs := cg.GenerateProto3(generateModules, includePaths)
+	generatedProtoCode, errs := cg.Generate(generateModules, includePaths)
 	if errs != nil {
 		log.Exitf("%v\n", errs)
 	}

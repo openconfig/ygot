@@ -1396,11 +1396,11 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				case golang:
 					got, errs = buildDirectoryDefinitions(gogen, structs, IROptions{
 						ParseOptions: ParseOpts{
-							SkipEnumDeduplication: false,
 						},
 						TransformationOptions: TransformationOpts{
 							CompressBehaviour:                    c.compressBehaviour,
 							GenerateFakeRoot:                     false,
+							SkipEnumDeduplication: false,
 							ShortenEnumLeafNames:                 true,
 							UseDefiningModuleForTypedefEnumNames: true,
 							EnumOrgPrefixesToTrim:                nil,
@@ -1412,11 +1412,11 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				case protobuf:
 					got, errs = buildDirectoryDefinitions(protogen, structs, IROptions{
 						ParseOptions: ParseOpts{
-							SkipEnumDeduplication: false,
 						},
 						TransformationOptions: TransformationOpts{
 							CompressBehaviour:                    c.compressBehaviour,
 							GenerateFakeRoot:                     false,
+							SkipEnumDeduplication: false,
 							ShortenEnumLeafNames:                 true,
 							UseDefiningModuleForTypedefEnumNames: true,
 							EnumOrgPrefixesToTrim:                nil,
@@ -1501,17 +1501,6 @@ func enumMapFromEntries(entries []*yang.Entry) map[string]*yang.Entry {
 	enumMap := map[string]*yang.Entry{}
 	for _, e := range entries {
 		addEnumsToEnumMap(e, enumMap)
-	}
-	return enumMap
-}
-
-// enumMapFromEntries recursively finds enumerated values from a slice of
-// resolveTypeArgs and returns an enumMap. The input enumMap is intended for
-// findEnumSet.
-func enumMapFromArgs(args []resolveTypeArgs) map[string]*yang.Entry {
-	enumMap := map[string]*yang.Entry{}
-	for _, a := range args {
-		addEnumsToEnumMap(a.contextEntry, enumMap)
 	}
 	return enumMap
 }
@@ -2168,12 +2157,11 @@ func TestBuildListKey(t *testing.T) {
 			}
 
 			got, err := buildListKey(tt.in, s, IROptions{
-				ParseOptions: ParseOpts{
-					SkipEnumDeduplication: tt.inSkipEnumDedup,
-				},
+				ParseOptions: ParseOpts{},
 				TransformationOptions: TransformationOpts{
 					CompressBehaviour:                    compressBehaviour,
 					GenerateFakeRoot:                     true,
+					SkipEnumDeduplication:                tt.inSkipEnumDedup,
 					ShortenEnumLeafNames:                 true,
 					UseDefiningModuleForTypedefEnumNames: true,
 					EnumOrgPrefixesToTrim:                nil,
