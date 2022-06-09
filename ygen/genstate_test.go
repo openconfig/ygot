@@ -1369,14 +1369,14 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 			}
 
 			t.Run(fmt.Sprintf("%s:buildDirectoryDefinitions(CompressBehaviour:%v,Language:%s,excludeState:%v)", tt.name, c.compressBehaviour, langName(c.lang), c.excludeState), func(t *testing.T) {
-				st, err := buildSchemaTree(tt.in)
-				if err != nil {
+				gogen := NewGoLangMapper(true)
+				if err := gogen.InjectSchemaTree(tt.in); err != nil {
 					t.Fatalf("buildSchemaTree(%v), got unexpected err: %v", tt.in, err)
 				}
-				gogen := NewGoLangMapper(true)
-				gogen.SetSchemaTree(st)
 				protogen := NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
-				protogen.SetSchemaTree(st)
+				if err := protogen.InjectSchemaTree(tt.in); err != nil {
+					t.Fatalf("buildSchemaTree(%v), got unexpected err: %v", tt.in, err)
+				}
 
 				structs := make(map[string]*yang.Entry)
 				enums := make(map[string]*yang.Entry)
@@ -2262,25 +2262,22 @@ func TestBuildListKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var st *schemaTree
-			if tt.inEntries != nil {
-				var err error
-				if st, err = buildSchemaTree(tt.inEntries); err != nil {
-					t.Fatalf("%s: buildSchemaTree(%v), could not build tree: %v", tt.name, tt.inEntries, err)
-				}
-			}
+			s := NewGoLangMapper(true)
+
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.in, enumMap)
-			enumSet, _, errs := findEnumSet(enumMap, tt.inCompress, false, tt.inSkipEnumDedup, true, true, true, nil)
-			if errs != nil {
+			if err := s.InjectEnumSet(enumMap, tt.inCompress, false, tt.inSkipEnumDedup, true, true, true, nil); err != nil {
 				if !tt.wantErr {
-					t.Errorf("findEnumSet failed: %v", errs)
+					t.Errorf("InjectEnumSet failed: %v", err)
 				}
 				return
 			}
-			s := NewGoLangMapper(true)
-			s.SetEnumSet(enumSet)
-			s.SetSchemaTree(st)
+
+			if tt.inEntries != nil {
+				if err := s.InjectSchemaTree(tt.inEntries); err != nil {
+					t.Fatalf("%s: InjectSchemaTree(%v), could not build tree: %v", tt.name, tt.inEntries, err)
+				}
+			}
 
 			compressBehaviour := genutil.Uncompressed
 			if tt.inCompress {

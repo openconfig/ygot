@@ -133,12 +133,10 @@ var _ LangMapper = &GoLangMapper{}
 // GoLangMapper contains the functionality and state for generating Go names for
 // the generated code.
 type GoLangMapper struct {
-	// enumSet contains the generated enum names which can be queried.
-	enumSet *enumSet
-
-	// schematree is a copy of the YANG schema tree, containing only leaf
-	// entries, such that schema paths can be referenced.
-	schematree *schemaTree
+	// LangMapperBase being embedded is a requirement for GoLangMapper to
+	// implement the LangMapper interface, and also gives it access to
+	// built-in methods.
+	LangMapperBase
 
 	// definedGlobals specifies the global Go names used during code
 	// generation to avoid conflicts.
@@ -283,19 +281,6 @@ func (s *GoLangMapper) PackageName(*yang.Entry, genutil.CompressBehaviour, bool)
 	return "", nil
 }
 
-// SetEnumSet is used to supply a set of enumerated values to the
-// mapper such that leaves that have enumerated types can be looked up.
-func (s *GoLangMapper) SetEnumSet(e *enumSet) {
-	s.enumSet = e
-}
-
-// SetSchemaTree is used to supply a copy of the YANG schema tree to
-// the mapped such that leaves of type leafref can be resolved to
-// their target leaves.
-func (s *GoLangMapper) SetSchemaTree(st *schemaTree) {
-	s.schematree = st
-}
-
 // yangTypeToGoType takes a yang.YangType (YANG type definition) and maps it
 // to the type that should be used to represent it in the generated Go code.
 // A resolveTypeArgs structure is used as the input argument which specifies a
@@ -310,7 +295,7 @@ func (s *GoLangMapper) SetSchemaTree(st *schemaTree) {
 func (s *GoLangMapper) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (*MappedType, error) {
 	defVal := genutil.TypeDefaultValue(args.yangType)
 	// Handle the case of a typedef which is actually an enumeration.
-	typedefName, _, isTypedef, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
+	typedefName, _, isTypedef, err := s.EnumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
 	if err != nil {
 		// err is non nil when this was a typedef which included
 		// an invalid enumerated type.
@@ -368,7 +353,7 @@ func (s *GoLangMapper) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, s
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map enum without context")
 		}
-		n, _, err := s.enumSet.enumName(args.contextEntry, compressOCPaths, false, skipEnumDedup, shortenEnumLeafNames, false, enumOrgPrefixesToTrim)
+		n, _, err := s.EnumName(args.contextEntry, compressOCPaths, false, skipEnumDedup, shortenEnumLeafNames, false, enumOrgPrefixesToTrim)
 		if err != nil {
 			return nil, err
 		}
@@ -381,11 +366,11 @@ func (s *GoLangMapper) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, s
 	case yang.Yidentityref:
 		// Identityref leaves are mapped according to the base identity that they
 		// refer to - this is stored in the IdentityBase field of the context leaf
-		// which is determined by the identityrefBaseTypeFromLeaf.
+		// which is determined by the IdentityrefBaseTypeFromLeaf.
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map identityref without context")
 		}
-		n, _, err := s.enumSet.identityrefBaseTypeFromLeaf(args.contextEntry)
+		n, _, err := s.IdentityrefBaseTypeFromLeaf(args.contextEntry)
 		if err != nil {
 			return nil, err
 		}
@@ -399,8 +384,8 @@ func (s *GoLangMapper) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, s
 		return &MappedType{NativeType: "float64", ZeroValue: goZeroValues["float64"], DefaultValue: defVal}, nil
 	case yang.Yleafref:
 		// This is a leafref, so we check what the type of the leaf that it
-		// references is by looking it up in the schematree.
-		target, err := s.schematree.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
+		// references is by looking it up.
+		target, err := s.ResolveLeafrefTarget(args.yangType.Path, args.contextEntry)
 		if err != nil {
 			return nil, err
 		}
@@ -521,7 +506,7 @@ func (s *GoLangMapper) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, 
 		// to map enumerated types to their module. This occurs in the case that the subtype
 		// is an identityref - in this case, the context entry that we are carrying is the
 		// leaf that refers to the union, not the specific subtype that is now being examined.
-		baseType, _, err := s.enumSet.identityrefBaseTypeFromIdentity(subtype.IdentityBase)
+		baseType, _, err := s.IdentityrefBaseTypeFromIdentity(subtype.IdentityBase)
 		if err != nil {
 			return append(errs, err)
 		}
@@ -623,7 +608,7 @@ func generateGoDefaultValue(field *yang.Entry, mtype *MappedType, gogen *GoLangM
 // type for each leaf is created.
 func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, isSingletonUnion, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (string, yang.TypeKind, error) {
 	// Handle the case of a typedef which is actually an enumeration.
-	typedefName, _, isTypedef, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
+	typedefName, _, isTypedef, err := s.EnumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
 	if err != nil {
 		// err is non nil when this was a typedef which included
 		// an invalid enumerated type.
@@ -721,7 +706,7 @@ func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, 
 		if !args.yangType.Enum.IsDefined(value) {
 			return "", yang.Ynone, fmt.Errorf("default value conversion: enum value %q not found in enum with type name %q", value, args.yangType.Name)
 		}
-		n, _, err := s.enumSet.enumName(args.contextEntry, compressOCPaths, false, skipEnumDedup, shortenEnumLeafNames, false, enumOrgPrefixesToTrim)
+		n, _, err := s.EnumName(args.contextEntry, compressOCPaths, false, skipEnumDedup, shortenEnumLeafNames, false, enumOrgPrefixesToTrim)
 		if err != nil {
 			return "", yang.Ynone, err
 		}
@@ -739,15 +724,15 @@ func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, 
 		if !args.yangType.IdentityBase.IsDefined(value) {
 			return "", yang.Ynone, fmt.Errorf("default value conversion: identity value %q not found in enum with type name %q", value, args.yangType.Name)
 		}
-		n, _, err := s.enumSet.identityrefBaseTypeFromIdentity(args.yangType.IdentityBase)
+		n, _, err := s.IdentityrefBaseTypeFromIdentity(args.yangType.IdentityBase)
 		if err != nil {
 			return "", yang.Ynone, err
 		}
 		return enumDefaultValue(n, value, ""), ykind, nil
 	case yang.Yleafref:
 		// This is a leafref, so we check what the type of the leaf that it
-		// references is by looking it up in the schematree.
-		target, err := s.schematree.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
+		// references is by looking it up.
+		target, err := s.ResolveLeafrefTarget(args.yangType.Path, args.contextEntry)
 		if err != nil {
 			return "", yang.Ynone, err
 		}
