@@ -47,6 +47,10 @@ import (
 // parameter does not affect the output. Do not depend on the same order of
 // method calls on langMapper by GenerateIR.
 type LangMapper interface {
+	// LangMapperBaseSetup defines setup methods that are required for all
+	// LangMapper instances.
+	LangMapperBaseSetup
+
 	// FieldName maps an input yang.Entry to the name that should be used
 	// in the intermediate representation. It is called for each field of
 	// a defined directory.
@@ -74,7 +78,18 @@ type LangMapper interface {
 	// structs.
 	PackageName(*yang.Entry, genutil.CompressBehaviour, bool) (string, error)
 
-	// SetEnumSet is used to supply a set of enumerated values to the
+	// LangMapperExt contains extensions that the LangMapper instance
+	// should implement if extra information from the IR is required.
+	// When implementing this, UnimplementedLangMapperExt should be
+	// embedded in the implementation type in order to ensure forward
+	// compatibility.
+	LangMapperExt
+}
+
+// LangMapperBaseSetup defines setup methods that are required for all
+// LangMapper instances.
+type LangMapperBaseSetup interface {
+	// setEnumSet is used to supply a set of enumerated values to the
 	// mapper such that leaves that have enumerated types can be looked up.
 	// An enumSet provides lookup methods that allow:
 	//  - simple enumerated types
@@ -83,19 +98,155 @@ type LangMapper interface {
 	//  - identityrefs within typedefs
 	// to be resolved to the corresponding type that is to be used in
 	// the IR.
-	SetEnumSet(*enumSet)
+	setEnumSet(*enumSet)
 
-	// SetSchemaTree is used to supply a copy of the YANG schema tree to
+	// setSchemaTree is used to supply a copy of the YANG schema tree to
 	// the mapped such that leaves of type leafref can be resolved to
 	// their target leaves.
-	SetSchemaTree(*schemaTree)
+	setSchemaTree(*schemaTree)
 
-	// LangMapperExt contains extensions that the LangMapper instance
-	// should implement if extra information from the IR is required.
-	// When implementing this, UnimplementedLangMapperExt should be
-	// embedded in the implementation type in order to ensure forward
-	// compatibility.
-	LangMapperExt
+	// InjectEnumSet is intended to be called by unit tests in order to set up the
+	// LangMapperBase such that generated enumeration/identity names can be looked
+	// up. The input parameters correspond to fields in IROptions.
+	// It returns an error if there is a failure to generate the enumerated
+	// values' names.
+	InjectEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums bool, enumOrgPrefixesToTrim []string) error
+
+	// InjectSchemaTree is intended to be called by unit tests in order to set up
+	// the LangMapperBase such that leafrefs targets may be looked up.
+	// It returns an error if there is duplication within the set of entries.
+	InjectSchemaTree(entries []*yang.Entry) error
+}
+
+// LangMapperBase contains unexported base types and exported built-in methods
+// that all LangMapper implementation instances should embed. These built-in
+// methods are available for use anywhere in the LangMapper implementation
+// instance.
+type LangMapperBase struct {
+	// enumSet contains the generated enum names which can be queried.
+	enumSet *enumSet
+
+	// schematree is a copy of the YANG schema tree, containing only leaf
+	// entries, such that schema paths can be referenced.
+	schematree *schemaTree
+}
+
+// setEnumSet is used to supply a set of enumerated values to the
+// mapper such that leaves that have enumerated types can be looked up.
+//
+// NB: This method is a set-up method that GenerateIR automatically invokes.
+// In testing contexts outside of GenerateIR, however, the corresponding
+// exported Inject method needs to be called in order for certain built-in
+// methods of LangMapperBase to be available for use.
+func (s *LangMapperBase) setEnumSet(e *enumSet) {
+	s.enumSet = e
+}
+
+// setSchemaTree is used to supply a copy of the YANG schema tree to
+// the mapped such that leaves of type leafref can be resolved to
+// their target leaves.
+//
+// NB: This method is a set-up method that GenerateIR automatically invokes.
+// In testing contexts outside of GenerateIR, however, the corresponding
+// exported Inject method needs to be called in order for certain built-in
+// methods of LangMapperBase to be available for use.
+func (s *LangMapperBase) setSchemaTree(st *schemaTree) {
+	s.schematree = st
+}
+
+// InjectEnumSet is intended to be called by unit tests in order to set up the
+// LangMapperBase such that generated enumeration/identity names can be looked
+// up. It walks the input map of enumerated value leaves keyed by path and
+// creates generates names for them. The input parameters correspond to fields
+// in IROptions.
+// It returns an error if there is a failure to generate the enumerated values'
+// names.
+func (s *LangMapperBase) InjectEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums bool, enumOrgPrefixesToTrim []string) error {
+	enumSet, _, errs := findEnumSet(entries, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums, enumOrgPrefixesToTrim)
+	if errs != nil {
+		return fmt.Errorf("%v", errs)
+	}
+	s.setEnumSet(enumSet)
+	return nil
+}
+
+// InjectSchemaTree is intended to be called by unit tests in order to set up
+// the LangMapperBase such that leafrefs targets may be looked up. It maps a
+// set of yang.Entry pointers into a ctree structure.
+// It returns an error if there is duplication within the set of entries.
+func (s *LangMapperBase) InjectSchemaTree(entries []*yang.Entry) error {
+	schematree, err := buildSchemaTree(entries)
+	if err != nil {
+		return err
+	}
+	s.setSchemaTree(schematree)
+	return nil
+}
+
+// ResolveLeafrefTarget takes an input path and context entry and
+// determines the type of the leaf that is referred to by the path, such that
+// it can be mapped to a native language type. It returns the yang.YangType that
+// is associated with the target, and the target yang.Entry, such that the
+// caller can map this to the relevant language type.
+//
+// In testing contexts, this function requires InjectSchemaTree to be called
+// prior to being usable.
+func (b *LangMapperBase) ResolveLeafrefTarget(path string, contextEntry *yang.Entry) (*yang.Entry, error) {
+	return b.schematree.resolveLeafrefTarget(path, contextEntry)
+}
+
+// EnumeratedTypedefTypeName retrieves the name of an enumerated typedef (i.e.,
+// a typedef which is either an identityref or an enumeration). The resolved
+// name is prefixed with the prefix supplied. If the type that was supplied
+// within the resolveTypeArgs struct is not a type definition which includes an
+// enumerated type, the third returned value (boolean) will be false.
+// The second value returned is a string key that uniquely identifies this
+// enumerated value among all possible enumerated values in the input set of
+// YANG files.
+//
+// In testing contexts, this function requires InjectEnumSet to be called prior
+// to being usable.
+func (b *LangMapperBase) EnumeratedTypedefTypeName(args resolveTypeArgs, prefix string, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (string, string, bool, error) {
+	return b.enumSet.enumeratedTypedefTypeName(args, prefix, noUnderscores, useDefiningModuleForTypedefEnumNames)
+}
+
+// EnumName retrieves the type name of the input enum *yang.Entry that will be
+// used in the generated code, which is the first returned value. The second
+// value returned is a string key that uniquely identifies this enumerated
+// value among all possible enumerated values in the input set of YANG files.
+//
+// In testing contexts, this function requires InjectEnumSet to be called prior
+// to being usable.
+func (b *LangMapperBase) EnumName(e *yang.Entry, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames, addEnumeratedUnionSuffix bool, enumOrgPrefixesToTrim []string) (string, string, error) {
+	return b.enumSet.enumName(e, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames, addEnumeratedUnionSuffix, enumOrgPrefixesToTrim)
+}
+
+// IdentityrefBaseTypeFromIdentity retrieves the generated type name of the
+// input *yang.Identity. The first value returned is the defining module
+// followed by the CamelCase-ified version of the identity's name. The second
+// value returned is a string key that uniquely identifies this enumerated
+// value among all possible enumerated values in the input set of YANG files.
+//
+// In testing contexts, this function requires InjectEnumSet to be called prior
+// to being usable.
+func (b *LangMapperBase) IdentityrefBaseTypeFromIdentity(i *yang.Identity) (string, string, error) {
+	return b.enumSet.identityrefBaseTypeFromIdentity(i)
+}
+
+// IdentityrefBaseTypeFromLeaf retrieves the mapped name of an identityref's
+// base such that it can be used in generated code. The first value returned is
+// the defining module name followed by the CamelCase-ified version of the
+// base's name. The second value returned is a string key that uniquely
+// identifies this enumerated value among all possible enumerated values in the
+// input set of YANG files.
+// This function wraps the identityrefBaseTypeFromIdentity function since it
+// covers the common case that the caller is interested in determining the name
+// from an identityref leaf, rather than directly from the identity.
+//
+// In testing contexts, this function requires InjectEnumSet to be called prior
+// to being usable.
+func (b *LangMapperBase) IdentityrefBaseTypeFromLeaf(idr *yang.Entry) (string, string, error) {
+	return b.enumSet.identityrefBaseTypeFromIdentity(idr.Type.IdentityBase)
 }
 
 // LangMapperExt contains extensions that the LangMapper instance should
@@ -522,21 +673,6 @@ type YANGNodeDetails struct {
 	PresenceStatement *string
 	// Description contains the description of the node.
 	Description string
-	// Type is the YANG type which represents the node. It is only
-	// applicable for leaf or leaf-list nodes because only these nodes can
-	// have type statements.
-	// TODO(wenbli): This needs to be replaced using a plugin mechanism.
-	Type *YANGType
-}
-
-// YANGType represents a YANG type.
-type YANGType struct {
-	// Name is the YANG type name of the type.
-	Name string
-	// TODO(wenbli): Add this.
-	// Module is the name of the module which defined the type. This is
-	// only applicable if the type were a typedef.
-	//Module string
 }
 
 // EnumeratedValueType is used to indicate the source YANG type

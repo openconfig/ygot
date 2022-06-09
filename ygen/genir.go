@@ -84,8 +84,8 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 		return nil, errs
 	}
 
-	langMapper.SetEnumSet(enumSet)
-	langMapper.SetSchemaTree(mdef.schematree)
+	langMapper.setEnumSet(enumSet)
+	langMapper.setSchemaTree(mdef.schematree)
 
 	directoryMap, errs := buildDirectoryDefinitions(langMapper, mdef.directoryEntries, opts)
 	if errs != nil {
