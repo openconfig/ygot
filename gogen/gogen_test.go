@@ -102,6 +102,7 @@ func TestGoCodeStructGeneration(t *testing.T) {
 			BelongingModule: "exmod",
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:   true,
 			ValidateFunctionName: "ValidateProxyFunction",
 		},
 		want: wantGoStructOut{
@@ -195,7 +196,10 @@ func (*Tstruct) ΛBelongingModule() string {
 			Path:            "/root-module/tstruct",
 			BelongingModule: "exmod",
 		},
-		inIgnoreShadowSchemaPaths: true,
+		inGoOpts: GoOpts{
+			GenerateJSONSchema:      true,
+			IgnoreShadowSchemaPaths: true,
+		},
 		want: wantGoStructOut{
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
@@ -266,6 +270,9 @@ func (*Tstruct) ΛBelongingModule() string {
 			},
 			Path:            "/module/input-struct",
 			BelongingModule: "exmod",
+		},
+		inGoOpts: GoOpts{
+			GenerateJSONSchema: true,
 		},
 		want: wantGoStructOut{
 			structs: `
@@ -373,6 +380,9 @@ func (t *InputStruct) To_InputStruct_U1_Union(i interface{}) (InputStruct_U1_Uni
 				BelongingModule: "exmod",
 			},
 		},
+		inGoOpts: GoOpts{
+			GenerateJSONSchema: true,
+		},
 		want: wantGoStructOut{
 			structs: `
 // InputStruct represents the /root-module/input-struct YANG schema element.
@@ -440,7 +450,8 @@ func (*InputStruct) ΛBelongingModule() string {
 			},
 		},
 		inGoOpts: GoOpts{
-			AddYangPresence: true,
+			GenerateJSONSchema: true,
+			AddYangPresence:    true,
 		},
 		want: wantGoStructOut{
 			structs: `
@@ -557,6 +568,9 @@ func (*InputStruct) ΛBelongingModule() string {
 				BelongingModule: "exmod",
 			},
 		},
+		inGoOpts: GoOpts{
+			GenerateJSONSchema: true,
+		},
 		want: wantGoStructOut{
 			structs: `
 // QStruct represents the /root-module/q-struct YANG schema element.
@@ -657,6 +671,7 @@ func (*QStruct) ΛBelongingModule() string {
 			},
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:   true,
 			GenerateRenameMethod: true,
 		},
 		want: wantGoStructOut{
@@ -898,6 +913,7 @@ func (*Tstruct) ΛBelongingModule() string {
 			},
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:   true,
 			GenerateRenameMethod: true,
 		},
 		want: wantGoStructOut{
@@ -1023,6 +1039,7 @@ func (*Tstruct) ΛBelongingModule() string {
 			BelongingModule: "exmod",
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:  true,
 			AddAnnotationFields: true,
 			AnnotationPrefix:    "Ω",
 		},
@@ -1156,6 +1173,7 @@ func (*Tstruct) ΛBelongingModule() string {
 			},
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:   true,
 			GenerateAppendMethod: true,
 			GenerateGetters:      true,
 			GenerateDeleteMethod: true,
@@ -1385,6 +1403,7 @@ func (*Tstruct) ΛBelongingModule() string {
 			},
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:      true,
 			GenerateAppendMethod:    true,
 			GenerateGetters:         true,
 			GenerateDeleteMethod:    true,
@@ -1567,6 +1586,7 @@ func (*Tstruct) ΛBelongingModule() string {
 			},
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:      true,
 			GenerateGetters:         true,
 			GeneratePopulateDefault: true,
 		},
@@ -1665,6 +1685,7 @@ func (*InputStruct) ΛBelongingModule() string {
 			BelongingModule: "m1",
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:      true,
 			GenerateLeafGetters:     true,
 			GeneratePopulateDefault: true,
 		},
@@ -1758,6 +1779,7 @@ func (*Container) ΛBelongingModule() string {
 			BelongingModule: "m1",
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:      true,
 			GenerateLeafGetters:     true,
 			GeneratePopulateDefault: true,
 		},
@@ -1834,7 +1856,7 @@ func (*Container) ΛBelongingModule() string {
 			tt.inOtherStructMap[tt.inStructToMap.Path] = tt.inStructToMap
 			// Always generate the JSON schema for this test.
 			generatedUnions := map[string]bool{}
-			got, errs := writeGoStruct(tt.inStructToMap, tt.inOtherStructMap, generatedUnions, tt.inIgnoreShadowSchemaPaths, tt.inGoOpts, true)
+			got, errs := writeGoStruct(tt.inStructToMap, tt.inOtherStructMap, generatedUnions, tt.inGoOpts)
 
 			if len(errs) != 0 && !tt.want.wantErr {
 				t.Fatalf("%s writeGoStruct(targetStruct: %v): received unexpected errors: %v",

@@ -34,29 +34,6 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
-// GeneratorConfig stores the configuration options used for code generation.
-type GeneratorConfig struct {
-	// PackageName is the name that should be used for the generating package.
-	PackageName string
-	// Caller is the name of the binary calling the generator library, it is
-	// included in the header of output files for debugging purposes. If a
-	// string is not specified, the location of the library is utilised.
-	Caller string
-	// GenerateJSONSchema stores a boolean which defines whether to generate
-	// the JSON corresponding to the YANG schema parsed to generate the
-	// output code.
-	GenerateJSONSchema bool
-	// ParseOptions contains parsing options for a given set of schema files.
-	ParseOptions ParseOpts
-	// TransformationOptions contains options for how the generated code
-	// may be transformed from a simple 1:1 mapping with respect to the
-	// given YANG schema.
-	TransformationOptions TransformationOpts
-	// IncludeDescriptions specifies that YANG entry descriptions are added
-	// to the JSON schema. Is false by default, to reduce the size of generated schema
-	IncludeDescriptions bool
-}
-
 // ParseOpts contains parsing configuration for a given schema.
 type ParseOpts struct {
 	// ExcludeModules specifies any modules that are included within the set of
@@ -68,6 +45,27 @@ type ParseOpts struct {
 	// github.com/openconfig/goyang/pkg/yang library. These specify how the
 	// input YANG files should be parsed.
 	YANGParseOptions yang.Options
+}
+
+// TransformationOpts specifies transformations to the generated code with
+// respect to the input schema.
+type TransformationOpts struct {
+	// CompressBehaviour specifies how the set of direct children of any
+	// entry should determined. Specifically, whether compression is
+	// enabled, and whether state fields in the schema should be excluded.
+	CompressBehaviour genutil.CompressBehaviour
+	// GenerateFakeRoot specifies whether an entity that represents the
+	// root of the YANG schema tree should be generated in the generated
+	// code.
+	GenerateFakeRoot bool
+	// FakeRootName specifies the name of the struct that should be generated
+	// representing the root.
+	FakeRootName string
+	// ExcludeState specifies whether config false values should be
+	// included in the generated code output. When set, all values that are
+	// not writeable (i.e., config false) within the YANG schema and their
+	// children are excluded from the generated code.
+	ExcludeState bool
 	// SkipEnumDeduplication specifies whether leaves of type 'enumeration' that
 	// are used in multiple places in the schema should share a common type within
 	// the generated code that is output by ygen. By default (false), a common type
@@ -96,31 +94,6 @@ type ParseOpts struct {
 	// When it is disabled, two different enumerations (ModuleName_(State|Config)_Enabled)
 	// will be output in the generated code.
 	SkipEnumDeduplication bool
-}
-
-// TransformationOpts specifies transformations to the generated code with
-// respect to the input schema.
-type TransformationOpts struct {
-	// CompressBehaviour specifies how the set of direct children of any
-	// entry should determined. Specifically, whether compression is
-	// enabled, and whether state fields in the schema should be excluded.
-	CompressBehaviour genutil.CompressBehaviour
-	// IgnoreShadowSchemaPaths indicates whether when OpenConfig path
-	// compression is enabled, that the shadowed paths are to be ignored
-	// while while unmarshalling.
-	IgnoreShadowSchemaPaths bool
-	// GenerateFakeRoot specifies whether an entity that represents the
-	// root of the YANG schema tree should be generated in the generated
-	// code.
-	GenerateFakeRoot bool
-	// FakeRootName specifies the name of the struct that should be generated
-	// representing the root.
-	FakeRootName string
-	// ExcludeState specifies whether config false values should be
-	// included in the generated code output. When set, all values that are
-	// not writeable (i.e., config false) within the YANG schema and their
-	// children are excluded from the generated code.
-	ExcludeState bool
 	// ShortenEnumLeafNames removes the module name from the name of
 	// enumeration leaves.
 	ShortenEnumLeafNames bool
@@ -229,18 +202,18 @@ type mappedYANGDefinitions struct {
 //	- yangFiles: an input set of YANG schema files and the paths that
 //	- includePaths: the set of paths that are to be searched for included or
 //	  imported YANG modules.
-//	- cfg: the current generator's configuration.
+//	- opts: the current generator's configuration.
 // It returns a mappedYANGDefinitions struct populated with the directory, enum
 // entries in the input schemas as well as the calculated schema tree.
-func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (*mappedYANGDefinitions, util.Errors) {
-	modules, errs := processModules(yangFiles, includePaths, cfg.ParseOptions.YANGParseOptions)
+func mappedDefinitions(yangFiles, includePaths []string, opts IROptions) (*mappedYANGDefinitions, util.Errors) {
+	modules, errs := processModules(yangFiles, includePaths, opts.ParseOptions.YANGParseOptions)
 	if errs != nil {
 		return nil, errs
 	}
 
 	// Build a map of excluded modules to simplify lookup.
 	excluded := map[string]bool{}
-	for _, e := range cfg.ParseOptions.ExcludeModules {
+	for _, e := range opts.ParseOptions.ExcludeModules {
 		excluded[e] = true
 	}
 
@@ -251,9 +224,9 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 	var rootElems, treeElems []*yang.Entry
 	for _, module := range modules {
 		// Need to transform the AST based on compression behaviour.
-		genutil.TransformEntry(module, cfg.TransformationOptions.CompressBehaviour)
+		genutil.TransformEntry(module, opts.TransformationOptions.CompressBehaviour)
 
-		errs = append(errs, findMappableEntities(module, dirs, enums, cfg.ParseOptions.ExcludeModules, cfg.TransformationOptions.CompressBehaviour.CompressEnabled(), modules)...)
+		errs = append(errs, findMappableEntities(module, dirs, enums, opts.ParseOptions.ExcludeModules, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), modules)...)
 		if module == nil {
 			errs = append(errs, errors.New("found a nil module in the returned module set"))
 			continue
@@ -280,8 +253,8 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 
 	// If we were asked to generate a fake root entity, then go and find the top-level entities that
 	// we were asked for.
-	if cfg.TransformationOptions.GenerateFakeRoot {
-		if err := createFakeRoot(dirs, rootElems, cfg.TransformationOptions.FakeRootName, cfg.TransformationOptions.CompressBehaviour.CompressEnabled()); err != nil {
+	if opts.TransformationOptions.GenerateFakeRoot {
+		if err := createFakeRoot(dirs, rootElems, opts.TransformationOptions.FakeRootName, opts.TransformationOptions.CompressBehaviour.CompressEnabled()); err != nil {
 			return nil, []error{err}
 		}
 	}

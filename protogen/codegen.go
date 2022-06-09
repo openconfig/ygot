@@ -12,14 +12,21 @@ import (
 // CodeGenerator is a structure that is used to pass arguments as to
 // how the output protobuf code should be generated.
 type CodeGenerator struct {
-	// Config stores the configuration parameters used for code generation.
-	Config ygen.GeneratorConfig
-	// ProtoOptions stores a struct which contains Protobuf specific options.
+	// Caller is the name of the binary calling the generator library, it is
+	// included in the header of output files for debugging purposes. If a
+	// string is not specified, the location of the library is utilised.
+	Caller string
+	// IROptions stores the configuration parameters used for IR generation.
+	IROptions ygen.IROptions
+	// ProtoOptions stores a struct which contains Protobuf specific
+	// options for code generation post IR generation.
 	ProtoOptions ProtoOpts
 }
 
 // ProtoOpts stores Protobuf specific options for the code generation library.
 type ProtoOpts struct {
+	// PackageName is the name that should be used for the generating package.
+	PackageName string
 	// BaseImportPath stores the root URL or path for imports that are
 	// relative within the imported protobufs.
 	BaseImportPath string
@@ -58,19 +65,14 @@ type ProtoOpts struct {
 	GoPackageBase string
 }
 
-// New returns a new instance of the protobuf code generator
+// New returns a new instance of the CodeGenerator
 // struct to the calling function.
-func New(c *ygen.GeneratorConfig, protoopts *ProtoOpts) *CodeGenerator {
-	cg := &CodeGenerator{}
-
-	if c != nil {
-		cg.Config = *c
+func New(callerName string, opts ygen.IROptions, protoOpts ProtoOpts) *CodeGenerator {
+	return &CodeGenerator{
+		Caller:       callerName,
+		IROptions:    opts,
+		ProtoOptions: protoOpts,
 	}
-	if protoopts != nil {
-		cg.ProtoOptions = *protoopts
-	}
-
-	return cg
 }
 
 // GeneratedCode stores a set of generated Protobuf packages.
@@ -97,7 +99,7 @@ type Proto3Package struct {
 // It returns a GeneratedCode struct containing the messages that are to be
 // output, along with any associated values (e.g., enumerations).
 func (cg *CodeGenerator) Generate(yangFiles, includePaths []string) (*GeneratedCode, util.Errors) {
-	basePackageName := cg.Config.PackageName
+	basePackageName := cg.ProtoOptions.PackageName
 	if basePackageName == "" {
 		basePackageName = DefaultBasePackageName
 	}
@@ -115,10 +117,10 @@ func (cg *CodeGenerator) Generate(yangFiles, includePaths []string) (*GeneratedC
 	}
 
 	// This flag is always true for proto generation.
-	cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames = true
+	cg.IROptions.TransformationOptions.UseDefiningModuleForTypedefEnumNames = true
 	opts := ygen.IROptions{
-		ParseOptions:                        cg.Config.ParseOptions,
-		TransformationOptions:               cg.Config.TransformationOptions,
+		ParseOptions:                        cg.IROptions.ParseOptions,
+		TransformationOptions:               cg.IROptions.TransformationOptions,
 		NestedDirectories:                   cg.ProtoOptions.NestedMessages,
 		AbsoluteMapPaths:                    true,
 		AppendEnumSuffixForSimpleUnionEnums: true,
@@ -164,7 +166,7 @@ func (cg *CodeGenerator) Generate(yangFiles, includePaths []string) (*GeneratedC
 		m := ir.Directories[directoryPath]
 
 		genMsg, errs := writeProto3Msg(m, ir, &protoMsgConfig{
-			compressPaths:       cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(),
+			compressPaths:       cg.IROptions.TransformationOptions.CompressBehaviour.CompressEnabled(),
 			basePackageName:     basePackageName,
 			enumPackageName:     enumPackageName,
 			baseImportPath:      cg.ProtoOptions.BaseImportPath,
@@ -235,8 +237,8 @@ func (cg *CodeGenerator) Generate(yangFiles, includePaths []string) (*GeneratedC
 			Imports:                stringKeys(pkgImports[n]),
 			SourceYANGFiles:        yangFiles,
 			SourceYANGIncludePaths: includePaths,
-			CompressPaths:          cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(),
-			CallerName:             cg.Config.Caller,
+			CompressPaths:          cg.IROptions.TransformationOptions.CompressBehaviour.CompressEnabled(),
+			CallerName:             cg.Caller,
 			YwrapperPath:           ywrapperPath,
 			YextPath:               yextPath,
 			GoPackageName:          gpn,
