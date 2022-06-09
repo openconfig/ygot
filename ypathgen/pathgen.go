@@ -65,6 +65,10 @@ const (
 	// NOTE: This cannot be "", as the builder method name would conflict
 	// with the child constructor method for the keys.
 	BuilderKeyPrefix = "With"
+
+	// yangTypeNameFlagKey is a custom flag for storing the YANG type's
+	// name for a YANG node.
+	yangTypeNameFlagKey = "YANG:typename"
 )
 
 // NewDefaultConfig creates a GenConfig with default configuration.
@@ -198,6 +202,20 @@ type GoImports struct {
 	YgotImportPath string
 }
 
+type goLangMapper struct {
+	*ygen.GoLangMapper
+}
+
+// PopulateFieldFlags populates extra field information for pathgen.
+func (goLangMapper) PopulateFieldFlags(nd ygen.NodeDetails, field *yang.Entry) map[string]string {
+	flags := map[string]string{}
+	if nd.Type == ygen.LeafNode || nd.Type == ygen.LeafListNode {
+		// Only leaf or leaf-list nodes can have type statements.
+		flags[yangTypeNameFlagKey] = field.Type.Name
+	}
+	return flags
+}
+
 // GeneratePathCode takes a slice of strings containing the path to a set of YANG
 // files which contain YANG modules, and a second slice of strings which
 // specifies the set of paths that are to be searched for associated models (e.g.,
@@ -249,7 +267,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 	}
 
 	var errs util.Errors
-	ir, err := ygen.GenerateIR(yangFiles, includePaths, ygen.NewGoLangMapper(true), opts)
+	ir, err := ygen.GenerateIR(yangFiles, includePaths, goLangMapper{GoLangMapper: ygen.NewGoLangMapper(true)}, opts)
 	if err != nil {
 		return nil, nil, util.AppendErr(errs, err)
 	}
@@ -660,8 +678,8 @@ func getNodeDataMap(ir *ygen.IR, fakeRootName, schemaStructPkgAccessor, pathStru
 			}
 
 			var yangTypeName string
-			if field.YANGDetails.Type != nil {
-				yangTypeName = field.YANGDetails.Type.Name
+			if field.Flags != nil {
+				yangTypeName = field.Flags[yangTypeNameFlagKey]
 			}
 			nodeDataMap[pathStructName] = &NodeData{
 				GoTypeName:            goTypeName,

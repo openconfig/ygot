@@ -596,30 +596,26 @@ func TestYangTypeToProtoType(t *testing.T) {
 				rpt = *tt.inResolveProtoTypeArgs
 			}
 
+			s := NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
 			// Seed the schema tree with the injected entries, used to ensure leafrefs can
 			// be resolved.
-			var st *schemaTree
 			if tt.inEntries != nil {
-				var err error
-				if st, err = buildSchemaTree(tt.inEntries); err != nil {
-					t.Fatalf("%s: buildSchemaTree(%v): got unexpected error, got: %v, want: nil", tt.name, tt.inEntries, err)
+				if err := s.InjectSchemaTree(tt.inEntries); err != nil {
+					t.Fatalf("%s: InjectSchemaTree(%v): got unexpected error, got: %v, want: nil", tt.name, tt.inEntries, err)
 				}
 			}
+			// Seed the enumSet with the injected enum entries,
+			// used to ensure that enum names can be resolved.
 			enumMap := enumMapFromArgs(tt.in)
 			for _, e := range enumMapFromEntries(tt.inEntries) {
 				addEnumsToEnumMap(e, enumMap)
 			}
-			enumSet, _, errs := findEnumSet(enumMap, false, true, false, true, true, true, nil)
-			if errs != nil {
+			if err := s.InjectEnumSet(enumMap, false, true, false, true, true, true, nil); err != nil {
 				if !tt.wantErr {
-					t.Errorf("findEnumSet failed: %v", errs)
+					t.Errorf("InjectEnumSet failed: %v", err)
 				}
 				return
 			}
-
-			s := NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
-			s.SetSchemaTree(st)
-			s.SetEnumSet(enumSet)
 
 			for _, st := range tt.in {
 				gotWrapper, err := s.yangTypeToProtoType(st, rpt, IROptions{
