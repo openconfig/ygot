@@ -1,18 +1,4 @@
-// Copyright 2020 Google Inc.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-package ygen
+package gogen
 
 import (
 	"path/filepath"
@@ -24,891 +10,13 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
+	"github.com/openconfig/ygot/ygen"
 	"github.com/openconfig/ygot/ygot"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
-func protoIR(nestedDirectories bool) *IR {
-	packageName := "model"
-	if nestedDirectories {
-		packageName = ""
-	}
-
-	return &IR{
-		Directories: map[string]*ParsedDirectory{
-			"/device": {
-				Name: "Device",
-				Type: Container,
-				Path: "/device",
-				Fields: map[string]*NodeDetails{
-					"model": {
-						Name: "model",
-						YANGDetails: YANGNodeDetails{
-							Name:              "model",
-							Defaults:          nil,
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model",
-							SchemaPath:        "/model",
-							LeafrefTargetPath: "",
-							Description:       "",
-						},
-						Type:                    ContainerNode,
-						LangType:                nil,
-						MappedPaths:             [][]string{{"", "model"}},
-						MappedPathModules:       [][]string{{"", "openconfig-complex"}},
-						ShadowMappedPaths:       nil,
-						ShadowMappedPathModules: nil,
-					},
-					"example-presence": {
-						Name: "example_presence",
-						YANGDetails: YANGNodeDetails{
-							Name:              "example-presence",
-							Defaults:          nil,
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/example-presence",
-							SchemaPath:        "/example-presence",
-							LeafrefTargetPath: "",
-							PresenceStatement: ygot.String("This is an example presence container"),
-							Description:       "",
-						},
-						Type:                    ContainerNode,
-						LangType:                nil,
-						MappedPaths:             [][]string{{"", "example-presence"}},
-						MappedPathModules:       [][]string{{"", "openconfig-complex"}},
-						ShadowMappedPaths:       nil,
-						ShadowMappedPathModules: nil,
-					},
-				},
-				IsFakeRoot:  true,
-				PackageName: "",
-			},
-			"/openconfig-complex/example-presence": {
-				Name:              "ExamplePresence",
-				Type:              Container,
-				Path:              "/openconfig-complex/example-presence",
-				Fields:            map[string]*NodeDetails{},
-				PackageName:       "",
-				ListKeys:          nil,
-				IsFakeRoot:        false,
-				BelongingModule:   "openconfig-complex",
-				RootElementModule: "openconfig-complex",
-				DefiningModule:    "openconfig-complex",
-			},
-			"/openconfig-complex/model": {
-				Name: "Model",
-				Type: Container,
-				Path: "/openconfig-complex/model",
-				Fields: map[string]*NodeDetails{
-					"anydata-leaf": {
-						Name: "anydata_leaf",
-						YANGDetails: YANGNodeDetails{
-							Name:              "anydata-leaf",
-							Defaults:          nil,
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/anydata-leaf",
-							SchemaPath:        "/model/anydata-leaf",
-							LeafrefTargetPath: "",
-							Description:       "some anydata leaf",
-						},
-						Type:                    AnyDataNode,
-						LangType:                nil,
-						MappedPaths:             [][]string{{"", "model", "anydata-leaf"}},
-						MappedPathModules:       [][]string{{"", "openconfig-complex", "openconfig-complex"}},
-						ShadowMappedPaths:       nil,
-						ShadowMappedPathModules: nil,
-					},
-					"dateref": {
-						Name: "dateref",
-						YANGDetails: YANGNodeDetails{
-							Name:              "dateref",
-							Defaults:          nil,
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/dateref",
-							SchemaPath:        "/model/dateref",
-							LeafrefTargetPath: "/openconfig-complex/model/a/single-key/config/dates",
-							Description:       "",
-						},
-						Type: LeafNode,
-						LangType: &MappedType{
-							NativeType:   "ywrapper.UintValue",
-							ZeroValue:    "",
-							DefaultValue: nil,
-						},
-						MappedPaths:             [][]string{{"", "model", "dateref"}},
-						MappedPathModules:       [][]string{{"", "openconfig-complex", "openconfig-complex"}},
-						ShadowMappedPaths:       nil,
-						ShadowMappedPathModules: nil,
-					},
-					"multi-key": {
-						Name: "multi_key",
-						YANGDetails: YANGNodeDetails{
-							Name:              "multi-key",
-							Defaults:          nil,
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/b/multi-key",
-							SchemaPath:        "/model/b/multi-key",
-							LeafrefTargetPath: "",
-							Description:       "",
-						},
-						Type:                    ListNode,
-						LangType:                nil,
-						MappedPaths:             [][]string{{"", "model", "b", "multi-key"}},
-						MappedPathModules:       [][]string{{"", "openconfig-complex", "openconfig-complex", "openconfig-complex"}},
-						ShadowMappedPaths:       nil,
-						ShadowMappedPathModules: nil,
-					},
-					"single-key": {
-						Name: "single_key",
-						YANGDetails: YANGNodeDetails{
-							Name:              "single-key",
-							Defaults:          nil,
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/a/single-key",
-							SchemaPath:        "/model/a/single-key",
-							LeafrefTargetPath: "",
-							Description:       "",
-						},
-						Type:                    ListNode,
-						LangType:                nil,
-						MappedPaths:             [][]string{{"", "model", "a", "single-key"}},
-						MappedPathModules:       [][]string{{"", "openconfig-complex", "openconfig-complex", "openconfig-complex"}},
-						ShadowMappedPaths:       nil,
-						ShadowMappedPathModules: nil,
-					},
-					"unkeyed-list": {
-						Name: "unkeyed_list",
-						YANGDetails: YANGNodeDetails{
-							Name:              "unkeyed-list",
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/c/unkeyed-list",
-							SchemaPath:        "/model/c/unkeyed-list",
-						},
-						Type:              ListNode,
-						MappedPaths:       [][]string{{"", "model", "c", "unkeyed-list"}},
-						MappedPathModules: [][]string{{"", "openconfig-complex", "openconfig-complex", "openconfig-complex"}},
-					},
-				},
-				ListKeys:          nil,
-				PackageName:       "",
-				BelongingModule:   "openconfig-complex",
-				RootElementModule: "openconfig-complex",
-				DefiningModule:    "openconfig-complex",
-			},
-			"/openconfig-complex/model/a/single-key": {
-				Name: "SingleKey",
-				Type: List,
-				Path: "/openconfig-complex/model/a/single-key",
-				Fields: map[string]*NodeDetails{
-					"dates": {
-						Name: "dates",
-						YANGDetails: YANGNodeDetails{
-							Name:              "dates",
-							Defaults:          []string{"5"},
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/a/single-key/config/dates",
-							SchemaPath:        "/model/a/single-key/config/dates",
-							ShadowSchemaPath:  "/model/a/single-key/state/dates",
-							LeafrefTargetPath: "",
-							Description:       "",
-						},
-						Type: LeafListNode,
-						LangType: &MappedType{
-							NativeType:   "ywrapper.UintValue",
-							ZeroValue:    "",
-							DefaultValue: nil,
-						},
-						MappedPaths:             [][]string{{"", "model", "a", "single-key", "config", "dates"}},
-						MappedPathModules:       [][]string{{"", "openconfig-complex", "openconfig-complex", "openconfig-complex", "openconfig-complex", "openconfig-complex"}},
-						ShadowMappedPaths:       [][]string{{"", "model", "a", "single-key", "state", "dates"}},
-						ShadowMappedPathModules: [][]string{{"", "openconfig-complex", "openconfig-complex", "openconfig-complex", "openconfig-complex", "openconfig-complex"}},
-					},
-					"dates-with-defaults": {
-						Name: "dates_with_defaults",
-						YANGDetails: YANGNodeDetails{
-							Name:              "dates-with-defaults",
-							Defaults:          []string{"1", "2"},
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/a/single-key/config/dates-with-defaults",
-							SchemaPath:        "/model/a/single-key/config/dates-with-defaults",
-							ShadowSchemaPath:  "/model/a/single-key/state/dates-with-defaults",
-							LeafrefTargetPath: "",
-							Description:       "",
-						},
-						Type: LeafListNode,
-						LangType: &MappedType{
-							NativeType:   "ywrapper.UintValue",
-							ZeroValue:    "",
-							DefaultValue: nil,
-						},
-						MappedPaths:             [][]string{{"", "model", "a", "single-key", "config", "dates-with-defaults"}},
-						MappedPathModules:       [][]string{{"", "openconfig-complex", "openconfig-complex", "openconfig-complex", "openconfig-complex", "openconfig-complex"}},
-						ShadowMappedPaths:       [][]string{{"", "model", "a", "single-key", "state", "dates-with-defaults"}},
-						ShadowMappedPathModules: [][]string{{"", "openconfig-complex", "openconfig-complex", "openconfig-complex", "openconfig-complex", "openconfig-complex"}},
-					},
-					"iref": {
-						Name: "iref",
-						YANGDetails: YANGNodeDetails{
-							Name:              "iref",
-							Defaults:          nil,
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/a/single-key/config/iref",
-							SchemaPath:        "/model/a/single-key/config/iref",
-							ShadowSchemaPath:  "/model/a/single-key/state/iref",
-							LeafrefTargetPath: "",
-							Description:       "",
-						},
-						Type: LeafNode,
-						LangType: &MappedType{
-							NativeType:            "openconfig.enums.ComplexSOFTWARE",
-							UnionTypes:            nil,
-							IsEnumeratedValue:     true,
-							EnumeratedYANGTypeKey: "/openconfig-complex/SOFTWARE",
-							ZeroValue:             "",
-							DefaultValue:          nil,
-						},
-						MappedPaths: [][]string{
-							{"", "model", "a", "single-key", "config", "iref"},
-						},
-						MappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-						},
-						ShadowMappedPaths: [][]string{
-							{"", "model", "a", "single-key", "state", "iref"},
-						},
-						ShadowMappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-						},
-					},
-					"key": {
-						Name: "key",
-						YANGDetails: YANGNodeDetails{
-							Name:              "key",
-							Defaults:          nil,
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/a/single-key/config/key",
-							SchemaPath:        "/model/a/single-key/config/key",
-							ShadowSchemaPath:  "/model/a/single-key/state/key",
-							LeafrefTargetPath: "",
-							Description:       "",
-						},
-						Type: LeafNode,
-						LangType: &MappedType{
-							NativeType: "",
-							UnionTypes: map[string]MappedUnionSubtype{
-								"openconfig.enums.ComplexWeekendDays": {
-									Index:                 0,
-									EnumeratedYANGTypeKey: "/openconfig-complex/weekend-days",
-								},
-								"uint64": {
-									Index:                 1,
-									EnumeratedYANGTypeKey: "",
-								},
-							},
-							IsEnumeratedValue:     false,
-							EnumeratedYANGTypeKey: "",
-							ZeroValue:             "",
-							DefaultValue:          nil,
-						},
-						MappedPaths: [][]string{
-							{"", "model", "a", "single-key", "config", "key"},
-							{"", "model", "a", "single-key", "key"},
-						},
-						MappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-							{
-								"",
-								"openconfig-complex",
-								"openconfig-complex",
-								"openconfig-complex",
-								"openconfig-complex",
-							},
-						},
-						ShadowMappedPaths: [][]string{
-							{"", "model", "a", "single-key", "state", "key"},
-							{"", "model", "a", "single-key", "key"},
-						},
-						ShadowMappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-							{
-								"",
-								"openconfig-complex",
-								"openconfig-complex",
-								"openconfig-complex",
-								"openconfig-complex",
-							},
-						},
-					},
-					"leaf-default-override": {
-						Name: "leaf_default_override",
-						YANGDetails: YANGNodeDetails{
-							Name:              "leaf-default-override",
-							Defaults:          []string{"3"},
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/a/single-key/config/leaf-default-override",
-							SchemaPath:        "/model/a/single-key/config/leaf-default-override",
-							ShadowSchemaPath:  "/model/a/single-key/state/leaf-default-override",
-							LeafrefTargetPath: "",
-							Description:       "",
-						},
-						Type: LeafNode,
-						LangType: &MappedType{
-							NativeType: "",
-							UnionTypes: map[string]MappedUnionSubtype{
-								"openconfig.enums.ComplexCycloneScalesEnum": {
-									Index:                 0,
-									EnumeratedYANGTypeKey: "/openconfig-complex/cyclone-scales",
-								},
-								"uint64": {
-									Index:                 1,
-									EnumeratedYANGTypeKey: "",
-								},
-							},
-							IsEnumeratedValue:     false,
-							EnumeratedYANGTypeKey: "",
-							ZeroValue:             "",
-							DefaultValue:          nil,
-						},
-						MappedPaths: [][]string{
-							{"", "model", "a", "single-key", "config", "leaf-default-override"},
-						},
-						MappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-						},
-						ShadowMappedPaths: [][]string{
-							{"", "model", "a", "single-key", "state", "leaf-default-override"},
-						},
-						ShadowMappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-						},
-					},
-					"simple-union-enum": {
-						Name: "simple_union_enum",
-						YANGDetails: YANGNodeDetails{
-							Name:              "simple-union-enum",
-							Defaults:          []string{"TWO"},
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/a/single-key/config/simple-union-enum",
-							SchemaPath:        "/model/a/single-key/config/simple-union-enum",
-							ShadowSchemaPath:  "/model/a/single-key/state/simple-union-enum",
-							LeafrefTargetPath: "",
-							Description:       "",
-						},
-						Type: LeafNode,
-						LangType: &MappedType{
-							NativeType: "",
-							UnionTypes: map[string]MappedUnionSubtype{
-								"SimpleUnionEnumEnum": {
-									Index:                 0,
-									EnumeratedYANGTypeKey: "/openconfig-complex/single-key-config/simple-union-enum",
-								},
-								"uint64": {
-									Index:                 1,
-									EnumeratedYANGTypeKey: "",
-								},
-							},
-							IsEnumeratedValue:     false,
-							EnumeratedYANGTypeKey: "",
-							ZeroValue:             "",
-							DefaultValue:          nil,
-						},
-						MappedPaths: [][]string{
-							{"", "model", "a", "single-key", "config", "simple-union-enum"},
-						},
-						MappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-						},
-						ShadowMappedPaths: [][]string{
-							{"", "model", "a", "single-key", "state", "simple-union-enum"},
-						},
-						ShadowMappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-						},
-					},
-					"singleton-union-enum": {
-						Name: "singleton_union_enum",
-						YANGDetails: YANGNodeDetails{
-							Name:              "singleton-union-enum",
-							Defaults:          []string{"DEUX"},
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/a/single-key/config/singleton-union-enum",
-							SchemaPath:        "/model/a/single-key/config/singleton-union-enum",
-							ShadowSchemaPath:  "/model/a/single-key/state/singleton-union-enum",
-							LeafrefTargetPath: "",
-							Description:       "",
-						},
-						Type: LeafNode,
-						LangType: &MappedType{
-							NativeType:            "SingletonUnionEnumEnum",
-							UnionTypes:            nil,
-							IsEnumeratedValue:     true,
-							EnumeratedYANGTypeKey: "/openconfig-complex/single-key-config/singleton-union-enum",
-							ZeroValue:             "",
-							DefaultValue:          nil,
-						},
-						MappedPaths: [][]string{
-							{"", "model", "a", "single-key", "config", "singleton-union-enum"},
-						},
-						MappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-						},
-						ShadowMappedPaths: [][]string{
-							{"", "model", "a", "single-key", "state", "singleton-union-enum"},
-						},
-						ShadowMappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-						},
-					},
-					"typedef-enum": {
-						Name: "typedef_enum",
-						YANGDetails: YANGNodeDetails{
-							Name:              "typedef-enum",
-							Defaults:          []string{"SATURDAY"},
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/a/single-key/config/typedef-enum",
-							SchemaPath:        "/model/a/single-key/config/typedef-enum",
-							ShadowSchemaPath:  "/model/a/single-key/state/typedef-enum",
-							LeafrefTargetPath: "",
-							Description:       "",
-						},
-						Type: LeafNode,
-						LangType: &MappedType{
-							NativeType:            "openconfig.enums.ComplexWeekendDays",
-							UnionTypes:            nil,
-							IsEnumeratedValue:     true,
-							EnumeratedYANGTypeKey: "/openconfig-complex/weekend-days",
-							ZeroValue:             "",
-							DefaultValue:          nil,
-						},
-						MappedPaths: [][]string{
-							{"", "model", "a", "single-key", "config", "typedef-enum"},
-						},
-						MappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-						},
-						ShadowMappedPaths: [][]string{
-							{"", "model", "a", "single-key", "state", "typedef-enum"},
-						},
-						ShadowMappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-						},
-					},
-					"typedef-union-enum": {
-						Name: "typedef_union_enum",
-						YANGDetails: YANGNodeDetails{
-							Name:              "typedef-union-enum",
-							Defaults:          []string{"SUPER"},
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/a/single-key/config/typedef-union-enum",
-							SchemaPath:        "/model/a/single-key/config/typedef-union-enum",
-							ShadowSchemaPath:  "/model/a/single-key/state/typedef-union-enum",
-							LeafrefTargetPath: "",
-							Description:       "",
-						},
-						Type: LeafNode,
-						LangType: &MappedType{
-							NativeType: "",
-							UnionTypes: map[string]MappedUnionSubtype{
-								// protoLangMapper sorts by name instead of YANG order.
-								"openconfig.enums.ComplexCycloneScalesEnum": {
-									Index:                 0,
-									EnumeratedYANGTypeKey: "/openconfig-complex/cyclone-scales",
-								},
-								"uint64": {
-									Index:                 1,
-									EnumeratedYANGTypeKey: "",
-								},
-							},
-							IsEnumeratedValue:     false,
-							EnumeratedYANGTypeKey: "",
-							ZeroValue:             "",
-							DefaultValue:          nil,
-						},
-						MappedPaths: [][]string{
-							{"", "model", "a", "single-key", "config", "typedef-union-enum"},
-						},
-						MappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-						},
-						ShadowMappedPaths: [][]string{
-							{"", "model", "a", "single-key", "state", "typedef-union-enum"},
-						},
-						ShadowMappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-						},
-					},
-				},
-				ListKeys: map[string]*ListKey{
-					"key": {
-						Name: "key",
-						LangType: &MappedType{
-							NativeType: "",
-							UnionTypes: map[string]MappedUnionSubtype{
-								"openconfig.enums.ComplexWeekendDays": {
-									Index:                 0,
-									EnumeratedYANGTypeKey: "/openconfig-complex/weekend-days",
-								},
-								"uint64": {
-									Index:                 1,
-									EnumeratedYANGTypeKey: "",
-								},
-							},
-							ZeroValue: "",
-						},
-					},
-				},
-				ListKeyYANGNames:  []string{"key"},
-				PackageName:       packageName,
-				IsFakeRoot:        false,
-				BelongingModule:   "openconfig-complex",
-				RootElementModule: "openconfig-complex",
-				DefiningModule:    "openconfig-complex",
-			},
-			"/openconfig-complex/model/b/multi-key": {
-				Name: "MultiKey",
-				Type: List,
-				Path: "/openconfig-complex/model/b/multi-key",
-				Fields: map[string]*NodeDetails{
-					"key1": {
-						Name: "key1",
-						YANGDetails: YANGNodeDetails{
-							Name:              "key1",
-							Defaults:          nil,
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/b/multi-key/config/key1",
-							SchemaPath:        "/model/b/multi-key/config/key1",
-							ShadowSchemaPath:  "/model/b/multi-key/state/key1",
-							LeafrefTargetPath: "",
-							Description:       "",
-						},
-						Type:     LeafNode,
-						LangType: &MappedType{NativeType: "ywrapper.UintValue"},
-						MappedPaths: [][]string{
-							{"", "model", "b", "multi-key", "config", "key1"},
-							{"", "model", "b", "multi-key", "key1"},
-						},
-						MappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-							{
-								"",
-								"openconfig-complex",
-								"openconfig-complex",
-								"openconfig-complex",
-								"openconfig-complex",
-							},
-						},
-						ShadowMappedPaths: [][]string{
-							{"", "model", "b", "multi-key", "state", "key1"},
-							{"", "model", "b", "multi-key", "key1"},
-						},
-						ShadowMappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-							{
-								"",
-								"openconfig-complex",
-								"openconfig-complex",
-								"openconfig-complex",
-								"openconfig-complex",
-							},
-						},
-					},
-					"key2": {
-						Name: "key2",
-						YANGDetails: YANGNodeDetails{
-							Name:              "key2",
-							Defaults:          nil,
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/b/multi-key/config/key2",
-							SchemaPath:        "/model/b/multi-key/config/key2",
-							ShadowSchemaPath:  "/model/b/multi-key/state/key2",
-							LeafrefTargetPath: "",
-							Description:       "",
-						},
-						Type: LeafNode,
-						LangType: &MappedType{
-							NativeType:            "Key2",
-							IsEnumeratedValue:     true,
-							EnumeratedYANGTypeKey: "/openconfig-complex/multi-key-config/key2",
-							ZeroValue:             "",
-						},
-						MappedPaths: [][]string{
-							{"", "model", "b", "multi-key", "config", "key2"},
-							{"", "model", "b", "multi-key", "key2"},
-						},
-						MappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-							{
-								"",
-								"openconfig-complex",
-								"openconfig-complex",
-								"openconfig-complex",
-								"openconfig-complex",
-							},
-						},
-						ShadowMappedPaths: [][]string{
-							{"", "model", "b", "multi-key", "state", "key2"},
-							{"", "model", "b", "multi-key", "key2"},
-						},
-						ShadowMappedPathModules: [][]string{
-							{
-								"", "openconfig-complex", "openconfig-complex", "openconfig-complex",
-								"openconfig-complex", "openconfig-complex",
-							},
-							{
-								"",
-								"openconfig-complex",
-								"openconfig-complex",
-								"openconfig-complex",
-								"openconfig-complex",
-							},
-						},
-					},
-				},
-				ListKeys: map[string]*ListKey{
-					"key1": {
-						Name:     "key1",
-						LangType: &MappedType{NativeType: "uint64", ZeroValue: ""},
-					},
-					"key2": {
-						Name: "key2",
-						LangType: &MappedType{
-							NativeType:            "Key2",
-							IsEnumeratedValue:     true,
-							EnumeratedYANGTypeKey: "/openconfig-complex/multi-key-config/key2",
-							ZeroValue:             "",
-						},
-					},
-				},
-				ListKeyYANGNames:  []string{"key1", "key2"},
-				PackageName:       packageName,
-				IsFakeRoot:        false,
-				BelongingModule:   "openconfig-complex",
-				RootElementModule: "openconfig-complex",
-				DefiningModule:    "openconfig-complex",
-			},
-			"/openconfig-complex/model/c/unkeyed-list": {
-				Name: "UnkeyedList",
-				Type: List,
-				Path: "/openconfig-complex/model/c/unkeyed-list",
-				Fields: map[string]*NodeDetails{
-					"field": {
-						Name: "field",
-						YANGDetails: YANGNodeDetails{
-							Name:              "field",
-							BelongingModule:   "openconfig-complex",
-							RootElementModule: "openconfig-complex",
-							DefiningModule:    "openconfig-complex",
-							Path:              "/openconfig-complex/model/c/unkeyed-list/field",
-							SchemaPath:        "/model/c/unkeyed-list/field",
-						},
-						Type:              LeafNode,
-						LangType:          &MappedType{NativeType: "ywrapper.BytesValue"},
-						MappedPaths:       [][]string{{"", "model", "c", "unkeyed-list", "field"}},
-						MappedPathModules: [][]string{{"", "openconfig-complex", "openconfig-complex", "openconfig-complex", "openconfig-complex"}},
-					},
-				},
-				PackageName:       packageName,
-				BelongingModule:   "openconfig-complex",
-				RootElementModule: "openconfig-complex",
-				DefiningModule:    "openconfig-complex",
-				ConfigFalse:       true,
-			},
-		},
-		Enums: map[string]*EnumeratedYANGType{
-			"/openconfig-complex/cyclone-scales": {
-				Name:     "ComplexCycloneScalesEnum",
-				Kind:     DerivedUnionEnumerationType,
-				TypeName: "cyclone-scales",
-				ValToYANGDetails: []ygot.EnumDefinition{
-					{
-						Name:           "NORMAL",
-						DefiningModule: "",
-						Value:          0,
-					},
-					{
-						Name:           "SUPER",
-						DefiningModule: "",
-						Value:          1,
-					},
-				},
-			},
-			"/openconfig-complex/SOFTWARE": {
-				Name:             "ComplexSOFTWARE",
-				Kind:             IdentityType,
-				IdentityBaseName: "SOFTWARE",
-				TypeName:         "identityref",
-				ValToYANGDetails: []ygot.EnumDefinition{
-					{Name: "OS", DefiningModule: "openconfig-complex"},
-				},
-			},
-			"/openconfig-complex/multi-key-config/key2": {
-				Name:     "MultiKeyKey2",
-				Kind:     SimpleEnumerationType,
-				TypeName: "enumeration",
-				ValToYANGDetails: []ygot.EnumDefinition{
-					{
-						Name:           "RED",
-						DefiningModule: "",
-						Value:          0,
-					},
-					{
-						Name:           "BLUE",
-						DefiningModule: "",
-						Value:          1,
-					},
-				},
-			},
-			"/openconfig-complex/weekend-days": {
-				Name:     "ComplexWeekendDays",
-				Kind:     DerivedEnumerationType,
-				TypeName: "weekend-days",
-				ValToYANGDetails: []ygot.EnumDefinition{
-					{
-						Name:           "SATURDAY",
-						DefiningModule: "",
-						Value:          0,
-					},
-					{
-						Name:           "SUNDAY",
-						DefiningModule: "",
-						Value:          1,
-					},
-				},
-			},
-			"/openconfig-complex/single-key-config/simple-union-enum": {
-				Name:     "SingleKeySimpleUnionEnumEnum",
-				Kind:     UnionEnumerationType,
-				TypeName: "union",
-				ValToYANGDetails: []ygot.EnumDefinition{
-					{
-						Name:           "ONE",
-						DefiningModule: "",
-						Value:          0,
-					},
-					{
-						Name:           "TWO",
-						DefiningModule: "",
-						Value:          1,
-					},
-					{
-						Name:           "THREE",
-						DefiningModule: "",
-						Value:          2,
-					},
-				},
-			},
-			"/openconfig-complex/single-key-config/singleton-union-enum": {
-				Name:     "SingleKeySingletonUnionEnumEnum",
-				Kind:     UnionEnumerationType,
-				TypeName: "union",
-				ValToYANGDetails: []ygot.EnumDefinition{
-					{
-						Name:           "UN",
-						DefiningModule: "",
-						Value:          0,
-					},
-					{
-						Name:           "DEUX",
-						DefiningModule: "",
-						Value:          1,
-					},
-					{
-						Name:           "TROIS",
-						DefiningModule: "",
-						Value:          2,
-					},
-				},
-			},
-		},
-		ModelData: []*gpb.ModelData{{Name: "openconfig-complex"}},
-	}
-}
+// datapath is the path to common YANG test modules.
+const datapath = "../testdata/modules"
 
 type goLangMapper struct {
 	*GoLangMapper
@@ -916,7 +24,7 @@ type goLangMapper struct {
 
 // PopulateFieldFlags populates extra information given a particular
 // field of a ParsedDirectory and the corresponding AST node.
-func (goLangMapper) PopulateFieldFlags(nd NodeDetails, field *yang.Entry) map[string]string {
+func (goLangMapper) PopulateFieldFlags(nd ygen.NodeDetails, field *yang.Entry) map[string]string {
 	if field.Path() == "/openconfig-simple/parent" {
 		return map[string]string{"foo": "bar"}
 	} else {
@@ -926,7 +34,7 @@ func (goLangMapper) PopulateFieldFlags(nd NodeDetails, field *yang.Entry) map[st
 
 // PopulateEnumFlags populates extra information given a particular
 // enumerated type its corresponding AST representation.
-func (goLangMapper) PopulateEnumFlags(et EnumeratedYANGType, yangtype *yang.YangType) map[string]string {
+func (goLangMapper) PopulateEnumFlags(et ygen.EnumeratedYANGType, yangtype *yang.YangType) map[string]string {
 	return map[string]string{"typename": yangtype.Name}
 }
 
@@ -936,9 +44,9 @@ func TestGenerateIR(t *testing.T) {
 		inYANGFiles      []string
 		inIncludePaths   []string
 		inExcludeModules []string
-		inLangMapper     LangMapper
-		inOpts           IROptions
-		wantIR           *IR
+		inLangMapper     ygen.LangMapper
+		inOpts           ygen.IROptions
+		wantIR           *ygen.IR
 		wantErrSubstring string
 	}{{
 		desc: "simple openconfig test with compression",
@@ -947,8 +55,8 @@ func TestGenerateIR(t *testing.T) {
 			filepath.Join(datapath, "openconfig-simple-augment2.yang"),
 		},
 		inLangMapper: goLangMapper{GoLangMapper: NewGoLangMapper(true)},
-		inOpts: IROptions{
-			TransformationOptions: TransformationOpts{
+		inOpts: ygen.IROptions{
+			TransformationOptions: ygen.TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				ShortenEnumLeafNames:                 true,
 				EnumOrgPrefixesToTrim:                []string{"openconfig"},
@@ -958,16 +66,16 @@ func TestGenerateIR(t *testing.T) {
 			},
 			AppendEnumSuffixForSimpleUnionEnums: true,
 		},
-		wantIR: &IR{
-			Directories: map[string]*ParsedDirectory{
+		wantIR: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/device": {
 					Name: "Device",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/device",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"parent": {
 							Name: "Parent",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "parent",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -978,7 +86,7 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "I am a parent container\nthat has 4 children.",
 							},
-							Type:                    ContainerNode,
+							Type:                    ygen.ContainerNode,
 							MappedPaths:             [][]string{{"parent"}},
 							MappedPathModules:       [][]string{{"openconfig-simple"}},
 							ShadowMappedPaths:       nil,
@@ -987,7 +95,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"remote-container": {
 							Name: "RemoteContainer",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "remote-container",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -998,7 +106,7 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type:                    ContainerNode,
+							Type:                    ygen.ContainerNode,
 							MappedPaths:             [][]string{{"remote-container"}},
 							MappedPathModules:       [][]string{{"openconfig-simple"}},
 							ShadowMappedPaths:       nil,
@@ -1009,12 +117,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/parent": {
 					Name: "Parent",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/parent",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"child": {
 							Name: "Child",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "child",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1025,7 +133,7 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type:                    ContainerNode,
+							Type:                    ygen.ContainerNode,
 							LangType:                nil,
 							MappedPaths:             [][]string{{"child"}},
 							MappedPathModules:       [][]string{{"openconfig-simple"}},
@@ -1039,12 +147,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/parent/child": {
 					Name: "Parent_Child",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/parent/child",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"zero": {
 							Name: "Zero",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "zero",
 								BelongingModule:   "openconfig-simple-augment2",
 								RootElementModule: "openconfig-simple",
@@ -1054,8 +162,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType: "string",
 								ZeroValue:  `""`,
 							},
@@ -1066,7 +174,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"one": {
 							Name: "One",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "one",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1078,8 +186,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType:        "string",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1093,7 +201,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"two": {
 							Name: "Two",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "two",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1104,8 +212,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType:        "string",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1119,7 +227,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"three": {
 							Name: "Three",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "three",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1131,8 +239,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType:        "E_Child_Three",
 								UnionTypes:        nil,
 								IsEnumeratedValue: true,
@@ -1146,7 +254,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"four": {
 							Name: "Four",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "four",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1158,8 +266,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType:        "Binary",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1178,12 +286,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/remote-container": {
 					Name: "RemoteContainer",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/remote-container",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"a-leaf": {
 							Name: "ALeaf",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "a-leaf",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1195,8 +303,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType:        "string",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1214,10 +322,10 @@ func TestGenerateIR(t *testing.T) {
 					DefiningModule:    "openconfig-remote",
 				},
 			},
-			Enums: map[string]*EnumeratedYANGType{
+			Enums: map[string]*ygen.EnumeratedYANGType{
 				"/openconfig-simple/parent-config/three": {
 					Name:     "Child_Three",
-					Kind:     SimpleEnumerationType,
+					Kind:     ygen.SimpleEnumerationType,
 					TypeName: "enumeration",
 					ValToYANGDetails: []ygot.EnumDefinition{{
 						Name:  "ONE",
@@ -1238,8 +346,8 @@ func TestGenerateIR(t *testing.T) {
 			filepath.Join(datapath, "openconfig-simple-augment2.yang"),
 		},
 		inLangMapper: NewGoLangMapper(true),
-		inOpts: IROptions{
-			TransformationOptions: TransformationOpts{
+		inOpts: ygen.IROptions{
+			TransformationOptions: ygen.TransformationOpts{
 				CompressBehaviour:                    genutil.PreferOperationalState,
 				ShortenEnumLeafNames:                 true,
 				EnumOrgPrefixesToTrim:                []string{"openconfig"},
@@ -1249,16 +357,16 @@ func TestGenerateIR(t *testing.T) {
 			},
 			AppendEnumSuffixForSimpleUnionEnums: true,
 		},
-		wantIR: &IR{
-			Directories: map[string]*ParsedDirectory{
+		wantIR: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/device": {
 					Name: "Device",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/device",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"parent": {
 							Name: "Parent",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "parent",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1269,7 +377,7 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "I am a parent container\nthat has 4 children.",
 							},
-							Type:                    ContainerNode,
+							Type:                    ygen.ContainerNode,
 							MappedPaths:             [][]string{{"parent"}},
 							MappedPathModules:       [][]string{{"openconfig-simple"}},
 							ShadowMappedPaths:       nil,
@@ -1277,7 +385,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"remote-container": {
 							Name: "RemoteContainer",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "remote-container",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1288,7 +396,7 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type:                    ContainerNode,
+							Type:                    ygen.ContainerNode,
 							MappedPaths:             [][]string{{"remote-container"}},
 							MappedPathModules:       [][]string{{"openconfig-simple"}},
 							ShadowMappedPaths:       nil,
@@ -1299,12 +407,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/parent": {
 					Name: "Parent",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/parent",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"child": {
 							Name: "Child",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "child",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1315,7 +423,7 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type:                    ContainerNode,
+							Type:                    ygen.ContainerNode,
 							LangType:                nil,
 							MappedPaths:             [][]string{{"child"}},
 							MappedPathModules:       [][]string{{"openconfig-simple"}},
@@ -1329,12 +437,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/parent/child": {
 					Name: "Parent_Child",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/parent/child",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"zero": {
 							Name: "Zero",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "zero",
 								BelongingModule:   "openconfig-simple-augment2",
 								RootElementModule: "openconfig-simple",
@@ -1344,8 +452,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type:                    LeafNode,
-							LangType:                &MappedType{NativeType: "string", ZeroValue: `""`},
+							Type:                    ygen.LeafNode,
+							LangType:                &ygen.MappedType{NativeType: "string", ZeroValue: `""`},
 							MappedPaths:             [][]string{{"state", "zero"}},
 							MappedPathModules:       [][]string{{"openconfig-simple", "openconfig-simple-augment2"}},
 							ShadowMappedPaths:       nil,
@@ -1353,7 +461,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"one": {
 							Name: "One",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "one",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1365,8 +473,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType:        "string",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1380,7 +488,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"two": {
 							Name: "Two",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "two",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1391,8 +499,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType:        "string",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1406,7 +514,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"three": {
 							Name: "Three",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "three",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1418,8 +526,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType:        "E_ChildThree",
 								UnionTypes:        nil,
 								IsEnumeratedValue: true,
@@ -1433,7 +541,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"four": {
 							Name: "Four",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "four",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1445,8 +553,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType:        "Binary",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1465,12 +573,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/remote-container": {
 					Name: "RemoteContainer",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/remote-container",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"a-leaf": {
 							Name: "ALeaf",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "a-leaf",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1482,8 +590,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType:        "string",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1501,10 +609,10 @@ func TestGenerateIR(t *testing.T) {
 					DefiningModule:    "openconfig-remote",
 				},
 			},
-			Enums: map[string]*EnumeratedYANGType{
+			Enums: map[string]*ygen.EnumeratedYANGType{
 				"/openconfig-simple/parent-config/three": {
 					Name:     "ChildThree",
-					Kind:     SimpleEnumerationType,
+					Kind:     ygen.SimpleEnumerationType,
 					TypeName: "enumeration",
 					ValToYANGDetails: []ygot.EnumDefinition{{
 						Name:  "ONE",
@@ -1524,8 +632,8 @@ func TestGenerateIR(t *testing.T) {
 			filepath.Join(datapath, "openconfig-simple-augment2.yang"),
 		},
 		inLangMapper: NewGoLangMapper(true),
-		inOpts: IROptions{
-			TransformationOptions: TransformationOpts{
+		inOpts: ygen.IROptions{
+			TransformationOptions: ygen.TransformationOpts{
 				CompressBehaviour:                    genutil.Uncompressed,
 				ShortenEnumLeafNames:                 true,
 				EnumOrgPrefixesToTrim:                []string{"openconfig"},
@@ -1535,16 +643,16 @@ func TestGenerateIR(t *testing.T) {
 			},
 			AppendEnumSuffixForSimpleUnionEnums: true,
 		},
-		wantIR: &IR{
-			Directories: map[string]*ParsedDirectory{
+		wantIR: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/device": {
 					Name: "Device",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/device",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"parent": {
 							Name: "Parent",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "parent",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1555,7 +663,7 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "I am a parent container\nthat has 4 children.",
 							},
-							Type:                    ContainerNode,
+							Type:                    ygen.ContainerNode,
 							MappedPaths:             [][]string{{"parent"}},
 							MappedPathModules:       [][]string{{"openconfig-simple"}},
 							ShadowMappedPaths:       nil,
@@ -1563,7 +671,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"remote-container": {
 							Name: "RemoteContainer",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "remote-container",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1574,7 +682,7 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type:                    ContainerNode,
+							Type:                    ygen.ContainerNode,
 							MappedPaths:             [][]string{{"remote-container"}},
 							MappedPathModules:       [][]string{{"openconfig-simple"}},
 							ShadowMappedPaths:       nil,
@@ -1585,12 +693,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/parent": {
 					Name: "OpenconfigSimple_Parent",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/parent",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"child": {
 							Name: "Child",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "child",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1601,7 +709,7 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type:                    ContainerNode,
+							Type:                    ygen.ContainerNode,
 							LangType:                nil,
 							MappedPaths:             [][]string{{"child"}},
 							MappedPathModules:       [][]string{{"openconfig-simple"}},
@@ -1615,12 +723,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/parent/child": {
 					Name: "OpenconfigSimple_Parent_Child",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/parent/child",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"config": {
 							Name: "Config",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "config",
 								BelongingModule:   "openconfig-simple",
 								RootElementModule: "openconfig-simple",
@@ -1636,7 +744,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"state": {
 							Name: "State",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "state",
 								BelongingModule:   "openconfig-simple",
 								RootElementModule: "openconfig-simple",
@@ -1659,12 +767,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/parent/child/config": {
 					Name: "OpenconfigSimple_Parent_Child_Config",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/parent/child/config",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"four": {
 							Name: "Four",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "four",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1676,7 +784,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "Binary",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1690,7 +798,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"one": {
 							Name: "One",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "one",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1702,7 +810,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "string",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1716,7 +824,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"three": {
 							Name: "Three",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "three",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1728,7 +836,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "E_Simple_Parent_Child_Config_Three",
 								UnionTypes:        nil,
 								IsEnumeratedValue: true,
@@ -1749,12 +857,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/parent/child/state": {
 					Name: "OpenconfigSimple_Parent_Child_State",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/parent/child/state",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"four": {
 							Name: "Four",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "four",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1766,7 +874,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "Binary",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1780,7 +888,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"one": {
 							Name: "One",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "one",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1792,7 +900,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "string",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1806,7 +914,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"three": {
 							Name: "Three",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "three",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1818,7 +926,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "E_Simple_Parent_Child_Config_Three",
 								UnionTypes:        nil,
 								IsEnumeratedValue: true,
@@ -1832,7 +940,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"two": {
 							Name: "Two",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "two",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1844,7 +952,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "string",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1858,7 +966,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"zero": {
 							Name: "Zero",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "zero",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple-augment2",
@@ -1870,7 +978,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "string",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1892,12 +1000,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/remote-container": {
 					Name: "OpenconfigSimple_RemoteContainer",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/remote-container",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"config": {
 							Name: "Config",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "config",
 								BelongingModule:   "openconfig-simple",
 								RootElementModule: "openconfig-simple",
@@ -1913,7 +1021,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"state": {
 							Name: "State",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "state",
 								BelongingModule:   "openconfig-simple",
 								RootElementModule: "openconfig-simple",
@@ -1936,12 +1044,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/remote-container/config": {
 					Name: "OpenconfigSimple_RemoteContainer_Config",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/remote-container/config",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"a-leaf": {
 							Name: "ALeaf",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "a-leaf",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1953,7 +1061,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "string",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -1972,12 +1080,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-simple/remote-container/state": {
 					Name: "OpenconfigSimple_RemoteContainer_State",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-simple/remote-container/state",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"a-leaf": {
 							Name: "ALeaf",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "a-leaf",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-simple",
@@ -1989,7 +1097,7 @@ func TestGenerateIR(t *testing.T) {
 								Description:       "",
 							},
 							Type: 3,
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType:        "string",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -2008,7 +1116,7 @@ func TestGenerateIR(t *testing.T) {
 					ConfigFalse:       true,
 				},
 			},
-			Enums: map[string]*EnumeratedYANGType{
+			Enums: map[string]*ygen.EnumeratedYANGType{
 				"/openconfig-simple/parent-config/three": {
 					Name:     "Simple_Parent_Child_Config_Three",
 					Kind:     1,
@@ -2029,8 +1137,8 @@ func TestGenerateIR(t *testing.T) {
 		inYANGFiles:      []string{filepath.Join(datapath, "excluded-module-noimport.yang")},
 		inExcludeModules: []string{"excluded-module-two"},
 		inLangMapper:     NewGoLangMapper(true),
-		inOpts: IROptions{
-			TransformationOptions: TransformationOpts{
+		inOpts: ygen.IROptions{
+			TransformationOptions: ygen.TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				ShortenEnumLeafNames:                 true,
 				UseDefiningModuleForTypedefEnumNames: true,
@@ -2039,16 +1147,16 @@ func TestGenerateIR(t *testing.T) {
 			},
 			AppendEnumSuffixForSimpleUnionEnums: true,
 		},
-		wantIR: &IR{
-			Directories: map[string]*ParsedDirectory{
+		wantIR: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/device": {
 					Name: "Device",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/device",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"e1": {
 							Name: "E1",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "e1",
 								Defaults:          nil,
 								BelongingModule:   "excluded-module-noimport",
@@ -2059,8 +1167,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType:        "string",
 								UnionTypes:        nil,
 								IsEnumeratedValue: false,
@@ -2083,8 +1191,8 @@ func TestGenerateIR(t *testing.T) {
 		desc:         "complex openconfig test with compression",
 		inYANGFiles:  []string{filepath.Join(datapath, "openconfig-complex.yang")},
 		inLangMapper: NewGoLangMapper(true),
-		inOpts: IROptions{
-			TransformationOptions: TransformationOpts{
+		inOpts: ygen.IROptions{
+			TransformationOptions: ygen.TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				ShortenEnumLeafNames:                 true,
 				EnumOrgPrefixesToTrim:                []string{"openconfig"},
@@ -2094,16 +1202,16 @@ func TestGenerateIR(t *testing.T) {
 			},
 			AppendEnumSuffixForSimpleUnionEnums: true,
 		},
-		wantIR: &IR{
-			Directories: map[string]*ParsedDirectory{
+		wantIR: &ygen.IR{
+			Directories: map[string]*ygen.ParsedDirectory{
 				"/device": {
 					Name: "Device",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/device",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"model": {
 							Name: "Model",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "model",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-complex",
@@ -2114,7 +1222,7 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type:                    ContainerNode,
+							Type:                    ygen.ContainerNode,
 							LangType:                nil,
 							MappedPaths:             [][]string{{"model"}},
 							MappedPathModules:       [][]string{{"openconfig-complex"}},
@@ -2123,7 +1231,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"example-presence": {
 							Name: "ExamplePresence",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "example-presence",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-complex",
@@ -2135,7 +1243,7 @@ func TestGenerateIR(t *testing.T) {
 								PresenceStatement: ygot.String("This is an example presence container"),
 								Description:       "",
 							},
-							Type:                    ContainerNode,
+							Type:                    ygen.ContainerNode,
 							LangType:                nil,
 							MappedPaths:             [][]string{{"example-presence"}},
 							MappedPathModules:       [][]string{{"openconfig-complex"}},
@@ -2147,9 +1255,9 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-complex/example-presence": {
 					Name:              "ExamplePresence",
-					Type:              Container,
+					Type:              ygen.Container,
 					Path:              "/openconfig-complex/example-presence",
-					Fields:            map[string]*NodeDetails{},
+					Fields:            map[string]*ygen.NodeDetails{},
 					PackageName:       "",
 					ListKeys:          nil,
 					IsFakeRoot:        false,
@@ -2159,12 +1267,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-complex/model": {
 					Name: "Model",
-					Type: Container,
+					Type: ygen.Container,
 					Path: "/openconfig-complex/model",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"anydata-leaf": {
 							Name: "AnydataLeaf",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "anydata-leaf",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-complex",
@@ -2175,7 +1283,7 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "some anydata leaf",
 							},
-							Type:                    AnyDataNode,
+							Type:                    ygen.AnyDataNode,
 							LangType:                nil,
 							MappedPaths:             [][]string{{"anydata-leaf"}},
 							MappedPathModules:       [][]string{{"openconfig-complex"}},
@@ -2184,7 +1292,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"dateref": {
 							Name: "Dateref",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "dateref",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-complex",
@@ -2195,8 +1303,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "/openconfig-complex/model/a/single-key/config/dates",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType:   "uint8",
 								ZeroValue:    "0",
 								DefaultValue: ygot.String("5"),
@@ -2208,7 +1316,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"multi-key": {
 							Name: "MultiKey",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "multi-key",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-complex",
@@ -2219,7 +1327,7 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type:                    ListNode,
+							Type:                    ygen.ListNode,
 							LangType:                nil,
 							MappedPaths:             [][]string{{"b", "multi-key"}},
 							MappedPathModules:       [][]string{{"openconfig-complex", "openconfig-complex"}},
@@ -2228,7 +1336,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"single-key": {
 							Name: "SingleKey",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "single-key",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-complex",
@@ -2239,7 +1347,7 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type:                    ListNode,
+							Type:                    ygen.ListNode,
 							LangType:                nil,
 							MappedPaths:             [][]string{{"a", "single-key"}},
 							MappedPathModules:       [][]string{{"openconfig-complex", "openconfig-complex"}},
@@ -2248,7 +1356,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"unkeyed-list": {
 							Name: "UnkeyedList",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "unkeyed-list",
 								BelongingModule:   "openconfig-complex",
 								RootElementModule: "openconfig-complex",
@@ -2256,7 +1364,7 @@ func TestGenerateIR(t *testing.T) {
 								Path:              "/openconfig-complex/model/c/unkeyed-list",
 								SchemaPath:        "/model/c/unkeyed-list",
 							},
-							Type:              ListNode,
+							Type:              ygen.ListNode,
 							MappedPaths:       [][]string{{"c", "unkeyed-list"}},
 							MappedPathModules: [][]string{{"openconfig-complex", "openconfig-complex"}},
 						},
@@ -2269,12 +1377,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-complex/model/a/single-key": {
 					Name: "Model_SingleKey",
-					Type: List,
+					Type: ygen.List,
 					Path: "/openconfig-complex/model/a/single-key",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"dates": {
 							Name: "Dates",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "dates",
 								Defaults:          []string{"5"},
 								BelongingModule:   "openconfig-complex",
@@ -2286,8 +1394,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type:                    LeafListNode,
-							LangType:                &MappedType{NativeType: "uint8", ZeroValue: "0", DefaultValue: ygot.String("[]uint8{5}")},
+							Type:                    ygen.LeafListNode,
+							LangType:                &ygen.MappedType{NativeType: "uint8", ZeroValue: "0", DefaultValue: ygot.String("[]uint8{5}")},
 							MappedPaths:             [][]string{{"config", "dates"}},
 							MappedPathModules:       [][]string{{"openconfig-complex", "openconfig-complex"}},
 							ShadowMappedPaths:       [][]string{{"state", "dates"}},
@@ -2295,7 +1403,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"dates-with-defaults": {
 							Name: "DatesWithDefaults",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "dates-with-defaults",
 								Defaults:          []string{"1", "2"},
 								BelongingModule:   "openconfig-complex",
@@ -2307,8 +1415,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type:                    LeafListNode,
-							LangType:                &MappedType{NativeType: "uint8", ZeroValue: "0", DefaultValue: ygot.String("[]uint8{1, 2}")},
+							Type:                    ygen.LeafListNode,
+							LangType:                &ygen.MappedType{NativeType: "uint8", ZeroValue: "0", DefaultValue: ygot.String("[]uint8{1, 2}")},
 							MappedPaths:             [][]string{{"config", "dates-with-defaults"}},
 							MappedPathModules:       [][]string{{"openconfig-complex", "openconfig-complex"}},
 							ShadowMappedPaths:       [][]string{{"state", "dates-with-defaults"}},
@@ -2316,7 +1424,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"iref": {
 							Name: "Iref",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "iref",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-complex",
@@ -2328,8 +1436,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType:        "E_Complex_SOFTWARE",
 								IsEnumeratedValue: true,
 								ZeroValue:         "0",
@@ -2339,9 +1447,31 @@ func TestGenerateIR(t *testing.T) {
 							ShadowMappedPaths:       [][]string{{"state", "iref"}},
 							ShadowMappedPathModules: [][]string{{"openconfig-complex", "openconfig-complex"}},
 						},
+						"iref2": {
+							Name: "Iref2",
+							YANGDetails: ygen.YANGNodeDetails{
+								Name:              "iref2",
+								BelongingModule:   "openconfig-complex",
+								RootElementModule: "openconfig-complex",
+								DefiningModule:    "openconfig-complex",
+								Path:              "/openconfig-complex/model/a/single-key/config/iref2",
+								SchemaPath:        "/model/a/single-key/config/iref2",
+								ShadowSchemaPath:  "/model/a/single-key/state/iref2",
+							},
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
+								NativeType:        "E_Complex_Program",
+								IsEnumeratedValue: true,
+								ZeroValue:         "0",
+							},
+							MappedPaths:             [][]string{{"config", "iref2"}},
+							MappedPathModules:       [][]string{{"openconfig-complex", "openconfig-complex"}},
+							ShadowMappedPaths:       [][]string{{"state", "iref2"}},
+							ShadowMappedPathModules: [][]string{{"openconfig-complex", "openconfig-complex"}},
+						},
 						"key": {
 							Name: "Key",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "key",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-complex",
@@ -2353,10 +1483,10 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType: "Model_SingleKey_Key_Union",
-								UnionTypes: map[string]MappedUnionSubtype{
+								UnionTypes: map[string]ygen.MappedUnionSubtype{
 									"E_Complex_WeekendDays": {
 										Index: 1,
 									},
@@ -2373,7 +1503,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"leaf-default-override": {
 							Name: "LeafDefaultOverride",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "leaf-default-override",
 								Defaults:          []string{"3"},
 								BelongingModule:   "openconfig-complex",
@@ -2385,10 +1515,10 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType: "Model_SingleKey_LeafDefaultOverride_Union",
-								UnionTypes: map[string]MappedUnionSubtype{
+								UnionTypes: map[string]ygen.MappedUnionSubtype{
 									"E_Complex_CycloneScales_Enum": {
 										Index: 1,
 									},
@@ -2406,7 +1536,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"simple-union-enum": {
 							Name: "SimpleUnionEnum",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "simple-union-enum",
 								Defaults:          []string{"TWO"},
 								BelongingModule:   "openconfig-complex",
@@ -2418,10 +1548,10 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType: "Model_SingleKey_SimpleUnionEnum_Union",
-								UnionTypes: map[string]MappedUnionSubtype{
+								UnionTypes: map[string]ygen.MappedUnionSubtype{
 									"E_SingleKey_SimpleUnionEnum_Enum": {
 										Index: 1,
 									},
@@ -2439,7 +1569,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"singleton-union-enum": {
 							Name: "SingletonUnionEnum",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "singleton-union-enum",
 								Defaults:          []string{"DEUX"},
 								BelongingModule:   "openconfig-complex",
@@ -2451,10 +1581,10 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType: "E_SingleKey_SingletonUnionEnum_Enum",
-								UnionTypes: map[string]MappedUnionSubtype{
+								UnionTypes: map[string]ygen.MappedUnionSubtype{
 									"E_SingleKey_SingletonUnionEnum_Enum": {
 										Index: 0,
 									},
@@ -2470,7 +1600,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"typedef-enum": {
 							Name: "TypedefEnum",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "typedef-enum",
 								Defaults:          []string{"SATURDAY"},
 								BelongingModule:   "openconfig-complex",
@@ -2482,8 +1612,8 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType:        "E_Complex_WeekendDays",
 								IsEnumeratedValue: true,
 								ZeroValue:         "0",
@@ -2496,7 +1626,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"typedef-union-enum": {
 							Name: "TypedefUnionEnum",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "typedef-union-enum",
 								Defaults:          []string{"SUPER"},
 								BelongingModule:   "openconfig-complex",
@@ -2508,10 +1638,10 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType: "Model_SingleKey_TypedefUnionEnum_Union",
-								UnionTypes: map[string]MappedUnionSubtype{
+								UnionTypes: map[string]ygen.MappedUnionSubtype{
 									"E_Complex_CycloneScales_Enum": {
 										Index: 1,
 									},
@@ -2528,12 +1658,12 @@ func TestGenerateIR(t *testing.T) {
 							ShadowMappedPathModules: [][]string{{"openconfig-complex", "openconfig-complex"}},
 						},
 					},
-					ListKeys: map[string]*ListKey{
+					ListKeys: map[string]*ygen.ListKey{
 						"key": {
 							Name: "Key",
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType: "Model_SingleKey_Key_Union",
-								UnionTypes: map[string]MappedUnionSubtype{
+								UnionTypes: map[string]ygen.MappedUnionSubtype{
 									"E_Complex_WeekendDays": {
 										Index: 1,
 									},
@@ -2554,12 +1684,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-complex/model/b/multi-key": {
 					Name: "Model_MultiKey",
-					Type: List,
+					Type: ygen.List,
 					Path: "/openconfig-complex/model/b/multi-key",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"key1": {
 							Name: "Key1",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "key1",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-complex",
@@ -2571,10 +1701,10 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type: LeafNode,
-							LangType: &MappedType{
+							Type: ygen.LeafNode,
+							LangType: &ygen.MappedType{
 								NativeType: "uint32",
-								UnionTypes: map[string]MappedUnionSubtype{
+								UnionTypes: map[string]ygen.MappedUnionSubtype{
 									"uint32": {
 										Index: 0,
 									},
@@ -2588,7 +1718,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"key2": {
 							Name: "Key2",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "key2",
 								Defaults:          nil,
 								BelongingModule:   "openconfig-complex",
@@ -2600,20 +1730,20 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 							},
-							Type:                    LeafNode,
-							LangType:                &MappedType{NativeType: "E_MultiKey_Key2", IsEnumeratedValue: true, ZeroValue: "0"},
+							Type:                    ygen.LeafNode,
+							LangType:                &ygen.MappedType{NativeType: "E_MultiKey_Key2", IsEnumeratedValue: true, ZeroValue: "0"},
 							MappedPaths:             [][]string{{"config", "key2"}, {"key2"}},
 							MappedPathModules:       [][]string{{"openconfig-complex", "openconfig-complex"}, {"openconfig-complex"}},
 							ShadowMappedPaths:       [][]string{{"state", "key2"}, {"key2"}},
 							ShadowMappedPathModules: [][]string{{"openconfig-complex", "openconfig-complex"}, {"openconfig-complex"}},
 						},
 					},
-					ListKeys: map[string]*ListKey{
+					ListKeys: map[string]*ygen.ListKey{
 						"key1": {
 							Name: "Key1",
-							LangType: &MappedType{
+							LangType: &ygen.MappedType{
 								NativeType: "uint32",
-								UnionTypes: map[string]MappedUnionSubtype{
+								UnionTypes: map[string]ygen.MappedUnionSubtype{
 									"uint32": {
 										Index: 0,
 									},
@@ -2623,7 +1753,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 						"key2": {
 							Name:     "Key2",
-							LangType: &MappedType{NativeType: "E_MultiKey_Key2", IsEnumeratedValue: true, ZeroValue: "0"},
+							LangType: &ygen.MappedType{NativeType: "E_MultiKey_Key2", IsEnumeratedValue: true, ZeroValue: "0"},
 						},
 					},
 					ListKeyYANGNames:  []string{"key1", "key2"},
@@ -2635,12 +1765,12 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-complex/model/c/unkeyed-list": {
 					Name: "Model_UnkeyedList",
-					Type: List,
+					Type: ygen.List,
 					Path: "/openconfig-complex/model/c/unkeyed-list",
-					Fields: map[string]*NodeDetails{
+					Fields: map[string]*ygen.NodeDetails{
 						"field": {
 							Name: "Field",
-							YANGDetails: YANGNodeDetails{
+							YANGDetails: ygen.YANGNodeDetails{
 								Name:              "field",
 								BelongingModule:   "openconfig-complex",
 								RootElementModule: "openconfig-complex",
@@ -2648,8 +1778,8 @@ func TestGenerateIR(t *testing.T) {
 								Path:              "/openconfig-complex/model/c/unkeyed-list/field",
 								SchemaPath:        "/model/c/unkeyed-list/field",
 							},
-							Type:              LeafNode,
-							LangType:          &MappedType{NativeType: "Binary", ZeroValue: "nil"},
+							Type:              ygen.LeafNode,
+							LangType:          &ygen.MappedType{NativeType: "Binary", ZeroValue: "nil"},
 							MappedPaths:       [][]string{{"field"}},
 							MappedPathModules: [][]string{{"openconfig-complex"}},
 						},
@@ -2660,10 +1790,10 @@ func TestGenerateIR(t *testing.T) {
 					ConfigFalse:       true,
 				},
 			},
-			Enums: map[string]*EnumeratedYANGType{
+			Enums: map[string]*ygen.EnumeratedYANGType{
 				"/openconfig-complex/cyclone-scales": {
 					Name:     "Complex_CycloneScales_Enum",
-					Kind:     DerivedUnionEnumerationType,
+					Kind:     ygen.DerivedUnionEnumerationType,
 					TypeName: "cyclone-scales",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{
@@ -2680,16 +1810,25 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-complex/SOFTWARE": {
 					Name:             "Complex_SOFTWARE",
-					Kind:             IdentityType,
+					Kind:             ygen.IdentityType,
 					IdentityBaseName: "SOFTWARE",
 					TypeName:         "identityref",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{Name: "OS", DefiningModule: "openconfig-complex"},
 					},
 				},
+				"/openconfig-complex/program": {
+					Name:             "Complex_Program",
+					Kind:             ygen.IdentityType,
+					IdentityBaseName: "SOFTWARE",
+					TypeName:         "program",
+					ValToYANGDetails: []ygot.EnumDefinition{
+						{Name: "OS", DefiningModule: "openconfig-complex"},
+					},
+				},
 				"/openconfig-complex/multi-key-config/key2": {
 					Name:     "MultiKey_Key2",
-					Kind:     SimpleEnumerationType,
+					Kind:     ygen.SimpleEnumerationType,
 					TypeName: "enumeration",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{
@@ -2706,7 +1845,7 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-complex/weekend-days": {
 					Name:     "Complex_WeekendDays",
-					Kind:     DerivedEnumerationType,
+					Kind:     ygen.DerivedEnumerationType,
 					TypeName: "weekend-days",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{
@@ -2723,7 +1862,7 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-complex/single-key-config/simple-union-enum": {
 					Name:     "SingleKey_SimpleUnionEnum_Enum",
-					Kind:     UnionEnumerationType,
+					Kind:     ygen.UnionEnumerationType,
 					TypeName: "union",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{
@@ -2745,7 +1884,7 @@ func TestGenerateIR(t *testing.T) {
 				},
 				"/openconfig-complex/single-key-config/singleton-union-enum": {
 					Name:     "SingleKey_SingletonUnionEnum_Enum",
-					Kind:     UnionEnumerationType,
+					Kind:     ygen.UnionEnumerationType,
 					TypeName: "union",
 					ValToYANGDetails: []ygot.EnumDefinition{
 						{
@@ -2768,569 +1907,16 @@ func TestGenerateIR(t *testing.T) {
 			},
 			ModelData: []*gpb.ModelData{{Name: "openconfig-complex"}},
 		},
-	}, {
-		desc:        "complex openconfig test with compression using ProtoLangMapper with nested directories",
-		inYANGFiles: []string{filepath.Join(datapath, "openconfig-complex.yang")},
-		inLangMapper: func() LangMapper {
-			return NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
-		}(),
-		inOpts: IROptions{
-			NestedDirectories: true,
-			AbsoluteMapPaths:  true,
-			TransformationOptions: TransformationOpts{
-				CompressBehaviour:                    genutil.PreferIntendedConfig,
-				ShortenEnumLeafNames:                 true,
-				EnumOrgPrefixesToTrim:                []string{"openconfig"},
-				UseDefiningModuleForTypedefEnumNames: true,
-				EnumerationsUseUnderscores:           false,
-				GenerateFakeRoot:                     true,
-			},
-			AppendEnumSuffixForSimpleUnionEnums: true,
-		},
-		wantIR: protoIR(true),
-	}, {
-		desc:        "complex openconfig test with compression using ProtoLangMapper",
-		inYANGFiles: []string{filepath.Join(datapath, "openconfig-complex.yang")},
-		inLangMapper: func() LangMapper {
-			return NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
-		}(),
-		inOpts: IROptions{
-			NestedDirectories: false,
-			AbsoluteMapPaths:  true,
-			TransformationOptions: TransformationOpts{
-				CompressBehaviour:                    genutil.PreferIntendedConfig,
-				ShortenEnumLeafNames:                 true,
-				EnumOrgPrefixesToTrim:                []string{"openconfig"},
-				UseDefiningModuleForTypedefEnumNames: true,
-				EnumerationsUseUnderscores:           false,
-				GenerateFakeRoot:                     true,
-			},
-			AppendEnumSuffixForSimpleUnionEnums: true,
-		},
-		wantIR: protoIR(false),
-	}, {
-		desc: "simple openconfig test without compression using ProtoLangMapper with nested directories",
-		inYANGFiles: []string{
-			filepath.Join(datapath, "openconfig-simple.yang"),
-			filepath.Join(datapath, "openconfig-simple-augment2.yang"),
-		},
-		inLangMapper: func() LangMapper {
-			return NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
-		}(),
-		inOpts: IROptions{
-			TransformationOptions: TransformationOpts{
-				CompressBehaviour:                    genutil.Uncompressed,
-				ShortenEnumLeafNames:                 true,
-				EnumOrgPrefixesToTrim:                []string{"openconfig"},
-				UseDefiningModuleForTypedefEnumNames: true,
-				EnumerationsUseUnderscores:           true,
-				GenerateFakeRoot:                     true,
-			},
-			AppendEnumSuffixForSimpleUnionEnums: true,
-		},
-		wantIR: &IR{
-			Directories: map[string]*ParsedDirectory{
-				"/device": {
-					Name: "Device",
-					Type: Container,
-					Path: "/device",
-					Fields: map[string]*NodeDetails{
-						"parent": {
-							Name: "parent",
-							YANGDetails: YANGNodeDetails{
-								Name:              "parent",
-								Defaults:          nil,
-								BelongingModule:   "openconfig-simple",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-simple",
-								Path:              "/openconfig-simple/parent",
-								SchemaPath:        "/parent",
-								LeafrefTargetPath: "",
-								Description:       "I am a parent container\nthat has 4 children.",
-							},
-							Type:                    ContainerNode,
-							MappedPaths:             [][]string{{"parent"}},
-							MappedPathModules:       [][]string{{"openconfig-simple"}},
-							ShadowMappedPaths:       nil,
-							ShadowMappedPathModules: nil,
-						},
-						"remote-container": {
-							Name: "remote_container",
-							YANGDetails: YANGNodeDetails{
-								Name:              "remote-container",
-								Defaults:          nil,
-								BelongingModule:   "openconfig-simple",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-remote",
-								Path:              "/openconfig-simple/remote-container",
-								SchemaPath:        "/remote-container",
-								LeafrefTargetPath: "",
-								Description:       "",
-							},
-							Type:                    ContainerNode,
-							MappedPaths:             [][]string{{"remote-container"}},
-							MappedPathModules:       [][]string{{"openconfig-simple"}},
-							ShadowMappedPaths:       nil,
-							ShadowMappedPathModules: nil,
-						},
-					},
-					IsFakeRoot: true,
-				},
-				"/openconfig-simple/parent": {
-					Name: "Parent",
-					Type: Container,
-					Path: "/openconfig-simple/parent",
-					Fields: map[string]*NodeDetails{
-						"child": {
-							Name: "child",
-							YANGDetails: YANGNodeDetails{
-								Name:              "child",
-								Defaults:          nil,
-								BelongingModule:   "openconfig-simple",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-simple",
-								Path:              "/openconfig-simple/parent/child",
-								SchemaPath:        "/parent/child",
-								LeafrefTargetPath: "",
-								Description:       "",
-							},
-							Type:                    ContainerNode,
-							LangType:                nil,
-							MappedPaths:             [][]string{{"child"}},
-							MappedPathModules:       [][]string{{"openconfig-simple"}},
-							ShadowMappedPaths:       nil,
-							ShadowMappedPathModules: nil,
-						},
-					},
-					PackageName:       "openconfig_simple",
-					BelongingModule:   "openconfig-simple",
-					RootElementModule: "openconfig-simple",
-					DefiningModule:    "openconfig-simple",
-				},
-				"/openconfig-simple/parent/child": {
-					Name: "Child",
-					Type: Container,
-					Path: "/openconfig-simple/parent/child",
-					Fields: map[string]*NodeDetails{
-						"config": {
-							Name: "config",
-							YANGDetails: YANGNodeDetails{
-								Name:              "config",
-								BelongingModule:   "openconfig-simple",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-simple",
-								Path:              "/openconfig-simple/parent/child/config",
-								SchemaPath:        "/parent/child/config",
-								LeafrefTargetPath: "",
-								Description:       "",
-							},
-							Type:              1,
-							MappedPaths:       [][]string{{"config"}},
-							MappedPathModules: [][]string{{"openconfig-simple"}},
-						},
-						"state": {
-							Name: "state",
-							YANGDetails: YANGNodeDetails{
-								Name:              "state",
-								BelongingModule:   "openconfig-simple",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-simple",
-								Path:              "/openconfig-simple/parent/child/state",
-								SchemaPath:        "/parent/child/state",
-								LeafrefTargetPath: "",
-								Description:       "",
-							},
-							Type:              1,
-							MappedPaths:       [][]string{{"state"}},
-							MappedPathModules: [][]string{{"openconfig-simple"}},
-						},
-					},
-					ListKeys:          nil,
-					PackageName:       "openconfig_simple.parent",
-					BelongingModule:   "openconfig-simple",
-					RootElementModule: "openconfig-simple",
-					DefiningModule:    "openconfig-simple",
-				},
-				"/openconfig-simple/parent/child/config": {
-					Name: "Config",
-					Type: Container,
-					Path: "/openconfig-simple/parent/child/config",
-					Fields: map[string]*NodeDetails{
-						"four": {
-							Name: "four",
-							YANGDetails: YANGNodeDetails{
-								Name:              "four",
-								Defaults:          nil,
-								BelongingModule:   "openconfig-simple",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-simple",
-								Path:              "/openconfig-simple/parent/child/config/four",
-								SchemaPath:        "/parent/child/config/four",
-								LeafrefTargetPath: "",
-								Description:       "",
-							},
-							Type: 3,
-							LangType: &MappedType{
-								NativeType:        "ywrapper.BytesValue",
-								UnionTypes:        nil,
-								IsEnumeratedValue: false,
-								ZeroValue:         "",
-								DefaultValue:      nil,
-							},
-							MappedPaths:             [][]string{{"four"}},
-							MappedPathModules:       [][]string{{"openconfig-simple"}},
-							ShadowMappedPaths:       nil,
-							ShadowMappedPathModules: nil,
-						},
-						"one": {
-							Name: "one",
-							YANGDetails: YANGNodeDetails{
-								Name:              "one",
-								Defaults:          nil,
-								BelongingModule:   "openconfig-simple",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-simple",
-								Path:              "/openconfig-simple/parent/child/config/one",
-								SchemaPath:        "/parent/child/config/one",
-								LeafrefTargetPath: "",
-								Description:       "",
-							},
-							Type: 3,
-							LangType: &MappedType{
-								NativeType:        "ywrapper.StringValue",
-								UnionTypes:        nil,
-								IsEnumeratedValue: false,
-								ZeroValue:         ``,
-								DefaultValue:      nil,
-							},
-							MappedPaths:             [][]string{{"one"}},
-							MappedPathModules:       [][]string{{"openconfig-simple"}},
-							ShadowMappedPaths:       nil,
-							ShadowMappedPathModules: nil,
-						},
-						"three": {
-							Name: "three",
-							YANGDetails: YANGNodeDetails{
-								Name:              "three",
-								Defaults:          nil,
-								BelongingModule:   "openconfig-simple",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-simple",
-								Path:              "/openconfig-simple/parent/child/config/three",
-								SchemaPath:        "/parent/child/config/three",
-								LeafrefTargetPath: "",
-								Description:       "",
-							},
-							Type: 3,
-							LangType: &MappedType{
-								NativeType:            "Three",
-								UnionTypes:            nil,
-								IsEnumeratedValue:     true,
-								EnumeratedYANGTypeKey: "/openconfig-simple/parent-config/three",
-								DefaultValue:          nil,
-							},
-							MappedPaths:             [][]string{{"three"}},
-							MappedPathModules:       [][]string{{"openconfig-simple"}},
-							ShadowMappedPaths:       nil,
-							ShadowMappedPathModules: nil,
-						},
-					},
-					ListKeys:          nil,
-					PackageName:       "openconfig_simple.parent.child",
-					BelongingModule:   "openconfig-simple",
-					RootElementModule: "openconfig-simple",
-					DefiningModule:    "openconfig-simple",
-				},
-				"/openconfig-simple/parent/child/state": {
-					Name: "State",
-					Type: Container,
-					Path: "/openconfig-simple/parent/child/state",
-					Fields: map[string]*NodeDetails{
-						"four": {
-							Name: "four",
-							YANGDetails: YANGNodeDetails{
-								Name:              "four",
-								Defaults:          nil,
-								BelongingModule:   "openconfig-simple",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-simple",
-								Path:              "/openconfig-simple/parent/child/state/four",
-								SchemaPath:        "/parent/child/state/four",
-								LeafrefTargetPath: "",
-								Description:       "",
-							},
-							Type: 3,
-							LangType: &MappedType{
-								NativeType:        "ywrapper.BytesValue",
-								UnionTypes:        nil,
-								IsEnumeratedValue: false,
-								ZeroValue:         "",
-								DefaultValue:      nil,
-							},
-							MappedPaths:             [][]string{{"four"}},
-							MappedPathModules:       [][]string{{"openconfig-simple"}},
-							ShadowMappedPaths:       nil,
-							ShadowMappedPathModules: nil,
-						},
-						"one": {
-							Name: "one",
-							YANGDetails: YANGNodeDetails{
-								Name:              "one",
-								Defaults:          nil,
-								BelongingModule:   "openconfig-simple",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-simple",
-								Path:              "/openconfig-simple/parent/child/state/one",
-								SchemaPath:        "/parent/child/state/one",
-								LeafrefTargetPath: "",
-								Description:       "",
-							},
-							Type: 3,
-							LangType: &MappedType{
-								NativeType:        "ywrapper.StringValue",
-								UnionTypes:        nil,
-								IsEnumeratedValue: false,
-								ZeroValue:         ``,
-								DefaultValue:      nil,
-							},
-							MappedPaths:             [][]string{{"one"}},
-							MappedPathModules:       [][]string{{"openconfig-simple"}},
-							ShadowMappedPaths:       nil,
-							ShadowMappedPathModules: nil,
-						},
-						"three": {
-							Name: "three",
-							YANGDetails: YANGNodeDetails{
-								Name:              "three",
-								Defaults:          nil,
-								BelongingModule:   "openconfig-simple",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-simple",
-								Path:              "/openconfig-simple/parent/child/state/three",
-								SchemaPath:        "/parent/child/state/three",
-								LeafrefTargetPath: "",
-								Description:       "",
-							},
-							Type: 3,
-							LangType: &MappedType{
-								NativeType:            "Three",
-								UnionTypes:            nil,
-								IsEnumeratedValue:     true,
-								EnumeratedYANGTypeKey: "/openconfig-simple/parent-config/three",
-								ZeroValue:             "",
-								DefaultValue:          nil,
-							},
-							MappedPaths:             [][]string{{"three"}},
-							MappedPathModules:       [][]string{{"openconfig-simple"}},
-							ShadowMappedPaths:       nil,
-							ShadowMappedPathModules: nil,
-						},
-						"two": {
-							Name: "two",
-							YANGDetails: YANGNodeDetails{
-								Name:              "two",
-								Defaults:          nil,
-								BelongingModule:   "openconfig-simple",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-simple",
-								Path:              "/openconfig-simple/parent/child/state/two",
-								SchemaPath:        "/parent/child/state/two",
-								LeafrefTargetPath: "",
-								Description:       "",
-							},
-							Type: 3,
-							LangType: &MappedType{
-								NativeType:        "ywrapper.StringValue",
-								UnionTypes:        nil,
-								IsEnumeratedValue: false,
-								ZeroValue:         ``,
-								DefaultValue:      nil,
-							},
-							MappedPaths:             [][]string{{"two"}},
-							MappedPathModules:       [][]string{{"openconfig-simple"}},
-							ShadowMappedPaths:       nil,
-							ShadowMappedPathModules: nil,
-						},
-						"zero": {
-							Name: "zero",
-							YANGDetails: YANGNodeDetails{
-								Name:              "zero",
-								Defaults:          nil,
-								BelongingModule:   "openconfig-simple-augment2",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-simple-grouping",
-								Path:              "/openconfig-simple/parent/child/state/zero",
-								SchemaPath:        "/parent/child/state/zero",
-								LeafrefTargetPath: "",
-								Description:       "",
-							},
-							Type: 3,
-							LangType: &MappedType{
-								NativeType:        "ywrapper.StringValue",
-								UnionTypes:        nil,
-								IsEnumeratedValue: false,
-								ZeroValue:         ``,
-								DefaultValue:      nil,
-							},
-							MappedPaths:             [][]string{{"zero"}},
-							MappedPathModules:       [][]string{{"openconfig-simple-augment2"}},
-							ShadowMappedPaths:       nil,
-							ShadowMappedPathModules: nil,
-						},
-					},
-					ListKeys:          nil,
-					PackageName:       "openconfig_simple.parent.child",
-					BelongingModule:   "openconfig-simple",
-					RootElementModule: "openconfig-simple",
-					DefiningModule:    "openconfig-simple",
-					ConfigFalse:       true,
-				},
-				"/openconfig-simple/remote-container": {
-					Name: "RemoteContainer",
-					Type: Container,
-					Path: "/openconfig-simple/remote-container",
-					Fields: map[string]*NodeDetails{
-						"config": {
-							Name: "config",
-							YANGDetails: YANGNodeDetails{
-								Name:              "config",
-								BelongingModule:   "openconfig-simple",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-remote",
-								Path:              "/openconfig-simple/remote-container/config",
-								SchemaPath:        "/remote-container/config",
-								LeafrefTargetPath: "",
-								Description:       "",
-							},
-							Type:              1,
-							MappedPaths:       [][]string{{"config"}},
-							MappedPathModules: [][]string{{"openconfig-simple"}},
-						},
-						"state": {
-							Name: "state",
-							YANGDetails: YANGNodeDetails{
-								Name:              "state",
-								BelongingModule:   "openconfig-simple",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-remote",
-								Path:              "/openconfig-simple/remote-container/state",
-								SchemaPath:        "/remote-container/state",
-								LeafrefTargetPath: "",
-								Description:       "",
-							},
-							Type:              1,
-							MappedPaths:       [][]string{{"state"}},
-							MappedPathModules: [][]string{{"openconfig-simple"}},
-						},
-					},
-					ListKeys:          nil,
-					PackageName:       "openconfig_simple",
-					BelongingModule:   "openconfig-simple",
-					RootElementModule: "openconfig-simple",
-					DefiningModule:    "openconfig-remote",
-				},
-				"/openconfig-simple/remote-container/config": {
-					Name: "Config",
-					Type: Container,
-					Path: "/openconfig-simple/remote-container/config",
-					Fields: map[string]*NodeDetails{
-						"a-leaf": {
-							Name: "a_leaf",
-							YANGDetails: YANGNodeDetails{
-								Name:              "a-leaf",
-								Defaults:          nil,
-								BelongingModule:   "openconfig-simple",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-remote",
-								Path:              "/openconfig-simple/remote-container/config/a-leaf",
-								SchemaPath:        "/remote-container/config/a-leaf",
-								LeafrefTargetPath: "",
-								Description:       "",
-							},
-							Type: 3,
-							LangType: &MappedType{
-								NativeType:        "ywrapper.StringValue",
-								UnionTypes:        nil,
-								IsEnumeratedValue: false,
-								ZeroValue:         ``,
-								DefaultValue:      nil,
-							},
-							MappedPaths:             [][]string{{"a-leaf"}},
-							MappedPathModules:       [][]string{{"openconfig-simple"}},
-							ShadowMappedPaths:       nil,
-							ShadowMappedPathModules: nil,
-						},
-					},
-					PackageName:       "openconfig_simple.remote_container",
-					BelongingModule:   "openconfig-simple",
-					RootElementModule: "openconfig-simple",
-					DefiningModule:    "openconfig-remote",
-				},
-				"/openconfig-simple/remote-container/state": {
-					Name: "State",
-					Type: Container,
-					Path: "/openconfig-simple/remote-container/state",
-					Fields: map[string]*NodeDetails{
-						"a-leaf": {
-							Name: "a_leaf",
-							YANGDetails: YANGNodeDetails{
-								Name:              "a-leaf",
-								Defaults:          nil,
-								BelongingModule:   "openconfig-simple",
-								RootElementModule: "openconfig-simple",
-								DefiningModule:    "openconfig-remote",
-								Path:              "/openconfig-simple/remote-container/state/a-leaf",
-								SchemaPath:        "/remote-container/state/a-leaf",
-								LeafrefTargetPath: "",
-								Description:       "",
-							},
-							Type: 3,
-							LangType: &MappedType{
-								NativeType:        "ywrapper.StringValue",
-								UnionTypes:        nil,
-								IsEnumeratedValue: false,
-								ZeroValue:         ``,
-								DefaultValue:      nil,
-							},
-							MappedPaths:             [][]string{{"a-leaf"}},
-							MappedPathModules:       [][]string{{"openconfig-simple"}},
-							ShadowMappedPaths:       nil,
-							ShadowMappedPathModules: nil,
-						},
-					},
-					PackageName:       "openconfig_simple.remote_container",
-					BelongingModule:   "openconfig-simple",
-					RootElementModule: "openconfig-simple",
-					DefiningModule:    "openconfig-remote",
-					ConfigFalse:       true,
-				},
-			},
-			Enums: map[string]*EnumeratedYANGType{
-				"/openconfig-simple/parent-config/three": {
-					Name:     "Simple_Parent_Child_Config_Three",
-					Kind:     1,
-					TypeName: "enumeration",
-					ValToYANGDetails: []ygot.EnumDefinition{{
-						Name:  "ONE",
-						Value: 0,
-					}, {
-						Name:  "TWO",
-						Value: 1,
-					}},
-				},
-			},
-			ModelData: []*gpb.ModelData{{Name: "openconfig-remote"}, {Name: "openconfig-simple"}, {Name: "openconfig-simple-augment2"}, {Name: "openconfig-simple-grouping"}},
-		},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			tt.inOpts.ParseOptions.ExcludeModules = tt.inExcludeModules
-			got, err := GenerateIR(tt.inYANGFiles, tt.inIncludePaths, tt.inLangMapper, tt.inOpts)
+			got, err := ygen.GenerateIR(tt.inYANGFiles, tt.inIncludePaths, tt.inLangMapper, tt.inOpts)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("did not get expected error, %s", diff)
 			}
-			if diff := cmp.Diff(got, tt.wantIR, cmpopts.IgnoreUnexported(IR{}, ParsedDirectory{}, EnumeratedYANGType{}), protocmp.Transform()); diff != "" {
+			if diff := cmp.Diff(got, tt.wantIR, cmpopts.IgnoreUnexported(ygen.IR{}, ygen.ParsedDirectory{}, ygen.EnumeratedYANGType{}), protocmp.Transform()); diff != "" {
 				t.Fatalf("did not get expected IR, diff(-got,+want):\n%s", diff)
 			}
 		})

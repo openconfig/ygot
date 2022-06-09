@@ -31,6 +31,12 @@ module proto-enums {
     }
   }
 
+  typedef iref-typedef {
+    type identityref {
+      base BASE_IDENTITY;
+    }
+  }
+
   container a {
     leaf a {
       type enumeration {
@@ -55,5 +61,10 @@ module proto-enums {
     leaf e {
       type union-identityref-typedef;
     }
+
+    leaf f {
+      type iref-typedef;
+    }
+
   }
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ygen
+package gogen
 
 import (
 	"fmt"
@@ -22,6 +22,7 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
+	"github.com/openconfig/ygot/ygen"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -40,29 +41,29 @@ type wantGoStructOut struct {
 func TestGoCodeStructGeneration(t *testing.T) {
 	tests := []struct {
 		name          string
-		inStructToMap *ParsedDirectory
+		inStructToMap *ygen.ParsedDirectory
 		// inOtherStructMap is the set of other mappable entities that are
 		// in the same module as the struct to map
-		inOtherStructMap          map[string]*ParsedDirectory
+		inOtherStructMap          map[string]*ygen.ParsedDirectory
 		inIgnoreShadowSchemaPaths bool
 		inGoOpts                  GoOpts
 		want                      wantGoStructOut
 	}{{
 		name: "simple single leaf mapping test",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "Tstruct",
-			Fields: map[string]*NodeDetails{
+			Fields: map[string]*ygen.NodeDetails{
 				"f1": {
 					Name: "F1",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "f1",
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/f1",
 						LeafrefTargetPath: "",
 					},
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType:        "int8",
 						UnionTypes:        nil,
 						IsEnumeratedValue: false,
@@ -76,15 +77,15 @@ func TestGoCodeStructGeneration(t *testing.T) {
 				},
 				"f2": {
 					Name: "F2",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "f2",
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/f2",
 						LeafrefTargetPath: "",
 					},
-					Type: LeafListNode,
-					LangType: &MappedType{
+					Type: ygen.LeafListNode,
+					LangType: &ygen.MappedType{
 						NativeType:        "string",
 						UnionTypes:        nil,
 						IsEnumeratedValue: false,
@@ -101,6 +102,7 @@ func TestGoCodeStructGeneration(t *testing.T) {
 			BelongingModule: "exmod",
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:   true,
 			ValidateFunctionName: "ValidateProxyFunction",
 		},
 		want: wantGoStructOut{
@@ -143,20 +145,20 @@ func (*Tstruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "simple single leaf mapping test outputting shadow paths",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "Tstruct",
-			Fields: map[string]*NodeDetails{
+			Fields: map[string]*ygen.NodeDetails{
 				"f1": {
 					Name: "F1",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "f1",
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/f1",
 						LeafrefTargetPath: "",
 					},
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType:        "int8",
 						UnionTypes:        nil,
 						IsEnumeratedValue: false,
@@ -170,15 +172,15 @@ func (*Tstruct) ΛBelongingModule() string {
 				},
 				"f2": {
 					Name: "F2",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "f2",
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/f2",
 						LeafrefTargetPath: "",
 					},
-					Type: LeafListNode,
-					LangType: &MappedType{
+					Type: ygen.LeafListNode,
+					LangType: &ygen.MappedType{
 						NativeType:        "string",
 						UnionTypes:        nil,
 						IsEnumeratedValue: false,
@@ -194,7 +196,10 @@ func (*Tstruct) ΛBelongingModule() string {
 			Path:            "/root-module/tstruct",
 			BelongingModule: "exmod",
 		},
-		inIgnoreShadowSchemaPaths: true,
+		inGoOpts: GoOpts{
+			GenerateJSONSchema:      true,
+			IgnoreShadowSchemaPaths: true,
+		},
 		want: wantGoStructOut{
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
@@ -230,22 +235,22 @@ func (*Tstruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "struct with a multi-type union",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "InputStruct",
-			Fields: map[string]*NodeDetails{
+			Fields: map[string]*ygen.NodeDetails{
 				"u1": {
 					Name: "U1",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "u1",
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/module/input-struct/u1",
 						LeafrefTargetPath: "",
 					},
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType: "InputStruct_U1_Union",
-						UnionTypes: map[string]MappedUnionSubtype{
+						UnionTypes: map[string]ygen.MappedUnionSubtype{
 							"string": {
 								Index: 0,
 							},
@@ -265,6 +270,9 @@ func (*Tstruct) ΛBelongingModule() string {
 			},
 			Path:            "/module/input-struct",
 			BelongingModule: "exmod",
+		},
+		inGoOpts: GoOpts{
+			GenerateJSONSchema: true,
 		},
 		want: wantGoStructOut{
 			structs: `
@@ -341,20 +349,20 @@ func (t *InputStruct) To_InputStruct_U1_Union(i interface{}) (InputStruct_U1_Uni
 		},
 	}, {
 		name: "nested container in struct",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "InputStruct",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"c1": {
 					Name: "C1",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "c1",
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/input-struct/c1",
 						LeafrefTargetPath: "",
 					},
-					Type:                    ContainerNode,
+					Type:                    ygen.ContainerNode,
 					LangType:                nil,
 					MappedPaths:             [][]string{{"c1"}},
 					MappedPathModules:       [][]string{{"exmod"}},
@@ -365,12 +373,15 @@ func (t *InputStruct) To_InputStruct_U1_Union(i interface{}) (InputStruct_U1_Uni
 			Path:            "/root-module/input-struct",
 			BelongingModule: "exmod",
 		},
-		inOtherStructMap: map[string]*ParsedDirectory{
+		inOtherStructMap: map[string]*ygen.ParsedDirectory{
 			"/root-module/input-struct/c1": {
 				Name:            "InputStruct_C1",
 				Path:            "/root-module/input-struct/c1",
 				BelongingModule: "exmod",
 			},
+		},
+		inGoOpts: GoOpts{
+			GenerateJSONSchema: true,
 		},
 		want: wantGoStructOut{
 			structs: `
@@ -406,13 +417,13 @@ func (*InputStruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "nested container in struct with presence container",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "InputStruct",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"c1": {
 					Name: "C1",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "c1",
 						Defaults:          nil,
 						RootElementModule: "exmod",
@@ -420,7 +431,7 @@ func (*InputStruct) ΛBelongingModule() string {
 						LeafrefTargetPath: "",
 						PresenceStatement: ygot.String("instantiated"),
 					},
-					Type:                    ContainerNode,
+					Type:                    ygen.ContainerNode,
 					LangType:                nil,
 					MappedPaths:             [][]string{{"c1"}},
 					MappedPathModules:       [][]string{{"exmod"}},
@@ -431,7 +442,7 @@ func (*InputStruct) ΛBelongingModule() string {
 			Path:            "/root-module/input-struct",
 			BelongingModule: "exmod",
 		},
-		inOtherStructMap: map[string]*ParsedDirectory{
+		inOtherStructMap: map[string]*ygen.ParsedDirectory{
 			"/root-module/input-struct/c1": {
 				Name:            "InputStruct_C1",
 				Path:            "/root-module/input-struct/c1",
@@ -439,7 +450,8 @@ func (*InputStruct) ΛBelongingModule() string {
 			},
 		},
 		inGoOpts: GoOpts{
-			AddYangPresence: true,
+			GenerateJSONSchema: true,
+			AddYangPresence:    true,
 		},
 		want: wantGoStructOut{
 			structs: `
@@ -475,19 +487,19 @@ func (*InputStruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "struct with missing struct referenced",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "AStruct",
-			Fields: map[string]*NodeDetails{
+			Fields: map[string]*ygen.NodeDetails{
 				"elem": {
 					Name: "Elem",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "elem",
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/a-struct/elem",
 						LeafrefTargetPath: "",
 					},
-					Type:                    ContainerNode,
+					Type:                    ygen.ContainerNode,
 					LangType:                nil,
 					MappedPaths:             [][]string{{"elem"}},
 					MappedPathModules:       [][]string{{"exmod"}},
@@ -501,19 +513,19 @@ func (*InputStruct) ΛBelongingModule() string {
 		want: wantGoStructOut{wantErr: true},
 	}, {
 		name: "struct with missing list referenced",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "BStruct",
-			Fields: map[string]*NodeDetails{
+			Fields: map[string]*ygen.NodeDetails{
 				"list": {
 					Name: "List",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "list",
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/b-struct/list",
 						LeafrefTargetPath: "",
 					},
-					Type:                    ListNode,
+					Type:                    ygen.ListNode,
 					LangType:                nil,
 					MappedPaths:             [][]string{{"list"}},
 					MappedPathModules:       [][]string{{"exmod"}},
@@ -527,19 +539,19 @@ func (*InputStruct) ΛBelongingModule() string {
 		want: wantGoStructOut{wantErr: true},
 	}, {
 		name: "struct with keyless list",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "QStruct",
-			Fields: map[string]*NodeDetails{
+			Fields: map[string]*ygen.NodeDetails{
 				"a-list": {
 					Name: "AList",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "a-list",
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/q-struct/a-list",
 						LeafrefTargetPath: "",
 					},
-					Type:                    ListNode,
+					Type:                    ygen.ListNode,
 					LangType:                nil,
 					MappedPaths:             [][]string{{"a-list"}},
 					MappedPathModules:       [][]string{{"exmod"}},
@@ -550,11 +562,14 @@ func (*InputStruct) ΛBelongingModule() string {
 			Path:            "/root-module/q-struct",
 			BelongingModule: "exmod",
 		},
-		inOtherStructMap: map[string]*ParsedDirectory{
+		inOtherStructMap: map[string]*ygen.ParsedDirectory{
 			"/root-module/q-struct/a-list": {
 				Name:            "QStruct_AList",
 				BelongingModule: "exmod",
 			},
+		},
+		inGoOpts: GoOpts{
+			GenerateJSONSchema: true,
 		},
 		want: wantGoStructOut{
 			structs: `
@@ -590,20 +605,20 @@ func (*QStruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "struct with single key list",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "Tstruct",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"listWithKey": {
 					Name: "ListWithKey",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "list-with-key",
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/listWithKey",
 						LeafrefTargetPath: "",
 					},
-					Type:                    ListNode,
+					Type:                    ygen.ListNode,
 					LangType:                nil,
 					MappedPaths:             [][]string{{"listWithKey"}},
 					MappedPathModules:       [][]string{{"exmod"}},
@@ -614,22 +629,22 @@ func (*QStruct) ΛBelongingModule() string {
 			Path:            "/root-module/tstruct",
 			BelongingModule: "exmod",
 		},
-		inOtherStructMap: map[string]*ParsedDirectory{
+		inOtherStructMap: map[string]*ygen.ParsedDirectory{
 			"/root-module/tstruct/listWithKey": {
 				Name: "ListWithKey",
-				Type: List,
-				Fields: map[string]*NodeDetails{
+				Type: ygen.List,
+				Fields: map[string]*ygen.NodeDetails{
 					"keyLeaf": {
 						Name: "keyLeaf",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "keyLeaf",
 							Defaults:          nil,
 							RootElementModule: "exmod",
 							Path:              "/root-module/tstruct/listWithKey/keyLeaf",
 							LeafrefTargetPath: "",
 						},
-						Type: LeafNode,
-						LangType: &MappedType{
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
 							NativeType: "string",
 							UnionTypes: nil,
 							ZeroValue:  `""`,
@@ -640,10 +655,10 @@ func (*QStruct) ΛBelongingModule() string {
 						ShadowMappedPathModules: nil,
 					},
 				},
-				ListKeys: map[string]*ListKey{
+				ListKeys: map[string]*ygen.ListKey{
 					"keyLeaf": {
 						Name: "KeyLeaf",
-						LangType: &MappedType{
+						LangType: &ygen.MappedType{
 							NativeType: "string",
 							UnionTypes: nil,
 							ZeroValue:  `""`,
@@ -656,6 +671,7 @@ func (*QStruct) ΛBelongingModule() string {
 			},
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:   true,
 			GenerateRenameMethod: true,
 		},
 		want: wantGoStructOut{
@@ -738,20 +754,20 @@ func (*Tstruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "missing list definition element",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "Tstruct",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"listWithKey": {
 					Name: "ListWithKey",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "list-with-key",
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/listWithKey",
 						LeafrefTargetPath: "",
 					},
-					Type:                    ListNode,
+					Type:                    ygen.ListNode,
 					LangType:                nil,
 					MappedPaths:             [][]string{{"listWithKey"}},
 					MappedPathModules:       [][]string{{"exmod"}},
@@ -765,12 +781,12 @@ func (*Tstruct) ΛBelongingModule() string {
 		want: wantGoStructOut{wantErr: true},
 	}, {
 		name: "unknown kind",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "AStruct",
-			Fields: map[string]*NodeDetails{
+			Fields: map[string]*ygen.NodeDetails{
 				"anydata": {
 					Name: "anydata",
-					Type: AnyDataNode,
+					Type: ygen.AnyDataNode,
 				},
 			},
 			BelongingModule: "exmod",
@@ -778,19 +794,19 @@ func (*Tstruct) ΛBelongingModule() string {
 		want: wantGoStructOut{wantErr: true},
 	}, {
 		name: "unknown field type",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "AStruct",
-			Fields: map[string]*NodeDetails{
+			Fields: map[string]*ygen.NodeDetails{
 				"idd": {
 					Name: "Idd",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "idd",
 						Defaults:          nil,
 						RootElementModule: "mod",
 						Path:              "/mod/container-two/container/idd",
 						LeafrefTargetPath: "",
 					},
-					Type:                    InvalidNode,
+					Type:                    ygen.InvalidNode,
 					LangType:                nil,
 					MappedPaths:             [][]string{{"idd"}},
 					MappedPathModules:       [][]string{{"mod"}},
@@ -803,20 +819,20 @@ func (*Tstruct) ΛBelongingModule() string {
 		want: wantGoStructOut{wantErr: true},
 	}, {
 		name: "struct with multi-key list",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "Tstruct",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"listWithKey": {
 					Name: "ListWithKey",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "list-with-key",
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/listWithKey",
 						LeafrefTargetPath: "",
 					},
-					Type:                    ListNode,
+					Type:                    ygen.ListNode,
 					LangType:                nil,
 					MappedPaths:             [][]string{{"listWithKey"}},
 					MappedPathModules:       [][]string{{"exmod"}},
@@ -827,22 +843,22 @@ func (*Tstruct) ΛBelongingModule() string {
 			Path:            "/root-module/tstruct",
 			BelongingModule: "exmod",
 		},
-		inOtherStructMap: map[string]*ParsedDirectory{
+		inOtherStructMap: map[string]*ygen.ParsedDirectory{
 			"/root-module/tstruct/listWithKey": {
 				Name: "Tstruct_ListWithKey",
-				Type: List,
-				Fields: map[string]*NodeDetails{
+				Type: ygen.List,
+				Fields: map[string]*ygen.NodeDetails{
 					"keyLeafOne": {
 						Name: "keyLeafOne",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "keyLeafOne",
 							Defaults:          nil,
 							RootElementModule: "exmod",
 							Path:              "/root-module/tstruct/listWithKey/keyLeafOne",
 							LeafrefTargetPath: "",
 						},
-						Type: LeafNode,
-						LangType: &MappedType{
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
 							NativeType: "string",
 							UnionTypes: nil,
 							ZeroValue:  `""`,
@@ -854,15 +870,15 @@ func (*Tstruct) ΛBelongingModule() string {
 					},
 					"keyLeafTwo": {
 						Name: "keyLeafTwo",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "keyLeafTwo",
 							Defaults:          nil,
 							RootElementModule: "exmod",
 							Path:              "/root-module/tstruct/listWithKey/keyLeafTwo",
 							LeafrefTargetPath: "",
 						},
-						Type: LeafNode,
-						LangType: &MappedType{
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
 							NativeType: "int8",
 							UnionTypes: nil,
 							ZeroValue:  "0",
@@ -873,10 +889,10 @@ func (*Tstruct) ΛBelongingModule() string {
 						ShadowMappedPathModules: nil,
 					},
 				},
-				ListKeys: map[string]*ListKey{
+				ListKeys: map[string]*ygen.ListKey{
 					"keyLeafOne": {
 						Name: "KeyLeafOne",
-						LangType: &MappedType{
+						LangType: &ygen.MappedType{
 							NativeType: "string",
 							UnionTypes: nil,
 							ZeroValue:  `""`,
@@ -884,7 +900,7 @@ func (*Tstruct) ΛBelongingModule() string {
 					},
 					"keyLeafTwo": {
 						Name: "KeyLeafTwo",
-						LangType: &MappedType{
+						LangType: &ygen.MappedType{
 							NativeType: "int8",
 							UnionTypes: nil,
 							ZeroValue:  `""`,
@@ -897,6 +913,7 @@ func (*Tstruct) ΛBelongingModule() string {
 			},
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:   true,
 			GenerateRenameMethod: true,
 		},
 		want: wantGoStructOut{
@@ -991,21 +1008,21 @@ func (*Tstruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "annotated struct",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "Tstruct",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"f1": {
 					Name: "F1",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "f1",
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/f1",
 						LeafrefTargetPath: "",
 					},
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType:        "int8",
 						UnionTypes:        nil,
 						IsEnumeratedValue: false,
@@ -1022,6 +1039,7 @@ func (*Tstruct) ΛBelongingModule() string {
 			BelongingModule: "exmod",
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:  true,
 			AddAnnotationFields: true,
 			AnnotationPrefix:    "Ω",
 		},
@@ -1061,20 +1079,20 @@ func (*Tstruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "struct with multi-key list - append and getters",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "Tstruct",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"listWithKey": {
 					Name: "ListWithKey",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "list-with-key",
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/listWithKey",
 						LeafrefTargetPath: "",
 					},
-					Type:                    ListNode,
+					Type:                    ygen.ListNode,
 					LangType:                nil,
 					MappedPaths:             [][]string{{"listWithKey"}},
 					MappedPathModules:       [][]string{{"exmod"}},
@@ -1085,22 +1103,22 @@ func (*Tstruct) ΛBelongingModule() string {
 			Path:            "/root-module/tstruct",
 			BelongingModule: "exmod",
 		},
-		inOtherStructMap: map[string]*ParsedDirectory{
+		inOtherStructMap: map[string]*ygen.ParsedDirectory{
 			"/root-module/tstruct/listWithKey": {
 				Name: "Tstruct_ListWithKey",
-				Type: List,
-				Fields: map[string]*NodeDetails{
+				Type: ygen.List,
+				Fields: map[string]*ygen.NodeDetails{
 					"keyLeafOne": {
 						Name: "keyLeafOne",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "keyLeafOne",
 							Defaults:          nil,
 							RootElementModule: "exmod",
 							Path:              "/root-module/tstruct/listWithKey/keyLeafOne",
 							LeafrefTargetPath: "",
 						},
-						Type: LeafNode,
-						LangType: &MappedType{
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
 							NativeType: "string",
 							UnionTypes: nil,
 							ZeroValue:  `""`,
@@ -1112,15 +1130,15 @@ func (*Tstruct) ΛBelongingModule() string {
 					},
 					"keyLeafTwo": {
 						Name: "keyLeafTwo",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "keyLeafTwo",
 							Defaults:          nil,
 							RootElementModule: "exmod",
 							Path:              "/root-module/tstruct/listWithKey/keyLeafTwo",
 							LeafrefTargetPath: "",
 						},
-						Type: LeafNode,
-						LangType: &MappedType{
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
 							NativeType: "int8",
 							UnionTypes: nil,
 							ZeroValue:  "0",
@@ -1131,10 +1149,10 @@ func (*Tstruct) ΛBelongingModule() string {
 						ShadowMappedPathModules: nil,
 					},
 				},
-				ListKeys: map[string]*ListKey{
+				ListKeys: map[string]*ygen.ListKey{
 					"keyLeafOne": {
 						Name: "KeyLeafOne",
-						LangType: &MappedType{
+						LangType: &ygen.MappedType{
 							NativeType: "string",
 							UnionTypes: nil,
 							ZeroValue:  `""`,
@@ -1142,7 +1160,7 @@ func (*Tstruct) ΛBelongingModule() string {
 					},
 					"keyLeafTwo": {
 						Name: "KeyLeafTwo",
-						LangType: &MappedType{
+						LangType: &ygen.MappedType{
 							NativeType: "int8",
 							UnionTypes: nil,
 							ZeroValue:  `""`,
@@ -1155,6 +1173,7 @@ func (*Tstruct) ΛBelongingModule() string {
 			},
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:   true,
 			GenerateAppendMethod: true,
 			GenerateGetters:      true,
 			GenerateDeleteMethod: true,
@@ -1318,20 +1337,20 @@ func (*Tstruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "struct with single key list - append and getters",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "Tstruct",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"listWithKey": {
 					Name: "ListWithKey",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "list-with-key",
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/listWithKey",
 						LeafrefTargetPath: "",
 					},
-					Type:                    ListNode,
+					Type:                    ygen.ListNode,
 					LangType:                nil,
 					MappedPaths:             [][]string{{"listWithKey"}},
 					MappedPathModules:       [][]string{{"exmod"}},
@@ -1342,22 +1361,22 @@ func (*Tstruct) ΛBelongingModule() string {
 			Path:            "/root-module/tstruct",
 			BelongingModule: "exmod",
 		},
-		inOtherStructMap: map[string]*ParsedDirectory{
+		inOtherStructMap: map[string]*ygen.ParsedDirectory{
 			"/root-module/tstruct/listWithKey": {
 				Name: "Tstruct_ListWithKey",
-				Type: List,
-				Fields: map[string]*NodeDetails{
+				Type: ygen.List,
+				Fields: map[string]*ygen.NodeDetails{
 					"keyLeaf": {
 						Name: "keyLeaf",
-						YANGDetails: YANGNodeDetails{
+						YANGDetails: ygen.YANGNodeDetails{
 							Name:              "keyLeaf",
 							Defaults:          nil,
 							RootElementModule: "exmod",
 							Path:              "/root-module/tstruct/listWithKey/keyLeaf",
 							LeafrefTargetPath: "",
 						},
-						Type: LeafNode,
-						LangType: &MappedType{
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
 							NativeType: "string",
 							UnionTypes: nil,
 							ZeroValue:  `""`,
@@ -1368,10 +1387,10 @@ func (*Tstruct) ΛBelongingModule() string {
 						ShadowMappedPathModules: nil,
 					},
 				},
-				ListKeys: map[string]*ListKey{
+				ListKeys: map[string]*ygen.ListKey{
 					"keyLeaf": {
 						Name: "KeyLeaf",
-						LangType: &MappedType{
+						LangType: &ygen.MappedType{
 							NativeType: "string",
 							UnionTypes: nil,
 							ZeroValue:  `""`,
@@ -1384,6 +1403,7 @@ func (*Tstruct) ΛBelongingModule() string {
 			},
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:      true,
 			GenerateAppendMethod:    true,
 			GenerateGetters:         true,
 			GenerateDeleteMethod:    true,
@@ -1534,20 +1554,20 @@ func (*Tstruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "struct with child container - getters generated",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "InputStruct",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
 				"c1": {
 					Name: "C1",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "c1",
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/input-struct/c1",
 						LeafrefTargetPath: "",
 					},
-					Type:                    ContainerNode,
+					Type:                    ygen.ContainerNode,
 					LangType:                nil,
 					MappedPaths:             [][]string{{"c1"}},
 					MappedPathModules:       [][]string{{"exmod"}},
@@ -1558,7 +1578,7 @@ func (*Tstruct) ΛBelongingModule() string {
 			Path:            "/root-module/input-struct",
 			BelongingModule: "exmod",
 		},
-		inOtherStructMap: map[string]*ParsedDirectory{
+		inOtherStructMap: map[string]*ygen.ParsedDirectory{
 			"/root-module/input-struct/c1": {
 				Name:            "InputStruct_C1",
 				Path:            "/root-module/input-struct/c1",
@@ -1566,6 +1586,7 @@ func (*Tstruct) ΛBelongingModule() string {
 			},
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:      true,
 			GenerateGetters:         true,
 			GeneratePopulateDefault: true,
 		},
@@ -1634,20 +1655,20 @@ func (*InputStruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "container with leaf getters",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "Container",
-			Fields: map[string]*NodeDetails{
+			Fields: map[string]*ygen.NodeDetails{
 				"leaf": {
 					Name: "Leaf",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "leaf",
 						Defaults:          nil,
 						RootElementModule: "m1",
 						Path:              "/m1/foo/bar/leaf",
 						LeafrefTargetPath: "",
 					},
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType:        "string",
 						UnionTypes:        nil,
 						IsEnumeratedValue: false,
@@ -1664,6 +1685,7 @@ func (*InputStruct) ΛBelongingModule() string {
 			BelongingModule: "m1",
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:      true,
 			GenerateLeafGetters:     true,
 			GeneratePopulateDefault: true,
 		},
@@ -1727,20 +1749,20 @@ func (*Container) ΛBelongingModule() string {
 		},
 	}, {
 		name: "leaf getter with default value",
-		inStructToMap: &ParsedDirectory{
+		inStructToMap: &ygen.ParsedDirectory{
 			Name: "Container",
-			Fields: map[string]*NodeDetails{
+			Fields: map[string]*ygen.NodeDetails{
 				"leaf": {
 					Name: "Leaf",
-					YANGDetails: YANGNodeDetails{
+					YANGDetails: ygen.YANGNodeDetails{
 						Name:              "leaf",
 						Defaults:          []string{"DEFAULT VALUE"},
 						RootElementModule: "m1",
 						Path:              "/m1/foo/bar/leaf",
 						LeafrefTargetPath: "",
 					},
-					Type: LeafNode,
-					LangType: &MappedType{
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
 						NativeType:        "string",
 						UnionTypes:        nil,
 						IsEnumeratedValue: false,
@@ -1757,6 +1779,7 @@ func (*Container) ΛBelongingModule() string {
 			BelongingModule: "m1",
 		},
 		inGoOpts: GoOpts{
+			GenerateJSONSchema:      true,
 			GenerateLeafGetters:     true,
 			GeneratePopulateDefault: true,
 		},
@@ -1828,12 +1851,12 @@ func (*Container) ΛBelongingModule() string {
 		t.Run(tt.name, func(t *testing.T) {
 			// Fill the current directory into the map to reduce test size.
 			if tt.inOtherStructMap == nil {
-				tt.inOtherStructMap = map[string]*ParsedDirectory{}
+				tt.inOtherStructMap = map[string]*ygen.ParsedDirectory{}
 			}
 			tt.inOtherStructMap[tt.inStructToMap.Path] = tt.inStructToMap
 			// Always generate the JSON schema for this test.
 			generatedUnions := map[string]bool{}
-			got, errs := writeGoStruct(tt.inStructToMap, tt.inOtherStructMap, generatedUnions, tt.inIgnoreShadowSchemaPaths, tt.inGoOpts, true)
+			got, errs := writeGoStruct(tt.inStructToMap, tt.inOtherStructMap, generatedUnions, tt.inGoOpts)
 
 			if len(errs) != 0 && !tt.want.wantErr {
 				t.Fatalf("%s writeGoStruct(targetStruct: %v): received unexpected errors: %v",
@@ -1908,14 +1931,14 @@ func TestGenGoEnumeratedTypes(t *testing.T) {
 
 	tests := []struct {
 		name string
-		in   map[string]*EnumeratedYANGType
+		in   map[string]*ygen.EnumeratedYANGType
 		want map[string]*goEnumeratedType
 	}{{
 		name: "enum",
-		in: map[string]*EnumeratedYANGType{
+		in: map[string]*ygen.EnumeratedYANGType{
 			"foo": {
 				Name:     "EnumeratedValue",
-				Kind:     SimpleEnumerationType,
+				Kind:     ygen.SimpleEnumerationType,
 				TypeName: "enumerated-value",
 				ValToYANGDetails: []ygot.EnumDefinition{
 					{
@@ -2127,42 +2150,42 @@ func TestGoLeafDefaults(t *testing.T) {
 	tests := []struct {
 		name   string
 		inLeaf *yang.Entry
-		inType *MappedType
+		inType *ygen.MappedType
 		want   []string
 	}{{
 		name: "quoted default in leaf",
 		inLeaf: &yang.Entry{
 			Default: []string{"a-default-value"},
 		},
-		inType: &MappedType{NativeType: "string"},
+		inType: &ygen.MappedType{NativeType: "string"},
 		want:   []string{`"a-default-value"`},
 	}, {
 		name: "unquoted default in leaf",
 		inLeaf: &yang.Entry{
 			Default: []string{"42"},
 		},
-		inType: &MappedType{NativeType: "int32"},
+		inType: &ygen.MappedType{NativeType: "int32"},
 		want:   []string{"42"},
 	}, {
 		name: "two quoted defaults in leaf",
 		inLeaf: &yang.Entry{
 			Default: []string{"a-default-value", "second"},
 		},
-		inType: &MappedType{NativeType: "string"},
+		inType: &ygen.MappedType{NativeType: "string"},
 		want:   []string{`"a-default-value"`, `"second"`},
 	}, {
 		name:   "no default",
 		inLeaf: &yang.Entry{},
-		inType: &MappedType{NativeType: "int32"},
+		inType: &ygen.MappedType{NativeType: "int32"},
 	}, {
 		name:   "default in type",
 		inLeaf: &yang.Entry{},
-		inType: &MappedType{NativeType: "int32", DefaultValue: ygot.String("0")},
+		inType: &ygen.MappedType{NativeType: "int32", DefaultValue: ygot.String("0")},
 		want:   []string{"0"},
 	}, {
 		name:   "enumerated default in leaf",
 		inLeaf: &yang.Entry{Default: []string{"FORTY_TWO"}},
-		inType: &MappedType{
+		inType: &ygen.MappedType{
 			NativeType:        fmt.Sprintf("%sEnumType", goEnumPrefix),
 			IsEnumeratedValue: true,
 		},

@@ -14,81 +14,7 @@
 
 package ygen
 
-import (
-	"fmt"
-	"strings"
-)
-
-// safeGoEnumeratedValueName takes an input string, which is the name of an
-// enumerated value from a YANG schema, and ensures that it is safe to be
-// output as part of the name of the enumerated value in the Go code. The
-// sanitised value is returned.  Per RFC6020 Section 9.6.4,
-// "The enum Statement [...] takes as an argument a string which is the
-// assigned name. The string MUST NOT be empty and MUST NOT have any
-// leading or trailing whitespace characters. The use of Unicode control
-// codes SHOULD be avoided."
-// Note: this rule is distinct and looser than the rule for YANG identifiers.
-// The implementation used here replaces some (not all) characters allowed
-// in a YANG enum assigned name but not in Go code. Current support is based
-// on real-world feedback e.g. in OpenConfig schemas, there are currently
-// a small number of identity values that contain "." and hence
-// must be specifically handled.
-func safeGoEnumeratedValueName(name string) string {
-	// NewReplacer takes pairs of strings to be replaced in the form
-	// old, new.
-	replacer := strings.NewReplacer(
-		".", "_",
-		"-", "_",
-		"/", "_",
-		"+", "_PLUS",
-		",", "_COMMA",
-		"@", "_AT",
-		"$", "_DOLLAR",
-		"*", "_ASTERISK",
-		":", "_COLON",
-		" ", "_")
-	return replacer.Replace(name)
-}
-
-// addNewKeys appends entries from the newKeys string slice to the
-// existing map if the entry is not an existing key. The existing
-// map is modified in place.
-func addNewKeys(existing map[string]interface{}, newKeys []string) {
-	for _, n := range newKeys {
-		if _, ok := existing[n]; !ok {
-			existing[n] = true
-		}
-	}
-}
-
-// stringKeys returns the keys of the supplied map as a slice of strings.
-func stringKeys(m map[string]interface{}) []string {
-	var ss []string
-	for k := range m {
-		ss = append(ss, k)
-	}
-	return ss
-}
-
-// enumDefaultValue sanitises a default value specified for an enumeration
-// which can be specified as prefix:value in the YANG schema. The baseName
-// is used as the generated enumeration name stripping any prefix specified,
-// (allowing removal of the enumeration type prefix if required). The default
-// value in the form <sanitised_baseName>_<sanitised_defVal> is returned as
-// a pointer.
-func enumDefaultValue(baseName, defVal, prefix string) string {
-	if strings.Contains(defVal, ":") {
-		defVal = strings.Split(defVal, ":")[1]
-	}
-
-	if prefix != "" {
-		baseName = strings.TrimPrefix(baseName, prefix)
-	}
-
-	defVal = safeGoEnumeratedValueName(defVal)
-
-	return fmt.Sprintf("%s_%s", baseName, defVal)
-}
+import "github.com/openconfig/goyang/pkg/yang"
 
 // resolveRootName resolves the name of the fakeroot by taking configuration
 // and the default values, along with a boolean indicating whether the fake
@@ -104,4 +30,20 @@ func resolveRootName(name, defName string, generateRoot bool) string {
 	}
 
 	return name
+}
+
+// resolveTypeArgs is a structure used as an input argument to the yangTypeToGoType
+// function which allows extra context to be handed on. This provides the ability
+// to use not only the YangType but also the yang.Entry that the type was part of
+// to resolve the possible type name.
+type resolveTypeArgs struct {
+	// yangType is a pointer to the yang.YangType that is to be mapped.
+	yangType *yang.YangType
+	// contextEntry is an optional yang.Entry which is supplied where a
+	// type requires knowledge of the leaf that it is used within to be
+	// mapped. For example, where a leaf is defined to have a type of a
+	// user-defined type (typedef) that in turn has enumerated values - the
+	// context of the yang.Entry is required such that the leaf's context
+	// can be established.
+	contextEntry *yang.Entry
 }

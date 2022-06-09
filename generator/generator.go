@@ -29,6 +29,7 @@ import (
 	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
+	"github.com/openconfig/ygot/gogen"
 	"github.com/openconfig/ygot/ygen"
 	"github.com/openconfig/ygot/ypathgen"
 )
@@ -85,7 +86,7 @@ var (
 	goyangImportPath        = flag.String("goyang_path", genutil.GoDefaultGoyangImportPath, "The import path to use for goyang's yang package.")
 	generateRename          = flag.Bool("generate_rename", false, "If set to true, rename methods are generated for lists within the Go code.")
 	addAnnotations          = flag.Bool("annotations", false, "If set to true, metadata annotations are added within the generated structs.")
-	annotationPrefix        = flag.String("annotation_prefix", ygen.DefaultAnnotationPrefix, "String to be appended to each metadata field within the generated structs if annoations is set to true.")
+	annotationPrefix        = flag.String("annotation_prefix", gogen.DefaultAnnotationPrefix, "String to be appended to each metadata field within the generated structs if annoations is set to true.")
 	addYangPresence         = flag.Bool("yangpresence", false, "If set to true, a tag will be added to the field of a generated Go struct to indicate when a YANG presence container is being used.")
 	generateAppend          = flag.Bool("generate_append", false, "If set to true, append methods are generated for YANG lists (Go maps) within the Go code.")
 	generateGetters         = flag.Bool("generate_getters", false, "If set to true, getter methdos that retrieve or create an element are generated for YANG container (Go struct pointer) or list (Go map) fields within the generated code.")
@@ -108,10 +109,10 @@ var (
 	packageSuffix           = flag.String("path_struct_package_suffix", "path", "Suffix to append to generated Go package names, when split_pathstructs_by_module=true.")
 )
 
-// writeGoCodeSingleFile takes a ygen.GeneratedGoCode struct and writes the Go code
+// writeGoCodeSingleFile takes a gogen.GeneratedCode struct and writes the Go code
 // snippets contained within it to the io.Writer, w, provided as an argument.
 // The output includes a package header which is generated.
-func writeGoCodeSingleFile(w io.Writer, goCode *ygen.GeneratedGoCode) error {
+func writeGoCodeSingleFile(w io.Writer, goCode *gogen.GeneratedCode) error {
 	// Write the package header to the supplier writer.
 	fmt.Fprint(w, goCode.CommonHeader)
 	fmt.Fprint(w, goCode.OneOffHeader)
@@ -151,11 +152,11 @@ func writeGoPathCodeSingleFile(w io.Writer, pathCode *ypathgen.GeneratedPathCode
 
 // splitCodeByFileN generates a map, keyed by filename, to a string containing
 // the code to be output to that filename. It allows division of a
-// ygen.GeneratedGoCode struct into a set of source files. It divides the
+// gogen.GeneratedCode struct into a set of source files. It divides the
 // methods, interfaces, and enumeration code snippets into their own files.
 // Structs are output into files by splitting them evenly among the input split
 // number.
-func splitCodeByFileN(goCode *ygen.GeneratedGoCode, fileN int) (map[string]string, error) {
+func splitCodeByFileN(goCode *gogen.GeneratedCode, fileN int) (map[string]string, error) {
 	structN := len(goCode.Structs)
 	if fileN < 1 || fileN > structN {
 		return nil, fmt.Errorf("requested %d files, but must be between 1 and %d (number of schema structs)", fileN, structN)
@@ -324,28 +325,30 @@ func main() {
 		}
 
 		// Perform the code generation.
-		cg := ygen.NewYANGCodeGenerator(&ygen.GeneratorConfig{
-			ParseOptions: ygen.ParseOpts{
-				ExcludeModules:        modsExcluded,
-				SkipEnumDeduplication: *skipEnumDedup,
-				YANGParseOptions: yang.Options{
-					IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+		cg := gogen.New(
+			"",
+			ygen.IROptions{
+				ParseOptions: ygen.ParseOpts{
+					ExcludeModules: modsExcluded,
+					YANGParseOptions: yang.Options{
+						IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+					},
+				},
+				TransformationOptions: ygen.TransformationOpts{
+					CompressBehaviour:                    compressBehaviour,
+					GenerateFakeRoot:                     *generateFakeRoot,
+					FakeRootName:                         *fakeRootName,
+					SkipEnumDeduplication:                *skipEnumDedup,
+					ShortenEnumLeafNames:                 *shortenEnumLeafNames,
+					EnumOrgPrefixesToTrim:                enumOrgPrefixesToTrim,
+					UseDefiningModuleForTypedefEnumNames: *useDefiningModuleForTypedefEnumNames,
+					EnumerationsUseUnderscores:           true,
 				},
 			},
-			TransformationOptions: ygen.TransformationOpts{
-				CompressBehaviour:                    compressBehaviour,
-				IgnoreShadowSchemaPaths:              *ignoreShadowSchemaPaths,
-				GenerateFakeRoot:                     *generateFakeRoot,
-				FakeRootName:                         *fakeRootName,
-				ShortenEnumLeafNames:                 *shortenEnumLeafNames,
-				EnumOrgPrefixesToTrim:                enumOrgPrefixesToTrim,
-				UseDefiningModuleForTypedefEnumNames: *useDefiningModuleForTypedefEnumNames,
-				EnumerationsUseUnderscores:           true,
-			},
-			PackageName:         *packageName,
-			GenerateJSONSchema:  *generateSchema,
-			IncludeDescriptions: *includeDescriptions,
-			GoOptions: ygen.GoOpts{
+			gogen.GoOpts{
+				PackageName:                         *packageName,
+				GenerateJSONSchema:                  *generateSchema,
+				IncludeDescriptions:                 *includeDescriptions,
 				YgotImportPath:                      *ygotImportPath,
 				YtypesImportPath:                    *ytypesImportPath,
 				GoyangImportPath:                    *goyangImportPath,
@@ -362,10 +365,11 @@ func main() {
 				GenerateSimpleUnions:                *generateSimpleUnions,
 				IncludeModelData:                    *includeModelData,
 				AppendEnumSuffixForSimpleUnionEnums: *appendEnumSuffixForSimpleUnionEnums,
+				IgnoreShadowSchemaPaths:             *ignoreShadowSchemaPaths,
 			},
-		})
+		)
 
-		generatedGoCode, errs := cg.GenerateGoCode(generateModules, includePaths)
+		generatedGoCode, errs := cg.Generate(generateModules, includePaths)
 		if errs != nil {
 			log.Exitf("ERROR Generating GoStruct Code: %v\n", errs)
 		}

@@ -87,7 +87,7 @@ jobs:
             # fake ygot and ytype paths specified in generation options.
             "openconfig-options-explicit.formatted-txt.go"
           )
-          for f in ygen/testdata/schema/*.formatted-txt; do
+          for f in gogen/testdata/schema/*.formatted-txt; do
             if [[ ${skipped[@]} =~ $(basename $f) ]]; then
               continue
             fi
@@ -96,7 +96,7 @@ jobs:
 
           skipped=(
           )
-          for f in ygen/testdata/structs/*.formatted-txt; do
+          for f in gogen/testdata/structs/*.formatted-txt; do
             if [[ ${skipped[@]} =~ $(basename $f) ]]; then
               continue
             fi
@@ -114,9 +114,13 @@ jobs:
             fi
             filename=$(basename $f)
             f_prefix="${filename%%.*}"
-            ygen_file="ygen/testdata/structs/${f_prefix}.formatted-txt"
-            test-go-build $f $ygen_file
+            go_file="gogen/testdata/structs/${f_prefix}.formatted-txt"
+            test-go-build $f $go_file
           done
+
+      - name: Make sure exampleoc doesn't error or panic
+        run: go generate ./...
+        working-directory: go/src/github.com/openconfig/ygot
 
   static_analysis:
     name: Static Analysis
@@ -148,6 +152,11 @@ jobs:
             dir=$(echo $p | sed -e 's/^github\.com\/openconfig\/ygot\///')
             go test -covermode count -coverprofile profile.coverprofile -outputdir $dir $p
           done
+
+          # Overwrite results for gogen/protogen since they also cover ygen's
+          # code.
+          go test -covermode count -coverprofile profile.coverprofile -outputdir gogen -coverpkg github.com/openconfig/ygot/gogen,github.com/openconfig/ygot/ygen github.com/openconfig/ygot/gogen
+          go test -covermode count -coverprofile profile.coverprofile -outputdir protogen -coverpkg github.com/openconfig/ygot/protogen,github.com/openconfig/ygot/ygen github.com/openconfig/ygot/protogen
 
           echo 'mode: count' > concatenated.coverprofile
           for p in $pkgs; do

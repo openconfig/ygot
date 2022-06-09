@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
@@ -45,17 +44,6 @@ type Directory struct {
 	Path           []string               // Path is a slice of strings indicating the element's path.
 	ListAttr       *YangListAttr          // ListAttr is used to store characteristics of structs that represent YANG lists.
 	IsFakeRoot     bool                   // IsFakeRoot indicates that the struct is a fake root struct, so specific mapping rules should be implemented.
-}
-
-// isChildOfModule determines whether the Directory represents a container
-// or list member that is the direct child of a module entry.
-func (y *ParsedDirectory) isChildOfModule() bool {
-	if y.IsFakeRoot || len(strings.Split(y.Path, "/")) == 3 {
-		// If the message has a path length of 3, then it is a top-level entity
-		// within a module, since the  path is in the format []{"", <module>, <element>}.
-		return true
-	}
-	return false
 }
 
 // YangListAttr is used to store the additional elements for a Go struct that

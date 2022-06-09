@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/openconfig/ygot/genutil"
+	"github.com/openconfig/ygot/gogen"
 	"github.com/openconfig/ygot/ygen"
 )
 
@@ -21,15 +22,13 @@ var TestRoot string
 func TestGenerateCode(t *testing.T) {
 	tests := []struct {
 		name     string
-		inConfig *ygen.GeneratorConfig
+		inIROpts ygen.IROptions
+		inGoOpts gogen.GoOpts
 		inFiles  []string
 		inPaths  []string
 	}{{
 		name: "openconfig interfaces",
-		inConfig: &ygen.GeneratorConfig{
-			GoOptions: ygen.GoOpts{
-				GenerateSimpleUnions: true,
-			},
+		inIROpts: ygen.IROptions{
 			ParseOptions: ygen.ParseOpts{
 				ExcludeModules: []string{"ietf-interfaces"},
 			},
@@ -37,7 +36,10 @@ func TestGenerateCode(t *testing.T) {
 				CompressBehaviour: genutil.PreferIntendedConfig,
 				GenerateFakeRoot:  true,
 			},
-			GenerateJSONSchema: true,
+		},
+		inGoOpts: gogen.GoOpts{
+			GenerateJSONSchema:   true,
+			GenerateSimpleUnions: true,
 		},
 		inFiles: []string{
 			filepath.Join(TestRoot, "yang", "openconfig-interfaces.yang"),
@@ -46,17 +48,17 @@ func TestGenerateCode(t *testing.T) {
 		inPaths: []string{filepath.Join(TestRoot, "yang")},
 	}, {
 		name: "openconfig interfaces with no compression",
-		inConfig: &ygen.GeneratorConfig{
-			GoOptions: ygen.GoOpts{
-				GenerateSimpleUnions: true,
-			},
+		inIROpts: ygen.IROptions{
 			ParseOptions: ygen.ParseOpts{
 				ExcludeModules: []string{"ietf-interfaces"},
 			},
 			TransformationOptions: ygen.TransformationOpts{
 				GenerateFakeRoot: true,
 			},
-			GenerateJSONSchema: true,
+		},
+		inGoOpts: gogen.GoOpts{
+			GenerateJSONSchema:   true,
+			GenerateSimpleUnions: true,
 		},
 		inFiles: []string{
 			filepath.Join(TestRoot, "yang", "openconfig-interfaces.yang"),
@@ -66,10 +68,10 @@ func TestGenerateCode(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		cg := ygen.NewYANGCodeGenerator(tt.inConfig)
-		got, err := cg.GenerateGoCode(tt.inFiles, tt.inPaths)
+		cg := gogen.New("", tt.inIROpts, tt.inGoOpts)
+		got, err := cg.Generate(tt.inFiles, tt.inPaths)
 		if err != nil {
-			t.Errorf("%s: GenerateGoCode(%v, %v): Config: %v, got unexpected error: %v", tt.name, tt.inFiles, tt.inPaths, tt.inConfig, err)
+			t.Errorf("%s: Generate(%v, %v): Config: %v, got unexpected error: %v", tt.name, tt.inFiles, tt.inPaths, tt.inIROpts, err)
 			continue
 		}
 
