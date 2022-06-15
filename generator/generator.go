@@ -469,11 +469,17 @@ func main() {
 				}
 				path = filepath.Join(*outputDir, packageName, fmt.Sprintf("%s.go", packageName))
 			}
-			outfh := genutil.OpenFile(path)
-			defer genutil.SyncFile(outfh)
-			err := writeGoPathCodeSingleFile(outfh, code)
-			if err != nil {
-				log.Exitf("Error while writing path struct file: %v", err)
+			if *pathStructsFileN <= 1 || packageName == pcg.PackageName {
+				outfh := genutil.OpenFile(path)
+				defer genutil.SyncFile(outfh)
+				err := writeGoPathCodeSingleFile(outfh, code)
+				if err != nil {
+					log.Exitf("Error while writing path struct file: %v", err)
+				}
+			} else {
+				if err := writePathPackage(pathCode, packageName, filepath.Join(*outputDir, packageName)); err != nil {
+					log.Errorln(err)
+				}
 			}
 		}
 	case generatePathStructsSingleFile:
@@ -491,17 +497,24 @@ func main() {
 		}
 		writeGoPathCodeSingleFile(outfh, pathCode[pcg.PackageName])
 	case generatePathStructsMultipleFiles:
-		out := map[string]string{}
-		// Split the path struct code into files.
-		files, err := pathCode[pcg.PackageName].SplitFiles(*pathStructsFileN)
-		if err != nil {
-			log.Exitf("Error while splitting path structs code into %d files: %v\n", pathStructsFileN, err)
-		}
-		for i, file := range files {
-			out[fmt.Sprintf(pathStructsFileFmt, i)] = file
-		}
-		if err := writeFiles(*outputDir, out); err != nil {
-			log.Exitf("Error while writing path struct files: %v", err)
+		if err := writePathPackage(pathCode, pcg.PackageName, *outputDir); err != nil {
+			log.Exit(err)
 		}
 	}
+}
+
+func writePathPackage(pathCode map[string]*ypathgen.GeneratedPathCode, pkgName, dir string) error {
+	out := map[string]string{}
+	// Split the path struct code into files.
+	files, err := pathCode[pkgName].SplitFiles(*pathStructsFileN)
+	if err != nil {
+		return fmt.Errorf("error while splitting path structs code into %d files: %w", pathStructsFileN, err)
+	}
+	for i, file := range files {
+		out[fmt.Sprintf(pathStructsFileFmt, i)] = file
+	}
+	if err := writeFiles(dir, out); err != nil {
+		return fmt.Errorf("Error while writing path struct files: %w", err)
+	}
+	return nil
 }
