@@ -281,6 +281,20 @@ type generatedLeafGetter struct {
 	Receiver string
 }
 
+// generatedLeafSetter is used to represent the parameters required to generate a
+// setter for a leaf within the generated Go code.
+type generatedLeafSetter struct {
+	// Name is the name of the field. It is used as a suffix to Set to generate
+	// the setter.
+	Name string
+	// Type is the type of the field, required by the setter method.
+	Type string
+	// IsPtr stores whether the value is a pointer.
+	IsPtr bool
+	// Receiver is the name of the receiver for the setter method.
+	Receiver string
+}
+
 // generatedDefaultMethod is used to represent parameters required to generate
 // a PopulateDefaults method for a GoStruct that recursively populates default
 // values within the subtree.
@@ -780,6 +794,16 @@ func (t *{{ .Receiver }}) Get{{ .Name }}() {{ .Type }} {
 		{{- end }}
 	}
 	return {{ if .IsPtr -}} * {{- end -}} t.{{ .Name }}
+}
+`)
+
+	// goLeafSetterTemplate defines a template for a function that, for a
+	// particular leaf, generates a setter method.
+	goLeafSetterTemplate = mustMakeTemplate("setLeaf", `
+// Set{{ .Name }} retrieves the value of the leaf {{ .Name }} from the {{ .Receiver }}
+// struct.
+func (t *{{ .Receiver }}) Set{{ .Name }}(v {{ .Type }}) {
+	t.{{ .Name }} = {{ if .IsPtr -}} & {{- end -}} v
 }
 `)
 
@@ -1323,6 +1347,10 @@ func writeGoStruct(targetStruct *ygen.ParsedDirectory, goStructElements map[stri
 	// to generated for the struct.
 	var associatedLeafGetters []*generatedLeafGetter
 
+	// associatedLeafSetters is a slice of structs which define the set of leaf setters
+	// to generated for the struct.
+	var associatedLeafSetters []*generatedLeafSetter
+
 	associatedDefaultMethod := generatedDefaultMethod{
 		Receiver: targetStruct.Name,
 	}
@@ -1495,6 +1523,16 @@ func writeGoStruct(targetStruct *ygen.ParsedDirectory, goStructElements map[stri
 				Default:  field.LangType.DefaultValue,
 			})
 
+			// If we are generating leaf setters, then append the relevant information
+			// to the associatedLeafSetters slice to be generated along with other
+			// associated methods.
+			associatedLeafSetters = append(associatedLeafSetters, &generatedLeafSetter{
+				Name:     fieldName,
+				Type:     fType,
+				IsPtr:    scalarField,
+				Receiver: targetStruct.Name,
+			})
+
 			fieldDef = &goStructField{
 				Name:          fieldName,
 				Type:          fType,
@@ -1641,6 +1679,11 @@ func writeGoStruct(targetStruct *ygen.ParsedDirectory, goStructElements map[stri
 
 	if goOpts.GenerateLeafGetters {
 		if err := generateLeafGetters(&methodBuf, associatedLeafGetters); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if goOpts.GenerateLeafSetters {
+		if err := generateLeafSetters(&methodBuf, associatedLeafSetters); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -1828,6 +1871,18 @@ func generateLeafGetters(buf *bytes.Buffer, leaves []*generatedLeafGetter) error
 	var errs errlist.List
 	for _, l := range leaves {
 		if err := goLeafGetterTemplate.Execute(buf, l); err != nil {
+			errs.Add(err)
+		}
+	}
+	return errs.Err()
+}
+
+// generateLeafSetters generates SetXXX methods for the leaf fields described by
+// the supplied slice of generatedLeafSetter structs.
+func generateLeafSetters(buf *bytes.Buffer, leaves []*generatedLeafSetter) error {
+	var errs errlist.List
+	for _, l := range leaves {
+		if err := goLeafSetterTemplate.Execute(buf, l); err != nil {
 			errs.Add(err)
 		}
 	}
