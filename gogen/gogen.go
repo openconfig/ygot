@@ -800,7 +800,7 @@ func (t *{{ .Receiver }}) Get{{ .Name }}() {{ .Type }} {
 	// goLeafSetterTemplate defines a template for a function that, for a
 	// particular leaf, generates a setter method.
 	goLeafSetterTemplate = mustMakeTemplate("setLeaf", `
-// Set{{ .Name }} retrieves the value of the leaf {{ .Name }} from the {{ .Receiver }}
+// Set{{ .Name }} sets the value of the leaf {{ .Name }} in the {{ .Receiver }}
 // struct.
 func (t *{{ .Receiver }}) Set{{ .Name }}(v {{ .Type }}) {
 	t.{{ .Name }} = {{ if .IsPtr -}} & {{- end -}} v
