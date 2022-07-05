@@ -1850,13 +1850,13 @@ func (*Container) ΛBelongingModule() string {
 		inStructToMap: &ygen.ParsedDirectory{
 			Name: "Container",
 			Fields: map[string]*ygen.NodeDetails{
-				"leaf": {
-					Name: "Leaf",
+				"leafStr": {
+					Name: "LeafStr",
 					YANGDetails: ygen.YANGNodeDetails{
-						Name:              "leaf",
+						Name:              "leafStr",
 						Defaults:          nil,
 						RootElementModule: "m1",
-						Path:              "/m1/foo/bar/leaf",
+						Path:              "/m1/foo/bar/leafStr",
 						LeafrefTargetPath: "",
 					},
 					Type: ygen.LeafNode,
@@ -1867,7 +1867,36 @@ func (*Container) ΛBelongingModule() string {
 						ZeroValue:         `""`,
 						DefaultValue:      nil,
 					},
-					MappedPaths:             [][]string{{"bar", "leaf"}},
+					MappedPaths:             [][]string{{"bar", "leafStr"}},
+					MappedPathModules:       [][]string{{"m1", "m1"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
+				},
+				"leafUnion": {
+					Name: "LeafUnion",
+					YANGDetails: ygen.YANGNodeDetails{
+						Name:              "leafUnion",
+						Defaults:          nil,
+						RootElementModule: "m1",
+						Path:              "/m1/foo/bar/leafUnion",
+						LeafrefTargetPath: "",
+					},
+					Type: ygen.LeafNode,
+					LangType: &ygen.MappedType{
+						NativeType: "Container_U1_Union",
+						UnionTypes: map[string]ygen.MappedUnionSubtype{
+							"string": {
+								Index: 0,
+							},
+							"int8": {
+								Index: 1,
+							},
+						},
+						IsEnumeratedValue: false,
+						ZeroValue:         "nil",
+						DefaultValue:      nil,
+					},
+					MappedPaths:             [][]string{{"bar", "leafUnion"}},
 					MappedPathModules:       [][]string{{"m1", "m1"}},
 					ShadowMappedPaths:       nil,
 					ShadowMappedPathModules: nil,
@@ -1884,7 +1913,8 @@ func (*Container) ΛBelongingModule() string {
 			structs: `
 // Container represents the /m1/foo YANG schema element.
 type Container struct {
-	Leaf	*string	` + "`" + `path:"bar/leaf" module:"m1/m1"` + "`" + `
+	LeafStr	*string	` + "`" + `path:"bar/leafStr" module:"m1/m1"` + "`" + `
+	LeafUnion	Container_U1_Union	` + "`" + `path:"bar/leafUnion" module:"m1/m1"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Container implements the yang.GoStruct
@@ -1893,10 +1923,16 @@ type Container struct {
 func (*Container) IsYANGGoStruct() {}
 `,
 			methods: `
-// SetLeaf sets the value of the leaf Leaf in the Container
+// SetLeafStr sets the value of the leaf LeafStr in the Container
 // struct.
-func (t *Container) SetLeaf(v string) {
-	t.Leaf = &v
+func (t *Container) SetLeafStr(v string) {
+	t.LeafStr = &v
+}
+
+// SetLeafUnion sets the value of the leaf LeafUnion in the Container
+// struct.
+func (t *Container) SetLeafUnion(v Container_U1_Union) {
+	t.LeafUnion = v
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
@@ -1915,6 +1951,47 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 // of Container.
 func (*Container) ΛBelongingModule() string {
 	return "m1"
+}
+`,
+			interfaces: `
+// Container_U1_Union is an interface that is implemented by valid types for the union
+// for the leaf /m1/foo/bar/leafUnion within the YANG schema.
+type Container_U1_Union interface {
+	Is_Container_U1_Union()
+}
+
+// Container_U1_Union_Int8 is used when /m1/foo/bar/leafUnion
+// is to be set to a int8 value.
+type Container_U1_Union_Int8 struct {
+	Int8	int8
+}
+
+// Is_Container_U1_Union ensures that Container_U1_Union_Int8
+// implements the Container_U1_Union interface.
+func (*Container_U1_Union_Int8) Is_Container_U1_Union() {}
+
+// Container_U1_Union_String is used when /m1/foo/bar/leafUnion
+// is to be set to a string value.
+type Container_U1_Union_String struct {
+	String	string
+}
+
+// Is_Container_U1_Union ensures that Container_U1_Union_String
+// implements the Container_U1_Union interface.
+func (*Container_U1_Union_String) Is_Container_U1_Union() {}
+
+// To_Container_U1_Union takes an input interface{} and attempts to convert it to a struct
+// which implements the Container_U1_Union union. It returns an error if the interface{} supplied
+// cannot be converted to a type within the union.
+func (t *Container) To_Container_U1_Union(i interface{}) (Container_U1_Union, error) {
+	switch v := i.(type) {
+	case int8:
+		return &Container_U1_Union_Int8{v}, nil
+	case string:
+		return &Container_U1_Union_String{v}, nil
+	default:
+		return nil, fmt.Errorf("cannot convert %v to Container_U1_Union, unknown union type, got: %T, want any of [int8, string]", i, i)
+	}
 }
 `,
 		},
