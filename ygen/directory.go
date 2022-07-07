@@ -161,7 +161,7 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 			if belongingModule, err = dir.Entry.InstantiatingModule(); err != nil {
 				return nil, fmt.Errorf("ygen: cannot find instantiating module for Directory %s: %v", dir.Path, err)
 			}
-			rootModule = util.SchemaTreeRoot(dir.Entry).Name
+			rootModule = util.TopLevelModule(dir.Entry).Name
 		}
 		var definingModuleName string
 		if definingModule := yang.RootNode(dir.Entry.Node); definingModule != nil {
@@ -230,7 +230,7 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 					Name:              field.Name,
 					Defaults:          field.DefaultValues(),
 					BelongingModule:   mod,
-					RootElementModule: util.SchemaTreeRoot(field).Name,
+					RootElementModule: util.TopLevelModule(field).Name,
 					DefiningModule:    definingModuleName,
 					Path:              field.Path(),
 					SchemaPath:        util.SchemaTreePathNoModule(field),

@@ -24,7 +24,7 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
-func TestSchemaTreeRoot(t *testing.T) {
+func TestTopLevelModule(t *testing.T) {
 	module := &yang.Entry{
 		Name: "module",
 	}
@@ -60,8 +60,8 @@ func TestSchemaTreeRoot(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		if got := SchemaTreeRoot(tt.inChild); got != tt.want {
-			t.Errorf("%s: SchemaTreeRoot(%v): didn't determine root correctly, got: %v, want: %v", tt.name, tt.inChild, got, tt.want)
+		if got := TopLevelModule(tt.inChild); got != tt.want {
+			t.Errorf("%s: TopLevelModule(%v): didn't determine root correctly, got: %v, want: %v", tt.name, tt.inChild, got, tt.want)
 		}
 	}
 }
