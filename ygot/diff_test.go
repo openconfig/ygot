@@ -1461,6 +1461,53 @@ func TestDiff(t *testing.T) {
 		inMod:         &pathElemExample{},
 		wantErrSubStr: "cannot diff structs of different types",
 	}, {
+		desc:   "prepend module",
+		inOrig: &ietfRenderExample{F2: String("f2")},
+		inMod: &ietfRenderExample{
+			F1: String("f1"),
+			F3: &ietfRenderExampleChild{F5: String("f5")},
+		},
+		inOpts: []DiffOpt{&PrependModuleNames{}},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "f2mod/f2mod:config",
+				}, {
+					Name: "f2mod/f2mod:f2",
+				}},
+			}},
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "f1mod:f1",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"f1"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "f1mod:f3",
+					}, {
+						Name: "f5",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"f5"}},
+			}},
+		},
+	}, {
+		desc:   "encoding format",
+		inOrig: &multiPathStruct{},
+		inMod:  &multiPathStruct{OnePath: String("foo")},
+		inOpts: []DiffOpt{&RFC7951Diff{}},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{Name: "one-path"}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(`"foo"`)}},
+			}},
+		},
+	}, {
 		desc:   "multiple paths - addition - without single path",
 		inOrig: &multiPathStruct{},
 		inMod:  &multiPathStruct{TwoPaths: String("foo")},

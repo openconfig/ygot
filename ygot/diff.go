@@ -246,6 +246,27 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 			sp = [][]string{leastSpecificPath(sp)}
 		}
 
+		// Prepend module name if needed
+		if hasPrependModuleNames(opts) {
+			moduleTag, ok := ni.StructField.Tag.Lookup("module")
+			if !ok {
+				errs = util.AppendErr(errs, fmt.Errorf("field %s did not specify a module", ni.StructField.Name))
+			}
+
+			parentTag := ""
+			if ni.Parent != nil {
+				parentTag = ni.Parent.StructField.Tag.Get("module")
+			}
+
+			if moduleTag != parentTag {
+				for i := range sp {
+					for j := range sp[i] {
+						sp[i][j] = moduleTag + ":" + sp[i][j]
+					}
+				}
+			}
+		}
+
 		vp, err := nodeValuePath(ni, sp)
 		if err != nil {
 			return util.NewErrs(err)
@@ -337,10 +358,22 @@ func leastSpecificPath(paths [][]string) []string {
 
 // appendUpdate adds an update to the supplied gNMI Notification message corresponding
 // to the path and value supplied.
-func appendUpdate(n *gnmipb.Notification, path *pathSpec, val interface{}) error {
-	v, err := EncodeTypedValue(val, gnmipb.Encoding_PROTO)
-	if err != nil {
-		return fmt.Errorf("cannot represent field value %v as TypedValue for path %v: %v", val, path, err)
+func appendUpdate(n *gnmipb.Notification, path *pathSpec, val interface{}, opts ...DiffOpt) error {
+	var (
+		v *gnmipb.TypedValue
+	)
+	if hasRFC7951Diff(opts) {
+		j, err := Marshal7951(val)
+		if err != nil {
+			return fmt.Errorf("cannot represent field value %v as IETF-JSON for path %v: %v", val, path, err)
+		}
+		v = &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{j}}
+	} else {
+		var err error
+		v, err = EncodeTypedValue(val, gnmipb.Encoding_PROTO)
+		if err != nil {
+			return fmt.Errorf("cannot represent field value %v as TypedValue for path %v: %v", val, path, err)
+		}
 	}
 	for _, p := range path.gNMIPaths {
 		n.Update = append(n.Update, &gnmipb.Update{
@@ -403,6 +436,34 @@ type DiffPathOpt struct {
 // IsDiffOpt marks DiffPathOpt as a diff option.
 func (*DiffPathOpt) IsDiffOpt() {}
 
+type PrependModuleNames struct{}
+
+func (*PrependModuleNames) IsDiffOpt() {}
+
+func hasPrependModuleNames(opts []DiffOpt) bool {
+	for _, o := range opts {
+		switch o.(type) {
+		case *PrependModuleNames:
+			return true
+		}
+	}
+	return false
+}
+
+type RFC7951Diff struct{}
+
+func (*RFC7951Diff) IsDiffOpt() {}
+
+func hasRFC7951Diff(opts []DiffOpt) bool {
+	for _, o := range opts {
+		switch o.(type) {
+		case *RFC7951Diff:
+			return true
+		}
+	}
+	return false
+}
+
 // Diff takes an original and modified GoStruct, which must be of the same type
 // and returns a gNMI Notification that contains the diff between them. The original
 // struct is considered as the "from" data, with the modified struct the "to" such that:
@@ -453,7 +514,7 @@ func Diff(original, modified GoStruct, opts ...DiffOpt) (*gnmipb.Notification, e
 				if !reflect.DeepEqual(origVal, modVal) {
 					// The contents of the value should indicate that value a has changed
 					// to value b.
-					if err := appendUpdate(n, origPath, modVal); err != nil {
+					if err := appendUpdate(n, origPath, modVal, opts...); err != nil {
 						return nil, err
 					}
 				}
@@ -472,7 +533,7 @@ func Diff(original, modified GoStruct, opts ...DiffOpt) (*gnmipb.Notification, e
 	// not they are updates.
 	for modPath, modVal := range modLeaves {
 		if !matched[modPath] {
-			if err := appendUpdate(n, modPath, modVal); err != nil {
+			if err := appendUpdate(n, modPath, modVal, opts...); err != nil {
 				return nil, err
 			}
 		}
