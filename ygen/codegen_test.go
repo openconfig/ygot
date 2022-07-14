@@ -336,7 +336,7 @@ func TestFindMappableEntities(t *testing.T) {
 			structs := make(map[string]*yang.Entry)
 			enums := make(map[string]*yang.Entry)
 
-			errs := findMappableEntities(tt.in, structs, enums, tt.inSkipModules, compress, tt.inModules)
+			errs := findMappableEntities(tt.in, structs, enums, tt.inSkipModules, compress, false, tt.inModules)
 			if errs != nil {
 				t.Errorf("%s: findMappableEntities(compressEnabled: %v): got unexpected error, got: %v, want: nil", tt.name, compress, errs)
 			}
