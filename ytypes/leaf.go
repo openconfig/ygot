@@ -29,6 +29,8 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+//lint:file-ignore SA1019 We still need to tolerate unmarshalling decimal_val and float_val.
+
 // Refer to: https://tools.ietf.org/html/rfc6020#section-7.6.
 
 // validateLeaf validates the value of a leaf struct against the given schema.
