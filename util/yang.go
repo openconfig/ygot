@@ -43,9 +43,29 @@ func Children(e *yang.Entry) []*yang.Entry {
 	return entries
 }
 
-// SchemaTreeRoot returns the root of the schema tree, given any node in that
-// tree. It returns nil if schema is nil.
-func SchemaTreeRoot(schema *yang.Entry) *yang.Entry {
+// TopLevelModule returns the module in which the root node of the schema tree
+// in which the input node was instantiated was declared. It returns nil if
+// schema is nil.
+//
+// In this example, container 'con' has TopLevelModule "openconfig-simple".
+//
+//   module openconfig-augment {
+//     import openconfig-simple { prefix "s"; }
+//     import openconfig-grouping { prefix "g"; }
+//
+//     augment "/s:parent/child/state" {
+//       uses g:group;
+//     }
+//   }
+//
+//   module openconfig-grouping {
+//     grouping group {
+//       container con {
+//         leaf zero { type string; }
+//       }
+//     }
+//   }
+func TopLevelModule(schema *yang.Entry) *yang.Entry {
 	if schema == nil {
 		return nil
 	}

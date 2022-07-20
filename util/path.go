@@ -262,7 +262,7 @@ func FindLeafRefSchema(schema *yang.Entry, pathStr string) (*yang.Entry, error) 
 
 	// For absolute path, reset to root of the schema tree.
 	if pathStr[0] == '/' {
-		refSchema = SchemaTreeRoot(schema)
+		refSchema = TopLevelModule(schema)
 		path = path[1:]
 	}
 
