@@ -2063,6 +2063,16 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			wantErr:  `failed to unmarshal`,
 		},
 		{
+			desc:     "success gNMI DoubleVal to Ydecimal64",
+			inSchema: typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_DoubleVal{
+					DoubleVal: 42.42,
+				},
+			},
+			wantVal: &LeafContainerStruct{DecimalLeaf: ygot.Float64(42.42)},
+		},
+		{
 			desc:     "success gNMI FloatVal to Ydecimal64",
 			inSchema: typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
 			inVal: &gpb.TypedValue{
