@@ -64,6 +64,7 @@ func TestSimpleStructs(t *testing.T) {
 			GoOptions: GoOpts{
 				GenerateSimpleUnions:    true,
 				GenerateLeafGetters:     true,
+				GenerateLeafSetters:     true,
 				GeneratePopulateDefault: true,
 			},
 		},
@@ -154,6 +155,7 @@ func TestSimpleStructs(t *testing.T) {
 			GoOptions: GoOpts{
 				GenerateSimpleUnions:    true,
 				GenerateLeafGetters:     true,
+				GenerateLeafSetters:     true,
 				GeneratePopulateDefault: true,
 			},
 		},
@@ -609,6 +611,7 @@ func TestSimpleStructs(t *testing.T) {
 			GoOptions: GoOpts{
 				GenerateSimpleUnions: true,
 				GenerateLeafGetters:  true,
+				GenerateLeafSetters:  true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-union.formatted-txt"),
@@ -668,6 +671,7 @@ func TestSimpleStructs(t *testing.T) {
 			},
 			GoOptions: GoOpts{
 				GenerateLeafGetters:                 true,
+				GenerateLeafSetters:                 true,
 				GeneratePopulateDefault:             true,
 				AppendEnumSuffixForSimpleUnionEnums: true,
 			},
@@ -689,6 +693,7 @@ func TestSimpleStructs(t *testing.T) {
 			GoOptions: GoOpts{
 				GenerateSimpleUnions: true,
 				GenerateLeafGetters:  true,
+				GenerateLeafSetters:  true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-module.formatted-txt"),
@@ -812,6 +817,26 @@ func TestSimpleStructs(t *testing.T) {
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.leaf-getters.formatted-txt"),
+	}, {
+		name:    "module with leaf setters",
+		inFiles: []string{filepath.Join(datapath, "", "openconfig-list-enum-key.yang")},
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					GenerateFakeRoot:                     true,
+					ShortenEnumLeafNames:                 true,
+					UseDefiningModuleForTypedefEnumNames: true,
+					CompressBehaviour:                    genutil.PreferIntendedConfig,
+					EnumerationsUseUnderscores:           true,
+				},
+			},
+			GoOptions: GoOpts{
+				GenerateLeafSetters:     true,
+				GeneratePopulateDefault: true,
+				GenerateSimpleUnions:    true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.leaf-setters.formatted-txt"),
 	}, {
 		name:    "uncompressed module with two different enums",
 		inFiles: []string{filepath.Join(datapath, "", "enum-list-uncompressed.yang")},

@@ -173,6 +173,30 @@ func (t *Parent_Child) GetTwo() string {
 	return *t.Two
 }
 
+// SetFour sets the value of the leaf Four in the Parent_Child
+// struct.
+func (t *Parent_Child) SetFour(v Binary) {
+	t.Four = v
+}
+
+// SetOne sets the value of the leaf One in the Parent_Child
+// struct.
+func (t *Parent_Child) SetOne(v string) {
+	t.One = &v
+}
+
+// SetThree sets the value of the leaf Three in the Parent_Child
+// struct.
+func (t *Parent_Child) SetThree(v E_Child_Three) {
+	t.Three = v
+}
+
+// SetTwo sets the value of the leaf Two in the Parent_Child
+// struct.
+func (t *Parent_Child) SetTwo(v string) {
+	t.Two = &v
+}
+
 // PopulateDefaults recursively populates unset leaf fields in the Parent_Child
 // with default values as specified in the YANG schema, instantiating any nil
 // container fields.
@@ -213,6 +237,12 @@ func (t *RemoteContainer) GetALeaf() string {
 		return ""
 	}
 	return *t.ALeaf
+}
+
+// SetALeaf sets the value of the leaf ALeaf in the RemoteContainer
+// struct.
+func (t *RemoteContainer) SetALeaf(v string) {
+	t.ALeaf = &v
 }
 
 // PopulateDefaults recursively populates unset leaf fields in the RemoteContainer
