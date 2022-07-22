@@ -58,8 +58,8 @@ github.com/openconfig/gnmi v0.0.0-20220617175856-41246b1b3507 h1:tv9HygDMXnoGyWu
 github.com/openconfig/gnmi v0.0.0-20220617175856-41246b1b3507/go.mod h1:ycJVRtLs20E2c1WD+9oacgxbrBFwQygd8/uaOuGMlfc=
 github.com/openconfig/goyang v0.0.0-20200115183954-d0a48929f0ea/go.mod h1:dhXaV0JgHJzdrHi2l+w0fZrwArtXL7jEFoiqLEdmkvU=
 github.com/openconfig/goyang v0.2.2/go.mod h1:vX61x01Q46AzbZUzG617vWqh/cB+aisc+RrNkXRd3W8=
-github.com/openconfig/goyang v1.0.0 h1:nYaFu7BOAk/eQn4CgAUjgYPfp3J6CdXrBryp32E5CjI=
-github.com/openconfig/goyang v1.0.0/go.mod h1:vX61x01Q46AzbZUzG617vWqh/cB+aisc+RrNkXRd3W8=
+github.com/openconfig/goyang v1.1.0 h1:noOfMyWq1eXo9djmJ9MtY4qg/j/5z03lgsku7jvxPws=
+github.com/openconfig/goyang v1.1.0/go.mod h1:vX61x01Q46AzbZUzG617vWqh/cB+aisc+RrNkXRd3W8=
 github.com/openconfig/gribi v0.1.1-0.20210423184541-ce37eb4ba92f h1:8vRtC+y0xh9BYPrEGf/jG/paYXiDUJ6P8iYt5rCVols=
 github.com/openconfig/gribi v0.1.1-0.20210423184541-ce37eb4ba92f/go.mod h1:OoH46A2kV42cIXGyviYmAlGmn6cHjGduyC2+I9d/iVs=
 github.com/openconfig/grpctunnel v0.0.0-20220524190229-125331eabdde/go.mod h1:OmTWe7RyZj2CIzIgy4ovEBzCLBJzRvWSZmn7u02U9gU=
