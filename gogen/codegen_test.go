@@ -158,7 +158,7 @@ func TestSimpleStructs(t *testing.T) {
 				GeneratePopulateDefault: true,
 			},
 		},
-		wantErrSubstring: "unknown type of entry Notification",
+		wantErrSubstring: "unsupported statement type (Notification)",
 	}, {
 		name:    "simple openconfig test with unsupported statements, tolerate",
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple-with-unsupported.yang")},
