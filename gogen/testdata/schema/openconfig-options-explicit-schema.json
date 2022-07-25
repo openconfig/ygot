@@ -97,12 +97,20 @@
                                     "Type": {
                                         "Name": "enumeration",
                                         "Kind": 14,
-                                        "Enum": {}
+                                        "Enum": {
+                                            "ToString": {
+                                                "0": "ONE",
+                                                "1": "TWO"
+                                            },
+                                            "ToInt": {
+                                                "ONE": 0,
+                                                "TWO": 1
+                                            }
+                                        }
                                     },
                                     "Annotation": {
                                         "ygot-oc-compressed-leaf": {}
                                     }
-
                                 }
                             },
                             "Annotation": {
@@ -171,7 +179,16 @@
                                     "Type": {
                                         "Name": "enumeration",
                                         "Kind": 14,
-                                        "Enum": {}
+                                        "Enum": {
+                                            "ToString": {
+                                                "0": "ONE",
+                                                "1": "TWO"
+                                            },
+                                            "ToInt": {
+                                                "ONE": 0,
+                                                "TWO": 1
+                                            }
+                                        }
                                     }
                                 },
                                 "two": {
