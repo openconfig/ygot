@@ -306,7 +306,24 @@
                                             "Type": {
                                                 "Name": "enumeration",
                                                 "Kind": 14,
-                                                "Enum": {}
+                                                "Enum": {
+                                                    "ToString": {
+                                                        "0": "ACTIVE",
+                                                        "1": "OPENSENT",
+                                                        "2": "OPENCONFIRM",
+                                                        "3": "ESTABLISHED",
+                                                        "4": "IDLE",
+                                                        "5": "IDLE_PFXLIMIT"
+                                                    },
+                                                    "ToInt": {
+                                                        "ACTIVE": 0,
+                                                        "ESTABLISHED": 3,
+                                                        "IDLE": 4,
+                                                        "IDLE_PFXLIMIT": 5,
+                                                        "OPENCONFIRM": 2,
+                                                        "OPENSENT": 1
+                                                    }
+                                                }
                                             }
                                         }
                                     },

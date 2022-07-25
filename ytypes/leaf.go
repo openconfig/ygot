@@ -29,6 +29,8 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+//lint:file-ignore SA1019 We still need to tolerate unmarshalling decimal_val and float_val.
+
 // Refer to: https://tools.ietf.org/html/rfc6020#section-7.6.
 
 // validateLeaf validates the value of a leaf struct against the given schema.
@@ -815,6 +817,8 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 			return fv, nil
 		case *gpb.TypedValue_FloatVal:
 			return float64(v.FloatVal), nil
+		case *gpb.TypedValue_DoubleVal:
+			return float64(v.DoubleVal), nil
 		}
 	}
 	return nil, fmt.Errorf("%v type isn't expected for GNMIEncoding", yang.TypeKindToName[ykind])
@@ -848,9 +852,12 @@ func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue, jsonToleranc
 	case yang.Ybinary:
 		_, ok = tv.GetValue().(*gpb.TypedValue_BytesVal)
 	case yang.Ydecimal64:
-		_, ok = tv.GetValue().(*gpb.TypedValue_DecimalVal)
+		_, ok = tv.GetValue().(*gpb.TypedValue_DoubleVal)
 		if !ok {
 			_, ok = tv.GetValue().(*gpb.TypedValue_FloatVal)
+			if !ok {
+				_, ok = tv.GetValue().(*gpb.TypedValue_DecimalVal)
+			}
 		}
 	}
 	return ok
