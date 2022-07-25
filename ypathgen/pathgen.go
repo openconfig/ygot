@@ -144,6 +144,9 @@ type GenConfig struct {
 	// only applies when useDefiningModuleForTypedefEnumNames is also set
 	// to true.
 	AppendEnumSuffixForSimpleUnionEnums bool
+	// IgnoreUnsupportedStatements ignores unsupported YANG statements when
+	// parsing, such that they do not show up errors during IR generation.
+	IgnoreUnsupportedStatements bool
 	// ExcludeModules specifies any modules that are included within the set of
 	// modules that should have code generated for them that should be ignored during
 	// code generation. This is due to the fact that some schemas (e.g., OpenConfig
@@ -249,8 +252,9 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 
 	opts := ygen.IROptions{
 		ParseOptions: ygen.ParseOpts{
-			YANGParseOptions: cg.YANGParseOptions,
-			ExcludeModules:   cg.ExcludeModules,
+			IgnoreUnsupportedStatements: cg.IgnoreUnsupportedStatements,
+			YANGParseOptions:            cg.YANGParseOptions,
+			ExcludeModules:              cg.ExcludeModules,
 		},
 		TransformationOptions: ygen.TransformationOpts{
 			CompressBehaviour:                    compressBehaviour,
