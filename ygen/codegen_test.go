@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/internal/igenutil"
 )
@@ -26,10 +27,11 @@ import (
 // into Go code from a YANG schema.
 func TestFindMappableEntities(t *testing.T) {
 	tests := []struct {
-		name          string        // name is an identifier for the test.
-		in            *yang.Entry   // in is the yang.Entry corresponding to the YANG root element.
-		inSkipModules []string      // inSkipModules is a slice of strings indicating modules to be skipped.
-		inModules     []*yang.Entry // inModules is the set of modules that the code generation is for.
+		name                          string        // name is an identifier for the test.
+		in                            *yang.Entry   // in is the yang.Entry corresponding to the YANG root element.
+		inSkipModules                 []string      // inSkipModules is a slice of strings indicating modules to be skipped.
+		inModules                     []*yang.Entry // inModules is the set of modules that the code generation is for.
+		inIgnoreUnsupportedStatements bool          // inIgnoreUnsupportedStatements determines whether unsupported statements should error out.
 		// wantCompressed is a map keyed by the string "structs" or "enums" which contains a slice
 		// of the YANG identifiers for the corresponding mappable entities that should be
 		// found. wantCompressed is the set that are expected when compression is enabled.
@@ -37,6 +39,7 @@ func TestFindMappableEntities(t *testing.T) {
 		// wantUncompressed is a map of the same form as wantCompressed. It is the expected
 		// result when compression is disabled.
 		wantUncompressed map[string][]string
+		wantErrSubstring string
 	}{{
 		name: "base-test",
 		in: &yang.Entry{
@@ -61,6 +64,74 @@ func TestFindMappableEntities(t *testing.T) {
 				},
 			},
 		},
+		wantCompressed: map[string][]string{
+			"structs": {"base"},
+			"enums":   {},
+		},
+		wantUncompressed: map[string][]string{
+			"structs": {"base", "config", "state"},
+			"enums":   {},
+		},
+	}, {
+		name: "unsupported-test",
+		in: &yang.Entry{
+			Name: "module",
+			Kind: yang.DirectoryEntry,
+			Dir: map[string]*yang.Entry{
+				"base": {
+					Name: "base",
+					Kind: yang.DirectoryEntry,
+					Dir: map[string]*yang.Entry{
+						"config": {
+							Name: "config",
+							Kind: yang.DirectoryEntry,
+							Dir:  map[string]*yang.Entry{},
+						},
+						"state": {
+							Name: "state",
+							Kind: yang.DirectoryEntry,
+							Dir: map[string]*yang.Entry{
+								"leaf": {
+									Name: "leaf",
+									Kind: yang.NotificationEntry,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		wantErrSubstring: "unsupported statement type (Notification)",
+	}, {
+		name: "ignore-unsupported-test",
+		in: &yang.Entry{
+			Name: "module",
+			Kind: yang.DirectoryEntry,
+			Dir: map[string]*yang.Entry{
+				"base": {
+					Name: "base",
+					Kind: yang.DirectoryEntry,
+					Dir: map[string]*yang.Entry{
+						"config": {
+							Name: "config",
+							Kind: yang.DirectoryEntry,
+							Dir:  map[string]*yang.Entry{},
+						},
+						"state": {
+							Name: "state",
+							Kind: yang.DirectoryEntry,
+							Dir: map[string]*yang.Entry{
+								"leaf": {
+									Name: "leaf",
+									Kind: yang.NotificationEntry,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		inIgnoreUnsupportedStatements: true,
 		wantCompressed: map[string][]string{
 			"structs": {"base"},
 			"enums":   {},
@@ -336,9 +407,21 @@ func TestFindMappableEntities(t *testing.T) {
 			structs := make(map[string]*yang.Entry)
 			enums := make(map[string]*yang.Entry)
 
-			errs := findMappableEntities(tt.in, structs, enums, tt.inSkipModules, compress, false, tt.inModules)
-			if errs != nil {
-				t.Errorf("%s: findMappableEntities(compressEnabled: %v): got unexpected error, got: %v, want: nil", tt.name, compress, errs)
+			errs := findMappableEntities(tt.in, structs, enums, tt.inSkipModules, compress, tt.inIgnoreUnsupportedStatements, tt.inModules)
+
+			var err error
+			switch {
+			case len(errs) == 1:
+				err = errs[0]
+			case len(errs) > 1:
+				t.Errorf("%s: findMappableEntities(compressEnabled: %v): got too many errors, got: %v, want: %q", tt.name, compress, errs, tt.wantErrSubstring)
+				continue
+			}
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Errorf("%s: findMappableEntities(compressEnabled: %v): did not get expected error:\n%s", tt.name, compress, diff)
+			}
+			if len(errs) > 0 {
+				continue
 			}
 
 			entityNames := func(m map[string]bool) []string {

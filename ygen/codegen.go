@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"strings"
 
+	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
@@ -354,9 +355,10 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 			continue
 		default:
 			if ignoreUnsupportedStatements {
+				log.Infof("Unsupported statement type (%v) ignored: %s", ch.Kind, ch.Path())
 				continue
 			}
-			errs = util.AppendErr(errs, fmt.Errorf("unknown type of entry %v in findMappableEntities for %s", ch.Kind, ch.Path()))
+			errs = util.AppendErr(errs, fmt.Errorf("unsupported statement type (%v) in findMappableEntities for %s", ch.Kind, ch.Path()))
 		}
 	}
 	return errs
