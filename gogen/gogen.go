@@ -1682,6 +1682,7 @@ func writeGoStruct(targetStruct *ygen.ParsedDirectory, goStructElements map[stri
 			errs = append(errs, err)
 		}
 	}
+	
 	if goOpts.GenerateLeafSetters {
 		if err := generateLeafSetters(&methodBuf, associatedLeafSetters); err != nil {
 			errs = append(errs, err)
