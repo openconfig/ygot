@@ -1688,6 +1688,7 @@ func writeGoStruct(targetStruct *ygen.ParsedDirectory, goStructElements map[stri
 			errs = append(errs, err)
 		}
 	}
+
 	if goOpts.GeneratePopulateDefault {
 		associatedDefaultMethod.Leaves = associatedLeafGetters
 		if err := goDefaultMethodTemplate.Execute(&methodBuf, associatedDefaultMethod); err != nil {
