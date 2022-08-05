@@ -1013,9 +1013,9 @@ func TestGeneratePathCodeSplitFiles(t *testing.T) {
 	}{{
 		name:                  "fileNumber is higher than total number of structs",
 		inFiles:               []string{filepath.Join(datapath, "openconfig-simple.yang")},
-		inFileNumber:          5,
-		inSchemaStructPkgPath: "",
-		wantErr:               true,
+		inFileNumber:          100,
+		inSchemaStructPkgPath: "github.com/openconfig/ygot/ypathgen/testdata/exampleoc",
+		wantStructsCodeFiles:  []string{filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple.higher-0.path-txt"), filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple.higher-1.path-txt"), filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple.higher-2.path-txt"), filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple.higher-3.path-txt")},
 	}, {
 		name:                  "fileNumber is exactly the total number of structs",
 		inFiles:               []string{filepath.Join(datapath, "openconfig-simple.yang")},
@@ -1027,7 +1027,7 @@ func TestGeneratePathCodeSplitFiles(t *testing.T) {
 		inFiles:               []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inFileNumber:          3,
 		inSchemaStructPkgPath: "",
-		wantStructsCodeFiles:  []string{filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple-30.path-txt"), filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple-31.path-txt"), filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple-32.path-txt")},
+		wantStructsCodeFiles:  []string{filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple-30.path-txt"), filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple-31.path-txt")},
 	}, {
 		name:                  "fileNumber is half the total number of structs",
 		inFiles:               []string{filepath.Join(datapath, "openconfig-simple.yang")},
@@ -1940,27 +1940,30 @@ func TestGetNodeDataMap(t *testing.T) {
 
 // trimDocComments removes doc comments from the input code snippet string.
 // Example:
-//   // foo does bar
-//   func foo() {
-//     // baz is need to do boo.
-//     baz()
-//   }
 //
-//   // foo2 does bar2
-//   func foo2() {
-//     // baz2 is need to do boo2.
-//     baz2()
-//   }
+//	// foo does bar
+//	func foo() {
+//	  // baz is need to do boo.
+//	  baz()
+//	}
+//
+//	// foo2 does bar2
+//	func foo2() {
+//	  // baz2 is need to do boo2.
+//	  baz2()
+//	}
+//
 // After:
-//   func foo() {
-//     // baz is need to do boo.
-//     baz()
-//   }
 //
-//   func foo2() {
-//     // baz2 is need to do boo2.
-//     baz2()
-//   }
+//	func foo() {
+//	  // baz is need to do boo.
+//	  baz()
+//	}
+//
+//	func foo2() {
+//	  // baz2 is need to do boo2.
+//	  baz2()
+//	}
 func trimDocComments(snippet string) string {
 	var b strings.Builder
 	for i, line := range strings.Split(snippet, "\n") {
