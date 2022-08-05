@@ -141,6 +141,49 @@ func TestSimpleStructs(t *testing.T) {
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple-no-compress.trimmed-enum.formatted-txt"),
 	}, {
+		name:    "simple openconfig test with unsupported statements, don't tolerate",
+		inFiles: []string{filepath.Join(datapath, "openconfig-simple-with-unsupported.yang")},
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					CompressBehaviour:                    genutil.PreferIntendedConfig,
+					ShortenEnumLeafNames:                 true,
+					EnumOrgPrefixesToTrim:                []string{"openconfig"},
+					UseDefiningModuleForTypedefEnumNames: true,
+					EnumerationsUseUnderscores:           true,
+				},
+			},
+			GoOptions: GoOpts{
+				GenerateSimpleUnions:    true,
+				GenerateLeafGetters:     true,
+				GeneratePopulateDefault: true,
+			},
+		},
+		wantErrSubstring: "unsupported statement type (Notification)",
+	}, {
+		name:    "simple openconfig test with unsupported statements, tolerate",
+		inFiles: []string{filepath.Join(datapath, "openconfig-simple-with-unsupported.yang")},
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				ParseOptions: ygen.ParseOpts{
+					IgnoreUnsupportedStatements: true,
+				},
+				TransformationOptions: ygen.TransformationOpts{
+					CompressBehaviour:                    genutil.PreferIntendedConfig,
+					ShortenEnumLeafNames:                 true,
+					EnumOrgPrefixesToTrim:                []string{"openconfig"},
+					UseDefiningModuleForTypedefEnumNames: true,
+					EnumerationsUseUnderscores:           true,
+				},
+			},
+			GoOptions: GoOpts{
+				GenerateSimpleUnions:    true,
+				GenerateLeafGetters:     true,
+				GeneratePopulateDefault: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple-with-unsupported.formatted-txt"),
+	}, {
 		name:    "OpenConfig leaf-list defaults test, with compression",
 		inFiles: []string{filepath.Join(datapath, "openconfig-leaflist-default.yang")},
 		inConfig: CodeGenerator{
