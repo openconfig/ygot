@@ -56,9 +56,13 @@ func ShadowSchemaPaths(f reflect.StructField) [][]string {
 
 // RelativeSchemaPath returns a path to the schema for the struct field f.
 // Paths are embedded in the "path" struct tag and can be either simple:
-//   e.g. "path:a"
+//
+//	e.g. "path:a"
+//
 // or composite (if path compression is used) e.g.
-//   e.g. "path:config/a|a"
+//
+//	e.g. "path:config/a|a"
+//
 // In the latter case, this function returns {"config", "a"}, because only the
 // longer path exists in the data tree and we want the schema for that node.
 // This case is found in OpenConfig leaf-ref cases where the key of a list is a
@@ -73,9 +77,13 @@ func RelativeSchemaPath(f reflect.StructField) ([]string, error) {
 //
 // Paths are embedded in the "shadow-path" and "path" struct tags and can be
 // either simple:
-//   e.g. "path:a"
+//
+//	e.g. "path:a"
+//
 // or composite (if path compression is used) e.g.
-//   e.g. "path:config/a|a"
+//
+//	e.g. "path:config/a|a"
+//
 // In the latter case, this function returns {"config", "a"}, because only the
 // longer path exists in the data tree and we want the schema for that node.
 // This case is found in OpenConfig leaf-ref cases where the key of a list is a
@@ -87,9 +95,13 @@ func RelativeSchemaPathPreferShadow(f reflect.StructField) ([]string, error) {
 
 // relativeSchemaPath returns a path to the schema for the struct field f.
 // Paths are embedded in the "path" struct tag and can be either simple:
-//   e.g. "path:a"
+//
+//	e.g. "path:a"
+//
 // or composite (if path compression is used) e.g.
-//   e.g. "path:config/a|a"
+//
+//	e.g. "path:config/a|a"
+//
 // In the latter case, this function returns {"config", "a"}, because only the
 // longer path exists in the data tree and we want the schema for that node.
 // This case is found in OpenConfig leaf-ref cases where the key of a list is a
@@ -244,10 +256,10 @@ func removeXPATHPredicates(s string) (string, error) {
 // FindLeafRefSchema returns a schema Entry at the path pathStr relative to
 // schema if it exists, or an error otherwise.
 // pathStr has either:
-//  - the relative form "../a/b/../b/c", where ".." indicates the parent of the
-//    node, or
-//  - the absolute form "/a/b/c", which indicates the absolute path from the
-//    root of the schema tree.
+//   - the relative form "../a/b/../b/c", where ".." indicates the parent of the
+//     node, or
+//   - the absolute form "/a/b/c", which indicates the absolute path from the
+//     root of the schema tree.
 func FindLeafRefSchema(schema *yang.Entry, pathStr string) (*yang.Entry, error) {
 	if pathStr == "" {
 		return nil, fmt.Errorf("leafref schema %s has empty path", schema.Name)

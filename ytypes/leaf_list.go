@@ -83,11 +83,12 @@ func validateLeafListSchema(schema *yang.Entry) error {
 }
 
 // unmarshalLeafList unmarshals given value into a Go slice parent.
-//   schema is the schema of the schema node corresponding to the field being
-//     unmamshaled into
-//   enc is the encoding type used to encode the value
-//   value is a JSON array if enc is JSONEncoding, represented as Go slice
-//   value is a gNMI TypedValue if enc is GNMIEncoding, represented as TypedValue_LeafListVal
+//
+//	schema is the schema of the schema node corresponding to the field being
+//	  unmamshaled into
+//	enc is the encoding type used to encode the value
+//	value is a JSON array if enc is JSONEncoding, represented as Go slice
+//	value is a gNMI TypedValue if enc is GNMIEncoding, represented as TypedValue_LeafListVal
 func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}, enc Encoding, opts ...UnmarshalOpt) error {
 	if util.IsValueNil(value) {
 		if enc == JSONEncoding {

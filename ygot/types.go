@@ -127,11 +127,11 @@ type EnumDefinition struct {
 // fields within a GoStruct. Annotations are stored within each struct, and
 // for a struct field, for example:
 //
-//  type GoStructExample struct {
-//     ΛMetadata []*ygot.Annotation `path:"@"`
-//     StringField *string `path:"string-field"`
-//     ΛStringField []*ygot.Annotation `path:"@string-field"`
-//  }
+//	type GoStructExample struct {
+//	   ΛMetadata []*ygot.Annotation `path:"@"`
+//	   StringField *string `path:"string-field"`
+//	   ΛStringField []*ygot.Annotation `path:"@string-field"`
+//	}
 //
 // The ΛMetadata and ΛStringField fields can be populated with a slice of
 // arbitrary types implementing the Annotation interface.

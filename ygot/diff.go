@@ -147,13 +147,13 @@ func nodeChildPath(parentPath *pathSpec, schemaPaths [][]string) (*pathSpec, err
 // name of the YANG list) and returns the data tree path of the map. For a
 // struct of the form:
 //
-//  type Foo struct {
-//   YANGList map[string]*Foo_Child `path:"yang-list"`
-//  }
+//	type Foo struct {
+//	 YANGList map[string]*Foo_Child `path:"yang-list"`
+//	}
 //
-//  type Foo_Child struct {
-//   KeyValue *string `path:"key-value"`
-//  }
+//	type Foo_Child struct {
+//	 KeyValue *string `path:"key-value"`
+//	}
 //
 // The parentPath handed to this function is "/yang-list" since this is the
 // path of the YANGList struct field. The full data tree path of the list entry
@@ -392,11 +392,11 @@ func (*DiffPathOpt) IsDiffOpt() {}
 // and returns a gNMI Notification that contains the diff between them. The original
 // struct is considered as the "from" data, with the modified struct the "to" such that:
 //
-//  - The contents of the Update field of the notification indicate that the
-//    field in modified was either not present in original, or had a different
-//    field value.
-//  - The paths within the Delete field of the notification indicate that the
-//    field was not present in the modified struct, but was set in the original.
+//   - The contents of the Update field of the notification indicate that the
+//     field in modified was either not present in original, or had a different
+//     field value.
+//   - The paths within the Delete field of the notification indicate that the
+//     field was not present in the modified struct, but was set in the original.
 //
 // Annotation fields that are contained within the supplied original or modified
 // GoStruct are skipped.
