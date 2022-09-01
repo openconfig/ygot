@@ -228,11 +228,12 @@ func (goLangMapper) PopulateFieldFlags(nd ygen.NodeDetails, field *yang.Entry) m
 // a map of package names to GeneratedPathCode structs. Each struct contains
 // all the generated code of that package needed support the path-creation API.
 // The important components of the generated code are listed below:
-//	1. Struct definitions for each container, list, or leaf schema node,
-//	as well as the fakeroot.
-//	2. Next-level methods for the fakeroot and each non-leaf schema node,
-//	which instantiate and return the next-level structs corresponding to
-//	its child schema nodes.
+//  1. Struct definitions for each container, list, or leaf schema node,
+//     as well as the fakeroot.
+//  2. Next-level methods for the fakeroot and each non-leaf schema node,
+//     which instantiate and return the next-level structs corresponding to
+//     its child schema nodes.
+//
 // With these components, the generated API is able to support absolute path
 // creation of any node of the input schema.
 // Also returned is the NodeDataMap of the schema, i.e. information about each
@@ -1258,18 +1259,19 @@ type keyParam struct {
 // list of each parameter's types as a comment string.
 // It outputs the parameters in the same order as in the given keyNames.
 // e.g.
-//   in: &map[string]*ygen.ListKey{
-//		"fluorine": &ygen.ListKey{
-//			Name: "Fluorine", LangType: &ygen.MappedType{NativeType: "string"}
-//		},
-//		"iodine-liquid": &ygen.ListKey{
-//			Name: "IodineLiquid", LangType: &ygen.MappedType{NativeType: "A_Union", UnionTypes: {"Binary": 0, "uint64": 1}}
-//		},
-//       }
-//       KeyNames: []string{"fluorine", "iodine-liquid"},
 //
-//   {name, varName, typeName} out: [{"fluroine", "Fluorine", "string"}, {"iodine-liquid", "IodineLiquid", "oc.A_Union"}]
-//   docstring out: ["string", "[oc.Binary, oc.UnionUint64]"]
+//	  in: &map[string]*ygen.ListKey{
+//			"fluorine": &ygen.ListKey{
+//				Name: "Fluorine", LangType: &ygen.MappedType{NativeType: "string"}
+//			},
+//			"iodine-liquid": &ygen.ListKey{
+//				Name: "IodineLiquid", LangType: &ygen.MappedType{NativeType: "A_Union", UnionTypes: {"Binary": 0, "uint64": 1}}
+//			},
+//	      }
+//	      KeyNames: []string{"fluorine", "iodine-liquid"},
+//
+//	  {name, varName, typeName} out: [{"fluroine", "Fluorine", "string"}, {"iodine-liquid", "IodineLiquid", "oc.A_Union"}]
+//	  docstring out: ["string", "[oc.Binary, oc.UnionUint64]"]
 func makeKeyParams(keys map[string]*ygen.ListKey, keyNames []string, schemaStructPkgAccessor string) ([]keyParam, error) {
 	if len(keys) == 0 {
 		return nil, fmt.Errorf("makeKeyParams: invalid list - has no key; cannot process param list string")

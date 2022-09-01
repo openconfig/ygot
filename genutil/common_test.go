@@ -256,7 +256,7 @@ func TestFindChildren(t *testing.T) {
 			},
 		},
 		want: map[CompressBehaviour][]yang.Entry{
-			PreferIntendedConfig: []yang.Entry{
+			PreferIntendedConfig: {
 				{
 					Name:   "name",
 					Config: yang.TSTrue,
@@ -277,7 +277,7 @@ func TestFindChildren(t *testing.T) {
 					},
 				},
 			},
-			Uncompressed: []yang.Entry{
+			Uncompressed: {
 				{
 					Name:   "config",
 					Config: yang.TSTrue,
@@ -294,7 +294,7 @@ func TestFindChildren(t *testing.T) {
 					Type:   &yang.YangType{Kind: yang.Yleafref},
 				},
 			},
-			ExcludeDerivedState: []yang.Entry{
+			ExcludeDerivedState: {
 				{
 					Name:   "name",
 					Config: yang.TSTrue,
@@ -308,7 +308,7 @@ func TestFindChildren(t *testing.T) {
 					Type:   &yang.YangType{Kind: yang.Ystring},
 				},
 			},
-			UncompressedExcludeDerivedState: []yang.Entry{
+			UncompressedExcludeDerivedState: {
 				{
 					Name:   "config",
 					Config: yang.TSTrue,
@@ -320,7 +320,7 @@ func TestFindChildren(t *testing.T) {
 					Type:   &yang.YangType{Kind: yang.Yleafref},
 				},
 			},
-			PreferOperationalState: []yang.Entry{
+			PreferOperationalState: {
 				{
 					Name:   "name",
 					Config: yang.TSFalse,
@@ -343,7 +343,7 @@ func TestFindChildren(t *testing.T) {
 			},
 		},
 		wantShadow: map[CompressBehaviour][]yang.Entry{
-			PreferIntendedConfig: []yang.Entry{
+			PreferIntendedConfig: {
 				{
 					Name:   "name",
 					Config: yang.TSFalse,
@@ -360,7 +360,7 @@ func TestFindChildren(t *testing.T) {
 			Uncompressed:                    nil,
 			ExcludeDerivedState:             nil,
 			UncompressedExcludeDerivedState: nil,
-			PreferOperationalState: []yang.Entry{
+			PreferOperationalState: {
 				{
 					Name:   "name",
 					Config: yang.TSTrue,
@@ -398,21 +398,21 @@ func TestFindChildren(t *testing.T) {
 			},
 		},
 		want: map[CompressBehaviour][]yang.Entry{
-			PreferIntendedConfig: []yang.Entry{
+			PreferIntendedConfig: {
 				{
 					Name:   "singular",
 					Config: yang.TSTrue,
 					Type:   &yang.YangType{},
 				},
 			},
-			PreferOperationalState: []yang.Entry{
+			PreferOperationalState: {
 				{
 					Name:   "singular",
 					Config: yang.TSTrue,
 					Type:   &yang.YangType{},
 				},
 			},
-			Uncompressed: []yang.Entry{
+			Uncompressed: {
 				{
 					Name:   "plural",
 					Config: yang.TSTrue,
@@ -491,19 +491,19 @@ func TestFindChildren(t *testing.T) {
 			},
 		},
 		want: map[CompressBehaviour][]yang.Entry{
-			PreferIntendedConfig: []yang.Entry{
+			PreferIntendedConfig: {
 				{
 					Name: "option",
 					Type: &yang.YangType{},
 				},
 			},
-			PreferOperationalState: []yang.Entry{
+			PreferOperationalState: {
 				{
 					Name: "option",
 					Type: &yang.YangType{},
 				},
 			},
-			Uncompressed: []yang.Entry{
+			Uncompressed: {
 				{
 					Name: "option",
 					Type: &yang.YangType{},
@@ -542,13 +542,13 @@ func TestFindChildren(t *testing.T) {
 			},
 		},
 		want: map[CompressBehaviour][]yang.Entry{
-			PreferIntendedConfig: []yang.Entry{{
+			PreferIntendedConfig: {{
 				Name: "string",
 			}},
-			PreferOperationalState: []yang.Entry{{
+			PreferOperationalState: {{
 				Name: "string",
 			}},
-			Uncompressed: []yang.Entry{{
+			Uncompressed: {{
 				Name: "state",
 			}},
 		},
@@ -584,13 +584,13 @@ func TestFindChildren(t *testing.T) {
 			},
 		},
 		want: map[CompressBehaviour][]yang.Entry{
-			PreferIntendedConfig: []yang.Entry{{
+			PreferIntendedConfig: {{
 				Name: "string",
 			}},
-			PreferOperationalState: []yang.Entry{{
+			PreferOperationalState: {{
 				Name: "string",
 			}},
-			Uncompressed: []yang.Entry{{
+			Uncompressed: {{
 				Name: "config",
 			}},
 		},
@@ -609,8 +609,8 @@ func TestFindChildren(t *testing.T) {
 			},
 		},
 		want: map[CompressBehaviour][]yang.Entry{
-			ExcludeDerivedState:             []yang.Entry{},
-			UncompressedExcludeDerivedState: []yang.Entry{},
+			ExcludeDerivedState:             {},
+			UncompressedExcludeDerivedState: {},
 		},
 		wantShadow: map[CompressBehaviour][]yang.Entry{
 			PreferIntendedConfig: nil,
@@ -627,8 +627,8 @@ func TestFindChildren(t *testing.T) {
 			},
 		},
 		want: map[CompressBehaviour][]yang.Entry{
-			ExcludeDerivedState:             []yang.Entry{{Name: "config-true"}},
-			UncompressedExcludeDerivedState: []yang.Entry{{Name: "config-true"}},
+			ExcludeDerivedState:             {{Name: "config-true"}},
+			UncompressedExcludeDerivedState: {{Name: "config-true"}},
 		},
 		wantShadow: map[CompressBehaviour][]yang.Entry{
 			ExcludeDerivedState:             nil,
@@ -657,8 +657,8 @@ func TestFindChildren(t *testing.T) {
 			},
 		},
 		want: map[CompressBehaviour][]yang.Entry{
-			ExcludeDerivedState: []yang.Entry{},
-			UncompressedExcludeDerivedState: []yang.Entry{{
+			ExcludeDerivedState: {},
+			UncompressedExcludeDerivedState: {{
 				Name:   "surrounding-container",
 				Config: yang.TSTrue,
 			}},

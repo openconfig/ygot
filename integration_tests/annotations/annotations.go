@@ -15,4 +15,3 @@
 // Package annotations provides integration tests for annotation that are
 // used in ygot structs.
 package annotations
-

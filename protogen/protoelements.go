@@ -426,19 +426,19 @@ type unionSubtypeInfo struct {
 // to determine the paths that are used for enumerated types within the YANG schema. Each union is
 // resolved into a oneof that contains the scalar types, for example:
 //
-// leaf a {
-//	type union {
-//		type string;
-//		type int32;
+//	leaf a {
+//		type union {
+//			type string;
+//			type int32;
+//		}
 //	}
-// }
 //
 // Is represented in the output protobuf as:
 //
-// oneof a {
-//	string a_string = NN;
-//	int32 a_int32 = NN;
-// }
+//	oneof a {
+//		string a_string = NN;
+//		int32 a_int32 = NN;
+//	}
 //
 // The ygen.MappedType's UnionTypes can be output through a template into the oneof.
 func (s *ProtoLangMapper) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeArgs, opts ygen.IROptions) (*ygen.MappedType, error) {

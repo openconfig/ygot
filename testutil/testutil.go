@@ -225,10 +225,11 @@ func (p pathSet) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 // NotificationLess compares the two notifications a and b, returning true if
 // a is less than b, and false if not. Less is defined by:
-//  - Comparing the timestamp.
-//  - If equal timestamps, comparing the prefix using PathLess.
-//  - If equal prefixes, comparing the Updates using UpdateLess.
-//  - If equal updates, comparing the Deletes using deleteLess.
+//   - Comparing the timestamp.
+//   - If equal timestamps, comparing the prefix using PathLess.
+//   - If equal prefixes, comparing the Updates using UpdateLess.
+//   - If equal updates, comparing the Deletes using deleteLess.
+//
 // If all fields are equal, the function returns false to ensure that the
 // irreflexive property required by cmpopts.SortSlices is implemented.
 func NotificationLess(a, b *gnmipb.Notification) bool {

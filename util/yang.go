@@ -49,22 +49,22 @@ func Children(e *yang.Entry) []*yang.Entry {
 //
 // In this example, container 'con' has TopLevelModule "openconfig-simple".
 //
-//   module openconfig-augment {
-//     import openconfig-simple { prefix "s"; }
-//     import openconfig-grouping { prefix "g"; }
+//	module openconfig-augment {
+//	  import openconfig-simple { prefix "s"; }
+//	  import openconfig-grouping { prefix "g"; }
 //
-//     augment "/s:parent/child/state" {
-//       uses g:group;
-//     }
-//   }
+//	  augment "/s:parent/child/state" {
+//	    uses g:group;
+//	  }
+//	}
 //
-//   module openconfig-grouping {
-//     grouping group {
-//       container con {
-//         leaf zero { type string; }
-//       }
-//     }
-//   }
+//	module openconfig-grouping {
+//	  grouping group {
+//	    container con {
+//	      leaf zero { type string; }
+//	    }
+//	  }
+//	}
 func TopLevelModule(schema *yang.Entry) *yang.Entry {
 	if schema == nil {
 		return nil
@@ -513,10 +513,13 @@ func EnumeratedUnionTypes(types []*yang.YangType) []*yang.YangType {
 // used under a leaf:
 // - a typedef within any kind or level of unions.
 //   - defining type is the typedef itself -- the closest place of definition.
+//
 // - a non-typedef within a non-typedef union.
 //   - defining type is the union (i.e. type of the leaf, which defines it)
+//
 // - a non-typedef within a non-typedef union within a non-typedef union.
 //   - defining type is the outer union (i.e. type of the leaf, which defines it).
+//
 // - a non-typedef within a typedef union within a non-typedef union.
 //   - defining type is the (inner) typedef union.
 func DefiningType(subtype *yang.YangType, leafType *yang.YangType) (*yang.YangType, error) {

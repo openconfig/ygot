@@ -445,8 +445,9 @@ type GetOrCreateNodeOpt interface {
 // Note that this function may modify the supplied root even if the function fails.
 // Note that this function may create containers or list entries even if the input path is a shadow path.
 // TODO(wenbli): a traversal should remember what containers or list entries
-//		 were created so that a failed call or a call to a shadow path can later undo
-// 		 this. This applies to SetNode as well.
+//
+//	were created so that a failed call or a call to a shadow path can later undo
+//	this. This applies to SetNode as well.
 func GetOrCreateNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...GetOrCreateNodeOpt) (interface{}, *yang.Entry, error) {
 	nodes, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
 		modifyRoot:       true,

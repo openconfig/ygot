@@ -83,15 +83,17 @@ func validateList(schema *yang.Entry, value interface{}) util.Errors {
 
 // checkKeys checks that the map key value for the list equals the value of the
 // key field(s) in the elements for the map value.
-//   entry is the schema for the list.
-//   structElems is the structure representing the element in the data tree.
-//   keyElems is the structure representing the map key in the data tree.
+//
+// - entry is the schema for the list.
+// - structElems is the structure representing the element in the data tree.
+// - keyElems is the structure representing the map key in the data tree.
+//
 // For a list schema that has a struct key, it's expected that:
-//    1. The schema contains leaves with the struct field names (checked before
-//       calling this function).
-//    2. Each element in the list has key fields defined by the leaves in 1.
-//    3. For each such key field, the field value in the element equals the
-//       value of the map key of the containing map in the data tree.
+//  1. The schema contains leaves with the struct field names (checked before
+//     calling this function).
+//  2. Each element in the list has key fields defined by the leaves in 1.
+//  3. For each such key field, the field value in the element equals the
+//     value of the map key of the containing map in the data tree.
 func checkKeys(schema *yang.Entry, structElems reflect.Value, keyValue reflect.Value) util.Errors {
 	keys := strings.Fields(schema.Key)
 	if len(keys) == 1 {
@@ -133,9 +135,9 @@ func checkBasicKeyValue(structElems reflect.Value, keyFieldSchemaName string, ke
 
 // checkStructKeyValues checks that the provided key struct (which is the key
 // value of the entry in the data tree map):
-//  - has all the fields defined in the schema key definition
-//  - has no fields not defined in the schema key definition
-//  - has values for each field equal to the corresponding field in the element.
+//   - has all the fields defined in the schema key definition
+//   - has no fields not defined in the schema key definition
+//   - has values for each field equal to the corresponding field in the element.
 func checkStructKeyValues(structElems reflect.Value, keyStruct reflect.Value) util.Errors {
 	var errors []error
 	if keyStruct.Type().Kind() != reflect.Struct {
@@ -271,11 +273,12 @@ func nameMatchesPath(fieldName string, path []string) (bool, error) {
 
 // unmarshalList unmarshals a JSON array into a list parent, which must be a
 // map or slice ptr.
-//   schema is the schema of the schema node corresponding to the struct being
-//     unmamshaled into
-//   jsonList is a JSON list
-//   opts... are a set of ytypes.UnmarshalOptionst that are used to control
-//     the behaviour of the unmarshal function.
+//
+// - schema is the schema of the schema node corresponding to the struct being
+// unmamshaled into
+// - jsonList is a JSON list
+// - opts... are a set of ytypes.UnmarshalOptionst that are used to control
+// the behaviour of the unmarshal function.
 func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{}, enc Encoding, opts ...UnmarshalOpt) error {
 	if util.IsValueNil(jsonList) {
 		return nil

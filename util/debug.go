@@ -189,12 +189,13 @@ func YangTypeToDebugString(yt *yang.YangType) string {
 
 // SchemaTreeString returns the schema hierarchy tree as a string with node
 // names and types only e.g.
-// clock (container)
-//   timezone (choice)
-//     timezone-name (case)
-//       timezone-name (leaf)
-//     timezone-utc-offset (case)
-//       timezone-utc-offset (leaf)
+//
+//	    clock (container)
+//		timezone (choice)
+//		  timezone-name (case)
+//		    timezone-name (leaf)
+//		  timezone-utc-offset (case)
+//		    timezone-utc-offset (leaf)
 func SchemaTreeString(schema *yang.Entry, prefix string) string {
 	out := prefix + schema.Name + " (" + SchemaTypeStr(schema) + ")" + "\n"
 	for _, ch := range schema.Dir {
@@ -205,16 +206,17 @@ func SchemaTreeString(schema *yang.Entry, prefix string) string {
 
 // DataSchemaTreesString outputs a combined data/schema tree string where schema
 // is displayed alongside the data tree e.g.
-//  [device (container)]
-//   RoutingPolicy [routing-policy (container)]
-//     DefinedSets [defined-sets (container)]
-//       PrefixSet [prefix-set (list)]
-//       prefix1
-//         prefix1
-//         {255.255.255.0/20 20..24}
-//           IpPrefix : "255.255.255.0/20" [ip-prefix (leaf)]
-//           MasklengthRange : "20..24" [masklength-range (leaf)]
-//         PrefixSetName : "prefix1" [prefix-set-name (leaf)]
+//
+//	[device (container)]
+//	 RoutingPolicy [routing-policy (container)]
+//	   DefinedSets [defined-sets (container)]
+//	     PrefixSet [prefix-set (list)]
+//	     prefix1
+//	       prefix1
+//	       {255.255.255.0/20 20..24}
+//	         IpPrefix : "255.255.255.0/20" [ip-prefix (leaf)]
+//	         MasklengthRange : "20..24" [masklength-range (leaf)]
+//	       PrefixSetName : "prefix1" [prefix-set-name (leaf)]
 func DataSchemaTreesString(schema *yang.Entry, dataTree interface{}) string {
 	printFieldsIterFunc := func(ni *NodeInfo, in, out interface{}) (errs Errors) {
 		outs := out.(*string)
