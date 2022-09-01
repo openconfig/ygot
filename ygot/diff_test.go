@@ -839,6 +839,33 @@ func TestDiff(t *testing.T) {
 			}},
 		},
 	}, {
+		desc:   "path additions with PreferShadowPath, one path has and one path doesn't have shadow path",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			Str:    String("cabernet-sauvignon"),
+			IntVal: Int32(42),
+		},
+		inOpts: []DiffOpt{
+			&DiffPathOpt{PreferShadowPath: true},
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "srt",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"cabernet-sauvignon"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "int-val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{IntVal: 42}},
+			}},
+		},
+	}, {
 		desc: "one path each modified, deleted, and added with IgnoreNewPaths set",
 		inOrig: &renderExample{
 			IntVal:   Int32(5),
