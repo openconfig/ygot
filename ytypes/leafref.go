@@ -31,9 +31,10 @@ import (
 // ValidateLeafRefData traverses the entire tree with root value and the given
 // corresponding schema. For the referring node A, the leafref will point to a
 // value set B which may be empty. For each element in B:
-// - if the element is a leaf, it checks whether A == B
-// - if the element is a leaf list C, it check whether A is equal to
-//   any of the elements of C.
+//   - if the element is a leaf, it checks whether A == B
+//   - if the element is a leaf list C, it check whether A is equal to
+//     any of the elements of C.
+//
 // It returns nil if at least one equality check passes or an error otherwise.
 // It also returns an error if any leafref points to a value outside of the tree
 // rooted at value; therefore it should only be called on the root node of the

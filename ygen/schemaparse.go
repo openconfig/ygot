@@ -93,12 +93,12 @@ func annotateChildren(e *yang.Entry, dn map[string]string, inclDescriptions bool
 }
 
 // annotateEntry modifies the yang.Entry e to:
-//  - set the description to be the nil string to reduce
-//    filesizes of serialised schemas (only when inclDescriptions=false)
-//  - add the struct name corresponding to the path of the entry
-//    in the supplied dn map to the annotations.
-//  - add the YANG schema path to the annotations, where e
-//    corresponds to a YANG directory.
+//   - set the description to be the nil string to reduce
+//     filesizes of serialised schemas (only when inclDescriptions=false)
+//   - add the struct name corresponding to the path of the entry
+//     in the supplied dn map to the annotations.
+//   - add the YANG schema path to the annotations, where e
+//     corresponds to a YANG directory.
 func annotateEntry(e *yang.Entry, dn map[string]string, inclDescriptions bool) {
 	if !inclDescriptions {
 		e.Description = ""

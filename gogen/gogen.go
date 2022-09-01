@@ -1281,18 +1281,18 @@ func IsScalarField(field *ygen.NodeDetails) bool {
 // child container's struct name).
 //
 // writeGoStruct takes the following additional arguments:
-//  - targetStruct - the YANG directory (container/list) to be converted to generated code.
-//  - goStructElements - All existing YANG directories (for looking up children).
-//  - generatedUnions - Running map of generated unions to avoid generating the
-//    same union twice.
-//  - goOpts - Go specific code generation options as a GoOpts struct.
+//   - targetStruct - the YANG directory (container/list) to be converted to generated code.
+//   - goStructElements - All existing YANG directories (for looking up children).
+//   - generatedUnions - Running map of generated unions to avoid generating the
+//     same union twice.
+//   - goOpts - Go specific code generation options as a GoOpts struct.
 //
 // writeGoStruct returns a GoStructCodeSnippet which contains
-//	1. The generated struct for targetStruct (structDef)
-//	2. Additional generated structs that are keys for any multi-key lists that are children
-//	   of targetStruct (listKeys).
-//	3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
-//	   list a NewListMember() method is generated.
+//  1. The generated struct for targetStruct (structDef)
+//  2. Additional generated structs that are keys for any multi-key lists that are children
+//     of targetStruct (listKeys).
+//  3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
+//     list a NewListMember() method is generated.
 func writeGoStruct(targetStruct *ygen.ParsedDirectory, goStructElements map[string]*ygen.ParsedDirectory, generatedUnions map[string]bool, goOpts GoOpts) (GoStructCodeSnippet, []error) {
 	if targetStruct == nil {
 		return GoStructCodeSnippet{}, []error{fmt.Errorf("cannot create code for nil targetStruct")}
@@ -1729,18 +1729,18 @@ func mappedPathTag(paths [][]string, prefix string) string {
 // appends it to the supplied buffer.
 // Assuming structDef represents the following struct:
 //
-//   type MyStruct struct {
-//     field1 *string
-//   }
+//	type MyStruct struct {
+//	  field1 *string
+//	}
 //
 // the validation function generated for the struct will be:
 //
-//   func (t *MyStruct) ΛValidate(value interface{}) error {
-//     if err := ytypes.Validate(schemaMap["MyStruct"], value); err != nil {
-//       return err
-//     }
-//     return nil
-//   }
+//	func (t *MyStruct) ΛValidate(value interface{}) error {
+//	  if err := ytypes.Validate(schemaMap["MyStruct"], value); err != nil {
+//	    return err
+//	  }
+//	  return nil
+//	}
 func generateValidator(buf *bytes.Buffer, structDef generatedGoStruct, validateProxyFunctionName string) error {
 	var err error
 	if err = goStructValidatorTemplate.Execute(buf, structDef); err != nil {
@@ -1771,19 +1771,19 @@ type goTmplFieldDetails struct {
 // (Go struct ptr) fields of structDef, and appends it to the supplied buffer.
 // Assuming that structDef represents the following struct:
 //
-//  type MyStruct struct {
-// 		Container *MyStruct_Container
-//  }
+//	 type MyStruct struct {
+//			Container *MyStruct_Container
+//	 }
 //
 // the getter function generated for the struct will be:
 //
-//  func (s *MyStruct) GetOrCreateContainer() *MyStruct_Container {
-//    if s.Container != nil {
-//      return s.Container
-//    }
-//    s.Container = &MyStruct_Container{}
-//    return s.Container
-//  }
+//	func (s *MyStruct) GetOrCreateContainer() *MyStruct_Container {
+//	  if s.Container != nil {
+//	    return s.Container
+//	  }
+//	  s.Container = &MyStruct_Container{}
+//	  return s.Container
+//	}
 func generateGetOrCreateStruct(buf *bytes.Buffer, structDef generatedGoStruct) error {
 	for _, f := range structDef.Fields {
 		if f.IsYANGContainer {
@@ -1885,43 +1885,43 @@ func generateListAppend(buf *bytes.Buffer, method *generatedGoListMethod) error 
 //
 // If the input Directory is the following list entry:
 //
-//  list foo {
-//    key "bar baz";
+//	list foo {
+//	  key "bar baz";
 //
-//    leaf bar { type string; }
-//    leaf baz { type uint8; }
-//    leaf colour { type string; }
-//  }
+//	  leaf bar { type string; }
+//	  leaf baz { type uint8; }
+//	  leaf colour { type string; }
+//	}
 //
 // Which is mapped into the Go struct:
 //
-//  type Foo {
-//    Bar *string `path:"bar"`
-//    Baz *uint8  `path:"baz"`
-//    Colour *string `path:"colour"`
-//  }
+//	type Foo {
+//	  Bar *string `path:"bar"`
+//	  Baz *uint8  `path:"baz"`
+//	  Colour *string `path:"colour"`
+//	}
 //
 // The generated method will;
-//  - Check pointer keys to ensure they are non-nil.
-//  - Return a map[string]interface{} keyed by the name of the key in the YANG schema, with the value
-//    specified in the struct.
+//   - Check pointer keys to ensure they are non-nil.
+//   - Return a map[string]interface{} keyed by the name of the key in the YANG schema, with the value
+//     specified in the struct.
 //
 // i.e.: for the above struct:
 //
-//  func (t *Foo) ΛListKeyMap() (map[string]interface{}, error) {
-//	if t.Bar == nil {
-//	   return nil, fmt.Errorf("key value for Bar is nil")
-//	}
+//	 func (t *Foo) ΛListKeyMap() (map[string]interface{}, error) {
+//		if t.Bar == nil {
+//		   return nil, fmt.Errorf("key value for Bar is nil")
+//		}
 //
-//	if t.Baz == nil {
-//	   return nil, fmt.Errorf("key value for Baz is nil")
-//	}
+//		if t.Baz == nil {
+//		   return nil, fmt.Errorf("key value for Baz is nil")
+//		}
 //
-//	return map[string]interface{}{
-//	  "bar": *t.Bar,
-//	  "baz": *t.Baz,
-//	}
-//  }
+//		return map[string]interface{}{
+//		  "bar": *t.Bar,
+//		  "baz": *t.Baz,
+//		}
+//	 }
 func generateGetListKey(buf *bytes.Buffer, s *ygen.ParsedDirectory, nameMap map[string]*yangFieldMap) error {
 	if s.ListKeys == nil {
 		return nil
@@ -1952,11 +1952,12 @@ func generateGetListKey(buf *bytes.Buffer, s *ygen.ParsedDirectory, nameMap map[
 //
 // In all cases, the type of list field is the struct which is defined to reference the list, used as
 // the base type. This type is then modified based on how the list is keyed:
-//	- If the list is a config false, keyless list - a slice of the list's type is returned.
-//	- If the list has a single key, a map, keyed by the single key's type is returned.
-//	- If the list has multiple keys, a new struct is defined which represents the set of
-//	  leaves that make up the key. The type of the list is then a map, keyed by the new struct
-//	  type.
+//   - If the list is a config false, keyless list - a slice of the list's type is returned.
+//   - If the list has a single key, a map, keyed by the single key's type is returned.
+//   - If the list has multiple keys, a new struct is defined which represents the set of
+//     leaves that make up the key. The type of the list is then a map, keyed by the new struct
+//     type.
+//
 // In the case that the list has multiple keys, the type generated as the key of the list is returned.
 // If errors are encountered during the type generation for the list, the error is returned.
 func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, parent *ygen.ParsedDirectory, goStructElements map[string]*ygen.ParsedDirectory) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {

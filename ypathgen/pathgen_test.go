@@ -1940,27 +1940,30 @@ func TestGetNodeDataMap(t *testing.T) {
 
 // trimDocComments removes doc comments from the input code snippet string.
 // Example:
-//   // foo does bar
-//   func foo() {
-//     // baz is need to do boo.
-//     baz()
-//   }
 //
-//   // foo2 does bar2
-//   func foo2() {
-//     // baz2 is need to do boo2.
-//     baz2()
-//   }
+//	// foo does bar
+//	func foo() {
+//	  // baz is need to do boo.
+//	  baz()
+//	}
+//
+//	// foo2 does bar2
+//	func foo2() {
+//	  // baz2 is need to do boo2.
+//	  baz2()
+//	}
+//
 // After:
-//   func foo() {
-//     // baz is need to do boo.
-//     baz()
-//   }
 //
-//   func foo2() {
-//     // baz2 is need to do boo2.
-//     baz2()
-//   }
+//	func foo() {
+//	  // baz is need to do boo.
+//	  baz()
+//	}
+//
+//	func foo2() {
+//	  // baz2 is need to do boo2.
+//	  baz2()
+//	}
 func trimDocComments(snippet string) string {
 	var b strings.Builder
 	for i, line := range strings.Split(snippet, "\n") {

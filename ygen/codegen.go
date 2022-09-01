@@ -203,10 +203,11 @@ type mappedYANGDefinitions struct {
 // mappedDefinitions finds the set of directory and enumeration entities
 // that are mapped to objects within output code in a language agnostic manner.
 // It takes:
-//	- yangFiles: an input set of YANG schema files and the paths that
-//	- includePaths: the set of paths that are to be searched for included or
-//	  imported YANG modules.
-//	- opts: the current generator's configuration.
+//   - yangFiles: an input set of YANG schema files and the paths that
+//   - includePaths: the set of paths that are to be searched for included or
+//     imported YANG modules.
+//   - opts: the current generator's configuration.
+//
 // It returns a mappedYANGDefinitions struct populated with the directory, enum
 // entries in the input schemas as well as the calculated schema tree.
 func mappedDefinitions(yangFiles, includePaths []string, opts IROptions) (*mappedYANGDefinitions, util.Errors) {

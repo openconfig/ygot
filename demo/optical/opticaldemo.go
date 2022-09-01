@@ -58,9 +58,9 @@ type apsModuleInput struct {
 func CreateDemoOpticalInstance() (*oc.Device, error) {
 	d := &oc.Device{
 		Aps: &oc.Aps{},
-		Component:        map[string]*oc.Component{
-			"mod-one": &oc.Component{Name: ygot.String("mod-one")},
-			"mod-two": &oc.Component{Name: ygot.String("mod-two")},
+		Component: map[string]*oc.Component{
+			"mod-one": {Name: ygot.String("mod-one")},
+			"mod-two": {Name: ygot.String("mod-two")},
 		},
 	}
 

@@ -782,16 +782,18 @@ func TestUnmarshal(t *testing.T) {
 	}
 }
 
-/* TestLeafrefCurrent validates that the current() function works when
-   leafrefs are validated in a real schema.
-   It uses the following struct as the input:
-   type Mpls_Global_Interface struct {
-        InterfaceId  *string                             `path:"config/interface-id|interface-id" module:"openconfig-mpls/openconfig-mpls"`
-        InterfaceRef *Mpls_Global_Interface_InterfaceRef `path:"interface-ref" module:"openconfig-mpls"`
-        MplsEnabled  *bool                               `path:"config/mpls-enabled" module:"openconfig-mpls/openconfig-mpls"`
-   }
-   where the InterfaceRef container references an interface/subinterface
-   in the /interfaces/interface list.
+/*
+TestLeafrefCurrent validates that the current() function works when
+
+	leafrefs are validated in a real schema.
+	It uses the following struct as the input:
+	type Mpls_Global_Interface struct {
+	     InterfaceId  *string                             `path:"config/interface-id|interface-id" module:"openconfig-mpls/openconfig-mpls"`
+	     InterfaceRef *Mpls_Global_Interface_InterfaceRef `path:"interface-ref" module:"openconfig-mpls"`
+	     MplsEnabled  *bool                               `path:"config/mpls-enabled" module:"openconfig-mpls/openconfig-mpls"`
+	}
+	where the InterfaceRef container references an interface/subinterface
+	in the /interfaces/interface list.
 */
 func TestLeafrefCurrent(t *testing.T) {
 	dev := &oc.Device{}
