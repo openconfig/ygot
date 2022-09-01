@@ -340,7 +340,7 @@ type Binary []byte
 // unmarshalLeaf unmarshals a scalar value (determined by json.Unmarshal) into
 // the parent containing the leaf.
 //
-//	schema points to the schema for the leaf type.
+// - schema points to the schema for the leaf type.
 func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}, enc Encoding, opts ...UnmarshalOpt) error {
 	if util.IsValueNil(value) {
 		if enc == JSONEncoding {
@@ -643,10 +643,10 @@ func schemaToEnumTypes(schema *yang.Entry, t reflect.Type) ([]reflect.Type, erro
 // unmarshalScalar unmarshals value, which is the Go type from json.Unmarshal,
 // to the corresponding value used in gostructs.
 //
-//	parent is the parent struct containing the field being unmarshaled.
-//	  Required if the unmarshaled type is an enum.
-//	fieldName is the name of the field being unmarshaled.
-//	  Required if the unmarshaled type is an enum.
+// - parent is the parent struct containing the field being unmarshaled.
+// Required if the unmarshaled type is an enum.
+// - fieldName is the name of the field being unmarshaled.
+// Required if the unmarshaled type is an enum.
 func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, value interface{}, enc Encoding) (interface{}, error) {
 	if util.IsValueNil(value) {
 		if enc == JSONEncoding {

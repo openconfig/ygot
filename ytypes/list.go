@@ -84,9 +84,9 @@ func validateList(schema *yang.Entry, value interface{}) util.Errors {
 // checkKeys checks that the map key value for the list equals the value of the
 // key field(s) in the elements for the map value.
 //
-//	entry is the schema for the list.
-//	structElems is the structure representing the element in the data tree.
-//	keyElems is the structure representing the map key in the data tree.
+// - entry is the schema for the list.
+// - structElems is the structure representing the element in the data tree.
+// - keyElems is the structure representing the map key in the data tree.
 //
 // For a list schema that has a struct key, it's expected that:
 //  1. The schema contains leaves with the struct field names (checked before
@@ -274,11 +274,11 @@ func nameMatchesPath(fieldName string, path []string) (bool, error) {
 // unmarshalList unmarshals a JSON array into a list parent, which must be a
 // map or slice ptr.
 //
-//	schema is the schema of the schema node corresponding to the struct being
-//	  unmamshaled into
-//	jsonList is a JSON list
-//	opts... are a set of ytypes.UnmarshalOptionst that are used to control
-//	  the behaviour of the unmarshal function.
+// - schema is the schema of the schema node corresponding to the struct being
+// unmamshaled into
+// - jsonList is a JSON list
+// - opts... are a set of ytypes.UnmarshalOptionst that are used to control
+// the behaviour of the unmarshal function.
 func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{}, enc Encoding, opts ...UnmarshalOpt) error {
 	if util.IsValueNil(jsonList) {
 		return nil

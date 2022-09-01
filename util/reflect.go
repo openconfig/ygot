@@ -622,10 +622,10 @@ type FieldIteratorFunc func(ni *NodeInfo, in, out interface{}) Errors
 // have a corresponding schema (e.g., annotation/metadata fields added by ygen)
 // are skipped during traversal.
 //
-//	schema is the schema corresponding to value.
-//	in, out are passed to the iterator function and can be used to carry state
-//	  and return results from the iterator.
-//	iterFunction is executed on each scalar field.
+// - schema is the schema corresponding to value.
+// - in, out are passed to the iterator function and can be used to carry state
+// and return results from the iterator.
+// - iterFunction is executed on each scalar field.
 //
 // It returns a slice of errors encountered while processing the struct.
 func ForEachField(schema *yang.Entry, value interface{}, in, out interface{}, iterFunction FieldIteratorFunc) Errors {
@@ -640,8 +640,8 @@ func ForEachField(schema *yang.Entry, value interface{}, in, out interface{}, it
 // within the supplied schema. Fields that are explicitly noted not to have
 // a schema (e.g., annotation fields) are skipped.
 //
-//	in, out are passed through from the caller to the iteration and can be used
-//	  arbitrarily in the iteration function to carry state and results.
+// - in, out are passed through from the caller to the iteration and can be used
+// arbitrarily in the iteration function to carry state and results.
 func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldIteratorFunc) Errors {
 	if IsValueNil(ni) {
 		return nil

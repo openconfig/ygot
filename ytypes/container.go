@@ -107,12 +107,12 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
 
 // unmarshalContainer unmarshals a JSON tree into a struct.
 //
-//	schema is the schema of the schema node corresponding to the struct being
-//	  unmarshaled into.
-//	parent is the parent struct, which must be a struct ptr.
-//	jsonTree is a JSON data tree which must be a map[string]interface{}.
-//	opts is the set of options that should be used when unmarshalling the JSON
-//	  into the supplied parent.
+// - schema is the schema of the schema node corresponding to the struct being
+// unmarshaled into.
+// - parent is the parent struct, which must be a struct ptr.
+// - jsonTree is a JSON data tree which must be a map[string]interface{}.
+// - opts is the set of options that should be used when unmarshalling the JSON
+// into the supplied parent.
 func unmarshalContainer(schema *yang.Entry, parent interface{}, jsonTree interface{}, enc Encoding, opts ...UnmarshalOpt) error {
 	if util.IsValueNil(jsonTree) {
 		return nil
@@ -142,10 +142,10 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, jsonTree interfa
 
 // unmarshalStruct unmarshals a JSON tree into a struct.
 //
-//	schema is the YANG schema of the node corresponding to the struct being
-//	  unmarshalled into.
-//	parent is the parent struct, which must be a struct ptr.
-//	jsonTree is a JSON data tree which must be a map[string]interface{}.
+// - schema is the YANG schema of the node corresponding to the struct being
+// unmarshalled into.
+// - parent is the parent struct, which must be a struct ptr.
+// - jsonTree is a JSON data tree which must be a map[string]interface{}.
 func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string]interface{}, enc Encoding, opts ...UnmarshalOpt) error {
 	destv := reflect.ValueOf(parent).Elem()
 	var allSchemaPaths [][]string
