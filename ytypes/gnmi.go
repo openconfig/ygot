@@ -1,0 +1,150 @@
+package ytypes
+
+import (
+	"fmt"
+	"reflect"
+
+	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/ygot"
+
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
+)
+
+// UnmarshalNotification unmarshals a Notification on a root GoStruct specified by
+// "schema", and returns a reference to it.
+//
+// If preferShadowPath is specified, then the shadow path values are
+// unmarshalled instead of non-shadow path values when GoStructs are generated
+// with shadow paths.
+func UnmarshalNotification(schema *Schema, req *gpb.Notification, preferShadowPath bool) (ygot.GoStruct, error) {
+	return UnmarshalSetRequest(schema, &gpb.SetRequest{
+		Prefix: req.Prefix,
+		Delete: req.Delete,
+		Update: req.Update,
+	}, preferShadowPath)
+}
+
+// UnmarshalSetRequest applies a SetRequest on a root GoStruct specified by
+// "schema", and returns a reference to it.
+//
+// If preferShadowPath is specified, then the shadow path values are
+// unmarshalled instead of non-shadow path values when GoStructs are generated
+// with shadow paths.
+func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, preferShadowPath bool) (ygot.GoStruct, error) {
+	root := schema.Root
+	node, nodeName, err := getOrCreateNode(schema.RootSchema(), root, req.Prefix, preferShadowPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Process deletes, then replace, then updates.
+	if err := deletePaths(schema.SchemaTree[nodeName], node, req.Delete, preferShadowPath); err != nil {
+		return nil, err
+	}
+	if err := replacePaths(schema.SchemaTree[nodeName], node, req.Replace, preferShadowPath); err != nil {
+		return nil, err
+	}
+	if err := updatePaths(schema.SchemaTree[nodeName], node, req.Update, preferShadowPath); err != nil {
+		return nil, err
+	}
+
+	vroot, ok := root.(validatedGoStruct)
+	if !ok {
+		return nil, fmt.Errorf("schema root cannot be validated: (%T, %v)", root, root)
+	}
+	if err := vroot.ΛValidate(); err != nil {
+		return nil, fmt.Errorf("SetRequest is not schema-compliant: %v", err)
+	}
+
+	return vroot, nil
+}
+
+// validatedGoStruct is an interface used for validating GoStructs.
+// This interface is implemented by all Go structs (YANG container or lists),
+// regardless of generation flag.
+type validatedGoStruct interface {
+	// GoStruct ensures that the interface for a standard GoStruct
+	// is embedded.
+	ygot.GoStruct
+	// ΛValidate compares the contents of the implementing struct against
+	// the YANG schema, and returns an error if the struct's contents
+	// are not valid, or nil if the struct complies with the schema.
+	ΛValidate(...ygot.ValidationOption) error
+}
+
+// getOrCreateNode instantiates the node at the given path, and returns that
+// node along with its name.
+func getOrCreateNode(schema *yang.Entry, goStruct ygot.GoStruct, path *gpb.Path, preferShadowPath bool) (ygot.GoStruct, string, error) {
+	var gcopts []GetOrCreateNodeOpt
+	if preferShadowPath {
+		gcopts = append(gcopts, &PreferShadowPath{})
+	}
+	// Operate at the prefix level.
+	nodeI, _, err := GetOrCreateNode(schema, goStruct, path, gcopts...)
+	if err != nil {
+		return nil, "", fmt.Errorf("gnmit: failed to GetOrCreate the prefix node: %v", err)
+	}
+	node, ok := nodeI.(ygot.GoStruct)
+	if !ok {
+		return nil, "", fmt.Errorf("gnmit: prefix path points to a non-GoStruct, this is not allowed: %T, %v", nodeI, nodeI)
+	}
+
+	return node, reflect.TypeOf(nodeI).Elem().Name(), nil
+}
+
+// deletePaths deletes a slice of paths from the given GoStruct.
+func deletePaths(schema *yang.Entry, goStruct ygot.GoStruct, paths []*gpb.Path, preferShadowPath bool) error {
+	var dopts []DelNodeOpt
+	if preferShadowPath {
+		dopts = append(dopts, &PreferShadowPath{})
+	}
+
+	for _, path := range paths {
+		if err := DeleteNode(schema, goStruct, path, dopts...); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// replacePaths unmarshals a slice of updates into the given GoStruct. It
+// deletes the values at these paths before unmarshalling them. These updates
+// can either by JSON-encoded or gNMI-encoded values (scalars).
+func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, updates []*gpb.Update, preferShadowPath bool) error {
+	var dopts []DelNodeOpt
+	if preferShadowPath {
+		dopts = append(dopts, &PreferShadowPath{})
+	}
+
+	for _, update := range updates {
+		if err := DeleteNode(schema, goStruct, update.Path, dopts...); err != nil {
+			return err
+		}
+		if err := setNode(schema, goStruct, update, preferShadowPath); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// updatePaths unmarshals a slice of updates into the given GoStruct. These
+// updates can either by JSON-encoded or gNMI-encoded values (scalars).
+func updatePaths(schema *yang.Entry, goStruct ygot.GoStruct, updates []*gpb.Update, preferShadowPath bool) error {
+	for _, update := range updates {
+		if err := setNode(schema, goStruct, update, preferShadowPath); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// setNode unmarshals either a JSON-encoded value or a gNMI-encoded (scalar)
+// value into the given GoStruct.
+func setNode(schema *yang.Entry, goStruct ygot.GoStruct, update *gpb.Update, preferShadowPath bool) error {
+	sopts := []SetNodeOpt{&InitMissingElements{}}
+	if preferShadowPath {
+		sopts = append(sopts, &PreferShadowPath{})
+	}
+
+	return SetNode(schema, goStruct, update.Path, update.Val, sopts...)
+}

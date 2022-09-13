@@ -60,6 +60,8 @@ func (l *ListElemStruct1) ΛListKeyMap() (map[string]interface{}, error) {
 }
 func (*ListElemStruct1) IsYANGGoStruct() {}
 
+func (*ListElemStruct1) ΛValidate(...ygot.ValidationOption) error { return nil }
+
 type ContainerStruct1 struct {
 	StructKeyList map[string]*ListElemStruct1 `path:"config/simple-key-list"`
 }
