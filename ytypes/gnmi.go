@@ -13,6 +13,10 @@ import (
 // UnmarshalNotifications unmarshals a Notification on a root GoStruct specified by
 // "schema", and returns a reference to it.
 //
+// It does not make a copy and overwrites this value, so make a copy using
+// ygot.DeepCopy() if you wish to retain the value at schema.Root prior to
+// calling this function.
+//
 // - If preferShadowPath is specified, then the shadow path values are
 // unmarshalled instead of non-shadow path values when GoStructs are generated
 // with shadow paths.
@@ -40,7 +44,11 @@ func UnmarshalNotifications(schema *Schema, ns []*gpb.Notification, preferShadow
 }
 
 // UnmarshalSetRequest applies a SetRequest on a root GoStruct specified by
-// "schema", and returns a reference to it.
+// "schema", and returns a reference to the resulting schema.Root.
+//
+// It does not make a copy and overwrites this value, so make a copy using
+// ygot.DeepCopy() if you wish to retain the value at schema.Root prior to
+// calling this function.
 //
 // - If preferShadowPath is specified, then the shadow path values are
 // unmarshalled instead of non-shadow path values when GoStructs are generated
