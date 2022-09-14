@@ -16,6 +16,7 @@ package ytypes
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -59,6 +60,13 @@ func (l *ListElemStruct1) ΛListKeyMap() (map[string]interface{}, error) {
 	}, nil
 }
 func (*ListElemStruct1) IsYANGGoStruct() {}
+
+func (s *ListElemStruct1) ΛValidate(...ygot.ValidationOption) error {
+	if s.Key1 != nil && *s.Key1 == "invalid" {
+		return errors.New("invalid")
+	}
+	return nil
+}
 
 type ContainerStruct1 struct {
 	StructKeyList map[string]*ListElemStruct1 `path:"config/simple-key-list"`
