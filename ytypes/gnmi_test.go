@@ -191,9 +191,9 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "world"}},
 			}},
 			Update: []*gpb.Update{{
-				Path: mustPath("/outer/inner/string-leaf-field"),
-				Val: &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{
-					StringVal: "foo",
+				Path: mustPath("/outer/inner/config/int32-leaf-field"),
+				Val: &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{
+					IntVal: 42,
 				}},
 			}},
 		},
@@ -201,7 +201,81 @@ func TestUnmarshalSetRequest(t *testing.T) {
 			Key1: ygot.String("world"),
 			Outer: &OuterContainerType1{
 				Inner: &InnerContainerType1{
-					StringLeafName: ygot.String("foo"),
+					Int32LeafName: ygot.Int32(42),
+				},
+			},
+		},
+	}, {
+		desc: "deletes and update to a non-empty struct with preferShadowPath (no effect)",
+		inSchema: &Schema{
+			Root: &ListElemStruct1{
+				Key1: ygot.String("hello"),
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName:     ygot.Int32(43),
+						Int32LeafListName: []int32{42},
+						StringLeafName:    ygot.String("bear"),
+					},
+				},
+			},
+			SchemaTree: map[string]*yang.Entry{
+				"ListElemStruct1": simpleSchema(),
+			},
+		},
+		inReq: &gpb.SetRequest{
+			Prefix: &gpb.Path{},
+			Delete: []*gpb.Path{
+				mustPath("/outer/inner/config/int32-leaf-field"),
+			},
+		},
+		inPreferShadowPath: true,
+		want: &ListElemStruct1{
+			Key1: ygot.String("hello"),
+			Outer: &OuterContainerType1{
+				Inner: &InnerContainerType1{
+					Int32LeafName:     ygot.Int32(43),
+					Int32LeafListName: []int32{42},
+					StringLeafName:    ygot.String("bear"),
+				},
+			},
+		},
+	}, {
+		desc: "deletes, replaces and update to a non-empty struct with preferShadowPath (no effect)",
+		inSchema: &Schema{
+			Root: &ListElemStruct1{
+				Key1: ygot.String("hello"),
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName:     ygot.Int32(43),
+						Int32LeafListName: []int32{42},
+						StringLeafName:    ygot.String("bear"),
+					},
+				},
+			},
+			SchemaTree: map[string]*yang.Entry{
+				"ListElemStruct1": simpleSchema(),
+			},
+		},
+		inReq: &gpb.SetRequest{
+			Prefix: &gpb.Path{},
+			Replace: []*gpb.Update{{
+				Path: mustPath("/key1"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "world"}},
+			}, {
+				Path: mustPath("/outer/inner/config/int32-leaf-field"),
+				Val: &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{
+					IntVal: 42,
+				}},
+			}},
+		},
+		inPreferShadowPath: true,
+		want: &ListElemStruct1{
+			Key1: ygot.String("world"),
+			Outer: &OuterContainerType1{
+				Inner: &InnerContainerType1{
+					Int32LeafName:     ygot.Int32(43),
+					Int32LeafListName: []int32{42},
+					StringLeafName:    ygot.String("bear"),
 				},
 			},
 		},
@@ -244,6 +318,38 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		desc: "replaces to a non-existent path",
+		inSchema: &Schema{
+			Root: &ListElemStruct1{
+				Key1: ygot.String("hello"),
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName:     ygot.Int32(43),
+						Int32LeafListName: []int32{42},
+						StringLeafName:    ygot.String("bear"),
+					},
+				},
+			},
+			SchemaTree: map[string]*yang.Entry{
+				"ListElemStruct1":     simpleSchema(),
+				"OuterContainerType1": simpleSchema().Dir["outer"],
+			},
+		},
+		inReq: &gpb.SetRequest{
+			Prefix: mustPath("/outer-planets"),
+			Replace: []*gpb.Update{{
+				Path: mustPath("inner"),
+				Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{
+					JsonIetfVal: []byte(`
+{
+	"int32-leaf-list": [42]
+}
+					`),
+				}},
+			}},
+		},
+		wantErr: true,
 	}}
 
 	for _, tt := range tests {
