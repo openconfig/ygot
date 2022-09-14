@@ -16,10 +16,11 @@ func TestUnmarshalSetRequest(t *testing.T) {
 		inSchema           *Schema
 		inReq              *gpb.SetRequest
 		inPreferShadowPath bool
+		inSkipValidation   bool
 		want               ygot.GoStruct
 		wantErr            bool
 	}{{
-		desc: "updates to an empty struct",
+		desc: "updates to an empty struct without validation",
 		inSchema: &Schema{
 			Root: &ListElemStruct1{},
 			SchemaTree: map[string]*yang.Entry{
@@ -30,7 +31,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 			Prefix: &gpb.Path{},
 			Update: []*gpb.Update{{
 				Path: mustPath("/key1"),
-				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "invalid"}},
 			}, {
 				Path: mustPath("/outer/inner"),
 				Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{
@@ -42,14 +43,40 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				}},
 			}},
 		},
+		inSkipValidation: true,
 		want: &ListElemStruct1{
-			Key1: ygot.String("hello"),
+			Key1: ygot.String("invalid"),
 			Outer: &OuterContainerType1{
 				Inner: &InnerContainerType1{
 					Int32LeafListName: []int32{42},
 				},
 			},
 		},
+	}, {
+		desc: "updates to an empty struct with validation",
+		inSchema: &Schema{
+			Root: &ListElemStruct1{},
+			SchemaTree: map[string]*yang.Entry{
+				"ListElemStruct1": simpleSchema(),
+			},
+		},
+		inReq: &gpb.SetRequest{
+			Prefix: &gpb.Path{},
+			Update: []*gpb.Update{{
+				Path: mustPath("/key1"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "invalid"}},
+			}, {
+				Path: mustPath("/outer/inner"),
+				Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{
+					JsonIetfVal: []byte(`
+{
+	"int32-leaf-list": [42]
+}
+					`),
+				}},
+			}},
+		},
+		wantErr: true,
 	}, {
 		desc: "updates to non-empty struct",
 		inSchema: &Schema{
@@ -354,7 +381,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			got, err := UnmarshalSetRequest(tt.inSchema, tt.inReq, tt.inPreferShadowPath)
+			got, err := UnmarshalSetRequest(tt.inSchema, tt.inReq, tt.inPreferShadowPath, tt.inSkipValidation)
 			if gotErr := err != nil; gotErr != tt.wantErr {
 				t.Fatalf("got error: %v, want: %v", err, tt.wantErr)
 			}
@@ -365,27 +392,28 @@ func TestUnmarshalSetRequest(t *testing.T) {
 	}
 }
 
-func TestUnmarshalNotification(t *testing.T) {
+func TestUnmarshalNotifications(t *testing.T) {
 	tests := []struct {
 		desc               string
 		inSchema           *Schema
-		inReq              *gpb.Notification
+		inNotifications    []*gpb.Notification
 		inPreferShadowPath bool
+		inSkipValidation   bool
 		want               ygot.GoStruct
 		wantErr            bool
 	}{{
-		desc: "updates to an empty struct",
+		desc: "updates to an empty struct without validation",
 		inSchema: &Schema{
 			Root: &ListElemStruct1{},
 			SchemaTree: map[string]*yang.Entry{
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
-		inReq: &gpb.Notification{
+		inNotifications: []*gpb.Notification{{
 			Prefix: &gpb.Path{},
 			Update: []*gpb.Update{{
 				Path: mustPath("/key1"),
-				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "invalid"}},
 			}, {
 				Path: mustPath("/outer/inner"),
 				Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{
@@ -396,15 +424,41 @@ func TestUnmarshalNotification(t *testing.T) {
 					`),
 				}},
 			}},
-		},
+		}},
+		inSkipValidation: true,
 		want: &ListElemStruct1{
-			Key1: ygot.String("hello"),
+			Key1: ygot.String("invalid"),
 			Outer: &OuterContainerType1{
 				Inner: &InnerContainerType1{
 					Int32LeafListName: []int32{42},
 				},
 			},
 		},
+	}, {
+		desc: "updates to an empty struct with validation",
+		inSchema: &Schema{
+			Root: &ListElemStruct1{},
+			SchemaTree: map[string]*yang.Entry{
+				"ListElemStruct1": simpleSchema(),
+			},
+		},
+		inNotifications: []*gpb.Notification{{
+			Prefix: &gpb.Path{},
+			Update: []*gpb.Update{{
+				Path: mustPath("/key1"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "invalid"}},
+			}, {
+				Path: mustPath("/outer/inner"),
+				Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{
+					JsonIetfVal: []byte(`
+{
+	"int32-leaf-list": [42]
+}
+					`),
+				}},
+			}},
+		}},
+		wantErr: true,
 	}, {
 		desc: "updates to non-empty struct",
 		inSchema: &Schema{
@@ -422,7 +476,7 @@ func TestUnmarshalNotification(t *testing.T) {
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
-		inReq: &gpb.Notification{
+		inNotifications: []*gpb.Notification{{
 			Prefix: &gpb.Path{},
 			Update: []*gpb.Update{{
 				Path: mustPath("/key1"),
@@ -437,7 +491,7 @@ func TestUnmarshalNotification(t *testing.T) {
 					`),
 				}},
 			}},
-		},
+		}},
 		want: &ListElemStruct1{
 			Key1: ygot.String("hello"),
 			Outer: &OuterContainerType1{
@@ -465,17 +519,17 @@ func TestUnmarshalNotification(t *testing.T) {
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
-		inReq: &gpb.Notification{
+		inNotifications: []*gpb.Notification{{
 			Prefix: &gpb.Path{},
 			Delete: []*gpb.Path{
 				mustPath("/outer"),
 			},
-		},
+		}},
 		want: &ListElemStruct1{
 			Key1: ygot.String("hello"),
 		},
 	}, {
-		desc: "deletes and updates to a non-empty struct",
+		desc: "deletes and updates to a non-empty struct in multiple notifications",
 		inSchema: &Schema{
 			Root: &ListElemStruct1{
 				Key1: ygot.String("hello"),
@@ -488,10 +542,11 @@ func TestUnmarshalNotification(t *testing.T) {
 				},
 			},
 			SchemaTree: map[string]*yang.Entry{
-				"ListElemStruct1": simpleSchema(),
+				"ListElemStruct1":     simpleSchema(),
+				"InnerContainerType1": simpleSchema().Dir["outer"].Dir["config"].Dir["inner"],
 			},
 		},
-		inReq: &gpb.Notification{
+		inNotifications: []*gpb.Notification{{
 			Prefix: &gpb.Path{},
 			Delete: []*gpb.Path{
 				mustPath("/outer/inner"),
@@ -505,12 +560,23 @@ func TestUnmarshalNotification(t *testing.T) {
 					StringVal: "foo",
 				}},
 			}},
-		},
+		}, {
+			Prefix: mustPath("/outer/inner"),
+			Delete: []*gpb.Path{
+				mustPath("string-leaf-field"),
+			},
+			Update: []*gpb.Update{{
+				Path: mustPath("config/int32-leaf-field"),
+				Val: &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{
+					IntVal: 42,
+				}},
+			}},
+		}},
 		want: &ListElemStruct1{
 			Key1: ygot.String("world"),
 			Outer: &OuterContainerType1{
 				Inner: &InnerContainerType1{
-					StringLeafName: ygot.String("foo"),
+					Int32LeafName: ygot.Int32(42),
 				},
 			},
 		},
@@ -518,7 +584,7 @@ func TestUnmarshalNotification(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			got, err := UnmarshalNotification(tt.inSchema, tt.inReq, tt.inPreferShadowPath)
+			got, err := UnmarshalNotifications(tt.inSchema, tt.inNotifications, tt.inPreferShadowPath, tt.inSkipValidation)
 			if gotErr := err != nil; gotErr != tt.wantErr {
 				t.Fatalf("got error: %v, want: %v", err, tt.wantErr)
 			}

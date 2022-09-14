@@ -10,27 +10,44 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
-// UnmarshalNotification unmarshals a Notification on a root GoStruct specified by
+// UnmarshalNotifications unmarshals a Notification on a root GoStruct specified by
 // "schema", and returns a reference to it.
 //
-// If preferShadowPath is specified, then the shadow path values are
+// - If preferShadowPath is specified, then the shadow path values are
 // unmarshalled instead of non-shadow path values when GoStructs are generated
 // with shadow paths.
-func UnmarshalNotification(schema *Schema, req *gpb.Notification, preferShadowPath bool) (ygot.GoStruct, error) {
-	return UnmarshalSetRequest(schema, &gpb.SetRequest{
-		Prefix: req.Prefix,
-		Delete: req.Delete,
-		Update: req.Update,
-	}, preferShadowPath)
+// - If skipValidation is specified, then schema validation won't be performed
+// after all the notifications have been unmarshalled.
+func UnmarshalNotifications(schema *Schema, ns []*gpb.Notification, preferShadowPath, skipValidation bool) (ygot.GoStruct, error) {
+	for _, n := range ns {
+		_, err := UnmarshalSetRequest(schema, &gpb.SetRequest{
+			Prefix: n.Prefix,
+			Delete: n.Delete,
+			Update: n.Update,
+		}, preferShadowPath, true)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	root := schema.Root
+	if !skipValidation {
+		if err := validateGoStruct(root); err != nil {
+			return nil, fmt.Errorf("sum of notifications is not schema-compliant: %v", err)
+		}
+	}
+	return root, nil
 }
 
 // UnmarshalSetRequest applies a SetRequest on a root GoStruct specified by
 // "schema", and returns a reference to it.
 //
-// If preferShadowPath is specified, then the shadow path values are
+// - If preferShadowPath is specified, then the shadow path values are
 // unmarshalled instead of non-shadow path values when GoStructs are generated
 // with shadow paths.
-func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, preferShadowPath bool) (ygot.GoStruct, error) {
+// - If skipValidation is specified, then schema validation won't be performed
+// after the set request has been unmarshalled.
+func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, preferShadowPath, skipValidation bool) (ygot.GoStruct, error) {
 	root := schema.Root
 	node, nodeName, err := getOrCreateNode(schema.RootSchema(), root, req.Prefix, preferShadowPath)
 	if err != nil {
@@ -48,15 +65,20 @@ func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, preferShadowPath b
 		return nil, err
 	}
 
-	vroot, ok := root.(validatedGoStruct)
-	if !ok {
-		return nil, fmt.Errorf("schema root cannot be validated: (%T, %v)", root, root)
+	if !skipValidation {
+		if err := validateGoStruct(root); err != nil {
+			return nil, fmt.Errorf("SetRequest is not schema-compliant: %v", err)
+		}
 	}
-	if err := vroot.ΛValidate(); err != nil {
-		return nil, fmt.Errorf("SetRequest is not schema-compliant: %v", err)
-	}
+	return root, nil
+}
 
-	return vroot, nil
+func validateGoStruct(goStruct ygot.GoStruct) error {
+	vroot, ok := goStruct.(validatedGoStruct)
+	if !ok {
+		return fmt.Errorf("schema root cannot be validated: (%T, %v)", goStruct, goStruct)
+	}
+	return vroot.ΛValidate()
 }
 
 // validatedGoStruct is an interface used for validating GoStructs.
@@ -82,11 +104,11 @@ func getOrCreateNode(schema *yang.Entry, goStruct ygot.GoStruct, path *gpb.Path,
 	// Operate at the prefix level.
 	nodeI, _, err := GetOrCreateNode(schema, goStruct, path, gcopts...)
 	if err != nil {
-		return nil, "", fmt.Errorf("gnmit: failed to GetOrCreate the prefix node: %v", err)
+		return nil, "", fmt.Errorf("failed to GetOrCreate the prefix node: %v", err)
 	}
 	node, ok := nodeI.(ygot.GoStruct)
 	if !ok {
-		return nil, "", fmt.Errorf("gnmit: prefix path points to a non-GoStruct, this is not allowed: %T, %v", nodeI, nodeI)
+		return nil, "", fmt.Errorf("prefix path points to a non-GoStruct, this is not allowed: %T, %v", nodeI, nodeI)
 	}
 
 	return node, reflect.TypeOf(nodeI).Elem().Name(), nil
