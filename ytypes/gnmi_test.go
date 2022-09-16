@@ -381,12 +381,14 @@ func TestUnmarshalSetRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			got, err := UnmarshalSetRequest(tt.inSchema, tt.inReq, tt.inPreferShadowPath, tt.inSkipValidation)
+			err := UnmarshalSetRequest(tt.inSchema, tt.inReq, tt.inPreferShadowPath, tt.inSkipValidation)
 			if gotErr := err != nil; gotErr != tt.wantErr {
 				t.Fatalf("got error: %v, want: %v", err, tt.wantErr)
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
-				t.Errorf("(-got, +want):\n%s", diff)
+			if !tt.wantErr {
+				if diff := cmp.Diff(tt.inSchema.Root, tt.want); diff != "" {
+					t.Errorf("(-got, +want):\n%s", diff)
+				}
 			}
 		})
 	}
@@ -584,12 +586,14 @@ func TestUnmarshalNotifications(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			got, err := UnmarshalNotifications(tt.inSchema, tt.inNotifications, tt.inPreferShadowPath, tt.inSkipValidation)
+			err := UnmarshalNotifications(tt.inSchema, tt.inNotifications, tt.inPreferShadowPath, tt.inSkipValidation)
 			if gotErr := err != nil; gotErr != tt.wantErr {
 				t.Fatalf("got error: %v, want: %v", err, tt.wantErr)
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
-				t.Errorf("(-got, +want):\n%s", diff)
+			if !tt.wantErr {
+				if diff := cmp.Diff(tt.inSchema.Root, tt.want); diff != "" {
+					t.Errorf("(-got, +want):\n%s", diff)
+				}
 			}
 		})
 	}
