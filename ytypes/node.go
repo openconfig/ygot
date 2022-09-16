@@ -61,6 +61,9 @@ type retrieveNodeArgs struct {
 	// GoStruct to determine the path elements instead of the
 	// "path" tag, whenever the former is present.
 	preferShadowPath bool
+	// ignoreExtraFields avoids generating an error when the input path
+	// refers to a field that does not exist in the GoStruct.
+	ignoreExtraFields bool
 }
 
 // retrieveNode is an internal function that retrieves the node specified by
@@ -86,6 +89,9 @@ func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb
 				var opts []UnmarshalOpt
 				if args.preferShadowPath {
 					opts = append(opts, &PreferShadowPath{})
+				}
+				if args.ignoreExtraFields {
+					opts = append(opts, &IgnoreExtraFields{})
 				}
 				if err := Unmarshal(schema, root, jsonTree, opts...); err != nil {
 					return nil, status.Errorf(codes.Unknown, "failed to update struct %T with value %v; %v", root, args.val, err)
@@ -287,6 +293,9 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 		}
 	}
 
+	if args.ignoreExtraFields {
+		return nil, nil
+	}
 	return nil, status.Errorf(codes.InvalidArgument, "no match found in %T, for path %v", root, path)
 }
 
@@ -549,13 +558,14 @@ func SetNode(schema *yang.Entry, root interface{}, path *gpb.Path, val interface
 		val:                               val,
 		tolerateJSONInconsistenciesForVal: hasTolerateJSONInconsistencies(opts),
 		preferShadowPath:                  hasSetNodePreferShadowPath(opts),
+		ignoreExtraFields:                 hasIgnoreExtraFieldsSetNode(opts),
 	})
 
 	if err != nil {
 		return err
 	}
 
-	if len(nodes) == 0 {
+	if len(nodes) == 0 && !hasIgnoreExtraFieldsSetNode(opts) {
 		return status.Errorf(codes.NotFound, "unable to find any nodes for the given path %v", path)
 	}
 
@@ -566,6 +576,20 @@ func SetNode(schema *yang.Entry, root interface{}, path *gpb.Path, val interface
 type SetNodeOpt interface {
 	// IsSetNodeOpt is a marker method that is used to identify an instance of SetNodeOpt.
 	IsSetNodeOpt()
+}
+
+// IsSetNodeOpt marks IgnoreExtraFields as a valid SetNodeOpt.
+func (*IgnoreExtraFields) IsSetNodeOpt() {}
+
+// hasIgnoreExtraFieldsSetNode determines whether the supplied slice of SetNodeOpts contains
+// the IgnoreExtraFields option.
+func hasIgnoreExtraFieldsSetNode(opts []SetNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*IgnoreExtraFields); ok {
+			return true
+		}
+	}
+	return false
 }
 
 // InitMissingElements signals SetNode to initialize the node's ancestors and to ensure that keys are added
