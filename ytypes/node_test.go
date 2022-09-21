@@ -2091,6 +2091,16 @@ func TestSetNode(t *testing.T) {
 			wantParent:       &ListElemStruct1{},
 		},
 		{
+			inDesc:     "set on invalid node OK when IgnoreExtraFields set",
+			inSchema:   simpleSchema(),
+			inParentFn: func() interface{} { return &ListElemStruct1{} },
+			inPath:     mustPath("/invalidkey"),
+			inVal:      ygot.String("hello"),
+			inOpts:     []SetNodeOpt{&IgnoreExtraFields{}},
+			wantLeaf:   nil,
+			wantParent: &ListElemStruct1{},
+		},
+		{
 			inDesc:           "failed to set value with invalid type",
 			inSchema:         simpleSchema(),
 			inParentFn:       func() interface{} { return &ListElemStruct1{} },
@@ -2395,6 +2405,70 @@ func TestSetNode(t *testing.T) {
 			},
 		},
 		{
+			inDesc:   "failure setting JSON struct with unknown field",
+			inSchema: containerWithStringKey(),
+			inParentFn: func() interface{} {
+				return &ContainerStruct1{
+					StructKeyList: map[string]*ListElemStruct1{
+						"forty-two": {
+							Key1:  ygot.String("forty-two"),
+							Outer: &OuterContainerType1{},
+						},
+					},
+				}
+			},
+			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer"),
+			inOpts:           []SetNodeOpt{&InitMissingElements{}},
+			inValJSON:        &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`{ "config": { "inner": { "config": { "int32-leaf-field": 42, "unknown-field": 42 } } } }`)}},
+			wantErrSubstring: "JSON contains unexpected field unknown-field",
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(42),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:   "OK setting JSON struct with unknown field with IgnoreExtraFields",
+			inSchema: containerWithStringKey(),
+			inParentFn: func() interface{} {
+				return &ContainerStruct1{
+					StructKeyList: map[string]*ListElemStruct1{
+						"forty-two": {
+							Key1:  ygot.String("forty-two"),
+							Outer: &OuterContainerType1{},
+						},
+					},
+				}
+			},
+			inPath:    mustPath("/config/simple-key-list[key1=forty-two]/outer"),
+			inOpts:    []SetNodeOpt{&InitMissingElements{}, &IgnoreExtraFields{}},
+			inValJSON: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`{ "config": { "inner": { "config": { "int32-leaf-field": 42, "unknown-field": 42 } } } }`)}},
+			wantLeaf: &OuterContainerType1{
+				Inner: &InnerContainerType1{
+					Int32LeafName: ygot.Int32(42),
+				},
+			},
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(42),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			inDesc:   "success setting list element",
 			inSchema: containerWithStringKey(),
 			inParentFn: func() interface{} {
@@ -2530,6 +2604,9 @@ func TestSetNode(t *testing.T) {
 					t.Errorf("(-wantParent, +got):\n%s", diff)
 				}
 				if err != nil {
+					return
+				}
+				if tt.wantLeaf == nil && hasIgnoreExtraFieldsSetNode(tt.inOpts) {
 					return
 				}
 
