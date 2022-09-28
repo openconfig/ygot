@@ -869,7 +869,7 @@ func TestDiff(t *testing.T) {
 		desc: "one path each modified, deleted, and added with IgnoreNewPaths set",
 		inOrig: &renderExample{
 			IntVal:   Int32(5),
-			FloatVal: Float32(1.5),
+			FloatVal: Float64(1.5),
 			Int64Val: Int64(100),
 		},
 		inMod: &renderExample{
@@ -965,7 +965,7 @@ func TestDiff(t *testing.T) {
 		inOrig: &renderExample{},
 		inMod: &renderExample{
 			IntVal:    Int32(42),
-			FloatVal:  Float32(42.42),
+			FloatVal:  Float64(42.42),
 			EnumField: EnumTestVALONE,
 			Ch: &renderExampleChild{
 				Val: Uint64(42),
@@ -999,7 +999,7 @@ func TestDiff(t *testing.T) {
 						Name: "floatval",
 					}},
 				},
-				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{42.42}},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_DoubleVal{42.42}},
 			}, {
 				Path: &gnmipb.Path{
 					Elem: []*gnmipb.PathElem{{
@@ -1057,7 +1057,7 @@ func TestDiff(t *testing.T) {
 						Element: []*gnmipb.TypedValue{
 							{Value: &gnmipb.TypedValue_StringVal{"hello"}},
 							{Value: &gnmipb.TypedValue_IntVal{42}},
-							{Value: &gnmipb.TypedValue_FloatVal{3.14}},
+							{Value: &gnmipb.TypedValue_DoubleVal{3.14}},
 							{Value: &gnmipb.TypedValue_StringVal{"VAL_ONE"}},
 							{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
 							{Value: &gnmipb.TypedValue_BoolVal{true}},
@@ -1125,7 +1125,7 @@ func TestDiff(t *testing.T) {
 						Name: "union-val-simple",
 					}},
 				},
-				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{3.14}},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_DoubleVal{3.14}},
 			}},
 		},
 	}, {
@@ -1180,7 +1180,7 @@ func TestDiff(t *testing.T) {
 		desc: "multiple element set in both - no diff",
 		inOrig: &renderExample{
 			IntVal:    Int32(42),
-			FloatVal:  Float32(42.42),
+			FloatVal:  Float64(42.42),
 			EnumField: EnumTestVALONE,
 			Ch: &renderExampleChild{
 				Val: Uint64(42),
@@ -1202,7 +1202,7 @@ func TestDiff(t *testing.T) {
 		},
 		inMod: &renderExample{
 			IntVal:    Int32(42),
-			FloatVal:  Float32(42.42),
+			FloatVal:  Float64(42.42),
 			EnumField: EnumTestVALONE,
 			Ch: &renderExampleChild{
 				Val: Uint64(42),
@@ -1227,7 +1227,7 @@ func TestDiff(t *testing.T) {
 		desc: "multiple path modify",
 		inOrig: &renderExample{
 			IntVal:    Int32(43),
-			FloatVal:  Float32(43.43),
+			FloatVal:  Float64(43.43),
 			EnumField: EnumTestVALTWO,
 			Ch: &renderExampleChild{
 				Val: Uint64(43),
@@ -1249,7 +1249,7 @@ func TestDiff(t *testing.T) {
 		},
 		inMod: &renderExample{
 			IntVal:    Int32(42),
-			FloatVal:  Float32(42.42),
+			FloatVal:  Float64(42.42),
 			EnumField: EnumTestVALONE,
 			Ch: &renderExampleChild{
 				Val: Uint64(42),
@@ -1283,7 +1283,7 @@ func TestDiff(t *testing.T) {
 						Name: "floatval",
 					}},
 				},
-				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{42.42}},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_DoubleVal{42.42}},
 			}, {
 				Path: &gnmipb.Path{
 					Elem: []*gnmipb.PathElem{{
@@ -1329,7 +1329,7 @@ func TestDiff(t *testing.T) {
 						Name: "union-val-simple",
 					}},
 				},
-				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{2.71828}},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_DoubleVal{2.71828}},
 			}, {
 				Path: &gnmipb.Path{
 					Elem: []*gnmipb.PathElem{{
@@ -1341,7 +1341,7 @@ func TestDiff(t *testing.T) {
 						Element: []*gnmipb.TypedValue{
 							{Value: &gnmipb.TypedValue_StringVal{"world"}},
 							{Value: &gnmipb.TypedValue_IntVal{84}},
-							{Value: &gnmipb.TypedValue_FloatVal{6.28}},
+							{Value: &gnmipb.TypedValue_DoubleVal{6.28}},
 							{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
 							{Value: &gnmipb.TypedValue_BytesVal{[]byte("abc")}},
 							{Value: &gnmipb.TypedValue_BoolVal{false}},

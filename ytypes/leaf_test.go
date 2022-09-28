@@ -2089,6 +2089,7 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			inSchema: typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
 			inVal: &gpb.TypedValue{
 				Value: &gpb.TypedValue_DecimalVal{
+					//lint:ignore SA1019 We still need to tolerate unmarshalling decimal_val and float_val.
 					DecimalVal: &gpb.Decimal64{Digits: 42, Precision: 2},
 				},
 			},

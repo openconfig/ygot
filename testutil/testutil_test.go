@@ -26,6 +26,8 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
+//lint:file-ignore SA1019 We still need to tolerate unmarshalling decimal_val and float_val.
+
 func mustPath(s string) *gnmipb.Path {
 	p, err := ygot.StringToStructuredPath(s)
 	if err != nil {
