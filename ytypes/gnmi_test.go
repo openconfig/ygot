@@ -12,13 +12,13 @@ import (
 
 func TestUnmarshalSetRequest(t *testing.T) {
 	tests := []struct {
-		desc             string
-		inSchema         *Schema
-		inReq            *gpb.SetRequest
-		inSkipValidation bool
-		inUnmarshalOpts  []UnmarshalOpt
-		want             ygot.GoStruct
-		wantErr          bool
+		desc            string
+		inSchema        *Schema
+		inReq           *gpb.SetRequest
+		inValidate      bool
+		inUnmarshalOpts []UnmarshalOpt
+		want            ygot.GoStruct
+		wantErr         bool
 	}{{
 		desc: "updates to an empty struct without validation",
 		inSchema: &Schema{
@@ -43,7 +43,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				}},
 			}},
 		},
-		inSkipValidation: true,
+		inValidate: false,
 		want: &ListElemStruct1{
 			Key1: ygot.String("invalid"),
 			Outer: &OuterContainerType1{
@@ -60,6 +60,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
+		inValidate: true,
 		inReq: &gpb.SetRequest{
 			Prefix: &gpb.Path{},
 			Update: []*gpb.Update{{
@@ -94,6 +95,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
+		inValidate: true,
 		inReq: &gpb.SetRequest{
 			Prefix: &gpb.Path{},
 			Update: []*gpb.Update{{
@@ -137,6 +139,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
+		inValidate: true,
 		inReq: &gpb.SetRequest{
 			Prefix: &gpb.Path{},
 			Update: []*gpb.Update{{
@@ -172,6 +175,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 			},
 		},
 		inUnmarshalOpts: []UnmarshalOpt{&IgnoreExtraFields{}},
+		inValidate:      true,
 		inReq: &gpb.SetRequest{
 			Prefix: &gpb.Path{},
 			Update: []*gpb.Update{{
@@ -215,6 +219,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
+		inValidate: true,
 		inReq: &gpb.SetRequest{
 			Prefix: &gpb.Path{},
 			Replace: []*gpb.Update{{
@@ -260,6 +265,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
+		inValidate: true,
 		inReq: &gpb.SetRequest{
 			Prefix: &gpb.Path{},
 			Delete: []*gpb.Path{
@@ -286,6 +292,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
+		inValidate: true,
 		inReq: &gpb.SetRequest{
 			Prefix: &gpb.Path{},
 			Delete: []*gpb.Path{
@@ -327,6 +334,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
+		inValidate: true,
 		inReq: &gpb.SetRequest{
 			Prefix: &gpb.Path{},
 			Delete: []*gpb.Path{
@@ -361,6 +369,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
+		inValidate: true,
 		inReq: &gpb.SetRequest{
 			Prefix: &gpb.Path{},
 			Replace: []*gpb.Update{{
@@ -402,6 +411,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				"OuterContainerType1": simpleSchema().Dir["outer"],
 			},
 		},
+		inValidate: true,
 		inReq: &gpb.SetRequest{
 			Prefix: mustPath("/outer"),
 			Replace: []*gpb.Update{{
@@ -441,6 +451,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				"OuterContainerType1": simpleSchema().Dir["outer"],
 			},
 		},
+		inValidate: true,
 		inReq: &gpb.SetRequest{
 			Prefix: mustPath("/outer-planets"),
 			Replace: []*gpb.Update{{
@@ -459,7 +470,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			err := UnmarshalSetRequest(tt.inSchema, tt.inReq, tt.inSkipValidation, tt.inUnmarshalOpts...)
+			err := UnmarshalSetRequest(tt.inSchema, tt.inReq, tt.inValidate, tt.inUnmarshalOpts...)
 			if gotErr := err != nil; gotErr != tt.wantErr {
 				t.Fatalf("got error: %v, want: %v", err, tt.wantErr)
 			}
@@ -474,13 +485,13 @@ func TestUnmarshalSetRequest(t *testing.T) {
 
 func TestUnmarshalNotifications(t *testing.T) {
 	tests := []struct {
-		desc             string
-		inSchema         *Schema
-		inNotifications  []*gpb.Notification
-		inSkipValidation bool
-		inUnmarshalOpts  []UnmarshalOpt
-		want             ygot.GoStruct
-		wantErr          bool
+		desc            string
+		inSchema        *Schema
+		inNotifications []*gpb.Notification
+		inValidate      bool
+		inUnmarshalOpts []UnmarshalOpt
+		want            ygot.GoStruct
+		wantErr         bool
 	}{{
 		desc: "updates to an empty struct without validation",
 		inSchema: &Schema{
@@ -505,7 +516,7 @@ func TestUnmarshalNotifications(t *testing.T) {
 				}},
 			}},
 		}},
-		inSkipValidation: true,
+		inValidate: false,
 		want: &ListElemStruct1{
 			Key1: ygot.String("invalid"),
 			Outer: &OuterContainerType1{
@@ -522,6 +533,7 @@ func TestUnmarshalNotifications(t *testing.T) {
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
+		inValidate: true,
 		inNotifications: []*gpb.Notification{{
 			Prefix: &gpb.Path{},
 			Update: []*gpb.Update{{
@@ -556,6 +568,7 @@ func TestUnmarshalNotifications(t *testing.T) {
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
+		inValidate: true,
 		inNotifications: []*gpb.Notification{{
 			Prefix: &gpb.Path{},
 			Update: []*gpb.Update{{
@@ -599,6 +612,7 @@ func TestUnmarshalNotifications(t *testing.T) {
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
+		inValidate: true,
 		inNotifications: []*gpb.Notification{{
 			Prefix: &gpb.Path{},
 			Update: []*gpb.Update{{
@@ -624,6 +638,7 @@ func TestUnmarshalNotifications(t *testing.T) {
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
+		inValidate: true,
 		inNotifications: []*gpb.Notification{{
 			Prefix: &gpb.Path{},
 			Update: []*gpb.Update{{
@@ -659,6 +674,7 @@ func TestUnmarshalNotifications(t *testing.T) {
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
+		inValidate: true,
 		inNotifications: []*gpb.Notification{{
 			Prefix: &gpb.Path{},
 			Delete: []*gpb.Path{
@@ -691,6 +707,7 @@ func TestUnmarshalNotifications(t *testing.T) {
 				"ListElemStruct1": simpleSchema(),
 			},
 		},
+		inValidate: true,
 		inNotifications: []*gpb.Notification{{
 			Prefix: &gpb.Path{},
 			Delete: []*gpb.Path{
@@ -726,6 +743,7 @@ func TestUnmarshalNotifications(t *testing.T) {
 				"InnerContainerType1": simpleSchema().Dir["outer"].Dir["config"].Dir["inner"],
 			},
 		},
+		inValidate: true,
 		inNotifications: []*gpb.Notification{{
 			Prefix: &gpb.Path{},
 			Delete: []*gpb.Path{
@@ -764,7 +782,7 @@ func TestUnmarshalNotifications(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			err := UnmarshalNotifications(tt.inSchema, tt.inNotifications, tt.inSkipValidation, tt.inUnmarshalOpts...)
+			err := UnmarshalNotifications(tt.inSchema, tt.inNotifications, tt.inValidate, tt.inUnmarshalOpts...)
 			if gotErr := err != nil; gotErr != tt.wantErr {
 				t.Fatalf("got error: %v, want: %v", err, tt.wantErr)
 			}

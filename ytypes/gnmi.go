@@ -20,22 +20,28 @@ import (
 // - If preferShadowPath is specified, then the shadow path values are
 // unmarshalled instead of non-shadow path values when GoStructs are generated
 // with shadow paths.
-// - If skipValidation is specified, then schema validation won't be performed
+// - If validate is specified, then schema validation will be performed
 // after all the notifications have been unmarshalled.
-func UnmarshalNotifications(schema *Schema, ns []*gpb.Notification, skipValidation bool, opts ...UnmarshalOpt) error {
+func UnmarshalNotifications(schema *Schema, ns []*gpb.Notification, validate bool, opts ...UnmarshalOpt) error {
 	for _, n := range ns {
 		err := UnmarshalSetRequest(schema, &gpb.SetRequest{
 			Prefix: n.Prefix,
 			Delete: n.Delete,
 			Update: n.Update,
-		}, true, opts...)
+			// Don't validate yet since we want to unmarshal all of
+			// the notifications before validating.
+			//
+			// validate is not an option since UnmarshalOpt is
+			// shared with ytypes.Unmarshal, and currently there is
+			// no expectation to support validation there.
+		}, false, opts...)
 		if err != nil {
 			return err
 		}
 	}
 
 	root := schema.Root
-	if !skipValidation {
+	if validate {
 		if err := validateGoStruct(root); err != nil {
 			return fmt.Errorf("sum of notifications is not schema-compliant: %v", err)
 		}
@@ -53,9 +59,9 @@ func UnmarshalNotifications(schema *Schema, ns []*gpb.Notification, skipValidati
 // - If preferShadowPath is specified, then the shadow path values are
 // unmarshalled instead of non-shadow path values when GoStructs are generated
 // with shadow paths.
-// - If skipValidation is specified, then schema validation won't be performed
+// - If validate is specified, then schema validation will be performed
 // after the set request has been unmarshalled.
-func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, skipValidation bool, opts ...UnmarshalOpt) error {
+func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, validate bool, opts ...UnmarshalOpt) error {
 	preferShadowPath := hasPreferShadowPath(opts)
 	ignoreExtraFields := hasIgnoreExtraFields(opts)
 
@@ -76,7 +82,7 @@ func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, skipValidation boo
 		return err
 	}
 
-	if !skipValidation {
+	if validate {
 		if err := validateGoStruct(root); err != nil {
 			return fmt.Errorf("SetRequest is not schema-compliant: %v", err)
 		}
