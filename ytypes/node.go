@@ -636,9 +636,9 @@ type DelNodeOpt interface {
 }
 
 // PreferShadowPath signals to prefer using the "shadow-path" tags instead of
-// the "path" tags when both are present while processing a GoStruct. This
-// means paths matching "shadow-path" will be unmarshalled, while paths
-// matching "path" will be silently ignored.
+// the "path" tags when both are present while processing a GoStruct field.
+// This means for such fields, paths matching "shadow-path" will be
+// unmarshalled, while paths matching "path" will be silently ignored.
 type PreferShadowPath struct{}
 
 // IsGetOrCreateNodeOpt implements the GetOrCreateNodeOpt interface.

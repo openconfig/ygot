@@ -10,52 +10,43 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
-// UnmarshalNotifications unmarshals a Notification on the root GoStruct
-// specified by "schema".
+// UnmarshalNotifications unmarshals a slice of Notifications on the root
+// GoStruct specified by "schema". It *does not* perform validation after
+// unmarshalling is complete.
 //
-// It does not make a copy and overwrites this value, so make a copy using
-// ygot.DeepCopy() if you wish to retain the value at schema.Root prior to
-// calling this function.
+// It does not make a copy and instead overwrites this value, so make a copy
+// using ygot.DeepCopy() if you wish to retain the value at schema.Root prior
+// to calling this function.
 //
-// - If preferShadowPath is specified, then the shadow path values are
-// unmarshalled instead of non-shadow path values when GoStructs are generated
-// with shadow paths.
-// - If skipValidation is specified, then schema validation won't be performed
-// after all the notifications have been unmarshalled.
-func UnmarshalNotifications(schema *Schema, ns []*gpb.Notification, preferShadowPath, skipValidation bool) error {
+// If an error occurs during unmarshalling, schema.Root may already be
+// modified. A rollback is not performed.
+func UnmarshalNotifications(schema *Schema, ns []*gpb.Notification, opts ...UnmarshalOpt) error {
 	for _, n := range ns {
 		err := UnmarshalSetRequest(schema, &gpb.SetRequest{
 			Prefix: n.Prefix,
 			Delete: n.Delete,
 			Update: n.Update,
-		}, preferShadowPath, true)
+		}, opts...)
 		if err != nil {
 			return err
-		}
-	}
-
-	root := schema.Root
-	if !skipValidation {
-		if err := validateGoStruct(root); err != nil {
-			return fmt.Errorf("sum of notifications is not schema-compliant: %v", err)
 		}
 	}
 	return nil
 }
 
 // UnmarshalSetRequest applies a SetRequest on the root GoStruct specified by
-// "schema".
+// "schema". It *does not* perform validation after unmarshalling is complete.
 //
-// It does not make a copy and overwrites this value, so make a copy using
-// ygot.DeepCopy() if you wish to retain the value at schema.Root prior to
-// calling this function.
+// It does not make a copy and instead overwrites this value, so make a copy
+// using ygot.DeepCopy() if you wish to retain the value at schema.Root prior
+// to calling this function.
 //
-// - If preferShadowPath is specified, then the shadow path values are
-// unmarshalled instead of non-shadow path values when GoStructs are generated
-// with shadow paths.
-// - If skipValidation is specified, then schema validation won't be performed
-// after the set request has been unmarshalled.
-func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, preferShadowPath, skipValidation bool) error {
+// If an error occurs during unmarshalling, schema.Root may already be
+// modified. A rollback is not performed.
+func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, opts ...UnmarshalOpt) error {
+	preferShadowPath := hasPreferShadowPath(opts)
+	ignoreExtraFields := hasIgnoreExtraFields(opts)
+
 	root := schema.Root
 	node, nodeName, err := getOrCreateNode(schema.RootSchema(), root, req.Prefix, preferShadowPath)
 	if err != nil {
@@ -66,40 +57,14 @@ func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, preferShadowPath, 
 	if err := deletePaths(schema.SchemaTree[nodeName], node, req.Delete, preferShadowPath); err != nil {
 		return err
 	}
-	if err := replacePaths(schema.SchemaTree[nodeName], node, req.Replace, preferShadowPath); err != nil {
+	if err := replacePaths(schema.SchemaTree[nodeName], node, req.Replace, preferShadowPath, ignoreExtraFields); err != nil {
 		return err
 	}
-	if err := updatePaths(schema.SchemaTree[nodeName], node, req.Update, preferShadowPath); err != nil {
+	if err := updatePaths(schema.SchemaTree[nodeName], node, req.Update, preferShadowPath, ignoreExtraFields); err != nil {
 		return err
 	}
 
-	if !skipValidation {
-		if err := validateGoStruct(root); err != nil {
-			return fmt.Errorf("SetRequest is not schema-compliant: %v", err)
-		}
-	}
 	return nil
-}
-
-func validateGoStruct(goStruct ygot.GoStruct) error {
-	vroot, ok := goStruct.(validatedGoStruct)
-	if !ok {
-		return fmt.Errorf("schema root cannot be validated: (%T, %v)", goStruct, goStruct)
-	}
-	return vroot.ΛValidate()
-}
-
-// validatedGoStruct is an interface used for validating GoStructs.
-// This interface is implemented by all Go structs (YANG container or lists),
-// regardless of generation flag.
-type validatedGoStruct interface {
-	// GoStruct ensures that the interface for a standard GoStruct
-	// is embedded.
-	ygot.GoStruct
-	// ΛValidate compares the contents of the implementing struct against
-	// the YANG schema, and returns an error if the struct's contents
-	// are not valid, or nil if the struct complies with the schema.
-	ΛValidate(...ygot.ValidationOption) error
 }
 
 // getOrCreateNode instantiates the node at the given path, and returns that
@@ -140,7 +105,7 @@ func deletePaths(schema *yang.Entry, goStruct ygot.GoStruct, paths []*gpb.Path, 
 // replacePaths unmarshals a slice of updates into the given GoStruct. It
 // deletes the values at these paths before unmarshalling them. These updates
 // can either by JSON-encoded or gNMI-encoded values (scalars).
-func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, updates []*gpb.Update, preferShadowPath bool) error {
+func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, updates []*gpb.Update, preferShadowPath, ignoreExtraFields bool) error {
 	var dopts []DelNodeOpt
 	if preferShadowPath {
 		dopts = append(dopts, &PreferShadowPath{})
@@ -150,7 +115,7 @@ func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, updates []*gpb.Upd
 		if err := DeleteNode(schema, goStruct, update.Path, dopts...); err != nil {
 			return err
 		}
-		if err := setNode(schema, goStruct, update, preferShadowPath); err != nil {
+		if err := setNode(schema, goStruct, update, preferShadowPath, ignoreExtraFields); err != nil {
 			return err
 		}
 	}
@@ -159,9 +124,9 @@ func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, updates []*gpb.Upd
 
 // updatePaths unmarshals a slice of updates into the given GoStruct. These
 // updates can either by JSON-encoded or gNMI-encoded values (scalars).
-func updatePaths(schema *yang.Entry, goStruct ygot.GoStruct, updates []*gpb.Update, preferShadowPath bool) error {
+func updatePaths(schema *yang.Entry, goStruct ygot.GoStruct, updates []*gpb.Update, preferShadowPath, ignoreExtraFields bool) error {
 	for _, update := range updates {
-		if err := setNode(schema, goStruct, update, preferShadowPath); err != nil {
+		if err := setNode(schema, goStruct, update, preferShadowPath, ignoreExtraFields); err != nil {
 			return err
 		}
 	}
@@ -170,10 +135,13 @@ func updatePaths(schema *yang.Entry, goStruct ygot.GoStruct, updates []*gpb.Upda
 
 // setNode unmarshals either a JSON-encoded value or a gNMI-encoded (scalar)
 // value into the given GoStruct.
-func setNode(schema *yang.Entry, goStruct ygot.GoStruct, update *gpb.Update, preferShadowPath bool) error {
+func setNode(schema *yang.Entry, goStruct ygot.GoStruct, update *gpb.Update, preferShadowPath, ignoreExtraFields bool) error {
 	sopts := []SetNodeOpt{&InitMissingElements{}}
 	if preferShadowPath {
 		sopts = append(sopts, &PreferShadowPath{})
+	}
+	if ignoreExtraFields {
+		sopts = append(sopts, &IgnoreExtraFields{})
 	}
 
 	return SetNode(schema, goStruct, update.Path, update.Val, sopts...)
