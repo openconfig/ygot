@@ -411,18 +411,13 @@ func EmitJSON(gs GoStruct, opts *EmitJSONConfig) (string, error) {
 		skipValidation = opts.SkipValidation
 	}
 
-	s, ok := gs.(validatedGoStruct)
-	if !ok {
-		return "", fmt.Errorf("input GoStruct does not have ΛValidate() method")
-	}
-
 	if !skipValidation {
-		if err := s.ΛValidate(vopts...); err != nil {
+		if err := ValidateGoStruct(gs, vopts...); err != nil {
 			return "", fmt.Errorf("validation err: %v", err)
 		}
 	}
 
-	v, err := makeJSON(s, opts)
+	v, err := makeJSON(gs, opts)
 	if err != nil {
 		return "", err
 	}

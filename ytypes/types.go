@@ -16,7 +16,6 @@ package ytypes
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -44,33 +43,11 @@ func (s *Schema) RootSchema() *yang.Entry {
 }
 
 // Validate performs schema validation on the schema root.
-func (s *Schema) Validate() error {
+func (s *Schema) Validate(vopts ...ygot.ValidationOption) error {
 	if !s.IsValid() {
 		return errors.New("invalid schema: not fully populated")
 	}
-	return validateGoStruct(s.Root)
-}
-
-// validateGoStruct validates a ygot.GoStruct.
-func validateGoStruct(goStruct ygot.GoStruct) error {
-	vroot, ok := goStruct.(validatedGoStruct)
-	if !ok {
-		return fmt.Errorf("GoStruct cannot be validated: (%T, %v)", goStruct, goStruct)
-	}
-	return vroot.ΛValidate()
-}
-
-// validatedGoStruct is an interface used for validating GoStructs.
-// This interface is implemented by all Go structs (YANG container or lists),
-// regardless of generation flags.
-type validatedGoStruct interface {
-	// GoStruct ensures that the interface for a standard GoStruct
-	// is embedded.
-	ygot.GoStruct
-	// ΛValidate compares the contents of the implementing struct against
-	// the YANG schema, and returns an error if the struct's contents
-	// are not valid, or nil if the struct complies with the schema.
-	ΛValidate(...ygot.ValidationOption) error
+	return ygot.ValidateGoStruct(s.Root, vopts...)
 }
 
 // UnmarshalFunc defines a common signature for an RFC7951 to ygot.GoStruct unmarshalling function
