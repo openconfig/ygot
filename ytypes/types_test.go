@@ -68,6 +68,10 @@ func TestSchema(t *testing.T) {
 				t.Errorf("did not get expected valid status, got: %v, want: %v", got, tt.wantValid)
 			}
 
+			if got := tt.in.Validate(); (got == nil) != tt.wantValid {
+				t.Errorf("did not get expected validate return, got: %v, want: %v", got, tt.wantValid)
+			}
+
 			if !tt.wantValid {
 				return
 			}

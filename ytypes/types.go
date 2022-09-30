@@ -15,6 +15,7 @@
 package ytypes
 
 import (
+	"errors"
 	"reflect"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -39,6 +40,14 @@ func (s *Schema) IsValid() bool {
 // the schema.
 func (s *Schema) RootSchema() *yang.Entry {
 	return s.SchemaTree[reflect.TypeOf(s.Root).Elem().Name()]
+}
+
+// Validate performs schema validation on the schema root.
+func (s *Schema) Validate(vopts ...ygot.ValidationOption) error {
+	if !s.IsValid() {
+		return errors.New("invalid schema: not fully populated")
+	}
+	return ygot.ValidateGoStruct(s.Root, vopts...)
 }
 
 // UnmarshalFunc defines a common signature for an RFC7951 to ygot.GoStruct unmarshalling function

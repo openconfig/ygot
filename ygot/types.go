@@ -15,6 +15,7 @@
 package ygot
 
 import (
+	"fmt"
 	"reflect"
 )
 
@@ -54,6 +55,15 @@ type ValidatedGoStruct interface {
 	// For more information on YANG's XML namespaces see
 	// https://datatracker.ietf.org/doc/html/rfc7950#section-5.3
 	ΛBelongingModule() string
+}
+
+// ValidateGoStruct validates a GoStruct.
+func ValidateGoStruct(goStruct GoStruct, vopts ...ValidationOption) error {
+	vroot, ok := goStruct.(validatedGoStruct)
+	if !ok {
+		return fmt.Errorf("GoStruct cannot be validated: (%T, %v)", goStruct, goStruct)
+	}
+	return vroot.ΛValidate(vopts...)
 }
 
 // validatedGoStruct is an interface used for validating GoStructs.
