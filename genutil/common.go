@@ -194,32 +194,33 @@ func TranslateToCompressBehaviour(compressPaths, excludeState, preferOperational
 // return value.
 //
 // For example, if we have a YANG tree:
-//    /interface (list)
-//    /interface/config (container)
-//    /interface/config/admin-state (leaf)
-//    /interface/state (container)
-//    /interface/state/admin-state (leaf)
-//    /interface/state/oper-state (leaf)
-//    /interface/state/counters (container)
-//    /interface/state/counters/in-pkts (leaf)
-//    /interface/ethernet/config (container)
-//    /interface/ethernet/config/mac-address (leaf)
-//    /interface/ethernet/state (state)
-//    /interface/ethernet/state/mac-address (leaf)
-//    /interface/subinterfaces (container)
-//    /interface/subinterfaces/subinterface (list)
+//
+//	/interface (list)
+//	/interface/config (container)
+//	/interface/config/admin-state (leaf)
+//	/interface/state (container)
+//	/interface/state/admin-state (leaf)
+//	/interface/state/oper-state (leaf)
+//	/interface/state/counters (container)
+//	/interface/state/counters/in-pkts (leaf)
+//	/interface/ethernet/config (container)
+//	/interface/ethernet/config/mac-address (leaf)
+//	/interface/ethernet/state (state)
+//	/interface/ethernet/state/mac-address (leaf)
+//	/interface/subinterfaces (container)
+//	/interface/subinterfaces/subinterface (list)
 //
 // With compression disabled, then each directly connected child of a container should have
 // code generated for it - so therefore we end up with:
 //
-//    /interface: config, state, ethernet, subinterfaces
-//    /interface/config: admin-state
-//    /interface/state: admin-state, oper-state, counters
-//    /interface/state/counters: in-pkts
-//    /interface/ethernet: config, state
-//    /interface/ethernet/config: mac-address
-//    /interface/ethernet/state: mac-address
-//    /interface/subinterfaces: subinterface
+//	/interface: config, state, ethernet, subinterfaces
+//	/interface/config: admin-state
+//	/interface/state: admin-state, oper-state, counters
+//	/interface/state/counters: in-pkts
+//	/interface/ethernet: config, state
+//	/interface/ethernet/config: mac-address
+//	/interface/ethernet/state: mac-address
+//	/interface/subinterfaces: subinterface
 //
 // This is simply achieved by examining the directory provided by goyang (e.Dir)
 // and extracting the direct children that exist. These are appended to the directChildren
@@ -229,13 +230,13 @@ func TranslateToCompressBehaviour(compressPaths, excludeState, preferOperational
 // rules. In this case, the following "look-aheads" are implemented:
 //
 //  1. The 'config' and 'state' containers under a directory are removed. This is because
-//  OpenConfig duplicates nodes under config and state to represent intended versus applied
-//  configuration. In the compressed schema then we need to drop one of these configuration
-//  leaves (those leaves that are defined as the set under the 'state' container that also
-//  exist within the 'config' container), and compressBehaviour specifies which one to drop.
-//  The logic implemented is to recurse into the config container, and select these leaves as
-//  direct children of the original parent. Any leaves that do not exist in the 'config'
-//  container but do within 'state' are operation state leaves, and hence are also mapped.
+//     OpenConfig duplicates nodes under config and state to represent intended versus applied
+//     configuration. In the compressed schema then we need to drop one of these configuration
+//     leaves (those leaves that are defined as the set under the 'state' container that also
+//     exist within the 'config' container), and compressBehaviour specifies which one to drop.
+//     The logic implemented is to recurse into the config container, and select these leaves as
+//     direct children of the original parent. Any leaves that do not exist in the 'config'
+//     container but do within 'state' are operation state leaves, and hence are also mapped.
 //
 //     Above, this means that /interfaces/interface has the admin-state and oper-state as direct
 //     children.
@@ -266,8 +267,10 @@ func TranslateToCompressBehaviour(compressPaths, excludeState, preferOperational
 // It should be noted that special handling is required for choice and case - because these are
 // directories within the resulting schema, but they are not data tree nodes. So for example,
 // we can have:
+//
 //	/container/choice/case-one/leaf-a
 //	/container/choice/case-two/leaf-b
+//
 // In this tree, "choice" and "case-one" (which are choice and case nodes respectively) are not
 // valid data tree elements, so we recurse down both of the branches of "choice" to return leaf-a
 // and leaf-b. Since choices can be nested (/choice-a/choice-b/choice-c/case-a), and can have

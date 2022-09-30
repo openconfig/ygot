@@ -192,11 +192,12 @@ func checkForBinaryKeys(dir *ygen.ParsedDirectory) []error {
 // modules that are included by the specified set of modules, or submodules of those
 // modules). It extracts the set of modules that are to be generated, and returns
 // a GeneratedCode struct which contains:
-//	1. A struct definition for each container or list that is within the specified
-//	    set of models.
-//	2. Enumerated values which correspond to the set of enumerated entities (leaves
-//	   of type enumeration, identities, typedefs that reference an enumeration)
-//	   within the specified models.
+//  1. A struct definition for each container or list that is within the specified
+//     set of models.
+//  2. Enumerated values which correspond to the set of enumerated entities (leaves
+//     of type enumeration, identities, typedefs that reference an enumeration)
+//     within the specified models.
+//
 // If errors are encountered during code generation, an error is returned.
 func (cg *CodeGenerator) Generate(yangFiles, includePaths []string) (*GeneratedCode, util.Errors) {
 	opts := ygen.IROptions{

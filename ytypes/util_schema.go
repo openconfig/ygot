@@ -142,9 +142,13 @@ func pathTagFromField(f reflect.StructField) (string, error) {
 
 // directDescendantSchema returns the direct descendant schema for the struct
 // field f. Paths are embedded in the "path" struct tag and can be either simple:
-//   e.g. "path:a"
+//
+//	e.g. "path:a"
+//
 // or composite e.g.
-//   e.g. "path:config/a|a"
+//
+//	e.g. "path:config/a|a"
+//
 // Function checks for presence of first schema without '/' and returns it.
 func directDescendantSchema(f reflect.StructField) (string, error) {
 	pathAnnotation, err := pathTagFromField(f)

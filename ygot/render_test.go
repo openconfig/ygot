@@ -772,7 +772,7 @@ type renderExample struct {
 	Str                 *string                             `path:"str" shadow-path:"srt"`
 	IntVal              *int32                              `path:"int-val"`
 	Int64Val            *int64                              `path:"int64-val"`
-	FloatVal            *float32                            `path:"floatval"`
+	FloatVal            *float64                            `path:"floatval"`
 	EnumField           EnumTest                            `path:"enum"`
 	Ch                  *renderExampleChild                 `path:"ch"`
 	LeafList            []string                            `path:"leaf-list"`
@@ -1039,12 +1039,12 @@ func TestTogNMINotifications(t *testing.T) {
 	}, {
 		name:        "simple float value leaf example",
 		inTimestamp: 42,
-		inStruct:    &renderExample{FloatVal: Float32(42.0)},
+		inStruct:    &renderExample{FloatVal: Float64(42.0)},
 		want: []*gnmipb.Notification{{
 			Timestamp: 42,
 			Update: []*gnmipb.Update{{
 				Path: &gnmipb.Path{Element: []string{"floatval"}},
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{42.0}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_DoubleVal{42.0}},
 			}},
 		}},
 	}, {
@@ -1153,7 +1153,7 @@ func TestTogNMINotifications(t *testing.T) {
 			Timestamp: 42,
 			Update: []*gnmipb.Update{{
 				Path: &gnmipb.Path{Element: []string{"union-val-simple"}},
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{3.14}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_DoubleVal{3.14}},
 			}},
 		}},
 	}, {
@@ -1192,7 +1192,7 @@ func TestTogNMINotifications(t *testing.T) {
 							}, {
 								Value: &gnmipb.TypedValue_IntVal{42},
 							}, {
-								Value: &gnmipb.TypedValue_FloatVal{3.14},
+								Value: &gnmipb.TypedValue_DoubleVal{3.14},
 							}},
 						},
 					},
@@ -1276,7 +1276,7 @@ func TestTogNMINotifications(t *testing.T) {
 					Value: &gnmipb.TypedValue_LeaflistVal{
 						&gnmipb.ScalarArray{
 							Element: []*gnmipb.TypedValue{{
-								Value: &gnmipb.TypedValue_FloatVal{42.42},
+								Value: &gnmipb.TypedValue_DoubleVal{42.42},
 							}, {
 								Value: &gnmipb.TypedValue_IntVal{-42},
 							}, {
@@ -1298,7 +1298,7 @@ func TestTogNMINotifications(t *testing.T) {
 							}, {
 								Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"},
 							}, {
-								Value: &gnmipb.TypedValue_FloatVal{42.0},
+								Value: &gnmipb.TypedValue_DoubleVal{42.0},
 							}},
 						},
 					},
@@ -3861,7 +3861,7 @@ func TestEncodeTypedValue(t *testing.T) {
 	}, {
 		name:  "decimal64 union encoding",
 		inVal: testutil.UnionFloat64(3.14),
-		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{3.14}},
+		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_DoubleVal{3.14}},
 	}, {
 		name:  "binary union encoding",
 		inVal: testBinary,
@@ -3882,7 +3882,7 @@ func TestEncodeTypedValue(t *testing.T) {
 				Element: []*gnmipb.TypedValue{
 					{Value: &gnmipb.TypedValue_StringVal{"hello"}},
 					{Value: &gnmipb.TypedValue_IntVal{42}},
-					{Value: &gnmipb.TypedValue_FloatVal{3.14}},
+					{Value: &gnmipb.TypedValue_DoubleVal{3.14}},
 					{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
 					{Value: &gnmipb.TypedValue_BoolVal{true}},
 					{Value: &gnmipb.TypedValue_BoolVal{false}}},

@@ -18,4 +18,3 @@ package ywrapper
 
 // Generate command to create the protobuf .pb.go file.
 //go:generate ./genproto.sh
-

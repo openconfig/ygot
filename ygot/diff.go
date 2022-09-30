@@ -147,13 +147,13 @@ func nodeChildPath(parentPath *pathSpec, schemaPaths [][]string) (*pathSpec, err
 // name of the YANG list) and returns the data tree path of the map. For a
 // struct of the form:
 //
-//  type Foo struct {
-//   YANGList map[string]*Foo_Child `path:"yang-list"`
-//  }
+//	type Foo struct {
+//	 YANGList map[string]*Foo_Child `path:"yang-list"`
+//	}
 //
-//  type Foo_Child struct {
-//   KeyValue *string `path:"key-value"`
-//  }
+//	type Foo_Child struct {
+//	 KeyValue *string `path:"key-value"`
+//	}
 //
 // The parentPath handed to this function is "/yang-list" since this is the
 // path of the YANGList struct field. The full data tree path of the list entry
@@ -223,10 +223,17 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 			return
 		}
 
-		sp, err := util.SchemaPaths(ni.StructField)
-		if err != nil {
-			errs = util.AppendErr(errs, err)
-			return
+		var sp [][]string
+		if pathOpt != nil && pathOpt.PreferShadowPath {
+			// Try the shadow-path tag first to see if it exists.
+			sp = util.ShadowSchemaPaths(ni.StructField)
+		}
+		if len(sp) == 0 {
+			var err error
+			if sp, err = util.SchemaPaths(ni.StructField); err != nil {
+				errs = util.AppendErr(errs, err)
+				return
+			}
 		}
 		if len(sp) == 0 {
 			errs = util.AppendErr(errs, fmt.Errorf("invalid schema path for %s", ni.StructField.Name))
@@ -383,6 +390,14 @@ type DiffPathOpt struct {
 	// generated structs, which can result in duplication of list key leaves in
 	// the diff output.
 	MapToSinglePath bool
+	// PreferShadowPath specifies whether the "shadow-path" struct tag
+	// annotation should be used instead of the "path" struct tag when it
+	// exists.
+	//
+	// This option is used when GoStructs are generated with the
+	// -ignore_shadow_schema_paths flag, and therefore have the
+	// "shadow-path" tag.
+	PreferShadowPath bool
 }
 
 // IsDiffOpt marks DiffPathOpt as a diff option.
@@ -392,11 +407,11 @@ func (*DiffPathOpt) IsDiffOpt() {}
 // and returns a gNMI Notification that contains the diff between them. The original
 // struct is considered as the "from" data, with the modified struct the "to" such that:
 //
-//  - The contents of the Update field of the notification indicate that the
-//    field in modified was either not present in original, or had a different
-//    field value.
-//  - The paths within the Delete field of the notification indicate that the
-//    field was not present in the modified struct, but was set in the original.
+//   - The contents of the Update field of the notification indicate that the
+//     field in modified was either not present in original, or had a different
+//     field value.
+//   - The paths within the Delete field of the notification indicate that the
+//     field was not present in the modified struct, but was set in the original.
 //
 // Annotation fields that are contained within the supplied original or modified
 // GoStruct are skipped.

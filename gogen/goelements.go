@@ -421,6 +421,7 @@ func (s *GoLangMapper) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, s
 // be mapped to an interface which can be implemented for each sub-type.
 //
 // For example:
+//
 //	container bar {
 //		leaf foo {
 //			type union {

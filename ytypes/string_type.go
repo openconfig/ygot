@@ -35,7 +35,7 @@ var reCache = newRegexpCache()
 // This helps the performance of validation of, say, a large prefix
 // list that have the same pattern specification.
 //
-// Concurrency Requirements
+// # Concurrency Requirements
 //
 // Only the regexp cache map has to be protected by mutexes, since
 // a Regexp is safe for concurrent use by multiple goroutines:

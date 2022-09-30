@@ -309,14 +309,14 @@ type protoMsgConfig struct {
 }
 
 // writeProto3Message outputs the generated Protobuf3 code for a particular protobuf message. It takes:
-//  - msg:               The Directory struct that describes a particular protobuf3 message.
-//  - msgs:              The set of other Directory structs, keyed by schema path, that represent the other proto3
-//                       messages to be generated.
-//  - protogen:             The current generator state.
-//  - cfg:		 The configuration for the message creation as defined in a protoMsgConfig struct.
-//  It returns a generatedProto3Message pointer which includes the definition of the proto3 message, particularly the
-//  name of the package it is within, the code for the message, and any imports for packages that are referenced by
-//  the message.
+//   - msg:               The Directory struct that describes a particular protobuf3 message.
+//   - msgs:              The set of other Directory structs, keyed by schema path, that represent the other proto3
+//     messages to be generated.
+//   - protogen:             The current generator state.
+//   - cfg:		 The configuration for the message creation as defined in a protoMsgConfig struct.
+//     It returns a generatedProto3Message pointer which includes the definition of the proto3 message, particularly the
+//     name of the package it is within, the code for the message, and any imports for packages that are referenced by
+//     the message.
 func writeProto3Msg(msg *ygen.ParsedDirectory, ir *ygen.IR, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
 	if cfg.nestedMessages {
 		if !outputNestedMessage(msg, cfg.compressPaths) {
@@ -359,10 +359,11 @@ func outputNestedMessage(msg *ygen.ParsedDirectory, compressPaths bool) bool {
 // writeProto3MsgNested returns a nested set of protobuf messages for the message
 // supplied, which is expected to be a top-level message that code generation is
 // being performed for. It takes:
-//  - msg: the top-level directory definition
-//  - msgs: the set of message definitions (keyed by path) that are to be output
-//  - protogen: the current code generation state.
-//  - cfg: the configuration for the current code generation.
+//   - msg: the top-level directory definition
+//   - msgs: the set of message definitions (keyed by path) that are to be output
+//   - protogen: the current code generation state.
+//   - cfg: the configuration for the current code generation.
+//
 // It returns a generated protobuf3 message.
 func writeProto3MsgNested(msg *ygen.ParsedDirectory, ir *ygen.IR, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
 	var gerrs util.Errors
