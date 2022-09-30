@@ -90,6 +90,9 @@ type GoOpts struct {
 	// whether a field has been explicitly set to the zero value (i.e., an integer
 	// field is set to 0), or whether the field was actually unset.
 	GenerateLeafGetters bool
+	// GenerateLeafSetters specifies whether Set* methods should be created for
+	// leaf fields of a struct.
+	GenerateLeafSetters bool
 	// GeneratePopulateDefault specifies whether a PopulateDefaults method
 	// should be generated for every GoStruct that recursively populates
 	// default values within the subtree.
