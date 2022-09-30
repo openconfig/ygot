@@ -163,6 +163,30 @@ func (t *Outer_Inner) GetLeaf4() Outer_Inner_Leaf4_Union {
 	return t.Leaf4
 }
 
+// SetLeaf1 sets the value of the leaf Leaf1 in the Outer_Inner
+// struct.
+func (t *Outer_Inner) SetLeaf1(v Outer_Inner_Leaf1_Union) {
+	t.Leaf1 = v
+}
+
+// SetLeaf2 sets the value of the leaf Leaf2 in the Outer_Inner
+// struct.
+func (t *Outer_Inner) SetLeaf2(v Outer_Inner_Leaf2_Union) {
+	t.Leaf2 = v
+}
+
+// SetLeaf3 sets the value of the leaf Leaf3 in the Outer_Inner
+// struct.
+func (t *Outer_Inner) SetLeaf3(v Outer_Inner_Leaf3_Union) {
+	t.Leaf3 = v
+}
+
+// SetLeaf4 sets the value of the leaf Leaf4 in the Outer_Inner
+// struct.
+func (t *Outer_Inner) SetLeaf4(v Outer_Inner_Leaf4_Union) {
+	t.Leaf4 = v
+}
+
 // ΛBelongingModule returns the name of the module that defines the namespace
 // of Outer_Inner.
 func (*Outer_Inner) ΛBelongingModule() string {

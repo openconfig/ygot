@@ -96,6 +96,12 @@ func (t *AList) GetValue() AList_Value_Union {
 	return t.Value
 }
 
+// SetValue sets the value of the leaf Value in the AList
+// struct.
+func (t *AList) SetValue(v AList_Value_Union) {
+	t.Value = v
+}
+
 // ΛListKeyMap returns the keys of the AList struct, which is a YANG list entry.
 func (t *AList) ΛListKeyMap() (map[string]interface{}, error) {
 
@@ -166,6 +172,12 @@ func (t *BList) GetValue() BList_Value_Union {
 	return t.Value
 }
 
+// SetValue sets the value of the leaf Value in the BList
+// struct.
+func (t *BList) SetValue(v BList_Value_Union) {
+	t.Value = v
+}
+
 // ΛListKeyMap returns the keys of the BList struct, which is a YANG list entry.
 func (t *BList) ΛListKeyMap() (map[string]interface{}, error) {
 
@@ -234,6 +246,12 @@ func (t *C) GetCl() E_EnumModule_Cl {
 		return 0
 	}
 	return t.Cl
+}
+
+// SetCl sets the value of the leaf Cl in the C
+// struct.
+func (t *C) SetCl(v E_EnumModule_Cl) {
+	t.Cl = v
 }
 
 // ΛBelongingModule returns the name of the module that defines the namespace
@@ -333,6 +351,30 @@ func (t *Parent_Child) GetInlineEnum() E_Child_InlineEnum {
 		return Child_InlineEnum_THYMINE
 	}
 	return t.InlineEnum
+}
+
+// SetEnum sets the value of the leaf Enum in the Parent_Child
+// struct.
+func (t *Parent_Child) SetEnum(v E_EnumTypes_TdEnum) {
+	t.Enum = v
+}
+
+// SetId sets the value of the leaf Id in the Parent_Child
+// struct.
+func (t *Parent_Child) SetId(v E_EnumTypes_ID) {
+	t.Id = v
+}
+
+// SetId2 sets the value of the leaf Id2 in the Parent_Child
+// struct.
+func (t *Parent_Child) SetId2(v E_EnumTypes_ID) {
+	t.Id2 = v
+}
+
+// SetInlineEnum sets the value of the leaf InlineEnum in the Parent_Child
+// struct.
+func (t *Parent_Child) SetInlineEnum(v E_Child_InlineEnum) {
+	t.InlineEnum = v
 }
 
 // ΛBelongingModule returns the name of the module that defines the namespace
