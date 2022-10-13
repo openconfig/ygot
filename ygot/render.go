@@ -530,11 +530,19 @@ func appendgNMIPathElemKey(v reflect.Value, p *gnmiPath) (*gnmiPath, error) {
 	return np, nil
 }
 
+// keyHelperStruct makes sure ΛListKeyMap() is implemented such that the struct
+// has the corresponding function to retrieve the list keys as a map.
+type keyHelperGoKeyStruct interface {
+	// ΛListKeyMap defines a helper method that returns a map of the
+	// keys of a list element.
+	ΛListKeyMap() (map[string]interface{}, error)
+}
+
 // PathKeyFromStruct returns a map[string]string which represents the keys for a YANG
 // list element. The provided reflect.Value must implement the KeyHelperGoStruct interface,
 // and hence be a struct which represents a list member within the schema.
 func PathKeyFromStruct(v reflect.Value) (map[string]string, error) {
-	gs, ok := v.Interface().(KeyHelperGoStruct)
+	gs, ok := v.Interface().(keyHelperGoKeyStruct)
 	if !ok {
 		return nil, fmt.Errorf("cannot render to gNMI PathElem for structs that do not implement KeyHelperGoStruct, got: %T (%s)", v.Type().Name(), v.Interface())
 	}

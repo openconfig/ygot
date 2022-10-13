@@ -347,7 +347,7 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 
 			kv, err := getKeyValue(listElemV.Elem(), schema.Key)
 			if err != nil {
-				return nil, status.Errorf(codes.Unknown, "failed to get key value for %v, path %v: %v", listElemV.Interface(), path, err)
+				kv = k.Interface()
 			}
 
 			keyAsString, err := ygot.KeyValueAsString(kv)
@@ -407,7 +407,9 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 		if match {
 			keys, err := ygot.PathKeyFromStruct(listElemV)
 			if err != nil {
-				return nil, status.Errorf(codes.Unknown, "could not extract keys from %v: %v", traversedPath, err)
+				if keys, err = ygot.PathKeyFromStruct(k); err != nil {
+					return nil, status.Errorf(codes.Unknown, "could not extract keys from %v: %v", traversedPath, err)
+				}
 			}
 			remainingPath := util.PopGNMIPath(path)
 			if args.delete && len(remainingPath.GetElem()) == 0 {
