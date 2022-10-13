@@ -197,6 +197,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			// corresponding field to its zero value. The zero value is the unset value for
 			// any node type, whether leaf or non-leaf.
 			if args.delete && len(path.Elem) == to {
+				// Delete a leaf or container.
 				fv.Set(reflect.Zero(ft.Type))
 				return nil, nil
 			}
@@ -356,15 +357,20 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 			}
 			if keyAsString == pathKey {
 				remainingPath := util.PopGNMIPath(path)
-				if args.delete && len(remainingPath.GetElem()) == 0 {
-					rv.SetMapIndex(k, reflect.Value{})
-					return nil, nil
+				if args.delete {
+					if remCount := len(remainingPath.GetElem()); remCount == 0 || (remCount == 1 && remainingPath.GetElem()[0].GetName() == schema.Key) {
+						// Delete a single-keyed list entry.
+						rv.SetMapIndex(k, reflect.Value{})
+						return nil, nil
+					}
 				}
 				return retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, path.GetElem()[0]), args)
 			}
 			continue
 		}
 
+		// Track the names of the keys.
+		keyNames := map[string]bool{}
 		match := true
 		for i := 0; i < k.NumField(); i++ {
 			fieldName := listKeyT.Field(i).Name
@@ -382,6 +388,7 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 			if err != nil {
 				return nil, status.Errorf(codes.Unknown, "unable to get direct descendant schema name for %v: %v", schemaKey, err)
 			}
+			keyNames[schemaKey] = true
 
 			pathKey, ok := path.GetElem()[0].GetKey()[schemaKey]
 			// If key isn't found in the path key, treat it as error if partialKeyMatch is set to false.
@@ -410,9 +417,12 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 				return nil, status.Errorf(codes.Unknown, "could not extract keys from %v: %v", traversedPath, err)
 			}
 			remainingPath := util.PopGNMIPath(path)
-			if args.delete && len(remainingPath.GetElem()) == 0 {
-				rv.SetMapIndex(k, reflect.Value{})
-				return nil, nil
+			if args.delete {
+				if remCount := len(remainingPath.GetElem()); remCount == 0 || (remCount == 1 && keyNames[remainingPath.GetElem()[0].GetName()]) {
+					// Delete a multi-keyed list entry.
+					rv.SetMapIndex(k, reflect.Value{})
+					return nil, nil
+				}
 			}
 			nodes, err := retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}), args)
 			if err != nil {
@@ -639,6 +649,7 @@ type DelNodeOpt interface {
 // the "path" tags when both are present while processing a GoStruct field.
 // This means for such fields, paths matching "shadow-path" will be
 // unmarshalled, while paths matching "path" will be silently ignored.
+// Fields with only a "path" tag is not affected by this flag.
 type PreferShadowPath struct{}
 
 // IsGetOrCreateNodeOpt implements the GetOrCreateNodeOpt interface.
