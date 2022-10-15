@@ -46,7 +46,9 @@ func UnmarshalNotifications(schema *Schema, ns []*gpb.Notification, opts ...Unma
 func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, opts ...UnmarshalOpt) error {
 	preferShadowPath := hasPreferShadowPath(opts)
 	ignoreExtraFields := hasIgnoreExtraFields(opts)
-
+	if req == nil {
+		return nil
+	}
 	root := schema.Root
 	node, nodeName, err := getOrCreateNode(schema.RootSchema(), root, req.Prefix, preferShadowPath)
 	if err != nil {
