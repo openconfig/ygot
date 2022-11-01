@@ -46,8 +46,8 @@ func (*LeafrefOptions) IsValidationOption() {}
 // CustomValidationOptions controls the custom validate function to be
 // invoked on the root
 type CustomValidationOptions struct {
-	// FakeRootCustomValidate specifies the user implemented method
-	FakeRootCustomValidate func(ygot.GoStruct) error
+	// ValidatorFn specifies the user implemented method
+	ValidatorFn func(ygot.GoStruct) error
 }
 
 // IsValidationOption ensures that CustomValidationOptions implements the ValidationOption
@@ -86,14 +86,6 @@ func Validate(schema *yang.Entry, value interface{}, opts ...ygot.ValidationOpti
 		// Leafref validation traverses entire tree from the root. Do this only
 		// once from the fakeroot.
 		errs = ValidateLeafRefData(schema, value, leafrefOpt)
-		// If CustomValidation is enabled, call the CustomValidateFunc
-		// and append the error, if any
-		gsv, ok := value.(ygot.GoStruct)
-		if ok && customValidOpt != nil {
-			if err := customValidOpt.FakeRootCustomValidate(gsv); err != nil {
-				errs = util.AppendErr(errs, err)
-			}
-		}
 	}
 
 	util.DbgPrint("Validate with value %v, type %T, schema name %s", util.ValueStr(value), value, schema.Name)
@@ -105,6 +97,11 @@ func Validate(schema *yang.Entry, value interface{}, opts ...ygot.ValidationOpti
 		gsv, ok := value.(ygot.GoStruct)
 		if !ok {
 			return util.AppendErr(errs, fmt.Errorf("type %T is not a GoStruct for schema %s", value, schema.Name))
+		}
+		if customValidOpt != nil && customValidOpt.ValidatorFn != nil {
+			if err := customValidOpt.ValidatorFn(gsv); err != nil {
+				return util.AppendErr(errs, err)
+			}
 		}
 		return util.AppendErrs(errs, validateContainer(schema, gsv))
 	case schema.IsLeafList():
