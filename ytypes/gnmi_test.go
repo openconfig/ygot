@@ -19,6 +19,15 @@ func TestUnmarshalSetRequest(t *testing.T) {
 		want            ygot.GoStruct
 		wantErr         bool
 	}{{
+		desc: "nil input",
+		inSchema: &Schema{
+			Root: &ListElemStruct1{},
+			SchemaTree: map[string]*yang.Entry{
+				"ListElemStruct1": simpleSchema(),
+			},
+		},
+		want: &ListElemStruct1{},
+	}, {
 		desc: "updates to an empty struct",
 		inSchema: &Schema{
 			Root: &ListElemStruct1{},
