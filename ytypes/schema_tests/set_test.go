@@ -331,6 +331,10 @@ func TestSet(t *testing.T) {
 		inOpts:           []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantErrSubstring: "failed to unmarshal &{42} into string",
 	}, {
+		// This test case is not expecting an error since we expect
+		// ygot to be able to traverse using the key specified in the
+		// map as a fallback when the key values in the list element is
+		// not available.
 		desc:     "invalidSchemaDueToMissingKeyField",
 		inSchema: invalidSchemaDueToMissingKeyField,
 		inPath: &gpb.Path{
