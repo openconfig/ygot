@@ -39,6 +39,11 @@ func mustSchema(fn func() (*ytypes.Schema, error)) *ytypes.Schema {
 }
 
 func TestSet(t *testing.T) {
+	invalidSchemaDueToMissingKeyField := mustSchema(exampleoc.Schema)
+	invalidRoot := invalidSchemaDueToMissingKeyField.Root.(*exampleoc.Device)
+	aclSet := invalidRoot.GetOrCreateAcl().GetOrCreateAclSet("foo", exampleoc.Acl_ACL_TYPE_ACL_IPV4)
+	aclSet.Name = nil
+
 	tests := []struct {
 		desc             string
 		inSchema         *ytypes.Schema
@@ -325,6 +330,49 @@ func TestSet(t *testing.T) {
 		},
 		inOpts:           []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantErrSubstring: "failed to unmarshal &{42} into string",
+	}, {
+		desc:     "invalidSchemaDueToMissingKeyField",
+		inSchema: invalidSchemaDueToMissingKeyField,
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "acl",
+			}, {
+				Name: "acl-sets",
+			}, {
+				Name: "acl-set",
+				Key: map[string]string{
+					"name": "foo",
+					"type": "ACL_IPV4",
+				},
+			}, {
+				Name: "config",
+			}, {
+				Name: "description",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_StringVal{StringVal: "desc"},
+		},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "acl",
+				}, {
+					Name: "acl-sets",
+				}, {
+					Name: "acl-set",
+					Key: map[string]string{
+						"name": "foo",
+						"type": "ACL_IPV4",
+					},
+				}, {
+					Name: "config",
+				}, {
+					Name: "description",
+				}},
+			},
+			Data: ygot.String("desc"),
+		},
 	}}
 
 	for _, tt := range tests {

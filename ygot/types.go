@@ -98,10 +98,10 @@ type KeyHelperGoStruct interface {
 	ΛListKeyMap() (map[string]interface{}, error)
 }
 
-// KeyHelperGoKeyStruct is an interface which can be implemented by Go key
+// GoKeyStruct is an interface which can be implemented by Go key
 // structs that are generated to represent a YANG multi-keyed list's key that
 // has the corresponding function to retrieve the list keys as a map.
-type KeyHelperGoKeyStruct interface {
+type GoKeyStruct interface {
 	// IsYANGGoKeyStruct ensures that the interface for a standard
 	// GoKeyStruct is embedded.
 	IsYANGGoKeyStruct()
