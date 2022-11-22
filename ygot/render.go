@@ -669,7 +669,7 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, pfx *gnmiPath
 // the EncodeTypedValueOpt function.
 type EncodeTypedValueOpt interface {
 	// IsMarshal7951Arg is a market method.
-	IsEncodeTypedValueArg()
+	IsEncodeTypedValueOpt()
 }
 
 // EncodeTypedValue encodes val into a gNMI TypedValue message, using the specified encoding
@@ -961,9 +961,9 @@ type RFC7951JSONConfig struct {
 // Marshal7951.
 func (*RFC7951JSONConfig) IsMarshal7951Arg() {}
 
-// IsEncodeTypedValueArg marks the RFC7951JSONConfig struct as a valid argument to
+// IsEncodeTypedValueOpt marks the RFC7951JSONConfig struct as a valid option to
 // EncodeTypedValue.
-func (*RFC7951JSONConfig) IsEncodeTypedValueArg() {}
+func (*RFC7951JSONConfig) IsEncodeTypedValueOpt() {}
 
 // ConstructIETFJSON marshals a supplied GoStruct to a map, suitable for
 // handing to json.Marshal. It complies with the convention for marshalling
