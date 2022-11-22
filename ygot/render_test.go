@@ -3786,7 +3786,7 @@ func TestEncodeTypedValue(t *testing.T) {
 		name             string
 		inVal            interface{}
 		inEnc            gnmipb.Encoding
-		inArgs           []EncodeTypedValueArg
+		inArgs           []EncodeTypedValueOpt
 		want             *gnmipb.TypedValue
 		wantErrSubstring string
 	}{{
@@ -3915,7 +3915,7 @@ func TestEncodeTypedValue(t *testing.T) {
 			Str: String("test-string"),
 		},
 		inEnc: gnmipb.Encoding_JSON_IETF,
-		inArgs: []EncodeTypedValueArg{
+		inArgs: []EncodeTypedValueOpt{
 			&RFC7951JSONConfig{PreferShadowPath: true},
 		},
 		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(`{

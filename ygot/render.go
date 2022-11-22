@@ -665,16 +665,16 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, pfx *gnmiPath
 	return []*gnmipb.Notification{n}, nil
 }
 
-// EncodeTypedValueArg is an interface implemented by arguments to
-// the EncodeTypedValueArg function.
-type EncodeTypedValueArg interface {
+// EncodeTypedValueOpt is an interface implemented by arguments to
+// the EncodeTypedValueOpt function.
+type EncodeTypedValueOpt interface {
 	// IsMarshal7951Arg is a market method.
 	IsEncodeTypedValueArg()
 }
 
 // EncodeTypedValue encodes val into a gNMI TypedValue message, using the specified encoding
 // type if the value is a struct.
-func EncodeTypedValue(val interface{}, enc gnmipb.Encoding, opts ...EncodeTypedValueArg) (*gnmipb.TypedValue, error) {
+func EncodeTypedValue(val interface{}, enc gnmipb.Encoding, opts ...EncodeTypedValueOpt) (*gnmipb.TypedValue, error) {
 	jc := &RFC7951JSONConfig{}
 	for _, opt := range opts {
 		if cfg, ok := opt.(*RFC7951JSONConfig); ok {
