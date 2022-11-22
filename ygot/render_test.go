@@ -3786,6 +3786,7 @@ func TestEncodeTypedValue(t *testing.T) {
 		name             string
 		inVal            interface{}
 		inEnc            gnmipb.Encoding
+		inArgs           []EncodeTypedValueArg
 		want             *gnmipb.TypedValue
 		wantErrSubstring string
 	}{{
@@ -3909,6 +3910,18 @@ func TestEncodeTypedValue(t *testing.T) {
   }
 }`)}},
 	}, {
+		name: "struct val - with PreferShadowPath",
+		inVal: &renderExample{
+			Str: String("test-string"),
+		},
+		inEnc: gnmipb.Encoding_JSON_IETF,
+		inArgs: []EncodeTypedValueArg{
+			&RFC7951JSONConfig{PreferShadowPath: true},
+		},
+		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(`{
+  "srt": "test-string"
+}`)}},
+	}, {
 		name: "struct val - internal json",
 		inVal: &ietfRenderExample{
 			F1: String("hi"),
@@ -3941,7 +3954,7 @@ func TestEncodeTypedValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := EncodeTypedValue(tt.inVal, tt.inEnc)
+			got, err := EncodeTypedValue(tt.inVal, tt.inEnc, tt.inArgs...)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("did not get expected error, %s", diff)
 			}
