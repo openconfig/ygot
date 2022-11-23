@@ -63,10 +63,12 @@ func TestGRIBIAFT(t *testing.T) {
 				Label: &gribi_aft.Afts_LabelEntryKey_LabelUint64{
 					LabelUint64: 32,
 				},
+				LabelEntry: &gribi_aft.Afts_LabelEntry{},
 			}},
 		},
 		wantPaths: map[*gpb.Path]interface{}{
-			mustPath("afts/label-entries/label-entry[label=32]/state/label"): 32,
+			mustPath("afts/mpls/label-entry[label=32]/state/label"): uint64(32),
+			mustPath("afts/mpls/label-entry[label=32]/label"):       uint64(32),
 		},
 	}}
 
