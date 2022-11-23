@@ -18,16 +18,16 @@ message TopLevel {
         ywrapper.StringValue a = 404127368 [(yext.schemapath) = "/top-level/child/grandchild/config/a"];
         openconfig.enums.NestedMessagesEnumt b = 404127371 [(yext.schemapath) = "/top-level/child/grandchild/config/b"];
         oneof c {
-          openconfig.enums.NestedMessagesEnumt c_nestedmessagesenumt = 369673157;
-          string c_string = 420673426;
+          openconfig.enums.NestedMessagesEnumt c_nestedmessagesenumt = 369673157 [(yext.schemapath) = "/top-level/child/grandchild/config/c"];
+          string c_string = 420673426 [(yext.schemapath) = "/top-level/child/grandchild/config/c"];
         }
       }
       message State {
         ywrapper.StringValue a = 319593801 [(yext.schemapath) = "/top-level/child/grandchild/state/a"];
         openconfig.enums.NestedMessagesEnumt b = 319593802 [(yext.schemapath) = "/top-level/child/grandchild/state/b"];
         oneof c {
-          openconfig.enums.NestedMessagesEnumt c_nestedmessagesenumt = 402187460;
-          string c_string = 271079601;
+          openconfig.enums.NestedMessagesEnumt c_nestedmessagesenumt = 402187460 [(yext.schemapath) = "/top-level/child/grandchild/state/c"];
+          string c_string = 271079601 [(yext.schemapath) = "/top-level/child/grandchild/state/c"];
         }
         ywrapper.StringValue x = 319593808 [(yext.schemapath) = "/top-level/child/grandchild/state/x"];
       }

@@ -232,8 +232,17 @@ message {{ .Name }} {
 {{- range $idx, $field := .Fields }}
   {{ if $field.IsOneOf -}}
   oneof {{ $field.Name }} {
+    {{- $noOptions := len $field.Options -}}
     {{- range $ooField := .OneOfFields }}
-    {{ $ooField.Type }} {{ $ooField.Name }} = {{ $ooField.Tag }};
+    {{ $ooField.Type }} {{ $ooField.Name }} = {{ $ooField.Tag }}
+    {{- if ne $noOptions 0 }} [
+      {{- range $i, $opt := $field.Options -}}
+        {{ $opt.Name }} = {{ $opt.Value -}}
+        {{- if ne (inc $i) $noOptions -}}, {{- end }}
+      {{- end -}}
+      ]
+      {{- end -}}
+      ;
     {{- end }}
   }
   {{- else -}}

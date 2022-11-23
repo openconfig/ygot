@@ -265,6 +265,65 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 		},
 	}, {
+		name: "union leaf with annotate schema paths enabled",
+		inMsg: &ygen.ParsedDirectory{
+			Name: "MessageName",
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
+				"field-one": {
+					Name:        "field_one",
+					Type:        ygen.LeafNode,
+					MappedPaths: [][]string{{"", "field-one"}},
+					LangType: &ygen.MappedType{
+						UnionTypes: map[string]ygen.MappedUnionSubtype{
+							"string": {
+								Index: 0,
+							},
+							"sint64": {
+								Index: 1,
+							},
+						},
+					},
+					YANGDetails: ygen.YANGNodeDetails{
+						Name: "field-one",
+						Path: "/field-one",
+					},
+				},
+			},
+			Path: "/root/message-name",
+		},
+		inIR: &ygen.IR{
+			Enums: map[string]*ygen.EnumeratedYANGType{},
+		},
+		inBasePackage:         "base",
+		inEnumPackage:         "enums",
+		inAnnotateSchemaPaths: true,
+		wantMsgs: map[string]*protoMsg{
+			"MessageName": {
+				Name:     "MessageName",
+				YANGPath: "/root/message-name",
+				Fields: []*protoMsgField{{
+					Tag:     410095931,
+					Name:    "field_one",
+					Type:    "",
+					IsOneOf: true,
+					Options: []*protoOption{{
+						Name:  "(yext.schemapath)",
+						Value: `"/field-one"`,
+					}},
+					OneOfFields: []*protoMsgField{{
+						Tag:  225170402,
+						Name: "field_one_sint64",
+						Type: "sint64",
+					}, {
+						Tag:  299030977,
+						Name: "field_one_string",
+						Type: "string",
+					}},
+				}},
+			},
+		},
+	}, {
 		name: "simple message with leaf-list and a message child, compression on",
 		inMsg: &ygen.ParsedDirectory{
 			Name: "AMessage",

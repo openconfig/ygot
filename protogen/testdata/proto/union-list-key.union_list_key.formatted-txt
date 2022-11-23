@@ -14,18 +14,18 @@ import "openconfig/enums/enums.proto";
 message A {
   message B {
     oneof d {
-      openconfig.enums.UnionListKeyID d_unionlistkeyid = 437646112;
-      string d_string = 70056722;
+      openconfig.enums.UnionListKeyID d_unionlistkeyid = 437646112 [(yext.schemapath) = "/a/b/d"];
+      string d_string = 70056722 [(yext.schemapath) = "/a/b/d"];
     }
     oneof e {
-      openconfig.enums.UnionListKeyID e_unionlistkeyid = 399198747;
-      string e_string = 172308081;
+      openconfig.enums.UnionListKeyID e_unionlistkeyid = 399198747 [(yext.schemapath) = "/a/b/e"];
+      string e_string = 172308081 [(yext.schemapath) = "/a/b/e"];
     }
   }
   message BKey {
     oneof c {
-      openconfig.enums.UnionListKeyID c_unionlistkeyid = 399198747;
-      string c_string = 172308081;
+      openconfig.enums.UnionListKeyID c_unionlistkeyid = 399198747 [(yext.schemapath) = "/a/b/c"];
+      string c_string = 172308081 [(yext.schemapath) = "/a/b/c"];
     }
     B b = 2;
   }
@@ -35,19 +35,19 @@ message A {
 message Z {
   message Za {
     oneof ab {
-      openconfig.enums.UnionListKeyEuEnum ab_unionlistkeyeuenum = 221033643;
-      string ab_string = 508594323;
+      openconfig.enums.UnionListKeyEuEnum ab_unionlistkeyeuenum = 221033643 [(yext.schemapath) = "/z/za/ab"];
+      string ab_string = 508594323 [(yext.schemapath) = "/z/za/ab"];
     }
     oneof ac {
-      openconfig.enums.UnionListKeyEuEnum ac_unionlistkeyeuenum = 145862492;
-      string ac_string = 248557068;
-      ywrapper.Decimal64Value ac_decimal64value = 402670801;
+      openconfig.enums.UnionListKeyEuEnum ac_unionlistkeyeuenum = 145862492 [(yext.schemapath) = "/z/za/ac"];
+      string ac_string = 248557068 [(yext.schemapath) = "/z/za/ac"];
+      ywrapper.Decimal64Value ac_decimal64value = 402670801 [(yext.schemapath) = "/z/za/ac"];
     }
   }
   message ZaKey {
     oneof zb {
-      openconfig.enums.UnionListKeyEuEnum zb_unionlistkeyeuenum = 221033643;
-      string zb_string = 508594323;
+      openconfig.enums.UnionListKeyEuEnum zb_unionlistkeyeuenum = 221033643 [(yext.schemapath) = "/z/za/zb"];
+      string zb_string = 508594323 [(yext.schemapath) = "/z/za/zb"];
     }
     Za za = 2;
   }
