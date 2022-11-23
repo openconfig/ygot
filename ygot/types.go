@@ -98,6 +98,18 @@ type KeyHelperGoStruct interface {
 	ΛListKeyMap() (map[string]interface{}, error)
 }
 
+// GoKeyStruct is an interface which can be implemented by Go key
+// structs that are generated to represent a YANG multi-keyed list's key that
+// has the corresponding function to retrieve the list keys as a map.
+type GoKeyStruct interface {
+	// IsYANGGoKeyStruct ensures that the interface for a standard
+	// GoKeyStruct is embedded.
+	IsYANGGoKeyStruct()
+	// ΛListKeyMap defines a helper method that returns a map of the
+	// keys of a list element.
+	ΛListKeyMap() (map[string]interface{}, error)
+}
+
 // GoEnum is an interface which can be implemented by derived types which
 // represent an enumerated value within a YANG schema. This allows handling
 // code that finds struct fields that implement this interface to do specific
