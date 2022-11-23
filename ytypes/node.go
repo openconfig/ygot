@@ -253,7 +253,9 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			// it to its zero value (nil).
 			if args.delete {
 				switch {
-				case util.IsValueNil(fv.Interface()), cschema == nil:
+				case util.IsValueNil(fv.Interface()):
+				case cschema == nil:
+					return nil, status.Errorf(codes.InvalidArgument, "could not find schema for path %v", np)
 				case cschema.IsContainer() || (cschema.IsList() && util.IsTypeStructPtr(reflect.TypeOf(fv.Interface()))):
 					if fv.Elem().IsZero() {
 						fv.Set(reflect.Zero(ft.Type))
