@@ -169,14 +169,17 @@ func (g GoStructCodeSnippet) String() string {
 type goStructField struct {
 	// YANGName is the YANG name of the key field.
 	YANGName string
-	Name     string // Name is the field's name.
-	Type     string // Type is the Go type of the field.
+	// Name is the field's name.
+	Name string
+	// Type is the Go type of the field.
+	Type string
 	// IsScalarField represents whether the element is a leaf, rather than a
 	// leaf-list or container. It is set to false explicitly where there are
 	// scalar types that are not mapped to pointers (particularly, enumerated
 	// types.
 	IsScalarField bool
-	Tags          string // Tags specifies the tags that should be used to annotate the field.
+	// Tags specifies the tags that should be used to annotate the field.
+	Tags string
 	// IsYANGContainer stores whether the field is a YANG container. This value
 	// is used in templates to determine whether GetOrCreate methods should be
 	// created.

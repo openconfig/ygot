@@ -673,12 +673,26 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, pfx *gnmiPath
 	return []*gnmipb.Notification{n}, nil
 }
 
+// EncodeTypedValueOpt is an interface implemented by arguments to
+// the EncodeTypedValueOpt function.
+type EncodeTypedValueOpt interface {
+	// IsMarshal7951Arg is a market method.
+	IsEncodeTypedValueOpt()
+}
+
 // EncodeTypedValue encodes val into a gNMI TypedValue message, using the specified encoding
 // type if the value is a struct.
-func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue, error) {
+func EncodeTypedValue(val interface{}, enc gnmipb.Encoding, opts ...EncodeTypedValueOpt) (*gnmipb.TypedValue, error) {
+	jc := &RFC7951JSONConfig{}
+	for _, opt := range opts {
+		if cfg, ok := opt.(*RFC7951JSONConfig); ok {
+			jc = cfg
+		}
+	}
+
 	switch v := val.(type) {
 	case GoStruct:
-		return marshalStruct(v, enc)
+		return marshalStruct(v, enc, jc)
 	case GoEnum:
 		en, err := EnumName(v)
 		if err != nil {
@@ -739,7 +753,7 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue,
 
 // marshalStruct encodes the struct s according to the encoding specified by enc. It
 // is returned as a TypedValue gNMI message.
-func marshalStruct(s GoStruct, enc gnmipb.Encoding) (*gnmipb.TypedValue, error) {
+func marshalStruct(s GoStruct, enc gnmipb.Encoding, cfg *RFC7951JSONConfig) (*gnmipb.TypedValue, error) {
 	if reflect.ValueOf(s).IsNil() {
 		return nil, nil
 	}
@@ -758,7 +772,8 @@ func marshalStruct(s GoStruct, enc gnmipb.Encoding) (*gnmipb.TypedValue, error) 
 		}
 	case gnmipb.Encoding_JSON_IETF:
 		// We always prepend the module name when marshalling within a Notification.
-		j, err = ConstructIETFJSON(s, &RFC7951JSONConfig{AppendModuleName: true})
+		cfg.AppendModuleName = true
+		j, err = ConstructIETFJSON(s, cfg)
 		encfn = func(s string) *gnmipb.TypedValue {
 			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(s)}}
 		}
@@ -953,6 +968,10 @@ type RFC7951JSONConfig struct {
 // IsMarshal7951Arg marks the RFC7951JSONConfig struct as a valid argument to
 // Marshal7951.
 func (*RFC7951JSONConfig) IsMarshal7951Arg() {}
+
+// IsEncodeTypedValueOpt marks the RFC7951JSONConfig struct as a valid option to
+// EncodeTypedValue.
+func (*RFC7951JSONConfig) IsEncodeTypedValueOpt() {}
 
 // ConstructIETFJSON marshals a supplied GoStruct to a map, suitable for
 // handing to json.Marshal. It complies with the convention for marshalling
