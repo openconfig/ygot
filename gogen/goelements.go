@@ -642,8 +642,16 @@ func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, 
 		if err != nil {
 			return "", yang.Ynone, err
 		}
+
+		// In some YANG modules the default value could be written as base 16.
+		base := 10
+		if strings.HasPrefix(strings.ToLower(value), "0x") {
+			base = 16
+			value = strings.TrimLeft(strings.ToLower(value), "0x")
+		}
+
 		if signed {
-			val, err := strconv.ParseInt(value, 10, bits)
+			val, err := strconv.ParseInt(value, base, bits)
 			if err != nil {
 				return "", yang.Ynone, fmt.Errorf("default value conversion: unable to convert default value %q to %v: %v", value, ykind, err)
 			}
@@ -651,7 +659,7 @@ func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, 
 				return "", yang.Ynone, fmt.Errorf("default value conversion: %q doesn't match int restrictions: %v", value, err)
 			}
 		} else {
-			val, err := strconv.ParseUint(value, 10, bits)
+			val, err := strconv.ParseUint(value, base, bits)
 			if err != nil {
 				return "", yang.Ynone, fmt.Errorf("default value conversion: unable to convert default value %q to %v: %v", value, ykind, err)
 			}
