@@ -977,7 +977,7 @@ func protoLeafDefinition(leafName string, args *protoDefinitionArgs) (*protoDefi
 	case protoType.IsEnumeratedValue:
 		d.globalEnum = true
 	case protoType.UnionTypes != nil:
-		u, err := unionFieldToOneOf(leafName, args.field, args.field.YANGDetails.Path, protoType, args.ir.Enums, args.cfg.annotateEnumNames)
+		u, err := unionFieldToOneOf(leafName, args.field, args.field.YANGDetails.Path, protoType, args.ir.Enums, args.cfg.annotateEnumNames, args.cfg.annotateSchemaPaths)
 		if err != nil {
 			return nil, err
 		}
@@ -1124,7 +1124,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 				// (https://github.com/openconfig/ygot/pull/610#discussion_r781510037).
 				path = kf.YANGDetails.Path
 			}
-			u, err := unionFieldToOneOf(fd.Name, kf, path, scalarType, args.ir.Enums, args.cfg.annotateEnumNames)
+			u, err := unionFieldToOneOf(fd.Name, kf, path, scalarType, args.ir.Enums, args.cfg.annotateEnumNames, args.cfg.annotateSchemaPaths)
 			if err != nil {
 				return nil, fmt.Errorf("error generating type for union list key %s in list %s", k, args.field.YANGDetails.Path)
 			}
@@ -1213,7 +1213,7 @@ type protoUnionField struct {
 // containing the proto type that the entry has been mapped to, and returns a definition of a union
 // field within the protobuf message. If the annotateEnumNames boolean is set, then any enumerated types
 // within the union have their original names within the YANG schema appended.
-func unionFieldToOneOf(fieldName string, field *ygen.NodeDetails, path string, mtype *ygen.MappedType, Enums map[string]*ygen.EnumeratedYANGType, annotateEnumNames bool) (*protoUnionField, error) {
+func unionFieldToOneOf(fieldName string, field *ygen.NodeDetails, path string, mtype *ygen.MappedType, Enums map[string]*ygen.EnumeratedYANGType, annotateEnumNames, annotateSchemaPaths bool) (*protoUnionField, error) {
 	enums, err := enumInProtoUnionField(fieldName, field, Enums, annotateEnumNames)
 	if err != nil {
 		return nil, err
@@ -1250,6 +1250,11 @@ func unionFieldToOneOf(fieldName string, field *ygen.NodeDetails, path string, m
 			Type: t,
 			Tag:  ft,
 		}
+
+		if annotateSchemaPaths {
+			st.Options = append(st.Options, protoFieldSchemaPathAnnotation(field.MappedPaths))
+		}
+
 		oofs = append(oofs, st)
 	}
 
@@ -1292,7 +1297,12 @@ func protoPackageToFilePath(pkg string) []string {
 // field option definitions required to annotate it with its schema path(s).
 func protoSchemaPathAnnotation(msg *ygen.ParsedDirectory, fieldName string, compressPaths bool) (*protoOption, error) {
 	// protobuf paths are always absolute.
-	smapp := msg.Fields[fieldName].MappedPaths
+	return protoFieldSchemaPathAnnotation(msg.Fields[fieldName].MappedPaths), nil
+}
+
+// protoSchemaPathAnnotation takes a specific protobuf set of paths, and returns
+// the protobuf field option definitions required to annotate it with its schema path(s).
+func protoFieldSchemaPathAnnotation(smapp [][]string) *protoOption {
 	var b bytes.Buffer
 	b.WriteRune('"')
 	for i, p := range smapp {
@@ -1302,7 +1312,7 @@ func protoSchemaPathAnnotation(msg *ygen.ParsedDirectory, fieldName string, comp
 		}
 	}
 	b.WriteRune('"')
-	return &protoOption{Name: protoSchemaAnnotationOption, Value: b.String()}, nil
+	return &protoOption{Name: protoSchemaAnnotationOption, Value: b.String()}
 }
 
 // stripPackagePrefix removes the prefix of pfx from the path supplied. If pfx
