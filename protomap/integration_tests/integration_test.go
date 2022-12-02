@@ -6,8 +6,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/openconfig/gribi/v1/proto/gribi_aft"
 	"github.com/openconfig/ygot/protomap"
+	"github.com/openconfig/ygot/protomap/integration_tests/testdata/gribi_aft"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
 	"google.golang.org/protobuf/proto"
@@ -69,6 +69,18 @@ func TestGRIBIAFT(t *testing.T) {
 		wantPaths: map[*gpb.Path]interface{}{
 			mustPath("afts/mpls/label-entry[label=32]/state/label"): uint64(32),
 			mustPath("afts/mpls/label-entry[label=32]/label"):       uint64(32),
+		},
+	}, {
+		desc: "NH entry with label stack",
+		inProto: &gribi_aft.Afts{
+			NextHop: []*gribi_aft.Afts_NextHopKey{{
+				Index: 1,
+				NextHop: &gribi_aft.Afts_NextHop{
+					PushedMplsLabelStack: []*gribi_aft.Afts_NextHop_PushedMplsLabelStackUnion{{
+						PushedMplsLabelStackUint64: 42,
+					}},
+				},
+			}},
 		},
 	}}
 

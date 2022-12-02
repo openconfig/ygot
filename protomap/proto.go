@@ -177,6 +177,16 @@ func parseList(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[*
 
 	// TODO(robjs): This handles the case where we have a list - but not a leaf-list.
 	//              Add implementation to handle leaf lists.
+
+	leaflist, leaflistunion, err := annotatedYANGFieldInfo(fd)
+	if err != nil {
+		return fmt.Errorf("cannot parse list field %s, %v", fd.FullName(), err)
+	}
+
+	if leaflist || leaflistunion {
+		return fmt.Errorf("leaf-list and leaf-list of union are unsupported for field %s", fd.FullName())
+	}
+
 	l := v.List()
 	if fd.Kind() != protoreflect.MessageKind {
 		return fmt.Errorf("invalid list, value is not a proto message, %s - is %T", fd.FullName(), l.NewElement())
@@ -339,6 +349,13 @@ func annotatedSchemaPath(fd protoreflect.FieldDescriptor) ([]*gpb.Path, error) {
 		paths = append(paths, pp)
 	}
 	return paths, nil
+}
+
+func annotatedYANGFieldInfo(fd protoreflect.FieldDescriptor) (bool, bool, error) {
+	po := fd.Options().(*descriptorpb.FieldOptions)
+	leaflist := proto.GetExtension(po, yextpb.E_Leaflist).(bool)
+	leaflistunion := proto.GetExtension(po, yextpb.E_Leaflistunion).(bool)
+	return leaflist, leaflistunion, nil
 }
 
 // fieldName returns the name last element of the path supplied - corresponding

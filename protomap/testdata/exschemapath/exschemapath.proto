@@ -40,6 +40,14 @@ message ExampleMessage {
         string oneof_one = 12 [(yext.schemapath) = "/oneof"];
         uint64 oneof_two = 13 [(yext.schemapath) = "/oneof"];
     }
+    repeated ywrapper.StringValue leaflist_string = 14 [(yext.schemapath) = "/leaflist-string", (yext.leaflist) = true];
+    repeated ExampleUnion leaflist_union = 15 [(yext.schemapath) = "/leaflist-union", (yext.leaflistunion) = true];
+
+}
+
+message ExampleUnion {
+    ywrapper.StringValue str = 1 [(yext.schemapath) = "/union"];
+    ywrapper.UintValue uint = 2 [(yext.schemapath) = "/union"];
 }
 
 enum ExampleEnum {

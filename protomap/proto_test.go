@@ -294,6 +294,26 @@ func TestPathsFromProtoInternal(t *testing.T) {
 			}},
 		},
 		wantErrSubstring: "error parsing path /one[two]",
+	}, {
+		desc: "leaf-list of string",
+		inMsg: &epb.ExampleMessage{
+			LeaflistString: []*wpb.StringValue{{
+				Value: "one",
+			}, {
+				Value: "two",
+			}},
+		},
+		wantErrSubstring: "leaf-list and leaf-list of union are unsupported",
+	}, {
+		desc: "leaf-list of union",
+		inMsg: &epb.ExampleMessage{
+			LeaflistUnion: []*epb.ExampleUnion{{
+				Str: &wpb.StringValue{Value: "hello"},
+			}, {
+				Uint: &wpb.UintValue{Value: 42},
+			}},
+		},
+		wantErrSubstring: "leaf-list and leaf-list of union are unsupported",
 	}}
 
 	for _, tt := range tests {
