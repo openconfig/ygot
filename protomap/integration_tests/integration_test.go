@@ -82,6 +82,9 @@ func TestGRIBIAFT(t *testing.T) {
 				},
 			}},
 		},
+		// Leaf-list of unions are currently unsupported, but previously this
+		// would panic.
+		wantErr: true,
 	}}
 
 	for _, tt := range tests {
