@@ -30,7 +30,10 @@ import (
 // enumStringToValue returns the enum type value that enumerated string value
 // of type fieldName maps to in the parent, which must be a struct ptr.
 func enumStringToValue(parent interface{}, fieldName, value string) (interface{}, error) {
-	util.DbgPrint("enumStringToValue with parent type %T, fieldName %s, value %s", parent, fieldName, value)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("enumStringToValue with parent type %T, fieldName %s, value %s", parent, fieldName, value)
+	}
+
 	v := reflect.ValueOf(parent)
 	if !util.IsValueStructPtr(v) {
 		return 0, fmt.Errorf("enumStringToIntValue: %T is not a struct ptr", parent)
@@ -66,7 +69,9 @@ func enumAndNonEnumTypesForUnion(schema *yang.Entry, parentT reflect.Type) ([]re
 		return nil, nil, err
 	}
 
-	util.DbgPrint("enumAndNonEnumTypesForUnion: possible union types are enums %v or scalars %v", ets, sks)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("enumAndNonEnumTypesForUnion: possible union types are enums %v or scalars %v", ets, sks)
+	}
 	return ets, sks, nil
 }
 
@@ -101,9 +106,15 @@ func getLoneUnionType(schema *yang.Entry, unionT reflect.Type, ets []reflect.Typ
 // the string value, and returns upon success. If the string value can't be
 // casted to any, nil is returned (without error).
 func castToOneEnumValue(ets []reflect.Type, value string) (interface{}, error) {
-	util.DbgPrint("castToOneEnumValue: %q", value)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("castToOneEnumValue: %q", value)
+	}
+
 	for _, et := range ets {
-		util.DbgPrint("try to unmarshal into enum type %v", et)
+		if util.DebugLibraryEnabled() {
+			util.DbgPrint("try to unmarshal into enum type %v", et)
+		}
+
 		ev, err := castToEnumValue(et, value)
 		if err != nil {
 			return nil, err
@@ -111,7 +122,10 @@ func castToOneEnumValue(ets []reflect.Type, value string) (interface{}, error) {
 		if ev != nil {
 			return ev, nil
 		}
-		util.DbgPrint("could not unmarshal %q into enum type, err: %v", value, err)
+
+		if util.DebugLibraryEnabled() {
+			util.DbgPrint("could not unmarshal %q into enum type, err: %v", value, err)
+		}
 	}
 	return nil, nil
 }
@@ -124,7 +138,10 @@ func castToEnumValue(ft reflect.Type, value string) (interface{}, error) {
 		ft = ft.Elem()
 	}
 
-	util.DbgPrint("checking for matching enum value for type %s", ft)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("checking for matching enum value for type %s", ft)
+	}
+
 	mapMethod := reflect.New(ft).MethodByName("ΛMap")
 	if !mapMethod.IsValid() {
 		return 0, fmt.Errorf("%s does not have a ΛMap function", ft)
@@ -293,7 +310,9 @@ func stringToKeyType(schema *yang.Entry, parent interface{}, fieldName string, v
 // stringToUnionType converts a string value into a suitable union type
 // determined by where it is located in the YANG tree.
 func stringToUnionType(schema *yang.Entry, parent interface{}, fieldName string, value string) (reflect.Value, error) {
-	util.DbgPrint("stringToUnionType value %v, into parent type %T field name %s, schema name %s", util.ValueStrDebug(value), parent, fieldName, schema.Name)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("stringToUnionType value %v, into parent type %T field name %s, schema name %s", util.ValueStrDebug(value), parent, fieldName, schema.Name)
+	}
 	if !util.IsTypeStructPtr(reflect.TypeOf(parent)) {
 		return reflect.ValueOf(nil), fmt.Errorf("stringToKeyType: %T is not a struct ptr", parent)
 	}
@@ -336,12 +355,18 @@ func stringToUnionType(schema *yang.Entry, parent interface{}, fieldName string,
 	}
 
 	for _, sk := range sks {
-		util.DbgPrint("try to convert string %q into type %s", value, sk)
+		if util.DebugLibraryEnabled() {
+			util.DbgPrint("try to convert string %q into type %s", value, sk)
+		}
+
 		gv, err := stringToKeyType(yangKindToLeafEntry(sk), parent, fieldName, value)
 		if err == nil {
 			return getUnionVal(reflect.TypeOf(parent), fieldType, gv.Interface())
 		}
-		util.DbgPrint("could not unmarshal %v into type %v: %v", value, sk, err)
+
+		if util.DebugLibraryEnabled() {
+			util.DbgPrint("could not unmarshal %v into type %v: %v", value, sk, err)
+		}
 	}
 
 	return reflect.ValueOf(nil), fmt.Errorf("could not find suitable union type to unmarshal value %q into parent struct type %T field %s", value, parent, fieldName)

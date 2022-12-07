@@ -576,7 +576,7 @@ func ResolveIfLeafRef(schema *yang.Entry) (*yang.Entry, error) {
 		ykind = s.Type.Kind
 	}
 
-	if s != orig {
+	if s != orig && DebugLibraryEnabled() {
 		DbgPrint("follow schema leaf-ref from %s to %s, type %v", orig.Name, s.Name, s.Type.Kind)
 	}
 	return s, nil

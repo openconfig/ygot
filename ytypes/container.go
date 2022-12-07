@@ -39,7 +39,9 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
 		return util.NewErrs(err)
 	}
 
-	util.DbgPrint("validateContainer with value %v, type %T, schema name %s", util.ValueStrDebug(value), value, schema.Name)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("validateContainer with value %v, type %T, schema name %s", util.ValueStrDebug(value), value, schema.Name)
+	}
 
 	extraFields := make(map[string]interface{})
 
@@ -123,7 +125,9 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, jsonTree interfa
 		return err
 	}
 
-	util.DbgPrint("unmarshalContainer jsonTree %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(jsonTree), jsonTree, parent, schema.Name)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("unmarshalContainer jsonTree %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(jsonTree), jsonTree, parent, schema.Name)
+	}
 
 	// Since this is a container, the JSON data tree is a map.
 	jt, ok := jsonTree.(map[string]interface{})
@@ -214,11 +218,16 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 		}
 
 		if jsonValue == nil {
-			util.DbgPrint("field %s paths %v not present in tree", ft.Name, sp)
+			if util.DebugLibraryEnabled() {
+				util.DbgPrint("field %s paths %v not present in tree", ft.Name, sp)
+			}
 			continue
 		}
 
-		util.DbgPrint("populating field %s type %s with paths %v.", ft.Name, ft.Type, sp)
+		if util.DebugLibraryEnabled() {
+			util.DbgPrint("populating field %s type %s with paths %v.", ft.Name, ft.Type, sp)
+		}
+
 		// Only create a new field if it is nil, otherwise update just the
 		// fields that are in the data tree being passed to unmarshal, and
 		// preserve all other existing values.
@@ -252,7 +261,9 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 		}
 	}
 
-	util.DbgPrint("container after unmarshal:\n%s\n", pretty.Sprint(destv.Interface()))
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("container after unmarshal:\n%s\n", pretty.Sprint(destv.Interface()))
+	}
 	return nil
 }
 

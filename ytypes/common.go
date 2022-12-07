@@ -22,9 +22,11 @@ import (
 // stringMapSetToSlice converts a string set expressed as a map m, into a slice
 // of strings.
 func stringMapSetToSlice(m map[string]interface{}) []string {
-	var out []string
+	out := make([]string, len(m))
+	i := 0
 	for k := range m {
-		out = append(out, k)
+		out[i] = k
+		i++
 	}
 	return out
 }

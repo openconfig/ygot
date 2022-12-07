@@ -509,51 +509,51 @@ func toGoType(kind yang.TypeKind, val int64) interface{} {
 func toGoSliceType(kind yang.TypeKind, in []int64) interface{} {
 	switch kind {
 	case yang.Yint8:
-		var out []int8
-		for _, v := range in {
-			out = append(out, int8(v))
+		out := make([]int8, len(in))
+		for i, v := range in {
+			out[i] = int8(v)
 		}
 		return out
 	case yang.Yint16:
-		var out []int16
-		for _, v := range in {
-			out = append(out, int16(v))
+		out := make([]int16, len(in))
+		for i, v := range in {
+			out[i] = int16(v)
 		}
 		return out
 	case yang.Yint32:
-		var out []int32
-		for _, v := range in {
-			out = append(out, int32(v))
+		out := make([]int32, len(in))
+		for i, v := range in {
+			out[i] = int32(v)
 		}
 		return out
 	case yang.Yint64:
-		var out []int64
-		for _, v := range in {
-			out = append(out, int64(v))
+		out := make([]int64, len(in))
+		for i, v := range in {
+			out[i] = int64(v)
 		}
 		return out
 	case yang.Yuint8:
-		var out []uint8
-		for _, v := range in {
-			out = append(out, uint8(v))
+		out := make([]uint8, len(in))
+		for i, v := range in {
+			out[i] = uint8(v)
 		}
 		return out
 	case yang.Yuint16:
-		var out []uint16
-		for _, v := range in {
-			out = append(out, uint16(v))
+		out := make([]uint16, len(in))
+		for i, v := range in {
+			out[i] = uint16(v)
 		}
 		return out
 	case yang.Yuint32:
-		var out []uint32
-		for _, v := range in {
-			out = append(out, uint32(v))
+		out := make([]uint32, len(in))
+		for i, v := range in {
+			out[i] = uint32(v)
 		}
 		return out
 	case yang.Yuint64:
-		var out []uint64
-		for _, v := range in {
-			out = append(out, uint64(v))
+		out := make([]uint64, len(in))
+		for i, v := range in {
+			out[i] = uint64(v)
 		}
 		return out
 	default:

@@ -47,7 +47,9 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 		return util.NewErrs(err)
 	}
 
-	util.DbgPrint("validateLeaf with value %s (%T), schema name %s (%s)", util.ValueStrDebug(value), value, inSchema.Name, inSchema.Type.Kind)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("validateLeaf with value %s (%T), schema name %s (%s)", util.ValueStrDebug(value), value, inSchema.Name, inSchema.Type.Kind)
+	}
 
 	schema, err := util.ResolveIfLeafRef(inSchema)
 	if err != nil {
@@ -222,7 +224,10 @@ func validateUnion(schema *yang.Entry, value interface{}) util.Errors {
 		return nil
 	}
 
-	util.DbgPrint("validateUnion %s", schema.Name)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("validateUnion %s", schema.Name)
+	}
+
 	v := reflect.ValueOf(value)
 	if v.Kind() == reflect.Ptr {
 		// The union could be a ptr - either a struct ptr or Go value ptr like *string.
@@ -257,11 +262,15 @@ func validateUnion(schema *yang.Entry, value interface{}) util.Errors {
 func validateMatchingSchemas(schema *yang.Entry, value interface{}) util.Errors {
 	var errors []error
 	ss := findMatchingSchemasInUnion(schema.Type, value)
-	var kk []yang.TypeKind
-	for _, s := range ss {
-		kk = append(kk, s.Type.Kind)
+	kk := make([]yang.TypeKind, len(ss))
+	for i, s := range ss {
+		kk[i] = s.Type.Kind
 	}
-	util.DbgPrint("validateMatchingSchemas for value %v (%T) for schema %s with types %v", value, value, schema.Name, kk)
+
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("validateMatchingSchemas for value %v (%T) for schema %s with types %v", value, value, schema.Name, kk)
+	}
+
 	if len(ss) == 0 {
 		return util.NewErrs(fmt.Errorf("no types in schema %s match the type of value %v, which is %T", schema.Name, util.ValueStr(value), value))
 	}
@@ -290,7 +299,10 @@ func validateMatchingSchemas(schema *yang.Entry, value interface{}) util.Errors 
 func findMatchingSchemasInUnion(ytype *yang.YangType, value interface{}) []*yang.Entry {
 	var matches []*yang.Entry
 
-	util.DbgPrint("findMatchingSchemasInUnion for type %T, kind %s", value, reflect.TypeOf(value).Kind())
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("findMatchingSchemasInUnion for type %T, kind %s", value, reflect.TypeOf(value).Kind())
+	}
+
 	for _, t := range ytype.Type {
 		if t.Kind == yang.Yunion {
 			// Recursively check all union types within this union.
@@ -354,7 +366,9 @@ func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}, 
 		return err
 	}
 
-	util.DbgPrint("unmarshalLeaf value %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(value), value, parent, inSchema.Name)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("unmarshalLeaf value %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(value), value, parent, inSchema.Name)
+	}
 
 	fieldName, _, err := schemaToStructFieldName(inSchema, parent, hasPreferShadowPath(opts))
 	if err != nil {
@@ -423,7 +437,10 @@ with field String set to "forty-two".
 */
 
 func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, value interface{}, enc Encoding) error {
-	util.DbgPrint("unmarshalUnion value %v, type %T, into parent type %T field name %s, schema name %s", util.ValueStrDebug(value), value, parent, fieldName, schema.Name)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("unmarshalUnion value %v, type %T, into parent type %T field name %s, schema name %s", util.ValueStrDebug(value), value, parent, fieldName, schema.Name)
+	}
+
 	parentV, parentT := reflect.ValueOf(parent), reflect.TypeOf(parent)
 	if !util.IsTypeStructPtr(parentT) {
 		return fmt.Errorf("%T is not a struct ptr in unmarshalUnion", parent)
@@ -509,13 +526,19 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	}
 
 	for _, sk := range sks {
-		util.DbgPrint("try to unmarshal into type %s", sk)
+		if util.DebugLibraryEnabled() {
+			util.DbgPrint("try to unmarshal into type %s", sk)
+		}
+
 		sch := yangKindToLeafEntry(sk)
 		gv, err := unmarshalScalar(parent, sch, fieldName, value, enc)
 		if err == nil {
 			return setUnionFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, gv)
 		}
-		util.DbgPrint("could not unmarshal %v into type %s: %s", value, sk, err)
+
+		if util.DebugLibraryEnabled() {
+			util.DbgPrint("could not unmarshal %v into type %s: %s", value, sk, err)
+		}
 	}
 
 	return fmt.Errorf("could not find suitable union type to unmarshal value %v type %T into parent struct type %T field %s", value, value, parent, fieldName)
@@ -524,7 +547,10 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 // setUnionFieldWithTypedValue sets the field destV with value v after converting it
 // to destElemT using the union conversion function of the given parent type.
 func setUnionFieldWithTypedValue(parentT reflect.Type, destV reflect.Value, destElemT reflect.Type, v interface{}) error {
-	util.DbgPrint("setUnionFieldWithTypedValue value %v into type %s", util.ValueStrDebug(v), destElemT)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("setUnionFieldWithTypedValue value %v into type %s", util.ValueStrDebug(v), destElemT)
+	}
+
 	eiv, err := getUnionVal(parentT, destElemT, v)
 	if err != nil {
 		return err
@@ -541,7 +567,10 @@ func setUnionFieldWithTypedValue(parentT reflect.Type, destV reflect.Value, dest
 // getUnionVal converts the input value v to the target union type using the
 // union conversion function of the parent type.
 func getUnionVal(parentT reflect.Type, destElemT reflect.Type, v interface{}) (reflect.Value, error) {
-	util.DbgPrint("getUnionVal value %v into type %s", util.ValueStrDebug(v), destElemT)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("getUnionVal value %v into type %s", util.ValueStrDebug(v), destElemT)
+	}
+
 	if destElemT.Kind() == reflect.Slice {
 		// leaf-list case
 		destElemT = destElemT.Elem()
@@ -561,7 +590,9 @@ func getUnionVal(parentT reflect.Type, destElemT reflect.Type, v interface{}) (r
 		return reflect.ValueOf(nil), fmt.Errorf("unmarshaled %v type %T does not have a union type: %v", v, v, ee)
 	}
 
-	util.DbgPrint("unmarshaling %v into type %s", v, reflect.TypeOf(ei))
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("unmarshaling %v into type %s", v, reflect.TypeOf(ei))
+	}
 
 	return reflect.ValueOf(ei), nil
 }
@@ -635,7 +666,9 @@ func schemaToEnumTypes(schema *yang.Entry, t reflect.Type) ([]reflect.Type, erro
 		return nil, fmt.Errorf("%s ΛEnumTypes function returned wrong type %T, want map[string][]reflect.Type", t, ei)
 	}
 
-	util.DbgPrint("path is %s for schema %s", absoluteSchemaDataPath(schema), schema.Name)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("path is %s for schema %s", absoluteSchemaDataPath(schema), schema.Name)
+	}
 
 	return enumTypesMap[absoluteSchemaDataPath(schema)], nil
 }
@@ -659,7 +692,9 @@ func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, v
 		return nil, err
 	}
 
-	util.DbgPrint("unmarshalScalar value %v, type %T, into parent type %T field %s", value, value, parent, fieldName)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("unmarshalScalar value %v, type %T, into parent type %T field %s", value, value, parent, fieldName)
+	}
 
 	switch enc {
 	case JSONEncoding:

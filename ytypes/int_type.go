@@ -84,7 +84,9 @@ func validateInt(schema *yang.Entry, value interface{}) error {
 		return err
 	}
 
-	util.DbgPrint("validateInt type %s with value %v", util.YangTypeToDebugString(schema.Type), value)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("validateInt type %s with value %v", util.YangTypeToDebugString(schema.Type), value)
+	}
 
 	kind := schema.Type.Kind
 
@@ -115,7 +117,9 @@ func validateIntSlice(schema *yang.Entry, value interface{}) error {
 		return err
 	}
 
-	util.DbgPrint("validateIntSlice type %s with value %v", util.YangTypeToDebugString(schema.Type), value)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("validateIntSlice type %s with value %v", util.YangTypeToDebugString(schema.Type), value)
+	}
 
 	kind := schema.Type.Kind
 	val := reflect.ValueOf(value)

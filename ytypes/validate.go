@@ -96,7 +96,9 @@ func Validate(schema *yang.Entry, value interface{}, opts ...ygot.ValidationOpti
 		}
 	}
 
-	util.DbgPrint("Validate with value %v, type %T, schema name %s", util.ValueStr(value), value, schema.Name)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("Validate with value %v, type %T, schema name %s", util.ValueStr(value), value, schema.Name)
+	}
 
 	switch {
 	case schema.IsLeaf():

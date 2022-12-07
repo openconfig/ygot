@@ -39,7 +39,9 @@ func validateList(schema *yang.Entry, value interface{}) util.Errors {
 		return util.NewErrs(err)
 	}
 
-	util.DbgPrint("validateList with value %v, type %T, schema name %s", value, value, schema.Name)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("validateList with value %v, type %T, schema name %s", value, value, schema.Name)
+	}
 
 	kind := reflect.TypeOf(value).Kind()
 	if kind == reflect.Slice || kind == reflect.Map {
@@ -288,7 +290,9 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 		return err
 	}
 
-	util.DbgPrint("unmarshalList jsonList %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(jsonList), jsonList, parent, schema.Name)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("unmarshalList jsonList %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(jsonList), jsonList, parent, schema.Name)
+	}
 
 	// Parent must be a map, slice ptr, or struct ptr.
 	t := reflect.TypeOf(parent)
@@ -330,7 +334,11 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 		var err error
 		jt := le.(map[string]interface{})
 		newVal := reflect.New(listElementType.Elem())
-		util.DbgPrint("creating a new list element val of type %v", newVal.Type())
+
+		if util.DebugLibraryEnabled() {
+			util.DbgPrint("creating a new list element val of type %v", newVal.Type())
+		}
+
 		if err := unmarshalStruct(schema, newVal.Interface(), jt, enc, opts...); err != nil {
 			return err
 		}
@@ -352,7 +360,10 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 			return err
 		}
 	}
-	util.DbgPrint("list after unmarshal:\n%s\n", pretty.Sprint(parent))
+
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("list after unmarshal:\n%s\n", pretty.Sprint(parent))
+	}
 
 	return nil
 }
@@ -477,7 +488,11 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 			if !nv.IsValid() {
 				return reflect.ValueOf(nil), fmt.Errorf("%v field doesn't have a valid value", kfn)
 			}
-			util.DbgPrint("Setting value of %v (%T) in key struct (%T)", nv.Interface(), nv.Interface(), newKey.Interface())
+
+			if util.DebugLibraryEnabled() {
+				util.DbgPrint("Setting value of %v (%T) in key struct (%T)", nv.Interface(), nv.Interface(), newKey.Interface())
+			}
+
 			newKeyField := newKey.FieldByName(kfn)
 			if !nv.Type().AssignableTo(newKeyField.Type()) {
 				return reflect.ValueOf(nil), fmt.Errorf("multi-key %v is not assignable to %v", nv.Type(), newKeyField.Type())
@@ -494,7 +509,10 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 	if err != nil {
 		return reflect.ValueOf(nil), err
 	}
-	util.DbgPrint("key value is %v.", kv)
+
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("key value is %v.", kv)
+	}
 
 	rvKey := reflect.ValueOf(kv)
 

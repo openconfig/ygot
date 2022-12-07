@@ -25,15 +25,20 @@ import (
 
 // SchemaPaths returns all the paths in the path tag.
 func SchemaPaths(f reflect.StructField) ([][]string, error) {
-	var out [][]string
 	pathTag, ok := f.Tag.Lookup("path")
 	if !ok || pathTag == "" {
 		return nil, fmt.Errorf("field %s did not specify a path", f.Name)
 	}
 
+	// Early return for performance.
+	if strings.Index(pathTag, "|") == -1 {
+		return [][]string{stripModulePrefixes(strings.Split(pathTag, "/"))}, nil
+	}
+
 	ps := strings.Split(pathTag, "|")
-	for _, p := range ps {
-		out = append(out, stripModulePrefixes(strings.Split(p, "/")))
+	out := make([][]string, len(ps))
+	for i, p := range ps {
+		out[i] = stripModulePrefixes(strings.Split(p, "/"))
 	}
 	return out, nil
 }
@@ -41,15 +46,15 @@ func SchemaPaths(f reflect.StructField) ([][]string, error) {
 // ShadowSchemaPaths returns all the paths in the shadow-path tag. If the tag
 // doesn't exist, a nil slice is returned.
 func ShadowSchemaPaths(f reflect.StructField) [][]string {
-	var out [][]string
 	pathTag, ok := f.Tag.Lookup("shadow-path")
 	if !ok || pathTag == "" {
 		return nil
 	}
 
 	ps := strings.Split(pathTag, "|")
-	for _, p := range ps {
-		out = append(out, stripModulePrefixes(strings.Split(p, "/")))
+	out := make([][]string, len(ps))
+	for i, p := range ps {
+		out[i] = stripModulePrefixes(strings.Split(p, "/"))
 	}
 	return out
 }
@@ -126,11 +131,12 @@ func relativeSchemaPath(f reflect.StructField, preferShadowPath bool) ([]string,
 		return nil, fmt.Errorf("field %s did not specify a shadow-path", f.Name)
 	}
 
-	paths := strings.Split(pathTag, "|")
-	if len(paths) == 1 {
+	if strings.Index(pathTag, "|") == -1 {
 		pathTag = strings.TrimPrefix(pathTag, "/")
 		return strings.Split(pathTag, "/"), nil
 	}
+
+	paths := strings.Split(pathTag, "|")
 	for _, pv := range paths {
 		pv = strings.TrimPrefix(pv, "/")
 		pe := strings.Split(pv, "/")
@@ -314,9 +320,9 @@ func StripModulePrefixesStr(in string) string {
 // stripModulePrefixes returns "in" with each element with the format "A:B"
 // changed to "B".
 func stripModulePrefixes(in []string) []string {
-	var out []string
-	for _, v := range in {
-		out = append(out, StripModulePrefix(v))
+	out := make([]string, len(in))
+	for i, v := range in {
+		out[i] = StripModulePrefix(v)
 	}
 	return out
 }
@@ -341,15 +347,13 @@ func stripModulePrefixWithCheck(name string) (string, error) {
 // removing foo from "foo:bar". Such qualified paths are used in YANG modules
 // where remote paths are referenced.
 func StripModulePrefix(name string) string {
-	ps := strings.Split(name, ":")
-	switch len(ps) {
-	case 1:
-		return name
-	case 2:
-		return ps[1]
-	default:
-		return name
+	for i, r := range name {
+		if r == ':' && len(name) > i+1 {
+			return name[i+1:]
+		}
 	}
+
+	return name
 }
 
 // ReplacePathSuffix replaces the non-prefix part of a prefixed path name, or
