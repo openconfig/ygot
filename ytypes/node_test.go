@@ -667,15 +667,32 @@ type KeyStruct struct {
 	EnumKey EnumType `path:"key3"`
 }
 
+func (l KeyStruct) ΛListKeyMap() (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"key1": l.Key1,
+		"key2": l.Key2,
+		"key3": l.EnumKey,
+	}, nil
+}
+
+func (l KeyStruct) IsYANGGoKeyStruct() {}
+
 type ListElemStruct3 struct {
-	Key1    *string              `path:"key1"`
-	Key2    *int32               `path:"key2"`
-	EnumKey EnumType             `path:"key3"`
-	Outer   *OuterContainerType1 `path:"outer"`
+	Key1    *string                     `path:"key1"`
+	Key2    *int32                      `path:"key2"`
+	EnumKey EnumType                    `path:"key3"`
+	Outer   *OuterContainerType1        `path:"outer"`
+	KeyList map[uint32]*ListElemStruct4 `path:"key-list-4"`
 }
 
 func (*ListElemStruct3) IsYANGGoStruct() {}
 func (l *ListElemStruct3) ΛListKeyMap() (map[string]interface{}, error) {
+	if l.Key1 == nil {
+		return nil, errors.New("nil value for key Key1")
+	}
+	if l.Key2 == nil {
+		return nil, errors.New("nil value for key Key2")
+	}
 	return map[string]interface{}{
 		"key1": *l.Key1,
 		"key2": *l.Key2,
@@ -773,6 +790,20 @@ var containerWithMultiKeyedList *yang.Entry = &yang.Entry{
 									},
 								},
 							},
+						},
+					},
+				},
+				"key-list-4": {
+					Name:     "key-list-4",
+					Kind:     yang.DirectoryEntry,
+					ListAttr: yang.NewDefaultListAttr(),
+					Key:      "key1",
+					Config:   yang.TSTrue,
+					Dir: map[string]*yang.Entry{
+						"key1": {
+							Name: "key1",
+							Kind: yang.LeafEntry,
+							Type: &yang.YangType{Kind: yang.Yuint32},
 						},
 					},
 				},
@@ -2659,35 +2690,35 @@ func TestDeleteNode(t *testing.T) {
 		inOpts:   []DelNodeOpt{&PreferShadowPath{}},
 		want:     &ListElemStruct1{Key1: (*string)(nil)},
 	}, {
-		name:     "deleting a int32 leaf list field",
+		name:     "deleting a int32 leaf list field in inner node as the last populated field of a set of containers",
 		inSchema: simpleSchema(),
 		inRoot:   &ListElemStruct1{Key1: ygot.String("hello"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafListName: []int32{42, 43, 44}}}},
 		inPath:   mustPath("/outer/inner/int32-leaf-list"),
-		want:     &ListElemStruct1{Key1: ygot.String("hello"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafListName: nil}}},
+		want:     &ListElemStruct1{Key1: ygot.String("hello")},
 	}, {
-		name:     "deleting a enum field",
+		name:     "deleting a enum field as the last populated field",
 		inSchema: simpleSchema(),
 		inRoot:   &ListElemStruct1{Outer: &OuterContainerType1{Inner: &InnerContainerType1{EnumLeafName: EnumType(42)}}},
 		inPath:   mustPath("/outer/inner/enum-leaf-field"),
-		want:     &ListElemStruct1{Outer: &OuterContainerType1{Inner: &InnerContainerType1{}}},
+		want:     &ListElemStruct1{},
 	}, {
 		name:     "deleting a non-leaf",
 		inSchema: simpleSchema(),
-		inRoot:   &ListElemStruct1{Key1: ygot.String("hello"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}}},
+		inRoot:   &ListElemStruct1{Key1: ygot.String("hello"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafListName: []int32{42, 43, 44}, Int32LeafName: ygot.Int32(5)}}},
 		inPath:   mustPath("/outer"),
 		want:     &ListElemStruct1{Key1: ygot.String("hello")},
 	}, {
 		name:     "deleting int32 leaf in inner node",
 		inSchema: simpleSchema(),
-		inRoot:   &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}}},
+		inRoot:   &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5), Int32LeafListName: []int32{42, 43, 44}}}},
 		inPath:   mustPath("/outer/inner/int32-leaf-field"),
-		want:     &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{}}},
+		want:     &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafListName: []int32{42, 43, 44}}}},
 	}, {
 		name:     "deleting a non-leaf in inner node",
 		inSchema: simpleSchema(),
-		inRoot:   &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}}},
+		inRoot:   &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5), Int32LeafListName: []int32{42, 43, 44}}}},
 		inPath:   mustPath("/outer/inner"),
-		want:     &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{}},
+		want:     &ListElemStruct1{Key1: ygot.String("world")},
 	}, {
 		name:     "deleting an annotation in top node",
 		inSchema: simpleSchema(),
@@ -2699,7 +2730,7 @@ func TestDeleteNode(t *testing.T) {
 		inSchema: simpleSchema(),
 		inRoot:   &ListElemStruct1{Key1: ygot.String("42"), Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}}, Outer: &OuterContainerType1{Inner: &InnerContainerType1{Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}}}}},
 		inPath:   mustPath("/outer/inner/@annotation"),
-		want:     &ListElemStruct1{Key1: ygot.String("42"), Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}}, Outer: &OuterContainerType1{Inner: &InnerContainerType1{}}},
+		want:     &ListElemStruct1{Key1: ygot.String("42"), Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}}},
 	}, {
 		name:     "deleting an inner node in list",
 		inSchema: containerWithStringKey(),
@@ -2721,8 +2752,7 @@ func TestDeleteNode(t *testing.T) {
 					Key1: ygot.String("forty-one"),
 				},
 				"forty-two": {
-					Key1:  ygot.String("forty-two"),
-					Outer: &OuterContainerType1{},
+					Key1: ygot.String("forty-two"),
 				},
 			},
 		},
@@ -2749,6 +2779,83 @@ func TestDeleteNode(t *testing.T) {
 			},
 		},
 	}, {
+		name:     "deleting a list entry key field",
+		inSchema: containerWithStringKey(),
+		inRoot: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"forty-one": {
+					Key1:  ygot.String("forty-one"),
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+				},
+				"forty-two": {
+					Key1:  ygot.String("forty-two"),
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+				},
+			},
+		},
+		inPath: mustPath("/config/simple-key-list[key1=forty-one]/key1"),
+		want: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"forty-one": {
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+				},
+				"forty-two": {
+					Key1:  ygot.String("forty-two"),
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+				},
+			},
+		},
+	}, {
+		name:     "deleting a list entry non-key field when the key field has been deleted -- this should trigger the entire list entry to be deleted since it's now empty",
+		inSchema: containerWithStringKey(),
+		inRoot: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"forty-one": {
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+				},
+				"forty-two": {
+					Key1:  ygot.String("forty-two"),
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+				},
+			},
+		},
+		inPath: mustPath("/config/simple-key-list[key1=forty-one]/outer"),
+		want: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"forty-two": {
+					Key1:  ygot.String("forty-two"),
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+				},
+			},
+		},
+	}, {
+		name:     "deleting a list entry non-key field",
+		inSchema: containerWithStringKey(),
+		inRoot: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"forty-one": {
+					Key1:  ygot.String("forty-one"),
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+				},
+				"forty-two": {
+					Key1:  ygot.String("forty-two"),
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+				},
+			},
+		},
+		inPath: mustPath("/config/simple-key-list[key1=forty-one]/outer"),
+		want: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"forty-one": {
+					Key1: ygot.String("forty-one"),
+				},
+				"forty-two": {
+					Key1:  ygot.String("forty-two"),
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+				},
+			},
+		},
+	}, {
 		name:     "deleting an inner node from a multi-keyed list",
 		inSchema: containerWithMultiKeyedList,
 		inRoot: &ContainerStruct3{
@@ -2768,7 +2875,6 @@ func TestDeleteNode(t *testing.T) {
 					Key1:    ygot.String("forty-two"),
 					Key2:    ygot.Int32(42),
 					EnumKey: EnumType(42),
-					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: (*int32)(nil)}},
 				},
 			},
 		},
@@ -2803,11 +2909,172 @@ func TestDeleteNode(t *testing.T) {
 			},
 		},
 	}, {
+		name:     "deleting a multi-keyed list key field",
+		inSchema: containerWithMultiKeyedList,
+		inRoot: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{"forty", 40, 40}: {
+					Key1:    ygot.String("forty"),
+					Key2:    ygot.Int32(40),
+					EnumKey: EnumType(40),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(4321)}},
+				},
+				{"forty-two", 42, 42}: {
+					Key1:    ygot.String("forty-two"),
+					Key2:    ygot.Int32(42),
+					EnumKey: EnumType(42),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(1234)}},
+				},
+			},
+		},
+		inPath: mustPath("/struct-key-list[key1=forty-two][key2=42][key3=E_VALUE_FORTY_TWO]/key2"),
+		want: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{"forty", 40, 40}: {
+					Key1:    ygot.String("forty"),
+					Key2:    ygot.Int32(40),
+					EnumKey: EnumType(40),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(4321)}},
+				},
+				{"forty-two", 42, 42}: {
+					Key1:    ygot.String("forty-two"),
+					EnumKey: EnumType(42),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(1234)}},
+				},
+			},
+		},
+	}, {
+		name:     "deleting a multi-keyed list entry non-key field when a key field has been deleted",
+		inSchema: containerWithMultiKeyedList,
+		inRoot: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{"forty", 40, 40}: {
+					Key1:    ygot.String("forty"),
+					Key2:    ygot.Int32(40),
+					EnumKey: EnumType(40),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(4321)}},
+				},
+				{"forty-two", 42, 42}: {
+					Key1:    ygot.String("forty-two"),
+					EnumKey: EnumType(42),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(1234)}},
+				},
+			},
+		},
+		inPath: mustPath("/struct-key-list[key1=forty-two][key2=42][key3=E_VALUE_FORTY_TWO]/outer"),
+		want: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{"forty", 40, 40}: {
+					Key1:    ygot.String("forty"),
+					Key2:    ygot.Int32(40),
+					EnumKey: EnumType(40),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(4321)}},
+				},
+				{"forty-two", 42, 42}: {
+					Key1:    ygot.String("forty-two"),
+					EnumKey: EnumType(42),
+				},
+			},
+		},
+	}, {
+		name:     "deleting the last leaf field from a multi-keyed list should trigger deletion of the entire key element",
+		inSchema: containerWithMultiKeyedList,
+		inRoot: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{"forty", 40, 40}: {
+					Key1:    ygot.String("forty"),
+					Key2:    ygot.Int32(40),
+					EnumKey: EnumType(40),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(4321)}},
+				},
+				{"forty-two", 42, 42}: {
+					EnumKey: EnumType(42),
+				},
+			},
+		},
+		inPath: mustPath("/struct-key-list[key1=forty-two][key2=42][key3=E_VALUE_FORTY_TWO]/key3"),
+		want: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{"forty", 40, 40}: {
+					Key1:    ygot.String("forty"),
+					Key2:    ygot.Int32(40),
+					EnumKey: EnumType(40),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(4321)}},
+				},
+			},
+		},
+	}, {
+		name:     "deleting the last non-leaf container field from a multi-keyed list should trigger deletion of the entire key element",
+		inSchema: containerWithMultiKeyedList,
+		inRoot: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{"forty", 40, 40}: {
+					Key1:    ygot.String("forty"),
+					Key2:    ygot.Int32(40),
+					EnumKey: EnumType(40),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(4321)}},
+				},
+				{"forty-two", 42, 42}: {
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(4321)}},
+				},
+			},
+		},
+		inPath: mustPath("/struct-key-list[key1=forty-two][key2=42][key3=E_VALUE_FORTY_TWO]/outer/inner/int32-leaf-field"),
+		want: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{"forty", 40, 40}: {
+					Key1:    ygot.String("forty"),
+					Key2:    ygot.Int32(40),
+					EnumKey: EnumType(40),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(4321)}},
+				},
+			},
+		},
+	}, {
+		name:     "deleting the last non-leaf list element field from a multi-keyed list should trigger deletion of the entire key element",
+		inSchema: containerWithMultiKeyedList,
+		inRoot: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{"forty", 40, 40}: {
+					Key1:    ygot.String("forty"),
+					Key2:    ygot.Int32(40),
+					EnumKey: EnumType(40),
+					KeyList: map[uint32]*ListElemStruct4{
+						42: {
+							Key1: ygot.Uint32(42),
+						},
+					},
+				},
+				{"forty-two", 42, 42}: {
+					KeyList: map[uint32]*ListElemStruct4{
+						42: {
+							Key1: ygot.Uint32(42),
+						},
+					},
+				},
+			},
+		},
+		inPath: mustPath("/struct-key-list[key1=forty-two][key2=42][key3=E_VALUE_FORTY_TWO]/key-list-4[key1=42]/key1"),
+		want: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{"forty", 40, 40}: {
+					Key1:    ygot.String("forty"),
+					Key2:    ygot.Int32(40),
+					EnumKey: EnumType(40),
+					KeyList: map[uint32]*ListElemStruct4{
+						42: {
+							Key1: ygot.Uint32(42),
+						},
+					},
+				},
+			},
+		},
+	}, {
 		name:     "deleting a leaf whose parent node is nil",
 		inSchema: simpleSchema(),
 		inRoot:   &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{}},
 		inPath:   mustPath("/outer/inner/int32-leaf-field"),
-		want:     &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{}},
+		want:     &ListElemStruct1{Key1: ygot.String("world")},
 	}, {
 		name:     "deleting a non-leaf whose parent node is nil",
 		inSchema: simpleSchema(),
