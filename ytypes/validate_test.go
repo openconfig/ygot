@@ -241,7 +241,7 @@ func TestValidate(t *testing.T) {
 				LeafTwo: ygot.String("two"),
 			},
 			opts:       []ygot.ValidationOption{&CustomValidationOptions{FakeRootCustomValidate: customValidation}},
-			wantErr:    "pointed-to value with path ../leaf-one from field LeafTwo value two (string ptr) schema /device/leaf-two is empty set, leafThree should be kingfisher",
+			wantErr:    "pointed-to value with path ../leaf-one from field LeafTwo value two (string ptr) schema /device/leaf-two is empty set\nleafThree should be kingfisher",
 			wantErrLen: 2,
 		},
 		{
@@ -251,7 +251,8 @@ func TestValidate(t *testing.T) {
 				LeafTwo:   ygot.String("two"),
 				LeafThree: ygot.String("fish"),
 			},
-			wantErr:    `pointed-to value with path ../leaf-one from field LeafTwo value two (string ptr) schema /device/leaf-two is empty set, /leaf-three: schema "leaf-three": "fish" does not match regular expression pattern "^a.*$"`, // Check that there is an error
+			wantErr: `pointed-to value with path ../leaf-one from field LeafTwo value two (string ptr) schema /device/leaf-two is empty set
+/leaf-three: schema "leaf-three": "fish" does not match regular expression pattern "^a.*$"`, // Check that there is an error
 			wantErrLen: 2,
 		},
 		{
