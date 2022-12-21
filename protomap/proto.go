@@ -183,17 +183,94 @@ func parseList(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[*
 		return fmt.Errorf("cannot parse list field %s, %v", fd.FullName(), err)
 	}
 
-	if leaflist || leaflistunion {
-		return fmt.Errorf("leaf-list and leaf-list of union are unsupported for field %s", fd.FullName())
+	l := v.List()
+
+	if leaflist {
+		// If this is a leaf-list then we need to go through and build a slice of all
+		// the scalar values that are included in the fields that are in the generated
+		// protobuf.
+		var lvals []interface{}
+		for i := 0; i < l.Len(); i++ {
+			switch t := l.Get(i).Message().Interface().(type) {
+			case *wpb.BoolValue:
+				lvals = append(lvals, t.GetValue())
+			case *wpb.BytesValue:
+				lvals = append(lvals, t.GetValue())
+			case *wpb.Decimal64Value:
+				return fmt.Errorf("unhandled type, decimal64")
+			case *wpb.IntValue:
+				lvals = append(lvals, t.GetValue())
+			case *wpb.StringValue:
+				lvals = append(lvals, t.GetValue())
+			case *wpb.UintValue:
+				lvals = append(lvals, t.GetValue())
+			default:
+				return fmt.Errorf("unknown type in protobuf, %T", t)
+			}
+		}
+		vals[resolvedPath(basePath, listPath)] = lvals
+		return nil
 	}
 
-	l := v.List()
+	if leaflistunion {
+		// If this is a leaf-list of a YANG union, then we need to go through and
+		// extract a slice of just the populated fields within a union.
+		var lvals []interface{}
+		for i := 0; i < l.Len(); i++ {
+			var (
+				llv  interface{}
+				fErr error
+			)
+
+			listMsg := l.Get(i).Message().Interface()
+			listMsg.ProtoReflect().Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+				if llv != nil {
+					fErr = fmt.Errorf("for field %s multiple populated fields within union message, got: %v with existing entry: %v", resolvedPath(basePath, listPath), v, llv)
+					return false
+				}
+				switch fd.Kind() {
+				case protoreflect.BoolKind:
+					llv = v.Bool()
+				case protoreflect.BytesKind:
+					llv = v.Bytes()
+				case protoreflect.StringKind:
+					llv = v.String()
+				case protoreflect.EnumKind:
+					n, ok, err := enumYANGName(fd.Enum().Values().ByNumber(v.Enum()))
+					if err != nil {
+						fErr = fmt.Errorf("cannot map enumeration for field %s, err: %v", resolvedPath(basePath, listPath), err)
+						return false
+					}
+					if !ok {
+						fErr = fmt.Errorf("enumeration value has invalid name for path: %s, value: %v", resolvedPath(basePath, listPath), v.Interface())
+						return false
+					}
+					llv = n
+				case protoreflect.Int64Kind:
+					llv = v.Int()
+				case protoreflect.Uint64Kind:
+					llv = v.Uint()
+				default:
+					fErr = fmt.Errorf("unsupported kind %s for field %s whilst mapping leaf-list of union", fd.Kind(), resolvedPath(basePath, listPath))
+				}
+				return true
+			})
+			if fErr != nil {
+				return fErr
+			}
+
+			lvals = append(lvals, llv)
+			vals[resolvedPath(basePath, listPath)] = lvals
+		}
+		return nil
+	}
+
 	if fd.Kind() != protoreflect.MessageKind {
 		return fmt.Errorf("invalid list, value is not a proto message, %s - is %T", fd.FullName(), l.NewElement())
 	}
 	var listVal proto.Message
 	for i := 0; i < l.Len(); i++ {
-		listMsg := l.Get(i).Message().Interface().(proto.Message)
+		listMsg := l.Get(i).Message().Interface()
 
 		var listParseErr error
 		listKeys := map[string]string{}
