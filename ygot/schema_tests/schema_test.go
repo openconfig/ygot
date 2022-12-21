@@ -441,6 +441,70 @@ func TestJSONOutput(t *testing.T) {
 	}
 }
 
+func TestMarshal7951(t *testing.T) {
+	tests := []struct {
+		name     string
+		in       interface{}
+		wantFile string
+	}{{
+		name: "unset enumeration",
+		in: func() *exampleoc.Device {
+			d := &exampleoc.Device{}
+			acl := d.GetOrCreateAcl()
+			set := acl.GetOrCreateAclSet("set", exampleoc.Acl_ACL_TYPE_ACL_IPV6)
+			entry := set.GetOrCreateAclEntry(100)
+			entry.GetOrCreateIpv6().Protocol = exampleoc.PacketMatchTypes_IP_PROTOCOL_UNSET
+			return d
+		}(),
+		wantFile: "testdata/unsetenum.json",
+	}, {
+		name: "marshalling at the list-level",
+		in: func() map[exampleoc.Acl_AclSet_Key]*exampleoc.Acl_AclSet {
+			d := &exampleoc.Device{}
+			acl := d.GetOrCreateAcl()
+			set := acl.GetOrCreateAclSet("set", exampleoc.Acl_ACL_TYPE_ACL_IPV6)
+			entry := set.GetOrCreateAclEntry(100)
+			entry.GetOrCreateIpv6().Protocol = exampleoc.PacketMatchTypes_IP_PROTOCOL_UNSET
+			return acl.AclSet
+		}(),
+		wantFile: "testdata/unsetenum_list.json",
+	}, {
+		name: "unset enumeration using wrapper union generated code",
+		in: func() *wrapperunionoc.Device {
+			d := &wrapperunionoc.Device{}
+			acl := d.GetOrCreateAcl()
+			set := acl.GetOrCreateAclSet("set", wrapperunionoc.Acl_ACL_TYPE_ACL_IPV6)
+			entry := set.GetOrCreateAclEntry(100)
+			entry.GetOrCreateIpv6().Protocol = &wrapperunionoc.Acl_AclSet_AclEntry_Ipv6_Protocol_Union_E_PacketMatchTypes_IP_PROTOCOL{
+				wrapperunionoc.PacketMatchTypes_IP_PROTOCOL_UNSET,
+			}
+			return d
+		}(),
+		wantFile: "testdata/unsetenum.json",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			want, err := ioutil.ReadFile(tt.wantFile)
+			if err != nil {
+				t.Fatalf("cannot read wantfile, %v", err)
+			}
+
+			got, err := ygot.Marshal7951(tt.in, ygot.JSONIndent("   "))
+			if err != nil {
+				t.Fatalf("got unexpected error, %v", err)
+			}
+
+			if diff := pretty.Compare(string(got), string(want)); diff != "" {
+				if diffl, err := testutil.GenerateUnifiedDiff(string(got), string(want)); err == nil {
+					diff = diffl
+				}
+				t.Fatalf("did not get expected output, diff(-got,+want):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestNotificationOutput(t *testing.T) {
 	tests := []struct {
 		name       string
