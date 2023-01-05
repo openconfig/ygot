@@ -23,7 +23,7 @@ import (
 
 var (
 	testErrs = Errors{fmt.Errorf("err1"), fmt.Errorf("err2")}
-	wantStr  = "err1, err2"
+	wantStr  = "err1\nerr2"
 )
 
 func TestError(t *testing.T) {
@@ -75,7 +75,7 @@ func TestAppendErr(t *testing.T) {
 
 	errs = AppendErr(errs, nil)
 	errs = AppendErr(errs, fmt.Errorf("err2"))
-	if got, want := errs.String(), "err1, err2"; got != want {
+	if got, want := errs.String(), "err1\nerr2"; got != want {
 		t.Errorf("got: %s, want: %s", got, want)
 	}
 }

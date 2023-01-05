@@ -469,9 +469,13 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 		{
 			desc:   "success",
 			schema: containerWithLeafListSchema,
-			json:   `{"struct-list" : [ { "leaf-field" : 42, "enum-leaf-field" : "E_VALUE_FORTY_TWO"} ] }`,
+			json:   `{"struct-list" : [ { "leaf-field" : 42, "enum-leaf-field" : "E_VALUE_FORTY_TWO"}, { "leaf-field" : 42, "enum-leaf-field" : "E_VALUE_FORTY_TWO"} ] }`,
 			want: ContainerStruct{
 				StructList: []*ListElemStruct{
+					{
+						LeafName: ygot.Int32(42),
+						EnumLeaf: 42,
+					},
 					{
 						LeafName: ygot.Int32(42),
 						EnumLeaf: 42,

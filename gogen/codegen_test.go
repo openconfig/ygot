@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
+	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygen"
@@ -183,6 +184,55 @@ func TestSimpleStructs(t *testing.T) {
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple-with-unsupported.formatted-txt"),
+	}, {
+		name:    "simple openconfig test with deviate not-supported",
+		inFiles: []string{filepath.Join(datapath, "deviate-not-supported.yang")},
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					CompressBehaviour:                    genutil.PreferIntendedConfig,
+					ShortenEnumLeafNames:                 true,
+					EnumOrgPrefixesToTrim:                []string{"openconfig"},
+					UseDefiningModuleForTypedefEnumNames: true,
+					EnumerationsUseUnderscores:           true,
+				},
+			},
+			GoOptions: GoOpts{
+				GenerateSimpleUnions:    true,
+				GenerateLeafGetters:     true,
+				GenerateLeafSetters:     true,
+				GeneratePopulateDefault: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/deviate-not-supported.formatted-txt"),
+	}, {
+		name:    "simple openconfig test with deviate not-supported ignored",
+		inFiles: []string{filepath.Join(datapath, "deviate-not-supported.yang")},
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				ParseOptions: ygen.ParseOpts{
+					YANGParseOptions: yang.Options{
+						DeviateOptions: yang.DeviateOptions{
+							IgnoreDeviateNotSupported: true,
+						},
+					},
+				},
+				TransformationOptions: ygen.TransformationOpts{
+					CompressBehaviour:                    genutil.PreferIntendedConfig,
+					ShortenEnumLeafNames:                 true,
+					EnumOrgPrefixesToTrim:                []string{"openconfig"},
+					UseDefiningModuleForTypedefEnumNames: true,
+					EnumerationsUseUnderscores:           true,
+				},
+			},
+			GoOptions: GoOpts{
+				GenerateSimpleUnions:    true,
+				GenerateLeafGetters:     true,
+				GenerateLeafSetters:     true,
+				GeneratePopulateDefault: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/deviate-not-supported-keep.formatted-txt"),
 	}, {
 		name:    "OpenConfig leaf-list defaults test, with compression",
 		inFiles: []string{filepath.Join(datapath, "openconfig-leaflist-default.yang")},
