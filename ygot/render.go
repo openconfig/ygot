@@ -143,7 +143,10 @@ func (g *gnmiPath) isPathElemPath() bool {
 	return g.pathElemPath != nil
 }
 
-// Copy returns a copy of the current gnmiPath.
+// Copy returns a shallow copy of the current gnmiPath.
+//
+// In particular, the pre-0.4.0 gNMI path is a deep copy, but the PathElem gNMI
+// path will be a shallow copy.
 func (g *gnmiPath) Copy() *gnmiPath {
 	n := &gnmiPath{}
 	if g.isStringSlicePath() {
@@ -322,6 +325,10 @@ type GNMINotificationsConfig struct {
 // provided determines the path format utilised, and the prefix to be included
 // in the message if relevant.
 //
+// Note: Within the generated notifications there could be data sharing for
+// space and compute optimization. Make a deep copy if one plans to modify the
+// generated message.
+//
 // TODO(robjs): When we have deprecated the string slice paths, then this function
 // can be simplified to remove support for them - including removing the gnmiPath
 // abstraction. It can also be refactored to simply use the findSetleaves function
@@ -354,6 +361,8 @@ func TogNMINotifications(s GoStruct, ts int64, cfg GNMINotificationsConfig) ([]*
 // the GoStruct contains fields that are themselves structured objects (YANG
 // lists, or containers - represented as maps or struct pointers), the function
 // is called recursively on them.
+//
+// Note: the returned paths use a shallow copy of the parentPath.
 func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPath) error {
 	var errs errlist.List
 
@@ -481,7 +490,7 @@ func mapValuePath(key, value reflect.Value, parentPath *gnmiPath) (*gnmiPath, er
 		return childPath, nil
 	}
 
-	// Only the pointer values are copied for performance.
+	// Note: this is shallow copy for performance.
 	childPath = parentPath.Copy()
 
 	return appendgNMIPathElemKey(value, childPath)
