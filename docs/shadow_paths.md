@@ -19,10 +19,7 @@ type Interface struct {
 The aim of this document is to clarify what shadow paths are and why they exist
 as a generation option.
 
-## Compressed-out "config" or "state" YANG leaves
-
-Shadow paths are relevant only for compressed GoStructs, and indicate the
-compressed-out `/config` or `/state` YANG `leaf` nodes.
+## Shadow paths: compressed-out "config" or "state" YANG leaves
 
 https://datatracker.ietf.org/doc/html/draft-openconfig-netmod-opstate-01#section-2
 contains a diagram of the relationship between intended config (`/config`) and
@@ -57,25 +54,48 @@ mirror intended config leaves, which are "config true", or `/config` leaves. Per
 [design.md](design.md#openconfig-path-compression), one of these are compressed
 out depending on the value of the `-prefer_operational_state` generation flag.
 
-## Problem with Path Compression
+Shadow paths are relevant only for compressed GoStructs, and indicate the
+compressed-out `/config` or `/state` YANG `leaf` nodes.
 
-Path compression, however, leads to the GoStruct not being able to represent
-both intended config and applied config at the same time, but for certain use
-cases (e.g. [ygnmi](https://github.com/openconfig/ygnmi#queries)), it is
-desirable to use the same GoStruct for representing either the (intended
-config+derived state) combination, as well as the (applied config+derived state)
-combination of leaves. This is where shadow paths can help.
+## Problems with Path Compression and how Shadow Paths Help
+
+Path compression leads to the GoStruct not being able to represent both intended
+config and applied config at the same time. This leads to two problems:
+
+1.  When subscribing to a non-leaf path, some gNMI clients want to silently
+    ignore the compressed-out paths rather than erroring out due to an
+    unrecognized path.
+2.  Some use cases (e.g. [ygnmi](https://github.com/openconfig/ygnmi#queries))
+    use the same compressed GoStruct for representing either the "config view"
+    (intended config+derived state) combination, or the "state view" (applied
+    config+derived state) combination of leaves. We want to enable such a
+    meaning-switch for certain ygot utilities (e.g. marshalling/unmarshalling).
+
+ygot address these issues by,
+
+1.  Always ignoring paths that match a `shadow-path` tag when doing
+    unmarshalling. For example, if a gNMI update for
+    `/interfaces/interface[name="foo"]/config/mtu` is unmarshalled into the
+    `Interface` GoStruct at the beginning of this documentation, then the field
+    will not be populated since it is a shadow path.
+2.  Supporting a `PreferShadowPath` option for some utilities (see section
+    below).
 
 ## Preferring Shadow Paths
 
 This term is used to describe utilities preferring the `shadow-path` tag instead
 of the `path` tag in the generated GoStructs when they both exist on a field,
 and is therefore used to switch the meaning of the GoStruct from a "config view"
-(intended config+derived state) to a "state view" (applied config+derived
-state).
+(intended config+derived state) to a "state view" (applied config+derived state)
+or vice-versa (depending on the value of the `-prefer_operational_state`
+generation flag).
 
-For example, if a gNMI update for `/interfaces/interface[name="foo"]/state/mtu`
-is unmarshalled into the `Interface` GoStruct at the beginning of this
-documentation with `ygot.SetNode`/`ygot.PreferShadowPath`, then the update would
-be ignored, and the field will not be populated. This is because it doesn't
-exist in the "config view" which `ygot.PreferShadowPath` indicated.
+For example, say we're using the utility `ytypes.SetNode` to unmarshal a gNMI
+update for `/interfaces/interface[name="foo"]/config/mtu`. Recall that this
+update is ignored when unmarshalled into the `Interface` GoStruct at the
+beginning of this documentation. This is because ygot sees that it is a shadow
+path (or alternatively, it does not exist in the "state view" of the YANG
+subtree corresponding to the GoStruct). However, if the `ygot.PreferShadowPath`
+option is used, then `ytypes.SetNode` will now populate the field using this
+update since it prefers the shadow path (or alternatively, it exists in the
+"config view" which `ygot.PreferShadowPath` indicated).
