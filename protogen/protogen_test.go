@@ -315,10 +315,18 @@ func TestGenProto3Msg(t *testing.T) {
 						Tag:  225170402,
 						Name: "field_one_sint64",
 						Type: "sint64",
+						Options: []*protoOption{{
+							Name:  "(yext.schemapath)",
+							Value: `"/field-one"`,
+						}},
 					}, {
 						Tag:  299030977,
 						Name: "field_one_string",
 						Type: "string",
+						Options: []*protoOption{{
+							Name:  "(yext.schemapath)",
+							Value: `"/field-one"`,
+						}},
 					}},
 				}},
 			},
@@ -1930,14 +1938,15 @@ func TestUnionFieldToOneOf(t *testing.T) {
 		inName  string
 		inField *ygen.NodeDetails
 		// inPath is populated with field.YANGDetails.Path if not set.
-		inPath              string
-		inMappedType        *ygen.MappedType
-		inEnums             map[string]*ygen.EnumeratedYANGType
-		inAnnotateEnumNames bool
-		wantFields          []*protoMsgField
-		wantEnums           map[string]*protoMsgEnum
-		wantRepeatedMsg     *protoMsg
-		wantErr             bool
+		inPath                string
+		inMappedType          *ygen.MappedType
+		inEnums               map[string]*ygen.EnumeratedYANGType
+		inAnnotateEnumNames   bool
+		inAnnotateSchemaPaths bool
+		wantFields            []*protoMsgField
+		wantEnums             map[string]*protoMsgEnum
+		wantRepeatedMsg       *protoMsg
+		wantErr               bool
 	}{{
 		name:   "simple string union",
 		inName: "FieldName",
@@ -2188,6 +2197,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				Name: "field-name",
 				Path: "/parent/field-name",
 			},
+			MappedPaths: [][]string{{"", "parent", "field-name"}},
 			LangType: &ygen.MappedType{
 				UnionTypes: map[string]ygen.MappedUnionSubtype{
 					"string": {
@@ -2209,6 +2219,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				},
 			},
 		},
+		inAnnotateSchemaPaths: true,
 		wantRepeatedMsg: &protoMsg{
 			Name:     "FieldNameUnion",
 			YANGPath: "/parent/field-name union field field-name",
@@ -2216,10 +2227,18 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				Tag:  85114709,
 				Name: "FieldName_string",
 				Type: "string",
+				Options: []*protoOption{{
+					Name:  "(yext.schemapath)",
+					Value: `"/parent/field-name"`,
+				}},
 			}, {
 				Tag:  192993976,
 				Name: "FieldName_uint64",
 				Type: "uint64",
+				Options: []*protoOption{{
+					Name:  "(yext.schemapath)",
+					Value: `"/parent/field-name"`,
+				}},
 			}},
 		},
 	}}
@@ -2228,7 +2247,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 		if tt.inPath == "" {
 			tt.inPath = tt.inField.YANGDetails.Path
 		}
-		got, err := unionFieldToOneOf(tt.inName, tt.inField, tt.inPath, tt.inMappedType, tt.inEnums, tt.inAnnotateEnumNames)
+		got, err := unionFieldToOneOf(tt.inName, tt.inField, tt.inPath, tt.inMappedType, tt.inEnums, tt.inAnnotateEnumNames, tt.inAnnotateSchemaPaths)
 		if (err != nil) != tt.wantErr {
 			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected error, got: %v, wanted err: %v", tt.name, tt.inName, tt.inField, tt.inMappedType, tt.inAnnotateEnumNames, err, tt.wantErr)
 		}

@@ -42,8 +42,8 @@ message TopLevel {
   }
   message Idref {
     message UUnion {
-      string u_string = 44885770;
-      uint64 u_uint64 = 423874955;
+      string u_string = 44885770 [(yext.schemapath) = "/top-level/idrefsc/idref/config/u"];
+      uint64 u_uint64 = 423874955 [(yext.schemapath) = "/top-level/idrefsc/idref/config/u"];
     }
     ywrapper.StringValue l = 372609659 [(yext.schemapath) = "/top-level/idrefsc/idref/config/l"];
     repeated UUnion u = 372609634 [(yext.schemapath) = "/top-level/idrefsc/idref/config/u"];
