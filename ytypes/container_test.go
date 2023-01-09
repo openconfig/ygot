@@ -418,6 +418,13 @@ func TestUnmarshalContainer(t *testing.T) {
 			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43), Container2Field: nil}},
 		},
 		{
+			desc:   "success overwriting some existing fields",
+			schema: containerSchema,
+			parent: &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(1), StateLeaf1Field: ygot.Int32(2)}},
+			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 41 } } }`,
+			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(2), Leaf2Field: ygot.Int32(43), Container2Field: nil}},
+		},
+		{
 			desc:   "success overwriting existing fields with presence container",
 			schema: containerSchema,
 			parent: &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(1), StateLeaf1Field: ygot.Int32(2), Container2Field: &Container2Struct{Leaf3Field: ygot.Int32(3)}}},

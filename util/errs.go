@@ -76,7 +76,7 @@ func ToString(errors []error) string {
 			continue
 		}
 		if i != 0 {
-			out += ", "
+			out += "\n"
 		}
 		out += e.Error()
 	}

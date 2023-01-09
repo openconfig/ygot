@@ -79,6 +79,7 @@ var (
 	includeDescriptions                  = flag.Bool("include_descriptions", false, "If set to true when generateSchema=true, the YANG descriptions will be included in the generated code artefact.")
 	enumOrgPrefixesToTrim                []string
 	ignoreUnsupportedStatements          = flag.Bool("ignore_unsupported", false, "If set to true, unsupported YANG statements are ignored.")
+	ignoreDeviateNotsupported            = flag.Bool("ignore_deviate_notsupported", false, "If set to true, 'deviate not-supported' YANG statements are ignored, thus target nodes are retained in the generated code.")
 
 	// Flags used for GoStruct generation only.
 	generateFakeRoot        = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. By default the fake root entity is named Device, its name can be controlled with the fakeroot_name flag.")
@@ -335,6 +336,9 @@ func main() {
 					ExcludeModules:              modsExcluded,
 					YANGParseOptions: yang.Options{
 						IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+						DeviateOptions: yang.DeviateOptions{
+							IgnoreDeviateNotSupported: *ignoreDeviateNotsupported,
+						},
 					},
 				},
 				TransformationOptions: ygen.TransformationOpts{

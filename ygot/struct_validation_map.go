@@ -42,6 +42,8 @@ const (
 // structTagToLibPaths takes an input struct field as a reflect.Type, and determines
 // the set of validation library paths that it maps to. Returns the paths as a slice of
 // empty interface slices, or an error.
+//
+// Note: the returned paths use a shallow copy of the parentPath.
 func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath, preferShadowPath bool) ([]*gnmiPath, error) {
 	if !parentPath.isValid() {
 		return nil, fmt.Errorf("invalid path format in parentPath (%v, %v)", parentPath.stringSlicePath == nil, parentPath.pathElemPath == nil)
