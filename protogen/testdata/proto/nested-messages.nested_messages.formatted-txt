@@ -18,16 +18,16 @@ message TopLevel {
         ywrapper.StringValue a = 404127368 [(yext.schemapath) = "/top-level/child/grandchild/config/a"];
         openconfig.enums.NestedMessagesEnumt b = 404127371 [(yext.schemapath) = "/top-level/child/grandchild/config/b"];
         oneof c {
-          openconfig.enums.NestedMessagesEnumt c_nestedmessagesenumt = 369673157;
-          string c_string = 420673426;
+          openconfig.enums.NestedMessagesEnumt c_nestedmessagesenumt = 369673157 [(yext.schemapath) = "/top-level/child/grandchild/config/c"];
+          string c_string = 420673426 [(yext.schemapath) = "/top-level/child/grandchild/config/c"];
         }
       }
       message State {
         ywrapper.StringValue a = 319593801 [(yext.schemapath) = "/top-level/child/grandchild/state/a"];
         openconfig.enums.NestedMessagesEnumt b = 319593802 [(yext.schemapath) = "/top-level/child/grandchild/state/b"];
         oneof c {
-          openconfig.enums.NestedMessagesEnumt c_nestedmessagesenumt = 402187460;
-          string c_string = 271079601;
+          openconfig.enums.NestedMessagesEnumt c_nestedmessagesenumt = 402187460 [(yext.schemapath) = "/top-level/child/grandchild/state/c"];
+          string c_string = 271079601 [(yext.schemapath) = "/top-level/child/grandchild/state/c"];
         }
         ywrapper.StringValue x = 319593808 [(yext.schemapath) = "/top-level/child/grandchild/state/x"];
       }
@@ -74,8 +74,8 @@ message TopLevel {
     message Idref {
       message Config {
         message UUnion {
-          string u_string = 44885770;
-          uint64 u_uint64 = 423874955;
+          string u_string = 44885770 [(yext.schemapath) = "/top-level/idrefsc/idref/config/u"];
+          uint64 u_uint64 = 423874955 [(yext.schemapath) = "/top-level/idrefsc/idref/config/u"];
         }
         openconfig.enums.NestedMessagesKEY i = 372609662 [(yext.schemapath) = "/top-level/idrefsc/idref/config/i"];
         ywrapper.StringValue l = 372609659 [(yext.schemapath) = "/top-level/idrefsc/idref/config/l"];
@@ -83,8 +83,8 @@ message TopLevel {
       }
       message State {
         message UUnion {
-          string u_string = 362654037;
-          uint64 u_uint64 = 470533304;
+          string u_string = 362654037 [(yext.schemapath) = "/top-level/idrefsc/idref/state/u"];
+          uint64 u_uint64 = 470533304 [(yext.schemapath) = "/top-level/idrefsc/idref/state/u"];
         }
         openconfig.enums.NestedMessagesKEY i = 500927979 [(yext.schemapath) = "/top-level/idrefsc/idref/state/i"];
         ywrapper.StringValue l = 500927982 [(yext.schemapath) = "/top-level/idrefsc/idref/state/l"];

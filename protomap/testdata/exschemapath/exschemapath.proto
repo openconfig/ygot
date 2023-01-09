@@ -36,6 +36,10 @@ message ExampleMessage {
     repeated ExampleMessageMultiKey multi = 9 [(yext.schemapath) = "/multi-list"];
     ExampleEnum en = 10 [(yext.schemapath) = "/enum"];
     ywrapper.StringValue compress =  11 [(yext.schemapath) = "/state/compress"];
+    oneof oneof_field {
+        string oneof_one = 12 [(yext.schemapath) = "/oneof"];
+        uint64 oneof_two = 13 [(yext.schemapath) = "/oneof"];
+    }
 }
 
 enum ExampleEnum {

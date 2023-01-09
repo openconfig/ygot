@@ -265,6 +265,73 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 		},
 	}, {
+		name: "union leaf with annotate schema paths enabled",
+		inMsg: &ygen.ParsedDirectory{
+			Name: "MessageName",
+			Type: ygen.Container,
+			Fields: map[string]*ygen.NodeDetails{
+				"field-one": {
+					Name:        "field_one",
+					Type:        ygen.LeafNode,
+					MappedPaths: [][]string{{"", "field-one"}},
+					LangType: &ygen.MappedType{
+						UnionTypes: map[string]ygen.MappedUnionSubtype{
+							"string": {
+								Index: 0,
+							},
+							"sint64": {
+								Index: 1,
+							},
+						},
+					},
+					YANGDetails: ygen.YANGNodeDetails{
+						Name: "field-one",
+						Path: "/field-one",
+					},
+				},
+			},
+			Path: "/root/message-name",
+		},
+		inIR: &ygen.IR{
+			Enums: map[string]*ygen.EnumeratedYANGType{},
+		},
+		inBasePackage:         "base",
+		inEnumPackage:         "enums",
+		inAnnotateSchemaPaths: true,
+		wantMsgs: map[string]*protoMsg{
+			"MessageName": {
+				Name:     "MessageName",
+				YANGPath: "/root/message-name",
+				Fields: []*protoMsgField{{
+					Tag:     410095931,
+					Name:    "field_one",
+					Type:    "",
+					IsOneOf: true,
+					Options: []*protoOption{{
+						Name:  "(yext.schemapath)",
+						Value: `"/field-one"`,
+					}},
+					OneOfFields: []*protoMsgField{{
+						Tag:  225170402,
+						Name: "field_one_sint64",
+						Type: "sint64",
+						Options: []*protoOption{{
+							Name:  "(yext.schemapath)",
+							Value: `"/field-one"`,
+						}},
+					}, {
+						Tag:  299030977,
+						Name: "field_one_string",
+						Type: "string",
+						Options: []*protoOption{{
+							Name:  "(yext.schemapath)",
+							Value: `"/field-one"`,
+						}},
+					}},
+				}},
+			},
+		},
+	}, {
 		name: "simple message with leaf-list and a message child, compression on",
 		inMsg: &ygen.ParsedDirectory{
 			Name: "AMessage",
@@ -1871,14 +1938,15 @@ func TestUnionFieldToOneOf(t *testing.T) {
 		inName  string
 		inField *ygen.NodeDetails
 		// inPath is populated with field.YANGDetails.Path if not set.
-		inPath              string
-		inMappedType        *ygen.MappedType
-		inEnums             map[string]*ygen.EnumeratedYANGType
-		inAnnotateEnumNames bool
-		wantFields          []*protoMsgField
-		wantEnums           map[string]*protoMsgEnum
-		wantRepeatedMsg     *protoMsg
-		wantErr             bool
+		inPath                string
+		inMappedType          *ygen.MappedType
+		inEnums               map[string]*ygen.EnumeratedYANGType
+		inAnnotateEnumNames   bool
+		inAnnotateSchemaPaths bool
+		wantFields            []*protoMsgField
+		wantEnums             map[string]*protoMsgEnum
+		wantRepeatedMsg       *protoMsg
+		wantErr               bool
 	}{{
 		name:   "simple string union",
 		inName: "FieldName",
@@ -2129,6 +2197,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				Name: "field-name",
 				Path: "/parent/field-name",
 			},
+			MappedPaths: [][]string{{"", "parent", "field-name"}},
 			LangType: &ygen.MappedType{
 				UnionTypes: map[string]ygen.MappedUnionSubtype{
 					"string": {
@@ -2150,6 +2219,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				},
 			},
 		},
+		inAnnotateSchemaPaths: true,
 		wantRepeatedMsg: &protoMsg{
 			Name:     "FieldNameUnion",
 			YANGPath: "/parent/field-name union field field-name",
@@ -2157,10 +2227,18 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				Tag:  85114709,
 				Name: "FieldName_string",
 				Type: "string",
+				Options: []*protoOption{{
+					Name:  "(yext.schemapath)",
+					Value: `"/parent/field-name"`,
+				}},
 			}, {
 				Tag:  192993976,
 				Name: "FieldName_uint64",
 				Type: "uint64",
+				Options: []*protoOption{{
+					Name:  "(yext.schemapath)",
+					Value: `"/parent/field-name"`,
+				}},
 			}},
 		},
 	}}
@@ -2169,7 +2247,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 		if tt.inPath == "" {
 			tt.inPath = tt.inField.YANGDetails.Path
 		}
-		got, err := unionFieldToOneOf(tt.inName, tt.inField, tt.inPath, tt.inMappedType, tt.inEnums, tt.inAnnotateEnumNames)
+		got, err := unionFieldToOneOf(tt.inName, tt.inField, tt.inPath, tt.inMappedType, tt.inEnums, tt.inAnnotateEnumNames, tt.inAnnotateSchemaPaths)
 		if (err != nil) != tt.wantErr {
 			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected error, got: %v, wanted err: %v", tt.name, tt.inName, tt.inField, tt.inMappedType, tt.inAnnotateEnumNames, err, tt.wantErr)
 		}

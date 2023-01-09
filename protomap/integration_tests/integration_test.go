@@ -56,6 +56,20 @@ func TestGRIBIAFT(t *testing.T) {
 			}},
 		},
 		wantErr: true,
+	}, {
+		desc: "MPLS label entry - oneof key",
+		inProto: &gribi_aft.Afts{
+			LabelEntry: []*gribi_aft.Afts_LabelEntryKey{{
+				Label: &gribi_aft.Afts_LabelEntryKey_LabelUint64{
+					LabelUint64: 32,
+				},
+				LabelEntry: &gribi_aft.Afts_LabelEntry{},
+			}},
+		},
+		wantPaths: map[*gpb.Path]interface{}{
+			mustPath("afts/mpls/label-entry[label=32]/state/label"): uint64(32),
+			mustPath("afts/mpls/label-entry[label=32]/label"):       uint64(32),
+		},
 	}}
 
 	for _, tt := range tests {
