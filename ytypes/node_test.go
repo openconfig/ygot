@@ -381,6 +381,7 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 		inOpts           []GetOrCreateNodeOpt
 		want             interface{}
 		wantErrSubstring string
+		resetNodeCache   bool
 	}{
 		{
 			inDesc: "success get int32 leaf with an existing key",
@@ -401,11 +402,12 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 			want:     ygot.Int32(42),
 		},
 		{
-			inDesc:   "success get int32 leaf with a new key",
-			inParent: &ContainerStruct1{},
-			inSchema: containerWithStringKey(),
-			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/int32-leaf-field"),
-			want:     ygot.Int32(0),
+			inDesc:         "success get int32 leaf with a new key",
+			inParent:       &ContainerStruct1{},
+			inSchema:       containerWithStringKey(),
+			inPath:         mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/int32-leaf-field"),
+			want:           ygot.Int32(0),
+			resetNodeCache: true,
 		},
 		{
 			inDesc: "success get string leaf with an existing key",
@@ -426,11 +428,12 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 			want:     ygot.String("forty_two"),
 		},
 		{
-			inDesc:   "success get string leaf with a new key",
-			inParent: &ContainerStruct1{},
-			inSchema: containerWithStringKey(),
-			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/string-leaf-field"),
-			want:     ygot.String(""),
+			inDesc:         "success get string leaf with a new key",
+			inParent:       &ContainerStruct1{},
+			inSchema:       containerWithStringKey(),
+			inPath:         mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/string-leaf-field"),
+			want:           ygot.String(""),
+			resetNodeCache: true,
 		},
 		{
 			inDesc: "success get enum leaf with an existing key",
@@ -451,11 +454,12 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 			want:     EnumType(43),
 		},
 		{
-			inDesc:   "success get enum leaf with a new key",
-			inParent: &ContainerStruct1{},
-			inSchema: containerWithStringKey(),
-			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/enum-leaf-field"),
-			want:     EnumType(0),
+			inDesc:         "success get enum leaf with a new key",
+			inParent:       &ContainerStruct1{},
+			inSchema:       containerWithStringKey(),
+			inPath:         mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/enum-leaf-field"),
+			want:           EnumType(0),
+			resetNodeCache: true,
 		},
 		{
 			inDesc:           "fail get enum leaf incorrect container schema",
@@ -499,9 +503,10 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 					},
 				},
 			},
-			inSchema: containerWithStringKey(),
-			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/int32-leaf-field"),
-			want:     nil,
+			inSchema:       containerWithStringKey(),
+			inPath:         mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/int32-leaf-field"),
+			want:           nil,
+			resetNodeCache: true,
 		},
 		{
 			inDesc:           "fail getting a shadow value whose container doesn't exist",
@@ -540,10 +545,11 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 					},
 				},
 			},
-			inSchema: containerWithStringKey(),
-			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/int32-leaf-field"),
-			inOpts:   []GetOrCreateNodeOpt{&PreferShadowPath{}},
-			want:     ygot.Int32(42),
+			inSchema:       containerWithStringKey(),
+			inPath:         mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/int32-leaf-field"),
+			inOpts:         []GetOrCreateNodeOpt{&PreferShadowPath{}},
+			want:           ygot.Int32(42),
+			resetNodeCache: true,
 		},
 		{
 			inDesc:           "fail getting a shadow value whose container doesn't exist with preferShadowPath=true",
@@ -607,9 +613,10 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 					},
 				},
 			},
-			inSchema: containerWithUInt32Key,
-			inPath:   mustPath("/config/simple-key-list[key1=42]/outer/inner"),
-			want:     &InnerContainerType1{Int32LeafName: ygot.Int32(42)},
+			inSchema:       containerWithUInt32Key,
+			inPath:         mustPath("/config/simple-key-list[key1=42]/outer/inner"),
+			want:           &InnerContainerType1{Int32LeafName: ygot.Int32(42)},
+			resetNodeCache: true,
 		},
 		{
 			inDesc:           "fail finding with incorrect enum key",
@@ -633,8 +640,9 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 					42: {Key1: 42, Int32LeafName: ygot.Int32(99)},
 				},
 			},
-			inPath: mustPath("/config/simple-key-list[key1=E_VALUE_FORTY_TWO]"),
-			want:   &ListElemEnumKey{Key1: 42, Int32LeafName: ygot.Int32(99)},
+			inPath:         mustPath("/config/simple-key-list[key1=E_VALUE_FORTY_TWO]"),
+			want:           &ListElemEnumKey{Key1: 42, Int32LeafName: ygot.Int32(99)},
+			resetNodeCache: true,
 		},
 		{
 			inDesc:   "success finding bool key",
@@ -645,7 +653,15 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 		},
 	}
 
+	nodeCache := NewNodeCache()
+
 	for i, tt := range tests {
+		// If there are root (inParent) changes. The node cache should be reset before
+		// running the test.
+		if tt.resetNodeCache {
+			nodeCache.Reset()
+		}
+
 		t.Run(tt.inDesc, func(t *testing.T) {
 			got, _, err := GetOrCreateNode(tt.inSchema, tt.inParent, tt.inPath, tt.inOpts...)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
@@ -977,6 +993,7 @@ func TestGetOrCreateNodeWithSimpleSchema(t *testing.T) {
 		inPath           *gpb.Path
 		wantErrSubstring string
 		want             interface{}
+		resetNodeCache   bool
 	}{
 		{
 			inDesc:   "success retrieving container with direct descendant schema",
@@ -1023,8 +1040,9 @@ func TestGetOrCreateNodeWithSimpleSchema(t *testing.T) {
 					},
 				},
 			},
-			inPath: mustPath("/outer/inner/enum-leaf-field"),
-			want:   EnumType(42),
+			inPath:         mustPath("/outer/inner/enum-leaf-field"),
+			want:           EnumType(42),
+			resetNodeCache: true,
 		},
 		{
 			inDesc:   "success retrieving container from existing container",
@@ -1042,7 +1060,14 @@ func TestGetOrCreateNodeWithSimpleSchema(t *testing.T) {
 			},
 		},
 	}
+
+	nodeCache := NewNodeCache()
+
 	for i, tt := range tests {
+		if tt.resetNodeCache {
+			nodeCache.Reset()
+		}
+
 		t.Run(tt.inDesc, func(t *testing.T) {
 			got, _, err := GetOrCreateNode(tt.inSchema, tt.inParent, tt.inPath)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
@@ -1329,6 +1354,7 @@ func TestGetNode(t *testing.T) {
 		inArgs           []GetNodeOpt
 		wantTreeNodes    []*TreeNode
 		wantErrSubstring string
+		resetNodeCache   bool
 	}{{
 		desc:     "simple get leaf",
 		inSchema: rootSchema,
@@ -1364,6 +1390,7 @@ func TestGetNode(t *testing.T) {
 			Data:   (*string)(nil),
 			Path:   mustPath("/leaf"),
 		}},
+		resetNodeCache: true,
 	}, {
 		desc:     "simple get container with no results",
 		inSchema: rootSchema,
@@ -1398,6 +1425,7 @@ func TestGetNode(t *testing.T) {
 			Schema: childContainerSchema,
 			Path:   mustPath("/container"),
 		}},
+		resetNodeCache: true,
 	}, {
 		desc:     "simple get nested container",
 		inSchema: rootSchema,
@@ -1703,6 +1731,7 @@ func TestGetNode(t *testing.T) {
 		inPath:           mustPath("/container/grandchild/val"),
 		inArgs:           []GetNodeOpt{&PreferShadowPath{}},
 		wantErrSubstring: "shadow path traverses a non-leaf node, this is not allowed",
+		resetNodeCache:   true,
 	}, {
 		desc:     "deeper list dual shadow/non-shadow leaf path",
 		inSchema: rootSchema,
@@ -1847,7 +1876,13 @@ func TestGetNode(t *testing.T) {
 		wantErrSubstring: "no match found in *ytypes.listChildContainer",
 	}}
 
+	nodeCache := NewNodeCache()
+
 	for _, tt := range tests {
+		if tt.resetNodeCache {
+			nodeCache.Reset()
+		}
+
 		t.Run(tt.desc, func(t *testing.T) {
 			got, err := GetNode(tt.inSchema, tt.inData, tt.inPath, tt.inArgs...)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
@@ -1891,6 +1926,7 @@ func TestSetNode(t *testing.T) {
 		wantErrSubstring string
 		wantLeaf         interface{}
 		wantParent       interface{}
+		resetNodeCache   bool
 	}{
 		{
 			inDesc:     "success setting string field in top node",
@@ -1902,14 +1938,15 @@ func TestSetNode(t *testing.T) {
 			wantParent: &ListElemStruct1{Key1: ygot.String("hello")},
 		},
 		{
-			inDesc:     "success setting string field in top node with preferShadowPath=true where shadow-path doesn't exist",
-			inSchema:   simpleSchema(),
-			inParentFn: func() interface{} { return &ListElemStruct1{} },
-			inPath:     mustPath("/key1"),
-			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
-			inOpts:     []SetNodeOpt{&PreferShadowPath{}},
-			wantLeaf:   ygot.String("hello"),
-			wantParent: &ListElemStruct1{Key1: ygot.String("hello")},
+			inDesc:         "success setting string field in top node with preferShadowPath=true where shadow-path doesn't exist",
+			inSchema:       simpleSchema(),
+			inParentFn:     func() interface{} { return &ListElemStruct1{} },
+			inPath:         mustPath("/key1"),
+			inVal:          &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
+			inOpts:         []SetNodeOpt{&PreferShadowPath{}},
+			wantLeaf:       ygot.String("hello"),
+			wantParent:     &ListElemStruct1{Key1: ygot.String("hello")},
+			resetNodeCache: true,
 		},
 		{
 			inDesc:           "failure setting uint field in top node with int value",
@@ -1931,24 +1968,26 @@ func TestSetNode(t *testing.T) {
 			wantParent:       &ListElemStruct4{},
 		},
 		{
-			inDesc:     "success setting uint field in uint node with positive int value with JSON tolerance is set",
-			inSchema:   listElemStruct4Schema,
-			inParentFn: func() interface{} { return &ListElemStruct4{} },
-			inPath:     mustPath("/key1"),
-			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
-			inOpts:     []SetNodeOpt{&TolerateJSONInconsistencies{}},
-			wantLeaf:   ygot.Uint32(42),
-			wantParent: &ListElemStruct4{Key1: ygot.Uint32(42)},
+			inDesc:         "success setting uint field in uint node with positive int value with JSON tolerance is set",
+			inSchema:       listElemStruct4Schema,
+			inParentFn:     func() interface{} { return &ListElemStruct4{} },
+			inPath:         mustPath("/key1"),
+			inVal:          &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+			inOpts:         []SetNodeOpt{&TolerateJSONInconsistencies{}},
+			wantLeaf:       ygot.Uint32(42),
+			wantParent:     &ListElemStruct4{Key1: ygot.Uint32(42)},
+			resetNodeCache: true,
 		},
 		{
-			inDesc:     "success setting uint field in uint node with 0 int value with JSON tolerance is set",
-			inSchema:   listElemStruct4Schema,
-			inParentFn: func() interface{} { return &ListElemStruct4{} },
-			inPath:     mustPath("/key1"),
-			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 0}},
-			inOpts:     []SetNodeOpt{&TolerateJSONInconsistencies{}},
-			wantLeaf:   ygot.Uint32(0),
-			wantParent: &ListElemStruct4{Key1: ygot.Uint32(0)},
+			inDesc:         "success setting uint field in uint node with 0 int value with JSON tolerance is set",
+			inSchema:       listElemStruct4Schema,
+			inParentFn:     func() interface{} { return &ListElemStruct4{} },
+			inPath:         mustPath("/key1"),
+			inVal:          &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 0}},
+			inOpts:         []SetNodeOpt{&TolerateJSONInconsistencies{}},
+			wantLeaf:       ygot.Uint32(0),
+			wantParent:     &ListElemStruct4{Key1: ygot.Uint32(0)},
+			resetNodeCache: true,
 		},
 		{
 			inDesc:           "failure setting uint field in uint node with negative int value with JSON tolerance is set",
@@ -2061,6 +2100,7 @@ func TestSetNode(t *testing.T) {
 					},
 				},
 			},
+			resetNodeCache: true,
 		},
 		{
 			inDesc:   "success setting annotation in list element",
@@ -2173,6 +2213,7 @@ func TestSetNode(t *testing.T) {
 					},
 				},
 			},
+			resetNodeCache: true,
 		},
 		{
 			inDesc:   "fail setting with Json (non-ietf) value",
@@ -2240,6 +2281,7 @@ func TestSetNode(t *testing.T) {
 					},
 				},
 			},
+			resetNodeCache: true,
 		},
 		{
 			inDesc:   "success ignoring already-set shadow leaf",
@@ -2305,6 +2347,7 @@ func TestSetNode(t *testing.T) {
 					},
 				},
 			},
+			resetNodeCache: true,
 		},
 		{
 			inDesc:     "success ignore setting shadow leaf",
@@ -2360,6 +2403,7 @@ func TestSetNode(t *testing.T) {
 					},
 				},
 			},
+			resetNodeCache: true,
 		},
 		{
 			inDesc:     "success ignoring non-shadow leaf when preferShadowPath=true",
@@ -2380,6 +2424,7 @@ func TestSetNode(t *testing.T) {
 					},
 				},
 			},
+			resetNodeCache: true,
 		},
 		{
 			inDesc:     "success writing shadow leaf when preferShadowPath=true",
@@ -2402,6 +2447,7 @@ func TestSetNode(t *testing.T) {
 					},
 				},
 			},
+			resetNodeCache: true,
 		},
 		{
 			inDesc:   "fail setting leaf that doesn't exist when preferShadowPath=true",
@@ -2497,6 +2543,7 @@ func TestSetNode(t *testing.T) {
 					},
 				},
 			},
+			resetNodeCache: true,
 		},
 		{
 			inDesc:   "OK setting JSON struct with unknown field with IgnoreExtraFields",
@@ -2531,6 +2578,7 @@ func TestSetNode(t *testing.T) {
 					},
 				},
 			},
+			resetNodeCache: true,
 		},
 		{
 			inDesc:   "success setting list element",
@@ -2653,11 +2701,18 @@ func TestSetNode(t *testing.T) {
 		},
 	}
 
+	nodeCache := NewNodeCache()
+
 	for _, tt := range tests {
 		for typeDesc, inVal := range map[string]interface{}{"scalar": tt.inVal, "JSON": tt.inValJSON} {
 			if inVal == nil {
 				continue
 			}
+
+			if tt.resetNodeCache {
+				nodeCache.Reset()
+			}
+
 			t.Run(tt.inDesc+" "+typeDesc, func(t *testing.T) {
 				parent := tt.inParentFn()
 				err := SetNode(tt.inSchema, parent, tt.inPath, inVal, tt.inOpts...)
@@ -3265,7 +3320,7 @@ func TestRetrieveNodeError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			_, err := retrieveNode(tt.inSchema, tt.inRoot, tt.inPath, nil, tt.inArgs)
+			_, err := retrieveNode(tt.inSchema, nil, tt.inRoot, tt.inPath, nil, tt.inArgs)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("did not get expected error, %s", diff)
 			}

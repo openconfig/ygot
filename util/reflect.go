@@ -256,6 +256,16 @@ func InsertIntoStruct(parentStruct interface{}, fieldName string, fieldValue int
 	// generated code. Here we cast the value to the type in the generated code.
 	if ft.Type.Kind() == reflect.Bool && t.Kind() == reflect.Bool {
 		nv := reflect.New(ft.Type).Elem()
+
+		// If the field is not nil, do not create a new pointer which modifies the
+		// field's memory address under its parent.
+		if pv.Elem().FieldByName(fieldName).Addr().UnsafePointer() != nil {
+			nv = reflect.NewAt(
+				ft.Type,
+				pv.Elem().FieldByName(fieldName).Addr().UnsafePointer(),
+			).Elem()
+		}
+
 		nv.SetBool(v.Bool())
 		v = nv
 	}
@@ -265,6 +275,16 @@ func InsertIntoStruct(parentStruct interface{}, fieldName string, fieldValue int
 	// This will also cast a []uint8 value since byte is an alias for uint8.
 	if ft.Type.Kind() == reflect.Slice && t.Kind() == reflect.Slice && ft.Type.Elem().Kind() == reflect.Uint8 && t.Elem().Kind() == reflect.Uint8 {
 		nv := reflect.New(ft.Type).Elem()
+
+		// If the field is not nil, do not create a new pointer which modifies the
+		// field's memory address under its parent.
+		if pv.Elem().FieldByName(fieldName).Addr().UnsafePointer() != nil {
+			nv = reflect.NewAt(
+				ft.Type,
+				pv.Elem().FieldByName(fieldName).Addr().UnsafePointer(),
+			).Elem()
+		}
+
 		nv.SetBytes(v.Bytes())
 		v = nv
 	}
@@ -272,6 +292,13 @@ func InsertIntoStruct(parentStruct interface{}, fieldName string, fieldValue int
 	n := v
 	if n.IsValid() && (ft.Type.Kind() == reflect.Ptr && t.Kind() != reflect.Ptr) {
 		n = reflect.New(t)
+
+		// If the field is not nil, do not create a new pointer which modifies the
+		// field's memory address under its parent.
+		if pv.Elem().FieldByName(fieldName).UnsafePointer() != nil {
+			n = reflect.NewAt(t, pv.Elem().FieldByName(fieldName).UnsafePointer())
+		}
+
 		n.Elem().Set(v)
 	}
 

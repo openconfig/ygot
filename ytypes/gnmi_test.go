@@ -18,6 +18,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 		inUnmarshalOpts []UnmarshalOpt
 		want            ygot.GoStruct
 		wantErr         bool
+		resetNodeCache  bool
 	}{{
 		desc: "nil input",
 		inSchema: &Schema{
@@ -102,6 +103,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				},
 			},
 		},
+		resetNodeCache: true,
 	}, {
 		desc: "updates of invalid paths to non-empty struct with IgnoreExtraFields",
 		inSchema: &Schema{
@@ -146,6 +148,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				},
 			},
 		},
+		resetNodeCache: true,
 	}, {
 		desc: "replaces and update to a non-empty struct",
 		inSchema: &Schema{
@@ -332,6 +335,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				},
 			},
 		},
+		resetNodeCache: true,
 	}, {
 		desc: "replaces to a non-empty struct with prefix",
 		inSchema: &Schema{
@@ -405,7 +409,13 @@ func TestUnmarshalSetRequest(t *testing.T) {
 		wantErr: true,
 	}}
 
+	nodeCache := NewNodeCache()
+
 	for _, tt := range tests {
+		if tt.resetNodeCache {
+			nodeCache.Reset()
+		}
+
 		t.Run(tt.desc, func(t *testing.T) {
 			err := UnmarshalSetRequest(tt.inSchema, tt.inReq, tt.inUnmarshalOpts...)
 			if gotErr := err != nil; gotErr != tt.wantErr {
@@ -428,6 +438,7 @@ func TestUnmarshalNotifications(t *testing.T) {
 		inUnmarshalOpts []UnmarshalOpt
 		want            ygot.GoStruct
 		wantErr         bool
+		resetNodeCache  bool
 	}{{
 		desc: "updates to an empty struct",
 		inSchema: &Schema{
@@ -460,6 +471,7 @@ func TestUnmarshalNotifications(t *testing.T) {
 				},
 			},
 		},
+		resetNodeCache: true,
 	}, {
 		desc: "updates to non-empty struct",
 		inSchema: &Schema{
@@ -503,6 +515,7 @@ func TestUnmarshalNotifications(t *testing.T) {
 				},
 			},
 		},
+		resetNodeCache: true,
 	}, {
 		desc: "fail: update to invalid field",
 		inSchema: &Schema{
@@ -681,9 +694,16 @@ func TestUnmarshalNotifications(t *testing.T) {
 				},
 			},
 		},
+		resetNodeCache: true,
 	}}
 
+	nodeCache := NewNodeCache()
+
 	for _, tt := range tests {
+		if tt.resetNodeCache {
+			nodeCache.Reset()
+		}
+
 		t.Run(tt.desc, func(t *testing.T) {
 			err := UnmarshalNotifications(tt.inSchema, tt.inNotifications, tt.inUnmarshalOpts...)
 			if gotErr := err != nil; gotErr != tt.wantErr {

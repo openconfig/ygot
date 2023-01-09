@@ -15,7 +15,6 @@
 package ytypes
 
 import (
-	"encoding/json"
 	"reflect"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -25,6 +24,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
+	json "github.com/goccy/go-json"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -64,6 +64,14 @@ type retrieveNodeArgs struct {
 	// ignoreExtraFields avoids generating an error when the input path
 	// refers to a field that does not exist in the GoStruct.
 	ignoreExtraFields bool
+
+	// nodeCache is a data structure that can be passed in by the caller to create fast-paths
+	// for node modifications.
+	nodeCache *NodeCache
+
+	// uniquePathRepresentation can be used by the node cache to reduce duplicated
+	// path string representation processing.
+	uniquePathRepresentation *string
 }
 
 // retrieveNode is an internal function that retrieves the node specified by
@@ -71,7 +79,7 @@ type retrieveNodeArgs struct {
 // retrieveNodeArgs change the way retrieveNode works.
 // retrieveNode returns the list of matching nodes and their schemas, and error.
 // Note that retrieveNode may mutate the tree even if it fails.
-func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
+func retrieveNode(schema *yang.Entry, parent, root interface{}, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
 	switch {
 	case path == nil || len(path.Elem) == 0:
 		// When args.val is non-nil and the schema isn't nil, further check whether
@@ -100,11 +108,17 @@ func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb
 				return nil, status.Errorf(codes.Unknown, "path %v points to a node with non-leaf schema %v", traversedPath, schema)
 			}
 		}
-		return []*TreeNode{{
+
+		nodes := []*TreeNode{{
 			Path:   traversedPath,
 			Schema: schema,
 			Data:   root,
-		}}, nil
+		}}
+
+		if args.nodeCache != nil && traversedPath != nil && parent != nil && root != nil {
+			args.nodeCache.update(nodes, nil, traversedPath, parent, root, args.uniquePathRepresentation)
+		}
+		return nodes, nil
 	case util.IsValueNil(root):
 		if args.delete {
 			// No-op in case of a delete on a field whose value is not populated.
@@ -198,6 +212,11 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			// any node type, whether leaf or non-leaf.
 			if args.delete && len(path.Elem) == to {
 				fv.Set(reflect.Zero(ft.Type))
+
+				// Delete the nodeCache entry.
+				if args.nodeCache != nil && len(path.GetElem()) > 0 {
+					args.nodeCache.delete(appendElem(traversedPath, path.GetElem()[0]))
+				}
 				return nil, nil
 			}
 
@@ -246,10 +265,12 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 				// the struct rather than having to use the parent struct.
 			}
 
-			matches, err := retrieveNode(cschema, fv.Interface(), util.TrimGNMIPathPrefix(path, p[0:to]), np, args)
+			tp := util.TrimGNMIPathPrefix(path, p[0:to])
+			matches, err := retrieveNode(cschema, root, fv.Interface(), tp, np, args)
 			if err != nil {
 				return nil, err
 			}
+
 			// If the child container struct or list map is empty
 			// after the deletion operation is executed, then set
 			// it to its zero value (nil).
@@ -261,10 +282,16 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 				case cschema.IsContainer() || (cschema.IsList() && util.IsTypeStructPtr(reflect.TypeOf(fv.Interface()))):
 					if fv.Elem().IsZero() {
 						fv.Set(reflect.Zero(ft.Type))
+						if args.nodeCache != nil && len(tp.GetElem()) > 0 {
+							args.nodeCache.delete(appendElem(np, tp.GetElem()[0]))
+						}
 					}
 				case cschema.IsList():
 					if fv.Len() == 0 {
 						fv.Set(reflect.Zero(ft.Type))
+						if args.nodeCache != nil && len(tp.GetElem()) > 0 {
+							args.nodeCache.delete(appendElem(np, tp.GetElem()[0]))
+						}
 					}
 				}
 			}
@@ -353,13 +380,13 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 				if err != nil {
 					return nil, status.Errorf(codes.Unknown, "could not get path keys at %v: %v", traversedPath, err)
 				}
-				nodes, err := retrieveNode(schema, listElemV.Interface(), util.PopGNMIPath(path), appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}), args)
+
+				nodes, err := retrieveNode(schema, root, listElemV.Interface(), util.PopGNMIPath(path), appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}), args)
 				if err != nil {
 					return nil, err
 				}
 
 				matches = append(matches, nodes...)
-
 				continue
 			}
 
@@ -388,17 +415,27 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 				remainingPath := util.PopGNMIPath(path)
 				if args.delete && len(remainingPath.GetElem()) == 0 {
 					rv.SetMapIndex(k, reflect.Value{})
+					if args.nodeCache != nil {
+						args.nodeCache.delete(traversedPath)
+					}
+
 					return nil, nil
 				}
-				nodes, err := retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, path.GetElem()[0]), args)
+
+				np := appendElem(traversedPath, path.GetElem()[0])
+				nodes, err := retrieveNode(schema, root, listElemV.Interface(), remainingPath, np, args)
 				if err != nil {
 					return nil, err
 				}
+
 				// If the map element is empty after the
 				// deletion operation is executed, then remove
 				// the map element from the map.
 				if args.delete && rv.MapIndex(k).Elem().IsZero() {
 					rv.SetMapIndex(k, reflect.Value{})
+					if args.nodeCache != nil {
+						args.nodeCache.delete(traversedPath)
+					}
 				}
 				return nodes, nil
 			}
@@ -460,17 +497,27 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 			remainingPath := util.PopGNMIPath(path)
 			if args.delete && len(remainingPath.GetElem()) == 0 {
 				rv.SetMapIndex(k, reflect.Value{})
+				if args.nodeCache != nil {
+					args.nodeCache.delete(traversedPath)
+				}
+
 				return nil, nil
 			}
-			nodes, err := retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}), args)
+
+			np := appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys})
+			nodes, err := retrieveNode(schema, root, listElemV.Interface(), remainingPath, np, args)
 			if err != nil {
 				return nil, err
 			}
+
 			// If the map element is empty after the
 			// deletion operation is executed, then remove
 			// the map element from the map.
 			if args.delete && rv.MapIndex(k).Elem().IsZero() {
 				rv.SetMapIndex(k, reflect.Value{})
+				if args.nodeCache != nil {
+					args.nodeCache.delete(np)
+				}
 			}
 
 			if nodes != nil {
@@ -484,10 +531,16 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 		if err != nil {
 			return nil, err
 		}
-		nodes, err := retrieveNode(schema, rv.MapIndex(reflect.ValueOf(key)).Interface(), util.PopGNMIPath(path), appendElem(traversedPath, path.GetElem()[0]), args)
+
+		tp := util.PopGNMIPath(path)
+		np := appendElem(traversedPath, path.GetElem()[0])
+		valInterface := rv.MapIndex(reflect.ValueOf(key)).Interface()
+
+		nodes, err := retrieveNode(schema, root, valInterface, tp, np, args)
 		if err != nil {
 			return nil, err
 		}
+
 		matches = append(matches, nodes...)
 	}
 
@@ -512,10 +565,24 @@ type GetOrCreateNodeOpt interface {
 //	were created so that a failed call or a call to a shadow path can later undo
 //	this. This applies to SetNode as well.
 func GetOrCreateNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...GetOrCreateNodeOpt) (interface{}, *yang.Entry, error) {
-	nodes, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
+	var c *NodeCache = nil
+	for _, opt := range opts {
+		switch nodeCacheOpt := opt.(type) {
+		case *NodeCacheOpt:
+			nodeCache := nodeCacheOpt.NodeCache
+			if nodeCache == nil {
+				continue
+			}
+
+			c = nodeCache
+		}
+	}
+
+	nodes, err := retrieveNode(schema, nil, root, path, nil, retrieveNodeArgs{
 		modifyRoot:       true,
 		initializeLeafs:  true,
 		preferShadowPath: hasGetOrCreateNodePreferShadowPath(opts),
+		nodeCache:        c,
 	})
 	if err != nil {
 		return nil, nil, err
@@ -539,13 +606,37 @@ type TreeNode struct {
 // also be supplied. It takes a set of options which can be used to specify get behaviours, such as
 // allowing partial match. If there are no matches for the path, an error is returned.
 func GetNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...GetNodeOpt) ([]*TreeNode, error) {
-	return retrieveNode(schema, root, path, nil, retrieveNodeArgs{
+	for _, opt := range opts {
+		switch nodeCacheOpt := opt.(type) {
+		case *NodeCacheOpt:
+			nodeCache := nodeCacheOpt.NodeCache
+			if nodeCache == nil {
+				continue
+			}
+
+			cached, err := nodeCache.get(path)
+			if err != nil {
+				return nil, err
+			}
+
+			if cached != nil {
+				return cached, nil
+			}
+		}
+	}
+
+	nodes, err := retrieveNode(schema, nil, root, path, nil, retrieveNodeArgs{
 		// We never want to modify the input root, so we specify modifyRoot.
 		modifyRoot:       false,
 		partialKeyMatch:  hasPartialKeyMatch(opts),
 		handleWildcards:  hasHandleWildcards(opts),
 		preferShadowPath: hasGetNodePreferShadowPath(opts),
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return nodes, nil
 }
 
 // GetNodeOpt defines an interface that can be used to supply arguments to functions using GetNode.
@@ -607,12 +698,32 @@ func appendElem(p *gpb.Path, e *gpb.PathElem) *gpb.Path {
 // Note that SetNode does not do a full validation -- e.g., it does not do the string
 // regex restriction validation done by ytypes.Validate().
 func SetNode(schema *yang.Entry, root interface{}, path *gpb.Path, val interface{}, opts ...SetNodeOpt) error {
-	nodes, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
+	var c *NodeCache = nil
+	for _, opt := range opts {
+		switch nodeCacheOpt := opt.(type) {
+		case *NodeCacheOpt:
+			nodeCache := nodeCacheOpt.NodeCache
+			if nodeCache == nil {
+				continue
+			}
+
+			c = nodeCache
+
+			if setComplete, err := nodeCache.set(path, val, opts...); err != nil {
+				return err
+			} else if setComplete {
+				return nil
+			}
+		}
+	}
+
+	nodes, err := retrieveNode(schema, nil, root, path, nil, retrieveNodeArgs{
 		modifyRoot:                        hasInitMissingElements(opts),
 		val:                               val,
 		tolerateJSONInconsistenciesForVal: hasTolerateJSONInconsistencies(opts),
 		preferShadowPath:                  hasSetNodePreferShadowPath(opts),
 		ignoreExtraFields:                 hasIgnoreExtraFieldsSetNode(opts),
+		nodeCache:                         c,
 	})
 
 	if err != nil {
@@ -769,7 +880,7 @@ func hasDelNodePreferShadowPath(opts []DelNodeOpt) bool {
 // non-leaf nodes traversed by the path that is equal to the empty struct or
 // map will be set to nil, similar to the behaviour of ygot.PruneEmptyBranches.
 func DeleteNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...DelNodeOpt) error {
-	_, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
+	_, err := retrieveNode(schema, nil, root, path, nil, retrieveNodeArgs{
 		delete:           true,
 		preferShadowPath: hasDelNodePreferShadowPath(opts),
 	})

@@ -40,7 +40,7 @@ func mustPath(s string) *gnmipb.Path {
 func jsonIETF(s string) *gnmipb.TypedValue {
 	return &gnmipb.TypedValue{
 		Value: &gnmipb.TypedValue_JsonIetfVal{
-			[]byte(s),
+			JsonIetfVal: []byte(s),
 		},
 	}
 }
@@ -86,7 +86,7 @@ func TestGNMIUpdateComparer(t *testing.T) {
 		wantDiff: &gnmipb.Notification{
 			Update: []*gnmipb.Update{{
 				Path: mustPath("/system/config/hostname"),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"bus"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bus"}},
 			}},
 		},
 	}, {
@@ -157,11 +157,11 @@ func TestGNMIUpdateComparer(t *testing.T) {
 		desc: "equal: not IETF JSON",
 		inA: &gnmipb.Update{
 			Path: mustPath("/system/config/hostname"),
-			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"fish"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "fish"}},
 		},
 		inB: &gnmipb.Update{
 			Path: mustPath("/system/config/hostname"),
-			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"fish"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "fish"}},
 		},
 		inSpec:    commonSpec,
 		wantEqual: true,
@@ -169,11 +169,11 @@ func TestGNMIUpdateComparer(t *testing.T) {
 		desc: "not equal: different paths",
 		inA: &gnmipb.Update{
 			Path: mustPath("/system/config/domain-name"),
-			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"fish"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "fish"}},
 		},
 		inB: &gnmipb.Update{
 			Path: mustPath("/system/config/hostname"),
-			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"fish"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "fish"}},
 		},
 		inSpec:    commonSpec,
 		wantEqual: false,
@@ -191,7 +191,7 @@ func TestGNMIUpdateComparer(t *testing.T) {
 		desc: "not equal: one value nil",
 		inA: &gnmipb.Update{
 			Path: mustPath("/system/config/domain-name"),
-			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"fish"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "fish"}},
 		},
 		inB: &gnmipb.Update{
 			Path: mustPath("/system/config/domain-name"),
@@ -202,11 +202,11 @@ func TestGNMIUpdateComparer(t *testing.T) {
 		desc: "not equal: different types",
 		inA: &gnmipb.Update{
 			Path: mustPath("/system/config/hostname"),
-			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"fish"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "fish"}},
 		},
 		inB: &gnmipb.Update{
 			Path: mustPath("/system/config/hostname"),
-			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{42}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{UintVal: 42}},
 		},
 		inSpec:    commonSpec,
 		wantEqual: false,

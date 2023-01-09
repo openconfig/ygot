@@ -64,7 +64,7 @@ var (
 	// unionSingletonUnderlyingTypes stores the underlying types of the
 	// singleton (i.e. non-struct, non-slice, non-map) typedefs used to
 	// represent union subtypes for the "Simplified Union Leaf" way of
-	// representatiing unions in the Go generated code.
+	// representing unions in the Go generated code.
 	unionSingletonUnderlyingTypes = map[string]reflect.Type{
 		"UnionInt8":    reflect.TypeOf(int8(0)),
 		"UnionInt16":   reflect.TypeOf(int16(0)),
@@ -92,7 +92,10 @@ func (p *path) String() string {
 	if p.p.isPathElemPath() {
 		return prototext.Format(&gnmipb.Path{Elem: p.p.pathElemPath})
 	}
-	return fmt.Sprintf("%v", p.p.pathElemPath)
+
+	// If the path is not path element path, return the joined string (unique for keying)
+	// of the string slice path.
+	return strings.Join(p.p.stringSlicePath, "/")
 }
 
 // gnmiPath provides a wrapper for gNMI path types, particularly
@@ -156,6 +159,20 @@ func (g *gnmiPath) Copy() *gnmiPath {
 	}
 
 	n.pathElemPath = make([]*gnmipb.PathElem, len(g.pathElemPath))
+	copy(n.pathElemPath, g.pathElemPath)
+	return n
+}
+
+// CopyReserve performs normal Copy and reserves extra space for the slices.
+func (g *gnmiPath) CopyReserve(reservedSize int) *gnmiPath {
+	n := &gnmiPath{}
+	if g.isStringSlicePath() {
+		n.stringSlicePath = make([]string, len(g.stringSlicePath)+reservedSize)
+		copy(n.stringSlicePath, g.stringSlicePath)
+		return n
+	}
+
+	n.pathElemPath = make([]*gnmipb.PathElem, len(g.pathElemPath)+reservedSize)
 	copy(n.pathElemPath, g.pathElemPath)
 	return n
 }
@@ -391,78 +408,83 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPat
 			}
 		}
 
-		mapPaths, err := structTagToLibPaths(ftype, parent, false)
-		if err != nil {
-			errs.Add(fmt.Errorf("%v->%s: %v", parent, ftype.Name, err))
-			continue
-		}
+		func() {
+			mapPaths := mapPathsPool.Get().([]*gnmiPath)
+			defer mapPathsPool.Put(mapPaths)
 
-		switch fval.Kind() {
-		case reflect.Map:
-			// We need to map each child along with its key value.
-			for _, k := range fval.MapKeys() {
-				childPath, err := mapValuePath(k, fval.MapIndex(k), mapPaths[0])
-				if err != nil {
-					errs.Add(err)
-					continue
-				}
-
-				goStruct, ok := fval.MapIndex(k).Interface().(GoStruct)
-				if !ok {
-					errs.Add(fmt.Errorf("%v: was not a valid GoStruct", mapPaths[0]))
-					continue
-				}
-				errs.Add(findUpdatedLeaves(leaves, goStruct, childPath))
+			numPaths, err := structTagToLibPaths(mapPaths, ftype, parent, false)
+			if err != nil {
+				errs.Add(fmt.Errorf("%v->%s: %v", parent, ftype.Name, err))
+				return
 			}
-		case reflect.Ptr:
-			// Determine whether this is a pointer to a struct (another YANG container), or a leaf.
-			switch fval.Elem().Kind() {
-			case reflect.Struct:
-				goStruct, ok := fval.Interface().(GoStruct)
-				if !ok {
-					errs.Add(fmt.Errorf("%v: was not a valid GoStruct", mapPaths[0]))
-					continue
+
+			switch fval.Kind() {
+			case reflect.Map:
+				// We need to map each child along with its key value.
+				for _, k := range fval.MapKeys() {
+					childPath, err := mapValuePath(k, fval.MapIndex(k), mapPaths[0])
+					if err != nil {
+						errs.Add(err)
+						return
+					}
+
+					goStruct, ok := fval.MapIndex(k).Interface().(GoStruct)
+					if !ok {
+						errs.Add(fmt.Errorf("%v: was not a valid GoStruct", mapPaths[0]))
+						return
+					}
+					errs.Add(findUpdatedLeaves(leaves, goStruct, childPath))
 				}
-				errs.Add(findUpdatedLeaves(leaves, goStruct, mapPaths[0]))
-			default:
-				for _, p := range mapPaths {
+			case reflect.Ptr:
+				// Determine whether this is a pointer to a struct (another YANG container), or a leaf.
+				switch fval.Elem().Kind() {
+				case reflect.Struct:
+					goStruct, ok := fval.Interface().(GoStruct)
+					if !ok {
+						errs.Add(fmt.Errorf("%v: was not a valid GoStruct", mapPaths[0]))
+						return
+					}
+					errs.Add(findUpdatedLeaves(leaves, goStruct, mapPaths[0]))
+				default:
+					for _, p := range mapPaths[:numPaths] {
+						leaves[&path{p}] = fval.Interface()
+					}
+				}
+			case reflect.Slice:
+				if fval.Type().Elem().Kind() == reflect.Ptr {
+					// This is a keyless list - currently unsupported for mapping since there is
+					// not an explicit path that can be used.
+					errs.Add(fmt.Errorf("unimplemented: keyless list cannot be output: %v", mapPaths[0]))
+					return
+				}
+				// This is a leaf-list, so add it as though it were a leaf.
+				for _, p := range mapPaths[:numPaths] {
 					leaves[&path{p}] = fval.Interface()
 				}
-			}
-		case reflect.Slice:
-			if fval.Type().Elem().Kind() == reflect.Ptr {
-				// This is a keyless list - currently unsupported for mapping since there is
-				// not an explicit path that can be used.
-				errs.Add(fmt.Errorf("unimplemented: keyless list cannot be output: %v", mapPaths[0]))
-				continue
-			}
-			// This is a leaf-list, so add it as though it were a leaf.
-			for _, p := range mapPaths {
-				leaves[&path{p}] = fval.Interface()
-			}
-		case reflect.Int64:
-			name, set, err := enumFieldToString(fval, false)
-			if err != nil {
-				errs.Add(err)
-				continue
-			}
+			case reflect.Int64:
+				name, set, err := enumFieldToString(fval, false)
+				if err != nil {
+					errs.Add(err)
+					return
+				}
 
-			// Skip if the enum has not been explicitly set in the schema.
-			if !set {
-				continue
-			}
+				// Skip if the enum has not been explicitly set in the schema.
+				if !set {
+					return
+				}
 
-			for _, p := range mapPaths {
-				leaves[&path{p}] = name
+				for _, p := range mapPaths[:numPaths] {
+					leaves[&path{p}] = name
+				}
+				return
+			case reflect.Interface:
+				// This is a union value.
+				for _, p := range mapPaths[:numPaths] {
+					leaves[&path{p}] = fval.Interface()
+				}
+				return
 			}
-			continue
-		case reflect.Interface:
-			// This is a union value.
-			for _, p := range mapPaths {
-				leaves[&path{p}] = fval.Interface()
-			}
-			continue
-		}
+		}()
 	}
 	return errs.Err()
 }
@@ -707,7 +729,7 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding, opts ...EncodeTypedV
 		if err != nil {
 			return nil, fmt.Errorf("cannot marshal enum, %v", err)
 		}
-		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{en}}, nil
+		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: en}}, nil
 	}
 
 	vv := reflect.ValueOf(val)
@@ -719,9 +741,9 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding, opts ...EncodeTypedV
 		return nil, fmt.Errorf("cannot represent field value %v as TypedValue", val)
 	case vv.Type().Name() == BinaryTypeName:
 		// This is a binary type which is defined as a []byte, so we encode it as the bytes.
-		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{vv.Bytes()}}, nil
+		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{BytesVal: vv.Bytes()}}, nil
 	case vv.Type().Name() == EmptyTypeName:
-		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{vv.Bool()}}, nil
+		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{BoolVal: vv.Bool()}}, nil
 	case vv.Kind() == reflect.Slice:
 		sval, err := leaflistToSlice(vv, false)
 		if err != nil {
@@ -732,7 +754,7 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding, opts ...EncodeTypedV
 		if err != nil {
 			return nil, err
 		}
-		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{arr}}, nil
+		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{LeaflistVal: arr}}, nil
 	case util.IsValueStructPtr(vv):
 		nv, err := unwrapUnionInterfaceValue(vv, false)
 		if err != nil {
@@ -741,7 +763,7 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding, opts ...EncodeTypedV
 		vv = reflect.ValueOf(nv)
 		// Apart from binary, all other possible union subtypes are scalars or typedefs of scalars.
 		if vv.Type().Name() == BinaryTypeName {
-			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{vv.Bytes()}}, nil
+			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{BytesVal: vv.Bytes()}}, nil
 		}
 	case util.IsValuePtr(vv):
 		vv = vv.Elem()
@@ -777,14 +799,14 @@ func marshalStruct(s GoStruct, enc gnmipb.Encoding, cfg *RFC7951JSONConfig) (*gn
 	case gnmipb.Encoding_JSON:
 		j, err = ConstructInternalJSON(s)
 		encfn = func(s string) *gnmipb.TypedValue {
-			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonVal{[]byte(s)}}
+			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonVal{JsonVal: []byte(s)}}
 		}
 	case gnmipb.Encoding_JSON_IETF:
 		// We always prepend the module name when marshalling within a Notification.
 		cfg.AppendModuleName = true
 		j, err = ConstructIETFJSON(s, cfg)
 		encfn = func(s string) *gnmipb.TypedValue {
-			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(s)}}
+			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(s)}}
 		}
 	default:
 		return nil, fmt.Errorf("invalid encoding %v", gnmipb.Encoding_name[int32(enc)])
@@ -1094,9 +1116,6 @@ func rewriteModName(mod string, rules map[string]string) string {
 // there are modules to be prepended, it also returns the module to which the
 // field belongs. It will also return an error if it encounters one.
 func prependmodsJSON(fType reflect.StructField, parentMod string, args jsonOutputConfig) ([][]string, string, error) {
-	var prependmods [][]string
-	var chMod string
-
 	mapModules, err := structTagToLibModules(fType, args.rfc7951Config.PreferShadowPath)
 	if err != nil {
 		return nil, "", fmt.Errorf("%s: %v", fType.Name, err)
@@ -1105,8 +1124,11 @@ func prependmodsJSON(fType reflect.StructField, parentMod string, args jsonOutpu
 		return nil, "", nil
 	}
 
-	for _, modulePath := range mapModules {
-		var prependmod []string
+	prependmods := make([][]string, len(mapModules))
+	var chMod string
+
+	for idx, modulePath := range mapModules {
+		prependmod := make([]string, modulePath.Len())
 		prevMod := parentMod
 		for i := 0; i != modulePath.Len(); i++ {
 			mod, err := modulePath.StringElemAt(i)
@@ -1122,12 +1144,12 @@ func prependmodsJSON(fType reflect.StructField, parentMod string, args jsonOutpu
 			} else {
 				prevMod = mod
 			}
-			prependmod = append(prependmod, mod)
+			prependmod[i] = mod
 		}
 		if chMod != "" && prevMod != chMod {
 			return nil, "", fmt.Errorf("%s: child modules between all paths are not equal: %v", fType.Name, mapModules)
 		}
-		prependmods = append(prependmods, prependmod)
+		prependmods[idx] = prependmod
 		chMod = prevMod
 	}
 	return prependmods, chMod, nil
@@ -1165,15 +1187,22 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			}
 		}
 
-		mapPaths, err := structTagToLibPaths(fType, newStringSliceGNMIPath([]string{}), args.rfc7951Config != nil && args.rfc7951Config.PreferShadowPath)
-		if err != nil {
-			errs.Add(fmt.Errorf("%s: %v", fType.Name, err))
-			continue
+		var ok bool
+		var pathAnnotation string
+		if args.rfc7951Config != nil && args.rfc7951Config.PreferShadowPath {
+			pathAnnotation, ok = fType.Tag.Lookup("shadow-path")
+		}
+
+		if !ok {
+			if pathAnnotation, ok = fType.Tag.Lookup("path"); !ok {
+				errs.Add(fmt.Errorf("%s: %s", fType.Name, "field did not specify a path"))
+				continue
+			}
 		}
 
 		// s is the fake root if its path tag is empty. In this case,
 		// we want to forward the parent module to the child nodes.
-		isFakeRoot := len(mapPaths) == 1 && mapPaths[0].Len() == 0
+		isFakeRoot := pathAnnotation == ""
 		if isFakeRoot {
 			chMod = parentMod
 		}
@@ -1203,45 +1232,90 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			continue
 		}
 
-		if prependmods != nil && len(mapPaths) != len(prependmods) {
-			errs.Add(fmt.Errorf("%s: number of paths and modules in struct tag not the same: (paths: %v, modules: %v)", fType.Name, len(mapPaths), len(prependmods)))
-			continue
-		}
+		// This is a shortcut to avoid additional allocations and improve performance.
+		//
+		// The structTagToLibPaths call performs many allocations which can be prevented
+		// by using this shortcut.
+		//
+		// Currently, this shortcut only handles cases when not prepending the module name
+		// and not having a "|" separator in the path tag.
+		if prependmods == nil && strings.Index(pathAnnotation, "|") == -1 {
+			parent := jsonout
 
-		for i, p := range mapPaths {
-			if prependmods != nil && p.Len() != len(prependmods[i]) {
-				errs.Add(fmt.Errorf("number of paths and modules elements not the same: (paths: %v, modules: %v)", p, prependmods[i]))
+			if strings.Index(pathAnnotation, "/") == -1 {
+				parent[pathAnnotation] = value
 				continue
 			}
 
-			parent := jsonout
-			j := 0
-			for ; j != p.Len()-1; j++ {
-				k, err := p.StringElemAt(j)
+			pathSplit := strings.Split(pathAnnotation, "/")
+			for i, p := range pathSplit {
+				if p == "" {
+					continue
+				}
+
+				if i < len(pathSplit)-1 {
+					if _, ok := parent[p]; !ok {
+						parent[p] = map[string]interface{}{}
+					}
+					parent = parent[p].(map[string]interface{})
+				} else {
+					parent[p] = value
+				}
+			}
+
+			continue
+		}
+
+		func() {
+			mapPaths := mapPathsPool.Get().([]*gnmiPath)
+			defer mapPathsPool.Put(mapPaths)
+
+			numPaths, err := pathAnnotationToLibPaths(mapPaths, pathAnnotation, newStringSliceGNMIPath([]string{}))
+			if err != nil {
+				errs.Add(fmt.Errorf("%s: %v", fType.Name, err))
+				return
+			}
+
+			if prependmods != nil && numPaths != len(prependmods) {
+				errs.Add(fmt.Errorf("%s: number of paths and modules in struct tag not the same: (paths: %v, modules: %v)", fType.Name, numPaths, len(prependmods)))
+				return
+			}
+
+			for i, p := range mapPaths[:numPaths] {
+				if prependmods != nil && p.Len() != len(prependmods[i]) {
+					errs.Add(fmt.Errorf("number of paths and modules elements not the same: (paths: %v, modules: %v)", p, prependmods[i]))
+					return
+				}
+
+				parent := jsonout
+				j := 0
+				for ; j != p.Len()-1; j++ {
+					k, err := p.StringElemAt(j)
+					if err != nil {
+						errs.Add(err)
+						continue
+					}
+
+					if prependmods != nil && prependmods[i][j] != "" {
+						k = strings.Join([]string{prependmods[i][j], k}, ":")
+					}
+
+					if _, ok := parent[k]; !ok {
+						parent[k] = map[string]interface{}{}
+					}
+					parent = parent[k].(map[string]interface{})
+				}
+				k, err := p.LastStringElem()
 				if err != nil {
 					errs.Add(err)
 					continue
 				}
-
 				if prependmods != nil && prependmods[i][j] != "" {
-					k = fmt.Sprintf("%s:%s", prependmods[i][j], k)
+					k = strings.Join([]string{prependmods[i][j], k}, ":")
 				}
-
-				if _, ok := parent[k]; !ok {
-					parent[k] = map[string]interface{}{}
-				}
-				parent = parent[k].(map[string]interface{})
+				parent[k] = value
 			}
-			k, err := p.LastStringElem()
-			if err != nil {
-				errs.Add(err)
-				continue
-			}
-			if prependmods != nil && prependmods[i][j] != "" {
-				k = fmt.Sprintf("%s:%s", prependmods[i][j], k)
-			}
-			parent[k] = value
-		}
+		}()
 	}
 
 	if errs.Err() != nil {
@@ -1256,8 +1330,20 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 // and float64 values are represented as strings.
 func writeIETFScalarJSON(i interface{}) interface{} {
 	switch reflect.ValueOf(i).Kind() {
-	case reflect.Uint64, reflect.Int64, reflect.Float64:
+	case reflect.Float64:
 		return fmt.Sprintf("%v", i)
+	case reflect.Int64:
+		if val, ok := i.(int64); ok {
+			return strconv.FormatInt(int64(val), 10)
+		}
+
+		return fmt.Sprintf("%d", i)
+	case reflect.Uint64:
+		if val, ok := i.(uint64); ok {
+			return strconv.FormatUint(uint64(val), 10)
+		}
+
+		return fmt.Sprintf("%d", i)
 	}
 	return i
 }
@@ -1303,7 +1389,15 @@ func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (inte
 				errs.Add(fmt.Errorf("invalid enumerated key: %v", err))
 				continue
 			}
-			kn := fmt.Sprintf("%v", keyval)
+
+			var kn string
+			switch keyval.(type) {
+			case string:
+				kn = keyval.(string)
+			default:
+				kn = fmt.Sprintf("%v", keyval)
+			}
+
 			mapKeys = append(mapKeys, kn)
 			mapKeyMap[kn] = k
 		}
@@ -1402,9 +1496,6 @@ func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (inte
 // and the type of JSON to be rendered controlled by the value of the jsonOutputConfig
 // provided. Returns an error if one occurs during the mapping process.
 func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (interface{}, error) {
-	var value interface{}
-	var errs errlist.List
-
 	switch field.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Ptr, reflect.Interface:
 		if field.IsNil() {
@@ -1414,6 +1505,11 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 
 	prependModuleNameIref := args.rfc7951Config != nil && (args.rfc7951Config.AppendModuleName || args.rfc7951Config.PrependModuleNameIdentityref)
 
+	var value interface{}
+	var errs errlist.List
+
+	// When jType == RFC7951, per the IETF RFC7951 specificatioin,
+	// uint64, int64 and float64 values are represented as strings.
 	switch field.Kind() {
 	case reflect.Map:
 		var err error
@@ -1434,6 +1530,36 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 			if err != nil {
 				errs.Add(err)
 			}
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
+			value = field.Elem().Int()
+		case reflect.Int64:
+			if args.jType == RFC7951 {
+				val := field.Elem().Int()
+				value = strconv.FormatInt(val, 10)
+			} else {
+				value = field.Elem().Int()
+			}
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
+			value = field.Elem().Uint()
+		case reflect.Uint64:
+			if args.jType == RFC7951 {
+				val := field.Elem().Uint()
+				value = strconv.FormatUint(val, 10)
+			} else {
+				value = field.Elem().Uint()
+			}
+		case reflect.Float32:
+			value = field.Elem().Float()
+		case reflect.Float64:
+			if args.jType == RFC7951 {
+				value = fmt.Sprintf("%g", field.Elem().Float())
+			} else {
+				value = field.Elem().Float()
+			}
+		case reflect.String:
+			value = field.Elem().String()
+		case reflect.Bool:
+			value = field.Elem().Bool()
 		default:
 			value = field.Elem().Interface()
 			if args.jType == RFC7951 {
@@ -1441,7 +1567,6 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 			}
 		}
 	case reflect.Slice:
-
 		isAnnotationSlice := func(v reflect.Value) bool {
 			annoT := reflect.TypeOf((*Annotation)(nil)).Elem()
 			return v.Type().Elem().Implements(annoT)

@@ -52,6 +52,7 @@ func TestSet(t *testing.T) {
 		inOpts           []ytypes.SetNodeOpt
 		wantErrSubstring string
 		wantNode         *ytypes.TreeNode
+		resetNodeCache   bool // Reset the node cache to clear the cache state.
 	}{{
 		desc:     "set leafref with mismatched name - compressed schema",
 		inSchema: mustSchema(exampleoc.Schema),
@@ -72,7 +73,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-2"},
 		},
 		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantNode: &ytypes.TreeNode{
@@ -114,7 +115,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-2"},
 		},
 		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantNode: &ytypes.TreeNode{
@@ -163,7 +164,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_UintVal{5},
+			Value: &gpb.TypedValue_UintVal{UintVal: 5},
 		},
 		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantNode: &ytypes.TreeNode{
@@ -212,7 +213,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-2"},
 		},
 		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantNode: &ytypes.TreeNode{
@@ -254,7 +255,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-2"},
 		},
 		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantNode: &ytypes.TreeNode{
@@ -277,6 +278,7 @@ func TestSet(t *testing.T) {
 			// No error, but leaf is not set when shadow-path is provided.
 			Data: nil,
 		},
+		resetNodeCache: true,
 	}, {
 		desc:     "set state (shadowed schema) key list - compressed schema - schema doesn't contain shadow-path",
 		inSchema: mustSchema(exampleoc.Schema),
@@ -297,7 +299,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-2"},
 		},
 		inOpts:           []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantErrSubstring: "no match found",
@@ -310,7 +312,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_IntVal{42},
+			Value: &gpb.TypedValue_IntVal{IntVal: 42},
 		},
 		wantErrSubstring: "no match found",
 	}, {
@@ -326,7 +328,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_UintVal{42},
+			Value: &gpb.TypedValue_UintVal{UintVal: 42},
 		},
 		inOpts:           []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantErrSubstring: "failed to unmarshal",
@@ -379,7 +381,13 @@ func TestSet(t *testing.T) {
 		},
 	}}
 
+	nodeCache := ytypes.NewNodeCache()
+
 	for _, tt := range tests {
+		if tt.resetNodeCache {
+			nodeCache.Reset()
+		}
+
 		t.Run(tt.desc, func(t *testing.T) {
 			err := ytypes.SetNode(tt.inSchema.RootSchema(), tt.inSchema.Root, tt.inPath, tt.inValue, tt.inOpts...)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {

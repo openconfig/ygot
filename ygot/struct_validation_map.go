@@ -28,6 +28,9 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
+
+	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 
 	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/ygot/util"
@@ -37,16 +40,27 @@ const (
 	// indentString represents the default indentation string used for
 	// JSON. Three spaces are used based on the legacy use of EmitJSON.
 	indentString string = "   "
+
+	// pathPoolBufSize is the allocation size of the mapPathsPool, this should
+	// not be very large since the size of mapPaths is determined by the number
+	// of "|" separators.
+	pathPoolBufSize = 16
 )
 
+// mapPathsPool helps reduce heap allocations.
+var mapPathsPool = sync.Pool{
+	New: func() interface{} {
+		return make([]*gnmiPath, pathPoolBufSize)
+	},
+}
+
 // structTagToLibPaths takes an input struct field as a reflect.Type, and determines
-// the set of validation library paths that it maps to. Returns the paths as a slice of
-// empty interface slices, or an error.
+// the set of validation library paths that it maps to.
 //
-// Note: the returned paths use a shallow copy of the parentPath.
-func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath, preferShadowPath bool) ([]*gnmiPath, error) {
+// Note: the mapPaths input is modified in-place.
+func structTagToLibPaths(mapPaths []*gnmiPath, f reflect.StructField, parentPath *gnmiPath, preferShadowPath bool) (int, error) {
 	if !parentPath.isValid() {
-		return nil, fmt.Errorf("invalid path format in parentPath (%v, %v)", parentPath.stringSlicePath == nil, parentPath.pathElemPath == nil)
+		return 0, fmt.Errorf("invalid path format in parentPath (%v, %v)", parentPath.stringSlicePath == nil, parentPath.pathElemPath == nil)
 	}
 
 	var pathAnnotation string
@@ -56,32 +70,64 @@ func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath, preferShad
 	}
 	if !ok {
 		if pathAnnotation, ok = f.Tag.Lookup("path"); !ok {
-			return nil, fmt.Errorf("field did not specify a path")
+			return 0, fmt.Errorf("field did not specify a path")
 		}
 	}
 
-	var mapPaths []*gnmiPath
-	tagPaths := strings.Split(pathAnnotation, "|")
-	for _, p := range tagPaths {
+	return pathAnnotationToLibPaths(mapPaths, pathAnnotation, parentPath)
+}
+
+// pathAnnotationToLibPaths takes the already looked-up pathAnnotation as input and determines
+// the set of validation library paths that it describes.
+//
+// Note: the mapPaths input is modified in-place.
+func pathAnnotationToLibPaths(mapPaths []*gnmiPath, pathAnnotation string, parentPath *gnmiPath) (int, error) {
+	var tagPaths []string
+	if strings.Index(pathAnnotation, "|") == -1 {
+		tagPaths = []string{pathAnnotation}
+	} else {
+		tagPaths = strings.Split(pathAnnotation, "|")
+	}
+
+	for idx, p := range tagPaths {
+		var pSplit []string
+		if strings.Index(p, "/") == -1 {
+			pSplit = []string{p}
+		} else {
+			pSplit = strings.Split(p, "/")
+		}
+
 		// Make a copy of the existing parent path so we can append to it without
 		// modifying it for future paths.
-		ePath := parentPath.Copy()
-
-		for _, pp := range strings.Split(p, "/") {
-			// Handle empty path tags.
+		ePath := parentPath.CopyReserve(len(pSplit))
+		eIdx := parentPath.Len()
+		for _, pp := range pSplit {
 			if pp == "" {
 				continue
 			}
-			ePath.AppendName(pp)
+
+			if parentPath.isStringSlicePath() {
+				ePath.stringSlicePath[eIdx] = pp
+			} else {
+				ePath.pathElemPath[eIdx] = &gnmipb.PathElem{Name: pp}
+			}
+
+			eIdx++
 		}
 
 		if len(p) > 0 && p[0] == '/' {
 			ePath.isAbsolute = true
 		}
 
-		mapPaths = append(mapPaths, ePath)
+		if parentPath.isStringSlicePath() {
+			ePath.stringSlicePath = ePath.stringSlicePath[:eIdx]
+		} else {
+			ePath.pathElemPath = ePath.pathElemPath[:eIdx]
+		}
+
+		mapPaths[idx] = ePath
 	}
-	return mapPaths, nil
+	return len(tagPaths), nil
 }
 
 // structTagToLibModules takes an input struct field as a reflect.Type, and
@@ -104,13 +150,17 @@ func structTagToLibModules(f reflect.StructField, preferShadowPath bool) ([]*gnm
 	}
 
 	var mapModules []*gnmiPath
-	for _, m := range strings.Split(moduleAnnotation, "|") {
+
+	var moduleSplit []string
+	if strings.Index(moduleAnnotation, "|") == -1 {
+		moduleSplit = append(moduleSplit, moduleAnnotation)
+	} else {
+		moduleSplit = strings.Split(moduleAnnotation, "|")
+	}
+
+	for _, m := range moduleSplit {
 		eModule := newStringSliceGNMIPath(nil)
 		for _, mm := range strings.Split(m, "/") {
-			// Handle empty module tags.
-			if mm == "" {
-				continue
-			}
 			eModule.AppendName(mm)
 		}
 
@@ -175,11 +225,10 @@ func enumFieldToString(field reflect.Value, prependModuleNameIref bool) (string,
 		return "", false, fmt.Errorf("cannot map enumerated value as type %s has unknown value %d", field.Type().Name(), enumVal)
 	}
 
-	n := def.Name
 	if prependModuleNameIref && def.DefiningModule != "" {
-		n = fmt.Sprintf("%s:%s", def.DefiningModule, def.Name)
+		return strings.Join([]string{def.DefiningModule, def.Name}, ":"), true, nil
 	}
-	return n, true, nil
+	return def.Name, true, nil
 }
 
 // EnumLogString uses the EnumDefinition map of the given enum, an input
