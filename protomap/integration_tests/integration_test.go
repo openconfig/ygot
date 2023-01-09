@@ -82,9 +82,11 @@ func TestGRIBIAFT(t *testing.T) {
 				},
 			}},
 		},
-		// Leaf-list of unions are currently unsupported, but previously this
-		// would panic.
-		wantErr: true,
+    wantPaths: map[*gpb.Path]interface{}{
+      mustPath("afts/next-hops/next-hop[index=1]/state/pushed-mpls-label-stack"): []interface{}{uint64(42)},
+      mustPath("afts/next-hops/next-hop[index=1]/index"): uint64(1),
+      mustPath("afts/next-hops/next-hop[index=1]/state/index"): uint64(1),
+    },
 	}}
 
 	for _, tt := range tests {
