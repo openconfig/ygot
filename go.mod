@@ -9,7 +9,7 @@ require (
 	github.com/kylelemons/godebug v1.1.0
 	github.com/openconfig/gnmi v0.0.0-20220920173703-480bf53a74d2
 	github.com/openconfig/goyang v1.2.0
-	github.com/openconfig/gribi v0.1.1-0.20210423184541-ce37eb4ba92f
+	github.com/openconfig/gribi v0.1.1-0.20221218044856-ec9f4fc18013
 	github.com/pmezard/go-difflib v1.0.0
 	google.golang.org/grpc v1.40.0
 	google.golang.org/protobuf v1.28.0
