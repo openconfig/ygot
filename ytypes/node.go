@@ -244,7 +244,29 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 				// the struct rather than having to use the parent struct.
 			}
 
-			return retrieveNode(cschema, fv.Interface(), util.TrimGNMIPathPrefix(path, p[0:to]), np, args)
+			matches, err := retrieveNode(cschema, fv.Interface(), util.TrimGNMIPathPrefix(path, p[0:to]), np, args)
+			if err != nil {
+				return nil, err
+			}
+			// If the child container struct or list map is empty
+			// after the deletion operation is executed, then set
+			// it to its zero value (nil).
+			if args.delete {
+				switch {
+				case util.IsValueNil(fv.Interface()):
+				case cschema == nil:
+					return nil, status.Errorf(codes.InvalidArgument, "could not find schema for path %v", np)
+				case cschema.IsContainer() || (cschema.IsList() && util.IsTypeStructPtr(reflect.TypeOf(fv.Interface()))):
+					if fv.Elem().IsZero() {
+						fv.Set(reflect.Zero(ft.Type))
+					}
+				case cschema.IsList():
+					if fv.Len() == 0 {
+						fv.Set(reflect.Zero(ft.Type))
+					}
+				}
+			}
+			return matches, nil
 		}
 
 		// Continue traversal on the first-encountered annotated
@@ -347,7 +369,13 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 
 			kv, err := getKeyValue(listElemV.Elem(), schema.Key)
 			if err != nil {
-				return nil, status.Errorf(codes.Unknown, "failed to get key value for %v, path %v: %v", listElemV.Interface(), path, err)
+				// If the key field is not populated, then fall back to using the key being used in the map.
+				// We're technically operating on a schema-invalid struct, but this could be a
+				// transitory state for the GoStruct.
+				// An example is when there is a batch delete of all paths underneath the list where the
+				// deletion paths are deleted in random order -- in this case we would want to avoid a
+				// deletion error.
+				kv = k.Interface()
 			}
 
 			keyAsString, err := ygot.KeyValueAsString(kv)
@@ -360,7 +388,17 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 					rv.SetMapIndex(k, reflect.Value{})
 					return nil, nil
 				}
-				return retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, path.GetElem()[0]), args)
+				nodes, err := retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, path.GetElem()[0]), args)
+				if err != nil {
+					return nil, err
+				}
+				// If the map element is empty after the
+				// deletion operation is executed, then remove
+				// the map element from the map.
+				if args.delete && rv.MapIndex(k).Elem().IsZero() {
+					rv.SetMapIndex(k, reflect.Value{})
+				}
+				return nodes, nil
 			}
 			continue
 		}
@@ -407,7 +445,15 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 		if match {
 			keys, err := ygot.PathKeyFromStruct(listElemV)
 			if err != nil {
-				return nil, status.Errorf(codes.Unknown, "could not extract keys from %v: %v", traversedPath, err)
+				// If the key field is not populated, then fall back to using the key being used in the map.
+				// We're technically operating on a schema-invalid struct, but this could be a
+				// transitory state for the GoStruct.
+				// An example is when there is a batch delete of all paths underneath the list where the
+				// deletion paths are deleted in random order -- in this case we would want to avoid a
+				// deletion error.
+				if keys, err = ygot.PathKeyFromStruct(k); err != nil {
+					return nil, status.Errorf(codes.Unknown, "%v: could not extract from key struct: %v", traversedPath, err)
+				}
 			}
 			remainingPath := util.PopGNMIPath(path)
 			if args.delete && len(remainingPath.GetElem()) == 0 {
@@ -417,6 +463,12 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 			nodes, err := retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}), args)
 			if err != nil {
 				return nil, err
+			}
+			// If the map element is empty after the
+			// deletion operation is executed, then remove
+			// the map element from the map.
+			if args.delete && rv.MapIndex(k).Elem().IsZero() {
+				rv.SetMapIndex(k, reflect.Value{})
 			}
 
 			if nodes != nil {
@@ -708,7 +760,12 @@ func hasDelNodePreferShadowPath(opts []DelNodeOpt) bool {
 // DeleteNode zeroes the value of the node specified by the supplied path from
 // the specified root, whose schema must also be supplied. If the node
 // specified by that path is already its zero value, or an intermediate node
-// in the path is nil (implying the node is already deleted), then the call is a no-op.
+// in the path is nil (implying the node is already deleted), then the deletion
+// operation is not executed.
+//
+// Regardless of whether the deletion operation is executed, any intermediate
+// non-leaf nodes traversed by the path that is equal to the empty struct or
+// map will be set to nil, similar to the behaviour of ygot.PruneEmptyBranches.
 func DeleteNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...DelNodeOpt) error {
 	_, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
 		delete:           true,
