@@ -34,9 +34,9 @@ message Config {
   }
   EnumeratedLeaf enumerated_leaf = 10800442;
   EnumeratedWithDefault enumerated_with_default = 83098118;
-  repeated EnumeratedWithDefaultListMultipleDefault enumerated_with_default_list_multiple_default = 63055264;
-  repeated EnumeratedWithDefaultListSingleDefault enumerated_with_default_list_single_default = 465479240;
-  repeated openconfig.enums.ProtoTestCEnumWithDefault enumerated_with_default_list_single_default_at_type = 75892847;
+  repeated EnumeratedWithDefaultListMultipleDefault enumerated_with_default_list_multiple_default = 63055264 [(yext.leaflist) = true];
+  repeated EnumeratedWithDefaultListSingleDefault enumerated_with_default_list_single_default = 465479240 [(yext.leaflist) = true];
+  repeated openconfig.enums.ProtoTestCEnumWithDefault enumerated_with_default_list_single_default_at_type = 75892847 [(yext.leaflist) = true];
 }
 
 // State represents the /proto-test-c/entity/state YANG schema element.
@@ -62,7 +62,7 @@ message State {
   }
   EnumeratedLeaf enumerated_leaf = 247899547;
   EnumeratedWithDefault enumerated_with_default = 82519423;
-  repeated EnumeratedWithDefaultListMultipleDefault enumerated_with_default_list_multiple_default = 195710037;
-  repeated EnumeratedWithDefaultListSingleDefault enumerated_with_default_list_single_default = 336052385;
-  repeated openconfig.enums.ProtoTestCEnumWithDefault enumerated_with_default_list_single_default_at_type = 52286674;
+  repeated EnumeratedWithDefaultListMultipleDefault enumerated_with_default_list_multiple_default = 195710037 [(yext.leaflist) = true];
+  repeated EnumeratedWithDefaultListSingleDefault enumerated_with_default_list_single_default = 336052385 [(yext.leaflist) = true];
+  repeated openconfig.enums.ProtoTestCEnumWithDefault enumerated_with_default_list_single_default_at_type = 52286674 [(yext.leaflist) = true];
 }

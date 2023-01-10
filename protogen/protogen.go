@@ -97,6 +97,12 @@ const (
 	// genutil.MakeNameUnique which would append "_" to the name of the key we explicitly
 	// append _ plus the string defined in protoMatchingListNameKeySuffix to the list name.
 	protoMatchingListNameKeySuffix = "key"
+	// protoLeafListAnnotationOption specifies the name of the FieldOption used to annotate
+	// whether repeated fields are leaf-lists.
+	protoLeafListAnnotationOption = "(yext.leaflist)"
+	// protoLeafListUnionAnnotationOption specifies the name of the FieldOption used to annotate
+	// whether repeated fields are leaf-lists of unions.
+	protoLeafListUnionAnnotationOption = "(yext.leaflistunion)"
 )
 
 // protoMsgField describes a field of a protobuf message.
@@ -785,6 +791,19 @@ func addProtoLeafOrLeafListField(fieldDef *protoMsgField, msgDef *protoMsg, args
 
 	if args.field.Type == ygen.LeafListNode {
 		fieldDef.IsRepeated = true
+		switch d.repeatedMsg {
+		case nil:
+			fieldDef.Options = append(fieldDef.Options, &protoOption{
+				Name:  protoLeafListAnnotationOption,
+				Value: "true",
+			})
+		default:
+			fieldDef.Options = append(fieldDef.Options, &protoOption{
+				Name:  protoLeafListUnionAnnotationOption,
+				Value: "true",
+			})
+		}
+
 	}
 	return repeatedMsg, imports, nil
 }

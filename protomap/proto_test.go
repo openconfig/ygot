@@ -294,6 +294,113 @@ func TestPathsFromProtoInternal(t *testing.T) {
 			}},
 		},
 		wantErrSubstring: "error parsing path /one[two]",
+	}, {
+		desc: "leaf-list of string",
+		inMsg: &epb.ExampleMessage{
+			LeaflistString: []*wpb.StringValue{{
+				Value: "one",
+			}, {
+				Value: "two",
+			}},
+		},
+		wantPaths: map[*gpb.Path]interface{}{
+			mustPath("/leaflist-string"): []interface{}{"one", "two"},
+		},
+	}, {
+		desc: "leaf-list of bool",
+		inMsg: &epb.ExampleMessage{
+			LeaflistBool: []*wpb.BoolValue{{
+				Value: true,
+			}, {
+				Value: false,
+			}},
+		},
+		wantPaths: map[*gpb.Path]interface{}{
+			mustPath("/leaflist-bool"): []interface{}{true, false},
+		},
+	}, {
+		desc: "leaf-list of integer",
+		inMsg: &epb.ExampleMessage{
+			LeaflistInt: []*wpb.IntValue{{
+				Value: 42,
+			}, {
+				Value: 84,
+			}},
+		},
+		wantPaths: map[*gpb.Path]interface{}{
+			mustPath("/leaflist-int"): []interface{}{int64(42), int64(84)},
+		},
+	}, {
+		desc: "leaf-list of unsigned integer",
+		inMsg: &epb.ExampleMessage{
+			LeaflistUint: []*wpb.UintValue{{
+				Value: 42,
+			}, {
+				Value: 84,
+			}},
+		},
+		wantPaths: map[*gpb.Path]interface{}{
+			mustPath("/leaflist-uint"): []interface{}{uint64(42), uint64(84)},
+		},
+	}, {
+		desc: "leaf-list of bytes",
+		inMsg: &epb.ExampleMessage{
+			LeaflistBytes: []*wpb.BytesValue{{
+				Value: []byte{42},
+			}, {
+				Value: []byte{84},
+			}},
+		},
+		wantPaths: map[*gpb.Path]interface{}{
+			mustPath("/leaflist-bytes"): []interface{}{[]byte{42}, []byte{84}},
+		},
+	}, {
+		desc: "leaf-list of decimal64",
+		inMsg: &epb.ExampleMessage{
+			LeaflistDecimal64: []*wpb.Decimal64Value{{
+				Digits:    4242,
+				Precision: 2,
+			}, {
+				Digits:    8484,
+				Precision: 2,
+			}},
+		},
+		wantErrSubstring: "unhandled type, decimal64",
+	}, {
+		desc: "leaf-list of union",
+		inMsg: &epb.ExampleMessage{
+			LeaflistUnion: []*epb.ExampleUnion{{
+				Str: "hello",
+			}, {
+				Uint: 42,
+			}},
+		},
+		wantPaths: map[*gpb.Path]interface{}{
+			mustPath("/leaflist-union"): []interface{}{"hello", uint64(42)},
+		},
+	}, {
+		desc: "leaf-list of union where two fields are populated",
+		inMsg: &epb.ExampleMessage{
+			LeaflistUnion: []*epb.ExampleUnion{{
+				Str:  "hello",
+				Uint: 84,
+			}, {
+				Uint: 42,
+			}},
+		},
+		wantErrSubstring: "multiple populated fields within union message",
+	}, {
+		desc: "leaf-list of union with enumeration",
+		inMsg: &epb.ExampleMessage{
+			LeaflistUnion: []*epb.ExampleUnion{{
+				Str: "hello",
+			}, {
+				Enum: epb.ExampleEnum_ENUM_VALFORTYTWO,
+			}},
+		},
+		wantPaths: map[*gpb.Path]interface{}{
+			mustPath("/leaflist-union"): []interface{}{"hello", "VAL_FORTYTWO"},
+		},
 	}}
 
 	for _, tt := range tests {

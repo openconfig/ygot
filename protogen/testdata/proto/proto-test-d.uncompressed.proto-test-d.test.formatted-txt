@@ -13,7 +13,7 @@ import "openconfig/enums/enums.proto";
 // Config represents the /proto-test-d/test/config YANG schema element.
 message Config {
   ywrapper.StringValue bar = 88698462;
-  repeated ywrapper.StringValue foo = 188685517;
+  repeated ywrapper.StringValue foo = 188685517 [(yext.leaflist) = true];
   openconfig.enums.ProtoTestDFOO id = 411659456;
   openconfig.enums.ProtoTestDATypedef ty = 495547642;
 }
@@ -21,7 +21,7 @@ message Config {
 // State represents the /proto-test-d/test/state YANG schema element.
 message State {
   ywrapper.StringValue bar = 153828379;
-  repeated ywrapper.StringValue foo = 321003268;
+  repeated ywrapper.StringValue foo = 321003268 [(yext.leaflist) = true];
   openconfig.enums.ProtoTestDFOO id = 490046099;
   openconfig.enums.ProtoTestDATypedef ty = 3508169;
 }

@@ -12,7 +12,7 @@ import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 // Config represents the /proto-test-a/parent/child/config YANG schema element.
 message Config {
   ywrapper.IntValue integer = 367917455;
-  repeated ywrapper.StringValue leaf_list = 370551192;
+  repeated ywrapper.StringValue leaf_list = 370551192 [(yext.leaflist) = true];
   ywrapper.StringValue leaf_with_dashes = 503746721;
   ywrapper.StringValue string = 486500768;
   ywrapper.UintValue uinteger = 343208358;
@@ -26,7 +26,7 @@ message Config {
 message State {
   ywrapper.BoolValue boolean = 135159880;
   ywrapper.IntValue integer = 486380674;
-  repeated ywrapper.StringValue leaf_list = 256667601;
+  repeated ywrapper.StringValue leaf_list = 256667601 [(yext.leaflist) = true];
   ywrapper.StringValue leaf_with_dashes = 475722830;
   ywrapper.StringValue string = 428609663;
   ywrapper.UintValue uinteger = 343366297;
