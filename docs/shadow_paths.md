@@ -59,7 +59,7 @@ compressed-out `/config` or `/state` YANG `leaf` nodes.
 
 ## Problems with Path Compression and how Shadow Paths Help
 
-Path compression leads to the GoStruct not being able to represent both intended
+Path compression leads to the GoStruct that ygot generates not being able to represent both intended
 config and applied config at the same time. This leads to two problems:
 
 1.  When subscribing to a non-leaf path, some gNMI clients want to silently
