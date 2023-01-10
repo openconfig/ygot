@@ -79,7 +79,7 @@ message TopLevel {
         }
         openconfig.enums.NestedMessagesKEY i = 372609662 [(yext.schemapath) = "/top-level/idrefsc/idref/config/i"];
         ywrapper.StringValue l = 372609659 [(yext.schemapath) = "/top-level/idrefsc/idref/config/l"];
-        repeated UUnion u = 372609634 [(yext.schemapath) = "/top-level/idrefsc/idref/config/u"];
+        repeated UUnion u = 372609634 [(yext.leaflistunion) = true,(yext.schemapath) = "/top-level/idrefsc/idref/config/u"];
       }
       message State {
         message UUnion {
@@ -88,7 +88,7 @@ message TopLevel {
         }
         openconfig.enums.NestedMessagesKEY i = 500927979 [(yext.schemapath) = "/top-level/idrefsc/idref/state/i"];
         ywrapper.StringValue l = 500927982 [(yext.schemapath) = "/top-level/idrefsc/idref/state/l"];
-        repeated UUnion u = 500927991 [(yext.schemapath) = "/top-level/idrefsc/idref/state/u"];
+        repeated UUnion u = 500927991 [(yext.leaflistunion) = true,(yext.schemapath) = "/top-level/idrefsc/idref/state/u"];
       }
       Config config = 135893622 [(yext.schemapath) = "/top-level/idrefsc/idref/config"];
       State state = 419960739 [(yext.schemapath) = "/top-level/idrefsc/idref/state"];

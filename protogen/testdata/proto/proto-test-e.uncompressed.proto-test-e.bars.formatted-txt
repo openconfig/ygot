@@ -18,6 +18,6 @@ message LluUnion {
 // Bar represents the /proto-test-e/bars/bar YANG schema element.
 message Bar {
   ywrapper.StringValue foo = 91327513;
-  repeated LluUnion llu = 139983164;
+  repeated LluUnion llu = 139983164 [(yext.leaflistunion) = true];
   ywrapper.StringValue single_type_union = 186685410;
 }

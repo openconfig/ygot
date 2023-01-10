@@ -248,6 +248,10 @@ func TestGenProto3Msg(t *testing.T) {
 					Name:       "field_two",
 					Type:       "FieldTwoUnion",
 					IsRepeated: true,
+					Options: []*protoOption{{
+						Name:  "(yext.leaflistunion)",
+						Value: "true",
+					}},
 				}},
 			},
 			"FieldTwoUnion": {
@@ -381,6 +385,10 @@ func TestGenProto3Msg(t *testing.T) {
 					Name:       "leaf_list",
 					Type:       "ywrapper.StringValue",
 					IsRepeated: true,
+					Options: []*protoOption{{
+						Name:  "(yext.leaflist)",
+						Value: "true",
+					}},
 				}, {
 					Tag:  17594927,
 					Name: "container_child",
@@ -434,14 +442,18 @@ func TestGenProto3Msg(t *testing.T) {
 				Name:     "AMessage",
 				YANGPath: "/root/a-message",
 				Fields: []*protoMsgField{{
+					Tag:  17594927,
+					Name: "container_child",
+					Type: "root.a_message.ContainerChild",
+				}, {
 					Tag:        299656613,
 					Name:       "leaf_list",
 					Type:       "ywrapper.StringValue",
 					IsRepeated: true,
-				}, {
-					Tag:  17594927,
-					Name: "container_child",
-					Type: "root.a_message.ContainerChild",
+					Options: []*protoOption{{
+						Name:  "(yext.leaflist)",
+						Value: "true",
+					}},
 				}},
 				Imports: []string{"base/root/a_message/a_message.proto"},
 			},

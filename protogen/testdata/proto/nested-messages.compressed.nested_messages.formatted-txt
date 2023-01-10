@@ -46,7 +46,7 @@ message TopLevel {
       uint64 u_uint64 = 423874955 [(yext.schemapath) = "/top-level/idrefsc/idref/config/u"];
     }
     ywrapper.StringValue l = 372609659 [(yext.schemapath) = "/top-level/idrefsc/idref/config/l"];
-    repeated UUnion u = 372609634 [(yext.schemapath) = "/top-level/idrefsc/idref/config/u"];
+    repeated UUnion u = 372609634 [(yext.leaflistunion) = true,(yext.schemapath) = "/top-level/idrefsc/idref/config/u"];
   }
   message IdrefKey {
     openconfig.enums.NestedMessagesKEY i = 1 [(yext.schemapath) = "/top-level/idrefsc/idref/config/i|/top-level/idrefsc/idref/i"];
