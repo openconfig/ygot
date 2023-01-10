@@ -175,9 +175,6 @@ func parseList(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[*
 	}
 	listPath := mapPath[0]
 
-	// TODO(robjs): This handles the case where we have a list - but not a leaf-list.
-	//              Add implementation to handle leaf lists.
-
 	leaflist, leaflistunion, err := annotatedYANGFieldInfo(fd)
 	if err != nil {
 		return fmt.Errorf("cannot parse list field %s, %v", fd.FullName(), err)
@@ -185,150 +182,168 @@ func parseList(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[*
 
 	l := v.List()
 
-	if leaflist {
-		// If this is a leaf-list then we need to go through and build a slice of all
-		// the scalar values that are included in the fields that are in the generated
-		// protobuf.
-		var lvals []interface{}
-		for i := 0; i < l.Len(); i++ {
-			switch t := l.Get(i).Message().Interface().(type) {
-			case *wpb.BoolValue:
-				lvals = append(lvals, t.GetValue())
-			case *wpb.BytesValue:
-				lvals = append(lvals, t.GetValue())
-			case *wpb.Decimal64Value:
-				return fmt.Errorf("unhandled type, decimal64")
-			case *wpb.IntValue:
-				lvals = append(lvals, t.GetValue())
-			case *wpb.StringValue:
-				lvals = append(lvals, t.GetValue())
-			case *wpb.UintValue:
-				lvals = append(lvals, t.GetValue())
-			default:
-				return fmt.Errorf("unknown type in protobuf, %T", t)
-			}
+	switch {
+	case leaflist:
+		llv, err := leaflistVals(l)
+		if err != nil {
+			return fmt.Errorf("error mapping leaf-list, path %s, %v", resolvedPath(basePath, listPath), err)
 		}
-		vals[resolvedPath(basePath, listPath)] = lvals
+		vals[resolvedPath(basePath, listPath)] = llv
 		return nil
-	}
-
-	if leaflistunion {
-		// If this is a leaf-list of a YANG union, then we need to go through and
-		// extract a slice of just the populated fields within a union.
-		var lvals []interface{}
+	case leaflistunion:
+		llv, err := leaflistUnionVals(l)
+		if err != nil {
+			return fmt.Errorf("error mapping leaf-list of union, path %s, %v", resolvedPath(basePath, listPath), err)
+		}
+		vals[resolvedPath(basePath, listPath)] = llv
+		return nil
+	default:
+		if fd.Kind() != protoreflect.MessageKind {
+			return fmt.Errorf("invalid list, value is not a proto message, %s - is %T", fd.FullName(), l.NewElement())
+		}
+		var listVal proto.Message
 		for i := 0; i < l.Len(); i++ {
-			var (
-				llv  interface{}
-				fErr error
-			)
-
 			listMsg := l.Get(i).Message().Interface()
-			listMsg.ProtoReflect().Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
-				if llv != nil {
-					fErr = fmt.Errorf("for field %s multiple populated fields within union message, got: %v with existing entry: %v", resolvedPath(basePath, listPath), v, llv)
+
+			var listParseErr error
+			listKeys := map[string]string{}
+			mappedValues := map[*gpb.Path]interface{}{}
+
+			unpopRange{listMsg.ProtoReflect()}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+				pl, err := parseListField(fd, v, listPath)
+				if err != nil {
+					listParseErr = err
 					return false
 				}
-				switch fd.Kind() {
-				case protoreflect.BoolKind:
-					llv = v.Bool()
-				case protoreflect.BytesKind:
-					llv = v.Bytes()
-				case protoreflect.StringKind:
-					llv = v.String()
-				case protoreflect.EnumKind:
-					n, ok, err := enumYANGName(fd.Enum().Values().ByNumber(v.Enum()))
-					if err != nil {
-						fErr = fmt.Errorf("cannot map enumeration for field %s, err: %v", resolvedPath(basePath, listPath), err)
-						return false
-					}
-					if !ok {
-						fErr = fmt.Errorf("enumeration value has invalid name for path: %s, value: %v", resolvedPath(basePath, listPath), v.Interface())
-						return false
-					}
-					llv = n
-				case protoreflect.Int64Kind:
-					llv = v.Int()
-				case protoreflect.Uint64Kind:
-					llv = v.Uint()
-				default:
-					fErr = fmt.Errorf("unsupported kind %s for field %s whilst mapping leaf-list of union", fd.Kind(), resolvedPath(basePath, listPath))
+
+				// If this field was not the value of the list then we receive a populated
+				// single key back from the parseListField call. We don't check for nil
+				// since if it is not populated then we'll simply never do this mapping.
+				for k, v := range pl.keys {
+					listKeys[k] = v
+				}
+
+				// When there are keys in the list, we'll also have fields that they map to
+				// in the output set of paths, so add these to the values that we're receiving.
+				for k, v := range pl.mappedValues {
+					mappedValues[k] = v
+				}
+
+				// If this was the list value, then we return the value of the list,
+				// which is always a protobuf message back.
+				if pl.member != nil {
+					listVal = pl.member
 				}
 				return true
 			})
-			if fErr != nil {
-				return fErr
+
+			if listParseErr != nil {
+				return fmt.Errorf("could not parse a field within the list %s , %v", fd.FullName(), listParseErr)
 			}
 
-			lvals = append(lvals, llv)
-		}
-		vals[resolvedPath(basePath, listPath)] = lvals
-		return nil
-	}
+			// This is the first time that we have found a path that requires a
+			// data tree path, not a schema tree path.
+			p := resolvedPath(basePath, listPath)
 
-	if fd.Kind() != protoreflect.MessageKind {
-		return fmt.Errorf("invalid list, value is not a proto message, %s - is %T", fd.FullName(), l.NewElement())
-	}
-	var listVal proto.Message
-	for i := 0; i < l.Len(); i++ {
-		listMsg := l.Get(i).Message().Interface()
-
-		var listParseErr error
-		listKeys := map[string]string{}
-		mappedValues := map[*gpb.Path]interface{}{}
-
-		unpopRange{listMsg.ProtoReflect()}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
-			pl, err := parseListField(fd, v, listPath)
-			if err != nil {
-				listParseErr = err
-				return false
+			for kn, kv := range listKeys {
+				le := p.Elem[len(p.Elem)-1]
+				if le.Key == nil {
+					le.Key = map[string]string{}
+				}
+				le.Key[kn] = kv
 			}
 
-			// If this field was not the value of the list then we receive a populated
-			// single key back from the parseListField call. We don't check for nil
-			// since if it is not populated then we'll simply never do this mapping.
-			for k, v := range pl.keys {
-				listKeys[k] = v
+			for path, value := range mappedValues {
+				vals[resolvedPath(p, path)] = value
 			}
 
-			// When there are keys in the list, we'll also have fields that they map to
-			// in the output set of paths, so add these to the values that we're receiving.
-			for k, v := range pl.mappedValues {
-				mappedValues[k] = v
+			if err := pathsFromProtoInternal(listVal, vals, p); err != nil {
+				return err
 			}
-
-			// If this was the list value, then we return the value of the list,
-			// which is always a protobuf message back.
-			if pl.member != nil {
-				listVal = pl.member
-			}
-			return true
-		})
-
-		if listParseErr != nil {
-			return fmt.Errorf("could not parse a field within the list %s , %v", fd.FullName(), listParseErr)
-		}
-
-		// This is the first time that we have found a path that requires a
-		// data tree path, not a schema tree path.
-		p := resolvedPath(basePath, listPath)
-
-		for kn, kv := range listKeys {
-			le := p.Elem[len(p.Elem)-1]
-			if le.Key == nil {
-				le.Key = map[string]string{}
-			}
-			le.Key[kn] = kv
-		}
-
-		for path, value := range mappedValues {
-			vals[resolvedPath(p, path)] = value
-		}
-
-		if err := pathsFromProtoInternal(listVal, vals, p); err != nil {
-			return err
 		}
 	}
 	return nil
+}
+
+// leaflistVals extracts the values from the protobuf list, l, that is a leaf-list
+// of a YANG scalar type. It returns a slice of the values included, and an
+// optional error.
+func leaflistVals(l protoreflect.List) ([]interface{}, error) {
+	var lvals []interface{}
+	for i := 0; i < l.Len(); i++ {
+		switch t := l.Get(i).Message().Interface().(type) {
+		case *wpb.BoolValue:
+			lvals = append(lvals, t.GetValue())
+		case *wpb.BytesValue:
+			lvals = append(lvals, t.GetValue())
+		case *wpb.Decimal64Value:
+			return nil, fmt.Errorf("unhandled type, decimal64")
+		case *wpb.IntValue:
+			lvals = append(lvals, t.GetValue())
+		case *wpb.StringValue:
+			lvals = append(lvals, t.GetValue())
+		case *wpb.UintValue:
+			lvals = append(lvals, t.GetValue())
+		default:
+			return nil, fmt.Errorf("unknown type in protobuf, %T", t)
+		}
+	}
+	return lvals, nil
+}
+
+// leaflistUnionVals extracts the values from the protobuf list, l, that is a
+// leaf-list of a YANG union type. It returns a slice of the values included and
+// an error. Specific handling is needed for a leaf-list of unions due to the
+// fact that it is not possible to have a repeated oneof field, hence unions
+// are represented as a field within a message that represents the union itself.
+func leaflistUnionVals(l protoreflect.List) ([]interface{}, error) {
+	var lvals []interface{}
+	for i := 0; i < l.Len(); i++ {
+		var (
+			llv  interface{}
+			fErr error
+		)
+
+		listMsg := l.Get(i).Message().Interface()
+		listMsg.ProtoReflect().Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+			if llv != nil {
+				fErr = fmt.Errorf("multiple populated fields within union message, got: %v with existing entry: %v", v, llv)
+				return false
+			}
+			switch fd.Kind() {
+			case protoreflect.BoolKind:
+				llv = v.Bool()
+			case protoreflect.BytesKind:
+				llv = v.Bytes()
+			case protoreflect.StringKind:
+				llv = v.String()
+			case protoreflect.EnumKind:
+				n, ok, err := enumYANGName(fd.Enum().Values().ByNumber(v.Enum()))
+				if err != nil {
+					fErr = fmt.Errorf("cannot map enumeration for field, err: %v", err)
+					return false
+				}
+				if !ok {
+					fErr = fmt.Errorf("enumeration value has invalid name for path, value: %v", v.Interface())
+					return false
+				}
+				llv = n
+			case protoreflect.Int64Kind:
+				llv = v.Int()
+			case protoreflect.Uint64Kind:
+				llv = v.Uint()
+			default:
+				fErr = fmt.Errorf("unsupported kind %s", fd.Kind())
+			}
+			return true
+		})
+		if fErr != nil {
+			return nil, fErr
+		}
+
+		lvals = append(lvals, llv)
+	}
+	return lvals, nil
 }
 
 // parsedListField returns the details of an individual field of a message
@@ -403,7 +418,7 @@ func parseListField(fd protoreflect.FieldDescriptor, v protoreflect.Value, baseP
 	}
 
 	for _, path := range mappedPaths {
-		p.mappedValues[resolvedPath(basePath, path)] = v.Interface()
+  p.mappedValues[resolvedPath(basePath, path)] = v.Interface()
 	}
 	return p, nil
 }
