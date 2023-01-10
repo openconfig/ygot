@@ -79,7 +79,7 @@ ygot address these issues by,
     `Interface` GoStruct at the beginning of this documentation, then the field
     will not be populated since it is a shadow path.
 2.  Supporting a `PreferShadowPath` option for some utilities (see section
-    below).
+    below). `PreferShadowPath` means that the "shadow" path will be used in preference t the "primary" path annotation.
 
 ## Preferring Shadow Paths
 
