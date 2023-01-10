@@ -82,6 +82,26 @@ func TestPathsFromProtoInternal(t *testing.T) {
 			mustPath("/message/str"): "hello",
 		},
 	}, {
+		desc: "oneof field - string",
+		inMsg: &epb.ExampleMessage{
+			OneofField: &epb.ExampleMessage_OneofOne{
+				OneofOne: "hello world",
+			},
+		},
+		wantPaths: map[*gpb.Path]interface{}{
+			mustPath("/oneof"): "hello world",
+		},
+	}, {
+		desc: "oneof field - uint64",
+		inMsg: &epb.ExampleMessage{
+			OneofField: &epb.ExampleMessage_OneofTwo{
+				OneofTwo: uint64(42),
+			},
+		},
+		wantPaths: map[*gpb.Path]interface{}{
+			mustPath("/oneof"): uint64(42),
+		},
+	}, {
 		desc: "decimal64 messages currently unsupported",
 		inMsg: &epb.ExampleMessage{
 			De: &wpb.Decimal64Value{Digits: 1234, Precision: 1},
