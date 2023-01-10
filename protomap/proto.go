@@ -186,14 +186,14 @@ func parseList(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[*
 	case leaflist:
 		llv, err := leaflistVals(l)
 		if err != nil {
-			return err
+			return fmt.Errorf("error mapping leaf-list, path %s, %v", resolvedPath(basePath, listPath), err)
 		}
 		vals[resolvedPath(basePath, listPath)] = llv
 		return nil
 	case leaflistunion:
 		llv, err := leaflistUnionVals(l)
 		if err != nil {
-			return err
+			return fmt.Errorf("error mapping leaf-list of union, path %s, %v", resolvedPath(basePath, listPath), err)
 		}
 		vals[resolvedPath(basePath, listPath)] = llv
 		return nil
@@ -307,7 +307,7 @@ func leaflistUnionVals(l protoreflect.List) ([]interface{}, error) {
 		listMsg := l.Get(i).Message().Interface()
 		listMsg.ProtoReflect().Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
 			if llv != nil {
-				fErr = fmt.Errorf("for field %s multiple populated fields within union message, got: %v with existing entry: %v", resolvedPath(basePath, listPath), v, llv)
+				fErr = fmt.Errorf("multiple populated fields within union message, got: %v with existing entry: %v", v, llv)
 				return false
 			}
 			switch fd.Kind() {
@@ -320,11 +320,11 @@ func leaflistUnionVals(l protoreflect.List) ([]interface{}, error) {
 			case protoreflect.EnumKind:
 				n, ok, err := enumYANGName(fd.Enum().Values().ByNumber(v.Enum()))
 				if err != nil {
-					fErr = fmt.Errorf("cannot map enumeration for field %s, err: %v", resolvedPath(basePath, listPath), err)
+					fErr = fmt.Errorf("cannot map enumeration for field, err: %v", err)
 					return false
 				}
 				if !ok {
-					fErr = fmt.Errorf("enumeration value has invalid name for path: %s, value: %v", resolvedPath(basePath, listPath), v.Interface())
+					fErr = fmt.Errorf("enumeration value has invalid name for path, value: %v", v.Interface())
 					return false
 				}
 				llv = n
@@ -333,7 +333,7 @@ func leaflistUnionVals(l protoreflect.List) ([]interface{}, error) {
 			case protoreflect.Uint64Kind:
 				llv = v.Uint()
 			default:
-				fErr = fmt.Errorf("unsupported kind %s for field %s whilst mapping leaf-list of union", fd.Kind(), resolvedPath(basePath, listPath))
+				fErr = fmt.Errorf("unsupported kind %s", fd.Kind())
 			}
 			return true
 		})
