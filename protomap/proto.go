@@ -260,8 +260,8 @@ func parseList(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[*
 			}
 
 			lvals = append(lvals, llv)
-			vals[resolvedPath(basePath, listPath)] = lvals
 		}
+		vals[resolvedPath(basePath, listPath)] = lvals
 		return nil
 	}
 

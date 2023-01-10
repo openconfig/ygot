@@ -78,15 +78,17 @@ func TestGRIBIAFT(t *testing.T) {
 				NextHop: &gribi_aft.Afts_NextHop{
 					PushedMplsLabelStack: []*gribi_aft.Afts_NextHop_PushedMplsLabelStackUnion{{
 						PushedMplsLabelStackUint64: 42,
+					}, {
+						PushedMplsLabelStackUint64: 84,
 					}},
 				},
 			}},
 		},
-    wantPaths: map[*gpb.Path]interface{}{
-      mustPath("afts/next-hops/next-hop[index=1]/state/pushed-mpls-label-stack"): []interface{}{uint64(42)},
-      mustPath("afts/next-hops/next-hop[index=1]/index"): uint64(1),
-      mustPath("afts/next-hops/next-hop[index=1]/state/index"): uint64(1),
-    },
+		wantPaths: map[*gpb.Path]interface{}{
+			mustPath("afts/next-hops/next-hop[index=1]/state/pushed-mpls-label-stack"): []interface{}{uint64(42), uint64(84)},
+			mustPath("afts/next-hops/next-hop[index=1]/index"):                         uint64(1),
+			mustPath("afts/next-hops/next-hop[index=1]/state/index"):                   uint64(1),
+		},
 	}}
 
 	for _, tt := range tests {
