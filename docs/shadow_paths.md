@@ -59,8 +59,9 @@ compressed-out `/config` or `/state` YANG `leaf` nodes.
 
 ## Problems with Path Compression and how Shadow Paths Help
 
-Path compression leads to the GoStruct that ygot generates not being able to represent both intended
-config and applied config at the same time. This leads to two problems:
+Path compression leads to the GoStruct that ygot generates not being able to
+represent both intended config and applied config at the same time. This leads
+to two problems:
 
 1.  When subscribing to a non-leaf path, some gNMI clients want to silently
     ignore the compressed-out paths rather than erroring out due to an
@@ -68,8 +69,9 @@ config and applied config at the same time. This leads to two problems:
 2.  Some use cases (e.g. [ygnmi](https://github.com/openconfig/ygnmi#queries))
     use the same compressed GoStruct for representing either the "config view"
     (intended config+derived state) combination, or the "state view" (applied
-    config+derived state) combination of leaves. We want to enable such a
-    meaning-switch for certain ygot utilities (e.g. marshalling/unmarshalling).
+    config+derived state) combination of leaves. We want to allow switching
+    between "config views" and "state views" for certain ygot utilities (e.g.
+    marshalling/unmarshalling).
 
 ygot address these issues by,
 
@@ -79,16 +81,17 @@ ygot address these issues by,
     `Interface` GoStruct at the beginning of this documentation, then the field
     will not be populated since it is a shadow path.
 2.  Supporting a `PreferShadowPath` option for some utilities (see section
-    below). `PreferShadowPath` means that the "shadow" path will be used in preference t the "primary" path annotation.
+    below). `PreferShadowPath` means that the "shadow" path will be used in
+    preference to the "primary" path annotation.
 
 ## Preferring Shadow Paths
 
-This term is used to describe utilities preferring the `shadow-path` tag instead
-of the `path` tag in the generated GoStructs when they both exist on a field,
-and is therefore used to switch the meaning of the GoStruct from a "config view"
-(intended config+derived state) to a "state view" (applied config+derived state)
-or vice-versa (depending on the value of the `-prefer_operational_state`
-generation flag).
+`PreferShadowPath` is behavioural option used to describe utilities preferring
+the `shadow-path` tag instead of the `path` tag in the generated GoStructs when
+they both exist on a field, and is therefore used to switch the meaning of the
+GoStruct from a "config view" (intended config+derived state) to a "state view"
+(applied config+derived state) or vice-versa (depending on the value of the
+`-prefer_operational_state` generation flag).
 
 For example, say we're using the utility `ytypes.SetNode` to unmarshal a gNMI
 update for `/interfaces/interface[name="foo"]/config/mtu`. Recall that this
