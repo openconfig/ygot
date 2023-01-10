@@ -958,13 +958,11 @@ func protoListDefinition(args *protoDefinitionArgs) (*protoMsgListField, *protoM
 
 // protoDefinedLeaf defines a YANG leaf within a protobuf message.
 type protoDefinedLeaf struct {
-	protoType       string                   // protoType is the protobuf type that the leaf should be mapped to.
-	globalEnum      bool                     // globalEnum indicates whether the leaf's type is a global scope enumeration (identityref, or typedef defining an enumeration)
-	enums           map[string]*protoMsgEnum // enums defines the set of enumerated values that are required for this leaf within the parent message.
-	oneofs          []*protoMsgField         // oneofs defines the set of types within the leaf, if the returned leaf type is a protobuf oneof.
-	repeatedMsg     *protoMsg                // repeatedMsgs returns a message that should be repeated for this leaf, used in the case of a leaf-list of unions.
-	isLeafList      bool
-	isLeafListUnion bool
+	protoType   string                   // protoType is the protobuf type that the leaf should be mapped to.
+	globalEnum  bool                     // globalEnum indicates whether the leaf's type is a global scope enumeration (identityref, or typedef defining an enumeration)
+	enums       map[string]*protoMsgEnum // enums defines the set of enumerated values that are required for this leaf within the parent message.
+	oneofs      []*protoMsgField         // oneofs defines the set of types within the leaf, if the returned leaf type is a protobuf oneof.
+	repeatedMsg *protoMsg                // repeatedMsgs returns a message that should be repeated for this leaf, used in the case of a leaf-list of unions.
 }
 
 // protoLeafDefinition takes an input leafName, and a set of protoDefinitionArgs specifying the context
@@ -1016,7 +1014,6 @@ func protoLeafDefinition(leafName string, args *protoDefinitionArgs) (*protoDefi
 		if u.repeatedMsg != nil {
 			d.repeatedMsg = u.repeatedMsg
 			d.protoType = u.repeatedMsg.Name
-			d.isLeafListUnion = true
 		}
 	}
 
