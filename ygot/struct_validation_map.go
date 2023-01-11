@@ -29,7 +29,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/ygot/util"
 )
 
@@ -748,8 +747,8 @@ func copyPtrField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 
 	if !util.IsNilOrInvalidValue(dstField) {
 		s, d := srcField.Elem().Interface(), dstField.Elem().Interface()
-		if diff := cmp.Diff(s, d); !fieldOverwriteEnabled(opts) && diff != "" {
-			return fmt.Errorf("destination value was set, but was not equal to source value when merging ptr field, (-src, +dst):\n%s", diff)
+		if !fieldOverwriteEnabled(opts) && !reflect.DeepEqual(s, d) {
+			return fmt.Errorf("destination value was set, but was not equal to source value when merging ptr field, src: %v, dst: %v", s, d)
 		}
 	}
 
@@ -776,8 +775,8 @@ func copyInterfaceField(dstField, srcField reflect.Value, opts ...MergeOpt) erro
 		s := srcField.Elem().Elem() // Dereference src to a struct.
 		if !util.IsNilOrInvalidValue(dstField) {
 			dV := dstField.Elem().Elem() // Dereference dst to a struct.
-			if diff := cmp.Diff(s.Interface(), dV.Interface()); !fieldOverwriteEnabled(opts) && diff != "" {
-				return fmt.Errorf("interface field was set in both src and dst and was not equal, (-src, +dst):\n%s", diff)
+			if !fieldOverwriteEnabled(opts) && !reflect.DeepEqual(s.Interface(), dV.Interface()) {
+				return fmt.Errorf("interface field was set in both src and dst and was not equal, src: %v, dst: %v", s.Interface(), dV.Interface())
 			}
 		}
 
@@ -790,8 +789,8 @@ func copyInterfaceField(dstField, srcField reflect.Value, opts ...MergeOpt) erro
 	case srcField.Elem().Kind() == reflect.Slice && srcField.Elem().Type().Name() == BinaryTypeName:
 		if !util.IsNilOrInvalidValue(dstField) {
 			s, d := srcField.Interface(), dstField.Interface()
-			if diff := cmp.Diff(s, d); !fieldOverwriteEnabled(opts) && diff != "" {
-				return fmt.Errorf("interface field was set in both src and dst and was not equal, (-src, +dst):\n%s", diff)
+			if !fieldOverwriteEnabled(opts) && !reflect.DeepEqual(s, d) {
+				return fmt.Errorf("interface field was set in both src and dst and was not equal, src: %v, dst: %v", s, d)
 			}
 		}
 
@@ -805,8 +804,8 @@ func copyInterfaceField(dstField, srcField reflect.Value, opts ...MergeOpt) erro
 	case util.IsValueScalar(srcField.Elem()) && (isGoEnum || unionSingletonUnderlyingTypes[srcField.Elem().Type().Name()] != nil):
 		if !util.IsNilOrInvalidValue(dstField) {
 			s, d := srcField.Interface(), dstField.Interface()
-			if diff := cmp.Diff(s, d); !fieldOverwriteEnabled(opts) && diff != "" {
-				return fmt.Errorf("interface field was set in both src and dst and was not equal, (-src, +dst):\n%s", diff)
+			if !fieldOverwriteEnabled(opts) && !reflect.DeepEqual(s, d) {
+				return fmt.Errorf("interface field was set in both src and dst and was not equal, src: %v, dst: %v", s, d)
 			}
 		}
 		dstField.Set(srcField)
