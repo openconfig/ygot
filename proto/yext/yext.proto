@@ -34,11 +34,11 @@ extend google.protobuf.FieldOptions {
   // leaflist indicates that the field represents a YANG leaf-list. It is
   // valid only for repeated fields, and can be used to determine that the
   // generated field is a list of scalar values by any parsing code.
-  bool leaflist = 1041;
+  bool leaflist = 1179;
   // leaflistunion indicates that hte field represents a YANG leaf-list
   // of union types. It is valid only for repeated message fields and can be
   // used to determine that specific leaf-list union handling is required.
-  bool leaflistunion = 1042;
+  bool leaflistunion = 1180;
 }
 
 extend google.protobuf.EnumValueOptions {

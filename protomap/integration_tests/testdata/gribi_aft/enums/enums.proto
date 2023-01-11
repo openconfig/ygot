@@ -8,7 +8,7 @@
 //   - github.com/openconfig/gribi/v1/yang/deps/...
 syntax = "proto3";
 
-package gribi_aft.enums;
+package ygot.protomap.tests.gribi_aft.enums;
 
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
