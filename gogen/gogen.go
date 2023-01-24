@@ -482,7 +482,7 @@ func Unmarshal(data []byte, destStruct ygot.GoStruct, opts ...ytypes.UnmarshalOp
 // which Go code was generated.
 var ΓModelData = []*gpb.ModelData{
 {{- range $idx, $model := .ModelData }}
-    {
+	{
 		Name: "{{ .Name }}",
 		{{- with $model.Organization }}
 		Organization: "{{ . }}",
