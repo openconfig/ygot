@@ -72,10 +72,10 @@ type UnionUnsupported struct {
 // ΓModelData contains the catalogue information corresponding to the modules for
 // which Go code was generated.
 var ΓModelData = []*gpb.ModelData{
-    {
+	{
 		Name: "openconfig-extensions",
 	},
-    {
+	{
 		Name: "openconfig-versioned-mod",
 		Organization: "openconfig",
 		Version: "12.4.2",
