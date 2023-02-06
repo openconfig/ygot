@@ -775,7 +775,7 @@ func addProtoLeafOrLeafListField(fieldDef *protoMsgField, msgDef *protoMsg, args
 	if d.repeatedMsg != nil {
 		if args.cfg.nestedMessages {
 			gm, errs := genProto3MsgCode(args.cfg, args.parentPkg, []*protoMsg{d.repeatedMsg}, false)
-			if err != nil {
+			if errs != nil {
 				return nil, nil, errs
 			}
 			msgDef.ChildMsgs = append(msgDef.ChildMsgs, gm)
