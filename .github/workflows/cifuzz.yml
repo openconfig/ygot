@@ -7,11 +7,11 @@ jobs:
     - name: Build Fuzzers
       id: build
       uses: google/oss-fuzz/infra/cifuzz/actions/build_fuzzers@master
-      bad-build-check: false
       with:
         oss-fuzz-project-name: 'ygot'
         dry-run: false
         language: go
+        bad-build-check: false
     - name: Run Fuzzers
       uses: google/oss-fuzz/infra/cifuzz/actions/run_fuzzers@master
       with:
