@@ -78,7 +78,7 @@ func flattenOCJSONAux(root interface{}, path string, leaves map[string]interface
 			// list to nothing, only delete it or update descendant leaves.
 			leaves[path] = root
 			// If this assumption is wrong, and the list is later updated, an
-			// error will be returned due to a prefix-match in the flattened updates.
+			// error prefix matching can detect this invalid operation.
 		} else {
 			switch v[0].(type) {
 			case bool, float64, string:

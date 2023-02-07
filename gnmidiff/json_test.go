@@ -21,6 +21,7 @@ import (
 )
 
 func TestFlattenOCJSON(t *testing.T) {
+	// TODO: increase coverage of error code paths.
 	tests := []struct {
 		desc   string
 		inJSON string
@@ -68,7 +69,8 @@ func TestFlattenOCJSON(t *testing.T) {
       ]
     },
     "name": "RED",
-    "type": "openconfig-network-instance-types:L3VRF"
+    "type": "openconfig-network-instance-types:L3VRF",
+    "leaf-list": []
     },
   "openconfig-network-instance:name": "RED"
 }
@@ -94,6 +96,7 @@ func TestFlattenOCJSON(t *testing.T) {
 			"/openconfig-network-instance:config/protocols/protocol[id=3][name=BGP]/id":                float64(3),
 			"/openconfig-network-instance:config/protocols/protocol[id=3][name=BGP]/name":              "BGP",
 			"/openconfig-network-instance:config/type":                                                 "openconfig-network-instance-types:L3VRF",
+			"/openconfig-network-instance:config/leaf-list":                                            []interface{}{},
 			"/openconfig-network-instance:name":                                                        "RED",
 		},
 	}}
