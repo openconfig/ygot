@@ -25,6 +25,163 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+func TestSetRequestDiffFormat(t *testing.T) {
+	tests := []struct {
+		desc             string
+		inSetRequestDiff SetRequestIntentDiff
+		inFormat         Format
+		want             string
+	}{{
+		desc: "compact output",
+		inSetRequestDiff: SetRequestIntentDiff{
+			AOnlyDeletes: map[string]struct{}{
+				"/interfaces/interface[name=eth1]": {},
+			},
+			BOnlyDeletes: map[string]struct{}{
+				"/interfaces/interface[name=eth2]": {},
+			},
+			CommonDeletes: map[string]struct{}{
+				"/interfaces/interface[name=eth0]": {},
+			},
+			AOnlyUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth1]/name":        "eth1",
+				"/interfaces/interface[name=eth1]/config/name": "eth1",
+			},
+			BOnlyUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth2]/name":              "eth2",
+				"/interfaces/interface[name=eth2]/config/name":       "eth2",
+				"/interfaces/interface[name=eth0]/state/transceiver": "FDM",
+			},
+			CommonUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
+				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
+				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
+				"/interfaces/interface[name=eth2]/state/transceiver":                                     "FDM",
+			},
+			MismatchedUpdates: map[string]MismatchedUpdate{
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical": {
+					A: false,
+					B: true,
+				},
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name": {
+					A: "foo",
+					B: "bar",
+				},
+			},
+		},
+		inFormat: Format{},
+		want: `SetRequestIntentDiff(-A, +B):
+-------- deletes --------
+- /interfaces/interface[name=eth1]: deleted
++ /interfaces/interface[name=eth2]: deleted
+-------- updates --------
+- /interfaces/interface[name=eth1]/config/name: "eth1"
+- /interfaces/interface[name=eth1]/name: "eth1"
++ /interfaces/interface[name=eth0]/state/transceiver: "FDM"
++ /interfaces/interface[name=eth2]/config/name: "eth2"
++ /interfaces/interface[name=eth2]/name: "eth2"
+m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical:
+(
+  - false
+  + true
+)
+m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name:
+(
+  - "foo"
+  + "bar"
+)
+`,
+	}, {
+		desc: "full output",
+		inSetRequestDiff: SetRequestIntentDiff{
+			AOnlyDeletes: map[string]struct{}{
+				"/interfaces/interface[name=eth1]": {},
+			},
+			BOnlyDeletes: map[string]struct{}{
+				"/interfaces/interface[name=eth2]": {},
+			},
+			CommonDeletes: map[string]struct{}{
+				"/interfaces/interface[name=eth0]": {},
+			},
+			AOnlyUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth1]/name":        "eth1",
+				"/interfaces/interface[name=eth1]/config/name": "eth1",
+			},
+			BOnlyUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth2]/name":              "eth2",
+				"/interfaces/interface[name=eth2]/config/name":       "eth2",
+				"/interfaces/interface[name=eth0]/state/transceiver": "FDM",
+			},
+			CommonUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
+				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
+				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
+				"/interfaces/interface[name=eth2]/state/transceiver":                                     "FDM",
+			},
+			MismatchedUpdates: map[string]MismatchedUpdate{
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical": {
+					A: false,
+					B: true,
+				},
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name": {
+					A: "foo",
+					B: "bar",
+				},
+			},
+		},
+		inFormat: Format{
+			Full: true,
+		},
+		want: `SetRequestIntentDiff(-A, +B):
+-------- deletes --------
+  /interfaces/interface[name=eth0]: deleted
+- /interfaces/interface[name=eth1]: deleted
++ /interfaces/interface[name=eth2]: deleted
+-------- updates --------
+  /interfaces/interface[name=eth0]/config/description: "I am an eth port"
+  /interfaces/interface[name=eth0]/config/name: "eth0"
+  /interfaces/interface[name=eth0]/name: "eth0"
+  /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled: true
+  /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index: 0
+  /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index: 0
+  /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status: "TESTING"
+  /interfaces/interface[name=eth2]/state/transceiver: "FDM"
+- /interfaces/interface[name=eth1]/config/name: "eth1"
+- /interfaces/interface[name=eth1]/name: "eth1"
++ /interfaces/interface[name=eth0]/state/transceiver: "FDM"
++ /interfaces/interface[name=eth2]/config/name: "eth2"
++ /interfaces/interface[name=eth2]/name: "eth2"
+m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical:
+(
+  - false
+  + true
+)
+m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name:
+(
+  - "foo"
+  + "bar"
+)
+`,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got := tt.inSetRequestDiff.Format(tt.inFormat)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("SetRequestIntentDiff.Format (-want, +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestDiffSetRequest(t *testing.T) {
 	tests := []struct {
 		desc               string

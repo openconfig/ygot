@@ -17,6 +17,9 @@ package gnmidiff
 
 import (
 	"fmt"
+	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/derekparker/trie"
 	"github.com/openconfig/ygot/ygot"
@@ -48,6 +51,85 @@ type SetRequestIntentDiff struct {
 	BOnlyUpdates      map[string]interface{}
 	CommonUpdates     map[string]interface{}
 	MismatchedUpdates map[string]MismatchedUpdate
+}
+
+// Format is the string format of any gNMI diff utility.
+type Format struct {
+	// Full indicates that common values are also output.
+	Full bool
+	// TODO: Implement IncludeList and ExcludeList.
+	// IncludeList is a list of paths that will be included in the output.
+	// wildcards are allowed.
+	//
+	// empty implies all paths are included.
+	//IncludeList []string
+	// ExcludeList is a list of paths that will be excluded from the output.
+	// wildcards are allowed.
+	//
+	// empty implies no paths are excluded.
+	//ExcludeList []string
+}
+
+func formatJSONValue(value interface{}) interface{} {
+	if v, ok := value.(string); ok {
+		return strconv.Quote(v)
+	}
+	return value
+}
+
+// Format outputs the SetRequestIntentDiff in human-readable format.
+//
+// NOTE: Do not depend on the output of this being stable.
+func (diff SetRequestIntentDiff) Format(f Format) string {
+	var b strings.Builder
+	writeDeletes := func(deletePaths map[string]struct{}, symbol rune) {
+		var paths []string
+		for path := range deletePaths {
+			paths = append(paths, path)
+
+		}
+		sort.Strings(paths)
+		for _, path := range paths {
+			b.WriteString(fmt.Sprintf("%c %s: deleted\n", symbol, path))
+		}
+	}
+
+	writeUpdates := func(updates map[string]interface{}, symbol rune) {
+		var paths []string
+		for path := range updates {
+			paths = append(paths, path)
+
+		}
+		sort.Strings(paths)
+		for _, path := range paths {
+			b.WriteString(fmt.Sprintf("%c %s: %v\n", symbol, path, formatJSONValue(updates[path])))
+		}
+	}
+
+	b.WriteString("SetRequestIntentDiff(-A, +B):\n")
+	b.WriteString("-------- deletes --------\n")
+	if f.Full {
+		writeDeletes(diff.CommonDeletes, ' ')
+	}
+	writeDeletes(diff.AOnlyDeletes, '-')
+	writeDeletes(diff.BOnlyDeletes, '+')
+	b.WriteString("-------- updates --------\n")
+	if f.Full {
+		writeUpdates(diff.CommonUpdates, ' ')
+	}
+	writeUpdates(diff.AOnlyUpdates, '-')
+	writeUpdates(diff.BOnlyUpdates, '+')
+	var paths []string
+	for path := range diff.MismatchedUpdates {
+		paths = append(paths, path)
+
+	}
+	sort.Strings(paths)
+	for _, path := range paths {
+		mismatch := diff.MismatchedUpdates[path]
+		b.WriteString(fmt.Sprintf("m %s:\n(\n  - %v\n  + %v\n)\n", path, formatJSONValue(mismatch.A), formatJSONValue(mismatch.B)))
+	}
+	return b.String()
 }
 
 // DiffSetRequest returns a unique and minimal intent diff of two SetRequests.
