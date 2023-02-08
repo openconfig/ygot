@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/openconfig/ygot/exampleoc"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
 
@@ -37,11 +38,11 @@ func TestDiffSetRequest(t *testing.T) {
 		inA: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Subinterface: map[uint32]*Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled"),
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: true}},
@@ -53,11 +54,11 @@ func TestDiffSetRequest(t *testing.T) {
 		inB: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Subinterface: map[uint32]*Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled"),
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: true}},
@@ -91,11 +92,11 @@ func TestDiffSetRequest(t *testing.T) {
 		inA: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Subinterface: map[uint32]*Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled"),
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: true}},
@@ -107,14 +108,14 @@ func TestDiffSetRequest(t *testing.T) {
 		inB: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Subinterface: map[uint32]*Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: Interface_OperStatus_TESTING, Enabled: ygot.Bool(true)}}}),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING, Enabled: ygot.Bool(true)}}}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Description: ygot.String("I am an eth port")}),
+				Val:  must7951(&exampleoc.Interface{Description: ygot.String("I am an eth port")}),
 			}},
 		},
 		wantSetRequestDiff: SetRequestDiff{
@@ -142,11 +143,11 @@ func TestDiffSetRequest(t *testing.T) {
 		inA: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Subinterface: map[uint32]*Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled"),
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: true}},
@@ -158,14 +159,14 @@ func TestDiffSetRequest(t *testing.T) {
 		inB: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Subinterface: map[uint32]*Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: Interface_OperStatus_TESTING, Enabled: ygot.Bool(true)}}}),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING, Enabled: ygot.Bool(true)}}}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Description: ygot.String("I am an eth port")}),
+				Val:  must7951(&exampleoc.Interface{Description: ygot.String("I am an eth port")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled"),
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: true}},
@@ -180,11 +181,11 @@ func TestDiffSetRequest(t *testing.T) {
 		inA: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Subinterface: map[uint32]*Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled"),
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: true}},
@@ -219,14 +220,14 @@ func TestDiffSetRequest(t *testing.T) {
 		inB: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Subinterface: map[uint32]*Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: Interface_OperStatus_TESTING, Enabled: ygot.Bool(true)}}}),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING, Enabled: ygot.Bool(true)}}}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Description: ygot.String("I am an eth port")}),
+				Val:  must7951(&exampleoc.Interface{Description: ygot.String("I am an eth port")}),
 			}},
 		},
 		wantSetRequestDiff: SetRequestDiff{
@@ -254,11 +255,11 @@ func TestDiffSetRequest(t *testing.T) {
 		inA: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Subinterface: map[uint32]*Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: Interface_OperStatus_DORMANT}}, Description: ygot.String("I am an ethernet port")}),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_DORMANT}}, Description: ygot.String("I am an ethernet port")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled"),
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: false}},
@@ -270,14 +271,14 @@ func TestDiffSetRequest(t *testing.T) {
 		inB: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Subinterface: map[uint32]*Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: Interface_OperStatus_TESTING, Enabled: ygot.Bool(true)}}}),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING, Enabled: ygot.Bool(true)}}}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Description: ygot.String("I am an eth port")}),
+				Val:  must7951(&exampleoc.Interface{Description: ygot.String("I am an eth port")}),
 			}},
 		},
 		wantSetRequestDiff: SetRequestDiff{
@@ -318,14 +319,14 @@ func TestDiffSetRequest(t *testing.T) {
 		inA: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth1]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth1")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth1")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Subinterface: map[uint32]*Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled"),
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: true}},
@@ -340,17 +341,17 @@ func TestDiffSetRequest(t *testing.T) {
 		inB: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth2]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth2"), Transceiver: ygot.String("FDM")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth2"), Transceiver: ygot.String("FDM")}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Subinterface: map[uint32]*Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: Interface_OperStatus_TESTING, Enabled: ygot.Bool(true)}}}),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING, Enabled: ygot.Bool(true)}}}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Description: ygot.String("I am an eth port")}),
+				Val:  must7951(&exampleoc.Interface{Description: ygot.String("I am an eth port")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical"),
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: true}},
@@ -495,7 +496,7 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		inSetRequest: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
 				Val:  must7951(ygot.String("I am an eth port")),
@@ -510,7 +511,7 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 				Val:  must7951(ygot.String("I am an eth port")),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}},
 		},
 		wantErr: true,
@@ -533,7 +534,7 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		inSetRequest: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}},
 		},
 		wantIntent: setRequestIntent{
@@ -564,7 +565,7 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		inSetRequest: &gpb.SetRequest{
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}},
 		},
 		wantIntent: setRequestIntent{
@@ -579,7 +580,7 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		inSetRequest: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0"), Description: ygot.String("hello")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0"), Description: ygot.String("hello")}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
@@ -592,7 +593,7 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		inSetRequest: &gpb.SetRequest{
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0"), Description: ygot.String("hello")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0"), Description: ygot.String("hello")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
 				Val:  must7951(ygot.String("I am an eth port")),
@@ -607,7 +608,7 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 				Val:  must7951(ygot.String("I am an eth port")),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0"), Description: ygot.String("hello")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0"), Description: ygot.String("hello")}),
 			}},
 		},
 		wantErr: true,
@@ -616,7 +617,7 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		inSetRequest: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
@@ -638,7 +639,7 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		inSetRequest: &gpb.SetRequest{
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
 				Val:  must7951(ygot.String("I am an eth port")),
@@ -660,7 +661,7 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 				Val:  must7951(ygot.String("I am an eth port")),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}},
 		},
 		wantIntent: setRequestIntent{
@@ -676,11 +677,11 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		inSetRequest: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Description: ygot.String("I am an eth port")}),
+				Val:  must7951(&exampleoc.Interface{Description: ygot.String("I am an eth port")}),
 			}},
 		},
 		wantIntent: setRequestIntent{
@@ -698,10 +699,10 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		inSetRequest: &gpb.SetRequest{
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Description: ygot.String("I am an eth port")}),
+				Val:  must7951(&exampleoc.Interface{Description: ygot.String("I am an eth port")}),
 			}},
 		},
 		wantIntent: setRequestIntent{
@@ -717,11 +718,11 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		inSetRequest: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&Interface{Subinterface: map[uint32]*Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled"),
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: true}},

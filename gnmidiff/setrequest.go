@@ -220,7 +220,7 @@ func populateUpdates(intent *setRequestIntent, path string, tv *gpb.TypedValue) 
 			}
 		}
 	default:
-		return fmt.Errorf("unsupported TypedValue type %T (only string and JSON_IETF are currently supported)", tv.GetValue())
+		return fmt.Errorf("unsupported TypedValue type %T (only string, bool, and JSON_IETF are currently supported)", tv.GetValue())
 	}
 
 	if isLeaf {
