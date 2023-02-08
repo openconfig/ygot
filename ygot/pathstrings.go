@@ -234,6 +234,16 @@ func StringToStructuredPath(path string) (*gnmipb.Path, error) {
 	return gpath, nil
 }
 
+// MustStringToPath calls StringToStructuredPath and panics on error.
+// It is intended for use in tests with hard-coded strings.
+func MustStringToPath(path string) *gnmipb.Path {
+	p, err := StringToStructuredPath(path)
+	if err != nil {
+		panic(err)
+	}
+	return p
+}
+
 // extractKV extracts key value predicates from the input string in. It returns
 // the name of the element, a map keyed by key name with values of the predicates
 // specified. It removes escape characters from keys and values where they are
