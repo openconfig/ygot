@@ -58,7 +58,7 @@ import (
 // }
 //
 // When keepNamespace=false, then any namespace is removed from the flattened
-// *paths*, but still kept in any enum values.
+// *paths*, but still kept in any identity values.
 func flattenOCJSON(json7951 []byte, keepNamespace bool) (map[string]interface{}, error) {
 	var root interface{}
 	if err := json.Unmarshal(json7951, &root); err != nil {
@@ -128,9 +128,8 @@ func flattenOCJSONAux(root interface{}, path string, leaves map[string]interface
 		// This is a container or a list element.
 		for subpath, subv := range v {
 			if !keepNamespace {
-				if idx := strings.IndexRune(subpath, ':'); idx != -1 {
-					subpath = subpath[idx+1:]
-				}
+				pp := strings.Split(subpath, ":")
+				subpath = pp[len(pp)-1]
 			}
 			if err := flattenOCJSONAux(subv, path+"/"+subpath, leaves, keepNamespace); err != nil {
 				return err
