@@ -20,9 +20,19 @@ import (
 
 	"github.com/derekparker/trie"
 	"github.com/openconfig/ygot/ygot"
+	"github.com/openconfig/ygot/ytypes"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
+
+// MismatchedUpdate represents two different update values for the same leaf
+// node.
+type MismatchedUpdate struct {
+	// A is the update value in A.
+	A interface{}
+	// B is the update value in B.
+	B interface{}
+}
 
 // SetRequestDiff contains the intent difference between two SetRequests.
 //
@@ -31,37 +41,74 @@ import (
 // - The value of the update fields is the JSON_IETF representation of the
 // value.
 type SetRequestDiff struct {
-	AOnlyDeletes  map[string]struct{}
-	BOnlyDeletes  map[string]struct{}
-	CommonDeletes map[string]struct{}
-	AOnlyUpdates  map[string]interface{}
-	BOnlyUpdates  map[string]interface{}
-	CommonUpdates map[string]interface{}
+	AOnlyDeletes      map[string]struct{}
+	BOnlyDeletes      map[string]struct{}
+	CommonDeletes     map[string]struct{}
+	AOnlyUpdates      map[string]interface{}
+	BOnlyUpdates      map[string]interface{}
+	CommonUpdates     map[string]interface{}
+	MismatchedUpdates map[string]MismatchedUpdate
 }
 
 // DiffSetRequest returns a unique and minimal intent diff of two SetRequests.
 //
+// newSchema is intended to be provided via the function defined in generated
+// ygot code (e.g. exampleoc.Schema).
+// If newSchema is nil, then DiffSetRequest will make the following assumption:
+// - Any JSON value in the input SetRequest MUST conform to the OpenConfig
+// YANG style guidelines. See the following for checking compliance.
+// * https://github.com/openconfig/oc-pyang
+// * https://github.com/openconfig/public/blob/master/doc/openconfig_style_guide.md
+//
 // Currently, support is only for SetRequests without any delete paths, and
 // replace and updates that don't have conflicting leaf values. If not
 // supported, then an error will be returned.
-func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest) (SetRequestDiff, error) {
+func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, newSchema func() (*ytypes.Schema, error)) (SetRequestDiff, error) {
+	// TODO: implement newSchema handling.
 	intentA, err := minimalSetRequestIntent(a)
-	if err != nil {
-		return SetRequestDiff{}, fmt.Errorf("DiffSetRequest on b: %v", err)
-	}
-	intentB, err := minimalSetRequestIntent(b)
 	if err != nil {
 		return SetRequestDiff{}, fmt.Errorf("DiffSetRequest on a: %v", err)
 	}
-	diff := SetRequestDiff{}
-	// TODO
-	for range intentA.Deletes {
+	intentB, err := minimalSetRequestIntent(b)
+	if err != nil {
+		return SetRequestDiff{}, fmt.Errorf("DiffSetRequest on b: %v", err)
 	}
-	for range intentB.Deletes {
+	diff := SetRequestDiff{
+		AOnlyDeletes:      map[string]struct{}{},
+		BOnlyDeletes:      map[string]struct{}{},
+		CommonDeletes:     map[string]struct{}{},
+		AOnlyUpdates:      map[string]interface{}{},
+		BOnlyUpdates:      map[string]interface{}{},
+		CommonUpdates:     map[string]interface{}{},
+		MismatchedUpdates: map[string]MismatchedUpdate{},
 	}
-	for range intentA.Updates {
+	for pathA := range intentA.Deletes {
+		if _, ok := intentB.Deletes[pathA]; ok {
+			diff.CommonDeletes[pathA] = struct{}{}
+		} else {
+			diff.AOnlyDeletes[pathA] = struct{}{}
+		}
 	}
-	for range intentB.Updates {
+	for pathB := range intentB.Deletes {
+		if _, ok := intentA.Deletes[pathB]; !ok {
+			diff.BOnlyDeletes[pathB] = struct{}{}
+		}
+	}
+	for pathA, vA := range intentA.Updates {
+		vB, ok := intentB.Updates[pathA]
+		switch {
+		case ok && vB != vA:
+			diff.MismatchedUpdates[pathA] = MismatchedUpdate{A: vA, B: vB}
+		case ok:
+			diff.CommonUpdates[pathA] = vA
+		default:
+			diff.AOnlyUpdates[pathA] = vA
+		}
+	}
+	for pathB, vB := range intentB.Updates {
+		if _, ok := intentA.Updates[pathB]; !ok {
+			diff.BOnlyUpdates[pathB] = vB
+		}
 	}
 	return diff, nil
 }
@@ -77,6 +124,9 @@ type setRequestIntent struct {
 // replace and updates that don't have conflicting leaf values. If not
 // supported, then an error will be returned.
 func minimalSetRequestIntent(req *gpb.SetRequest) (setRequestIntent, error) {
+	if req == nil {
+		req = &gpb.SetRequest{}
+	}
 	if len(req.Delete) > 0 {
 		return setRequestIntent{}, fmt.Errorf("gnmidiff: delete paths are not supported.")
 	}
@@ -86,7 +136,6 @@ func minimalSetRequestIntent(req *gpb.SetRequest) (setRequestIntent, error) {
 	}
 	// NOTE: This simple trie will not work if we intend to check conflicts with wildcard deletion paths.
 	t := trie.New()
-	// FIXME: error out if not openconfig origin. Also update doc-comments.
 	for _, upd := range req.Replace {
 		path, err := ygot.PathToString(upd.Path)
 		if err != nil {
@@ -154,7 +203,7 @@ func populateUpdates(intent *setRequestIntent, path string, tv *gpb.TypedValue) 
 	case *gpb.TypedValue_BoolVal:
 		leafVal = tv.GetBoolVal()
 	case *gpb.TypedValue_JsonIetfVal:
-		updates, err := flattenOCJSON(tv.GetJsonIetfVal())
+		updates, err := flattenOCJSON(tv.GetJsonIetfVal(), false)
 		if err != nil {
 			return err
 		}
