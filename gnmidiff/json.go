@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/openconfig/ygot/ygot"
 )
@@ -55,20 +56,23 @@ import (
 //   "openconfig-network-instance:config/type": "openconfig-network-instance-types:L3VRF",
 //   "openconfig-network-instance:name": "RED",
 // }
-func flattenOCJSON(json7951 []byte) (map[string]interface{}, error) {
-	// TODO: Add option to remove the namespace on paths of returned updates.
+//
+// When keepNamespace=false, then any namespace is removed from the flattened
+// *paths*, but still kept in any identity values.
+func flattenOCJSON(json7951 []byte, keepNamespace bool) (map[string]interface{}, error) {
 	var root interface{}
 	if err := json.Unmarshal(json7951, &root); err != nil {
 		return nil, fmt.Errorf("gnmidiff: %v", err)
 	}
 	leaves := map[string]interface{}{}
-	if err := flattenOCJSONAux(root, "", leaves); err != nil {
+	if err := flattenOCJSONAux(root, "", leaves, keepNamespace); err != nil {
 		return nil, err
 	}
 	return leaves, nil
 }
 
-func flattenOCJSONAux(root interface{}, path string, leaves map[string]interface{}) error {
+func flattenOCJSONAux(root interface{}, path string, leaves map[string]interface{}, keepNamespace bool) error {
+	// TODO: error out if detect that JSON does not abide by openconfig style guideline.
 	switch v := root.(type) {
 	case bool, float64, string:
 		leaves[path] = root
@@ -112,7 +116,7 @@ func flattenOCJSONAux(root interface{}, path string, leaves map[string]interface
 					for _, name := range keyNames {
 						listelepath += fmt.Sprintf("[%s=%s]", name, keyVals[name])
 					}
-					if err := flattenOCJSONAux(listele, path+listelepath, leaves); err != nil {
+					if err := flattenOCJSONAux(listele, path+listelepath, leaves, keepNamespace); err != nil {
 						return err
 					}
 				}
@@ -123,7 +127,11 @@ func flattenOCJSONAux(root interface{}, path string, leaves map[string]interface
 	case map[string]interface{}:
 		// This is a container or a list element.
 		for subpath, subv := range v {
-			if err := flattenOCJSONAux(subv, path+"/"+subpath, leaves); err != nil {
+			if !keepNamespace {
+				pp := strings.Split(subpath, ":")
+				subpath = pp[len(pp)-1]
+			}
+			if err := flattenOCJSONAux(subv, path+"/"+subpath, leaves, keepNamespace); err != nil {
 				return err
 			}
 		}
