@@ -31,7 +31,7 @@ func TestDiffSetRequest(t *testing.T) {
 		inA                *gpb.SetRequest
 		inB                *gpb.SetRequest
 		inNewSchema        func() (*ytypes.Schema, error)
-		wantSetRequestDiff SetRequestDiff
+		wantSetRequestDiff SetRequestIntentDiff
 		wantErr            bool
 	}{{
 		desc: "exactly the same",
@@ -67,7 +67,7 @@ func TestDiffSetRequest(t *testing.T) {
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "FDM"}},
 			}},
 		},
-		wantSetRequestDiff: SetRequestDiff{
+		wantSetRequestDiff: SetRequestIntentDiff{
 			AOnlyDeletes: map[string]struct{}{},
 			BOnlyDeletes: map[string]struct{}{},
 			CommonDeletes: map[string]struct{}{
@@ -118,7 +118,7 @@ func TestDiffSetRequest(t *testing.T) {
 				Val:  must7951(&exampleoc.Interface{Description: ygot.String("I am an eth port")}),
 			}},
 		},
-		wantSetRequestDiff: SetRequestDiff{
+		wantSetRequestDiff: SetRequestIntentDiff{
 			AOnlyDeletes: map[string]struct{}{},
 			BOnlyDeletes: map[string]struct{}{},
 			CommonDeletes: map[string]struct{}{
@@ -195,7 +195,7 @@ func TestDiffSetRequest(t *testing.T) {
 			}},
 		},
 		inB: &gpb.SetRequest{},
-		wantSetRequestDiff: SetRequestDiff{
+		wantSetRequestDiff: SetRequestIntentDiff{
 			AOnlyDeletes: map[string]struct{}{
 				"/interfaces/interface[name=eth0]": {},
 			},
@@ -230,7 +230,7 @@ func TestDiffSetRequest(t *testing.T) {
 				Val:  must7951(&exampleoc.Interface{Description: ygot.String("I am an eth port")}),
 			}},
 		},
-		wantSetRequestDiff: SetRequestDiff{
+		wantSetRequestDiff: SetRequestIntentDiff{
 			AOnlyDeletes: map[string]struct{}{},
 			BOnlyDeletes: map[string]struct{}{
 				"/interfaces/interface[name=eth0]": {},
@@ -281,7 +281,7 @@ func TestDiffSetRequest(t *testing.T) {
 				Val:  must7951(&exampleoc.Interface{Description: ygot.String("I am an eth port")}),
 			}},
 		},
-		wantSetRequestDiff: SetRequestDiff{
+		wantSetRequestDiff: SetRequestIntentDiff{
 			AOnlyDeletes: map[string]struct{}{},
 			BOnlyDeletes: map[string]struct{}{},
 			CommonDeletes: map[string]struct{}{
@@ -357,7 +357,7 @@ func TestDiffSetRequest(t *testing.T) {
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: true}},
 			}},
 		},
-		wantSetRequestDiff: SetRequestDiff{
+		wantSetRequestDiff: SetRequestIntentDiff{
 			AOnlyDeletes: map[string]struct{}{
 				"/interfaces/interface[name=eth1]": {},
 			},

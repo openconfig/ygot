@@ -34,13 +34,13 @@ type MismatchedUpdate struct {
 	B interface{}
 }
 
-// SetRequestDiff contains the intent difference between two SetRequests.
+// SetRequestIntentDiff contains the intent difference between two SetRequests.
 //
 // - The key of the maps is the string representation of a gpb.Path constructed
 // by ygot.PathToString.
 // - The value of the update fields is the JSON_IETF representation of the
 // value.
-type SetRequestDiff struct {
+type SetRequestIntentDiff struct {
 	AOnlyDeletes      map[string]struct{}
 	BOnlyDeletes      map[string]struct{}
 	CommonDeletes     map[string]struct{}
@@ -63,17 +63,17 @@ type SetRequestDiff struct {
 // Currently, support is only for SetRequests without any delete paths, and
 // replace and updates that don't have conflicting leaf values. If not
 // supported, then an error will be returned.
-func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, newSchema func() (*ytypes.Schema, error)) (SetRequestDiff, error) {
+func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, newSchema func() (*ytypes.Schema, error)) (SetRequestIntentDiff, error) {
 	// TODO: implement newSchema handling.
 	intentA, err := minimalSetRequestIntent(a)
 	if err != nil {
-		return SetRequestDiff{}, fmt.Errorf("DiffSetRequest on a: %v", err)
+		return SetRequestIntentDiff{}, fmt.Errorf("DiffSetRequest on a: %v", err)
 	}
 	intentB, err := minimalSetRequestIntent(b)
 	if err != nil {
-		return SetRequestDiff{}, fmt.Errorf("DiffSetRequest on b: %v", err)
+		return SetRequestIntentDiff{}, fmt.Errorf("DiffSetRequest on b: %v", err)
 	}
-	diff := SetRequestDiff{
+	diff := SetRequestIntentDiff{
 		AOnlyDeletes:      map[string]struct{}{},
 		BOnlyDeletes:      map[string]struct{}{},
 		CommonDeletes:     map[string]struct{}{},
