@@ -127,7 +127,7 @@ func (diff SetRequestIntentDiff) Format(f Format) string {
 	sort.Strings(paths)
 	for _, path := range paths {
 		mismatch := diff.MismatchedUpdates[path]
-		b.WriteString(fmt.Sprintf("m %s:\n(\n  - %v\n  + %v\n)\n", path, formatJSONValue(mismatch.A), formatJSONValue(mismatch.B)))
+		b.WriteString(fmt.Sprintf("m %s:\n  - %v\n  + %v\n", path, formatJSONValue(mismatch.A), formatJSONValue(mismatch.B)))
 	}
 	return b.String()
 }

@@ -85,15 +85,11 @@ func TestSetRequestDiffFormat(t *testing.T) {
 + /interfaces/interface[name=eth2]/config/name: "eth2"
 + /interfaces/interface[name=eth2]/name: "eth2"
 m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical:
-(
   - false
   + true
-)
 m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name:
-(
   - "foo"
   + "bar"
-)
 `,
 	}, {
 		desc: "full output",
@@ -160,15 +156,11 @@ m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/nam
 + /interfaces/interface[name=eth2]/config/name: "eth2"
 + /interfaces/interface[name=eth2]/name: "eth2"
 m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical:
-(
   - false
   + true
-)
 m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name:
-(
   - "foo"
   + "bar"
-)
 `,
 	}}
 
