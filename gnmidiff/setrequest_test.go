@@ -15,6 +15,7 @@
 package gnmidiff
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -179,7 +180,6 @@ func TestDiffSetRequest(t *testing.T) {
 		desc               string
 		inA                *gpb.SetRequest
 		inB                *gpb.SetRequest
-		inNewSchema        func() (*ytypes.Schema, error)
 		wantSetRequestDiff SetRequestIntentDiff
 		wantErr            bool
 	}{{
@@ -265,6 +265,9 @@ func TestDiffSetRequest(t *testing.T) {
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Description: ygot.String("I am an eth port")}),
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/transceiver"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "FDM"}},
 			}},
 		},
 		wantSetRequestDiff: SetRequestIntentDiff{
@@ -321,7 +324,7 @@ func TestDiffSetRequest(t *testing.T) {
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: true}},
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/transceiver"),
-				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "FDM"}},
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "TDM"}},
 			}},
 		},
 		wantErr: true,
@@ -377,6 +380,12 @@ func TestDiffSetRequest(t *testing.T) {
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Description: ygot.String("I am an eth port")}),
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/transceiver"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "FDM"}},
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/mtu"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_UintVal{UintVal: 1500}},
 			}},
 		},
 		wantSetRequestDiff: SetRequestIntentDiff{
@@ -390,6 +399,7 @@ func TestDiffSetRequest(t *testing.T) {
 				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
 				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
 				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
+				"/interfaces/interface[name=eth0]/config/mtu":                                            float64(1500),
 				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
 				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
 				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
@@ -493,7 +503,7 @@ func TestDiffSetRequest(t *testing.T) {
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth2]"),
-				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth2"), Transceiver: ygot.String("FDM")}),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth2"), Transceiver: ygot.String("FDM"), Mtu: ygot.Uint16(1500)}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
@@ -521,8 +531,7 @@ func TestDiffSetRequest(t *testing.T) {
 				"/interfaces/interface[name=eth1]/config/name": "eth1",
 			},
 			BOnlyUpdates: map[string]interface{}{
-				"/interfaces/interface[name=eth2]/name":              "eth2",
-				"/interfaces/interface[name=eth2]/config/name":       "eth2",
+				"/interfaces/interface[name=eth2]/config/mtu":        float64(1500),
 				"/interfaces/interface[name=eth0]/state/transceiver": "FDM",
 			},
 			CommonUpdates: map[string]interface{}{
@@ -533,6 +542,8 @@ func TestDiffSetRequest(t *testing.T) {
 				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
 				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
 				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
+				"/interfaces/interface[name=eth2]/name":                                                  "eth2",
+				"/interfaces/interface[name=eth2]/config/name":                                           "eth2",
 				"/interfaces/interface[name=eth2]/state/transceiver":                                     "FDM",
 			},
 			MismatchedUpdates: map[string]MismatchedUpdate{
@@ -546,12 +557,20 @@ func TestDiffSetRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			got, err := DiffSetRequest(tt.inA, tt.inB, tt.inNewSchema)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("got error: %v, want error: %v", err, tt.wantErr)
-			}
-			if diff := cmp.Diff(tt.wantSetRequestDiff, got); diff != "" {
-				t.Errorf("DiffSetRequest (-want, +got):\n%s", diff)
+			for _, withNewSchemaFn := range []bool{false, true} {
+				var inNewSchemaFn func() (*ytypes.Schema, error)
+				if withNewSchemaFn {
+					inNewSchemaFn = exampleoc.Schema
+				}
+				t.Run(fmt.Sprintf("withNewSchemaFn-%v", withNewSchemaFn), func(t *testing.T) {
+					got, err := DiffSetRequest(tt.inA, tt.inB, inNewSchemaFn)
+					if (err != nil) != tt.wantErr {
+						t.Fatalf("got error: %v, want error: %v", err, tt.wantErr)
+					}
+					if diff := cmp.Diff(tt.wantSetRequestDiff, got); diff != "" {
+						t.Errorf("DiffSetRequest (-want, +got):\n%s", diff)
+					}
+				})
 			}
 		})
 	}
@@ -826,7 +845,7 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		inSetRequest: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
-				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
+				Val:  must7951(&exampleoc.Interface{Mtu: ygot.Uint16(1500)}),
 			}},
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
@@ -838,8 +857,7 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 				"/interfaces/interface[name=eth0]": {},
 			},
 			Updates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":               "eth0",
-				"/interfaces/interface[name=eth0]/config/name":        "eth0",
+				"/interfaces/interface[name=eth0]/config/mtu":         float64(1500),
 				"/interfaces/interface[name=eth0]/config/description": "I am an eth port",
 			},
 		},
@@ -899,12 +917,20 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			got, err := minimalSetRequestIntent(tt.inSetRequest)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("got error: %v, want error: %v", err, tt.wantErr)
-			}
-			if diff := cmp.Diff(tt.wantIntent, got); diff != "" {
-				t.Errorf("minimalSetRequestIntent (-want, +got):\n%s", diff)
+			for _, withNewSchemaFn := range []bool{false, true} {
+				var inNewSchemaFn func() (*ytypes.Schema, error)
+				if withNewSchemaFn {
+					inNewSchemaFn = exampleoc.Schema
+				}
+				t.Run(fmt.Sprintf("withNewSchemaFn-%v", withNewSchemaFn), func(t *testing.T) {
+					got, err := minimalSetRequestIntent(tt.inSetRequest, inNewSchemaFn)
+					if (err != nil) != tt.wantErr {
+						t.Fatalf("got error: %v, want error: %v", err, tt.wantErr)
+					}
+					if diff := cmp.Diff(tt.wantIntent, got); diff != "" {
+						t.Errorf("minimalSetRequestIntent (-want, +got):\n%s", diff)
+					}
+				})
 			}
 		})
 	}

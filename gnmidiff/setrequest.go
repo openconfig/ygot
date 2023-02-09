@@ -16,12 +16,15 @@
 package gnmidiff
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/derekparker/trie"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
 
@@ -134,9 +137,9 @@ func (diff SetRequestIntentDiff) Format(f Format) string {
 
 // DiffSetRequest returns a unique and minimal intent diff of two SetRequests.
 //
-// newSchema is intended to be provided via the function defined in generated
+// newSchemaFn is intended to be provided via the function defined in generated
 // ygot code (e.g. exampleoc.Schema).
-// If newSchema is nil, then DiffSetRequest will make the following assumption:
+// If newSchemaFn is nil, then DiffSetRequest will make the following assumption:
 // - Any JSON value in the input SetRequest MUST conform to the OpenConfig
 // YANG style guidelines. See the following for checking compliance.
 // * https://github.com/openconfig/oc-pyang
@@ -145,13 +148,13 @@ func (diff SetRequestIntentDiff) Format(f Format) string {
 // Currently, support is only for SetRequests without any delete paths, and
 // replace and updates that don't have conflicting leaf values. If not
 // supported, then an error will be returned.
-func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, newSchema func() (*ytypes.Schema, error)) (SetRequestIntentDiff, error) {
-	// TODO: implement newSchema handling.
-	intentA, err := minimalSetRequestIntent(a)
+func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, newSchemaFn func() (*ytypes.Schema, error)) (SetRequestIntentDiff, error) {
+	// TODO: Handle prefix in SetRequest.
+	intentA, err := minimalSetRequestIntent(a, newSchemaFn)
 	if err != nil {
 		return SetRequestIntentDiff{}, fmt.Errorf("DiffSetRequest on a: %v", err)
 	}
-	intentB, err := minimalSetRequestIntent(b)
+	intentB, err := minimalSetRequestIntent(b, newSchemaFn)
 	if err != nil {
 		return SetRequestIntentDiff{}, fmt.Errorf("DiffSetRequest on b: %v", err)
 	}
@@ -205,7 +208,7 @@ type setRequestIntent struct {
 // Currently, support is only for SetRequests without any delete paths, and
 // replace and updates that don't have conflicting leaf values. If not
 // supported, then an error will be returned.
-func minimalSetRequestIntent(req *gpb.SetRequest) (setRequestIntent, error) {
+func minimalSetRequestIntent(req *gpb.SetRequest, newSchemaFn func() (*ytypes.Schema, error)) (setRequestIntent, error) {
 	if req == nil {
 		req = &gpb.SetRequest{}
 	}
@@ -229,7 +232,7 @@ func minimalSetRequestIntent(req *gpb.SetRequest) (setRequestIntent, error) {
 		intent.Deletes[path] = struct{}{}
 		t.Add(path, nil)
 
-		if err := populateUpdates(&intent, path, upd.GetVal()); err != nil {
+		if err := populateUpdates(&intent, path, upd.GetVal(), newSchemaFn); err != nil {
 			return setRequestIntent{}, err
 		}
 	}
@@ -247,7 +250,7 @@ func minimalSetRequestIntent(req *gpb.SetRequest) (setRequestIntent, error) {
 			return setRequestIntent{}, fmt.Errorf("gnmidiff: %v", err)
 		}
 
-		if err := populateUpdates(&intent, path, upd.GetVal()); err != nil {
+		if err := populateUpdates(&intent, path, upd.GetVal(), newSchemaFn); err != nil {
 			return setRequestIntent{}, err
 		}
 	}
@@ -267,52 +270,139 @@ func minimalSetRequestIntent(req *gpb.SetRequest) (setRequestIntent, error) {
 	return intent, nil
 }
 
+// binaryBase64 takes an input byte slice and returns it as a base64
+// encoded string.
+func binaryBase64(i []byte) string {
+	var b bytes.Buffer
+	encoder := base64.NewEncoder(base64.StdEncoding, &b)
+	encoder.Write(i)
+	encoder.Close()
+	return b.String()
+}
+
+// protoLeafToJSON converts a gNMI proto scalar to the equivalent RFC7951 JSON
+// representation.
+func protoLeafToJSON(tv *gpb.TypedValue) (interface{}, error) {
+	switch tv.GetValue().(type) {
+	case *gpb.TypedValue_StringVal:
+		return tv.GetStringVal(), nil
+	case *gpb.TypedValue_BoolVal:
+		return tv.GetBoolVal(), nil
+	case *gpb.TypedValue_IntVal:
+		return float64(tv.GetIntVal()), nil
+	case *gpb.TypedValue_UintVal:
+		return float64(tv.GetUintVal()), nil
+	case *gpb.TypedValue_DoubleVal:
+		return float64(tv.GetDoubleVal()), nil
+	case *gpb.TypedValue_LeaflistVal:
+		elems := tv.GetLeaflistVal().GetElement()
+		ss := make([]interface{}, len(elems))
+		for x, e := range elems {
+			var err error
+			if ss[x], err = protoLeafToJSON(e); err != nil {
+				return nil, err
+			}
+		}
+		return ss, nil
+	case *gpb.TypedValue_BytesVal:
+		return binaryBase64(tv.GetBytesVal()), nil
+	default:
+		return nil, fmt.Errorf("gnmidiff: TypedValue type %T is not a scalar type", tv.GetValue())
+	}
+}
+
 // populateUpdates populates all leaf updates at the given path into the intent.
 //
 // Note: The input path must NOT end with "/".
 //
 // e.g. /a for b/c="foo" would introduce an update of /a/b/c="foo" into the intent.
-func populateUpdates(intent *setRequestIntent, path string, tv *gpb.TypedValue) error {
+func populateUpdates(intent *setRequestIntent, path string, tv *gpb.TypedValue, newSchemaFn func() (*ytypes.Schema, error)) error {
 	if len(path) > 0 && path[len(path)-1] == '/' {
 		return fmt.Errorf("gnmidiff: invalid input path %q, must not end with \"/\"", path)
 	}
-	var leafVal interface{}
-	isLeaf := true
-	switch tv.GetValue().(type) {
-	// TODO: Handle other scalar types.
-	case *gpb.TypedValue_StringVal:
-		leafVal = tv.GetStringVal()
-	case *gpb.TypedValue_BoolVal:
-		leafVal = tv.GetBoolVal()
-	case *gpb.TypedValue_JsonIetfVal:
-		updates, err := flattenOCJSON(tv.GetJsonIetfVal(), false)
+	if newSchemaFn != nil {
+		schema, err := newSchemaFn()
 		if err != nil {
-			return err
+			return fmt.Errorf("gnmidiff: error creating new schema: %v", err)
 		}
-		if val, ok := updates[""]; len(updates) == 1 && ok {
-			leafVal = val
-		} else {
-			isLeaf = false
-			for subpath, value := range updates {
-				pathToLeaf := path + subpath
-				if _, ok := intent.Updates[pathToLeaf]; ok {
-					return fmt.Errorf("gnmidiff: leaf value set twice in SetRequest: %v", pathToLeaf)
+		rootSchema := schema.RootSchema()
+		targetSchema, err := util.FindLeafRefSchema(rootSchema, path)
+		if err != nil {
+			return fmt.Errorf("gnmidiff: error finding target schema: %v", err)
+		}
+		if targetSchema.IsLeaf() {
+			// leaf replace is the same as a leaf update, so remove
+			// the deletion action to keep the intent minimal.
+			delete(intent.Deletes, path)
+		}
+
+		gpath, err := ygot.StringToStructuredPath(path)
+		if err != nil {
+			return fmt.Errorf("gnmidiff: %v", err)
+		}
+
+		if err := ytypes.SetNode(rootSchema, schema.Root, gpath, tv, &ytypes.InitMissingElements{}); err != nil {
+			return fmt.Errorf("gnmidiff: error unmarshalling update: %v", err)
+		}
+		notifs, err := ygot.TogNMINotifications(schema.Root, 0, ygot.GNMINotificationsConfig{UsePathElem: true})
+		if err != nil {
+			return fmt.Errorf("gnmidiff: error marshalling GoStruct: %v", err)
+		}
+		for _, n := range notifs {
+			for _, upd := range n.Update {
+				pathToLeaf, err := ygot.PathToString(upd.Path)
+				if err != nil {
+					return fmt.Errorf("gnmidiff: %v", err)
 				}
-				intent.Updates[pathToLeaf] = value
+				val, err := protoLeafToJSON(upd.GetVal())
+				if err != nil {
+					return err
+				}
+				if prevVal, ok := intent.Updates[pathToLeaf]; ok && val != prevVal {
+					return fmt.Errorf("gnmidiff: leaf value set twice with different values in SetRequest: %v", pathToLeaf)
+				}
+				intent.Updates[pathToLeaf] = val
 			}
 		}
-	default:
-		return fmt.Errorf("unsupported TypedValue type %T (only string, bool, and JSON_IETF are currently supported)", tv.GetValue())
-	}
-
-	if isLeaf {
-		// leaf replace is the same as a leaf update, so remove
-		// the deletion action to keep the intent minimal.
-		delete(intent.Deletes, path)
-		if _, ok := intent.Updates[path]; ok {
-			return fmt.Errorf("gnmidiff: leaf value set twice in SetRequest: %v", path)
+		return nil
+	} else {
+		var leafVal interface{}
+		isLeaf := true
+		switch tv.GetValue().(type) {
+		case *gpb.TypedValue_JsonIetfVal:
+			updates, err := flattenOCJSON(tv.GetJsonIetfVal(), false)
+			if err != nil {
+				return err
+			}
+			if val, ok := updates[""]; len(updates) == 1 && ok {
+				leafVal = val
+			} else {
+				isLeaf = false
+				for subpath, value := range updates {
+					pathToLeaf := path + subpath
+					if prevVal, ok := intent.Updates[pathToLeaf]; ok && val != prevVal {
+						return fmt.Errorf("gnmidiff: leaf value set twice in SetRequest: %v", pathToLeaf)
+					}
+					intent.Updates[pathToLeaf] = value
+				}
+			}
+		default:
+			var err error
+			leafVal, err = protoLeafToJSON(tv)
+			if err != nil {
+				return err
+			}
 		}
-		intent.Updates[path] = leafVal
+
+		if isLeaf {
+			// leaf replace is the same as a leaf update, so remove
+			// the deletion action to keep the intent minimal.
+			delete(intent.Deletes, path)
+			if prevVal, ok := intent.Updates[path]; ok && leafVal != prevVal {
+				return fmt.Errorf("gnmidiff: leaf value set twice in SetRequest: %v", path)
+			}
+			intent.Updates[path] = leafVal
+		}
+		return nil
 	}
-	return nil
 }
