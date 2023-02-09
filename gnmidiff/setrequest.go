@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -320,52 +321,9 @@ func populateUpdates(intent *setRequestIntent, path string, tv *gpb.TypedValue, 
 	if len(path) > 0 && path[len(path)-1] == '/' {
 		return fmt.Errorf("gnmidiff: invalid input path %q, must not end with \"/\"", path)
 	}
-	if newSchemaFn != nil {
-		schema, err := newSchemaFn()
-		if err != nil {
-			return fmt.Errorf("gnmidiff: error creating new schema: %v", err)
-		}
-		rootSchema := schema.RootSchema()
-		targetSchema, err := util.FindLeafRefSchema(rootSchema, path)
-		if err != nil {
-			return fmt.Errorf("gnmidiff: error finding target schema: %v", err)
-		}
-		if targetSchema.IsLeaf() {
-			// leaf replace is the same as a leaf update, so remove
-			// the deletion action to keep the intent minimal.
-			delete(intent.Deletes, path)
-		}
 
-		gpath, err := ygot.StringToStructuredPath(path)
-		if err != nil {
-			return fmt.Errorf("gnmidiff: %v", err)
-		}
-
-		if err := ytypes.SetNode(rootSchema, schema.Root, gpath, tv, &ytypes.InitMissingElements{}); err != nil {
-			return fmt.Errorf("gnmidiff: error unmarshalling update: %v", err)
-		}
-		notifs, err := ygot.TogNMINotifications(schema.Root, 0, ygot.GNMINotificationsConfig{UsePathElem: true})
-		if err != nil {
-			return fmt.Errorf("gnmidiff: error marshalling GoStruct: %v", err)
-		}
-		for _, n := range notifs {
-			for _, upd := range n.Update {
-				pathToLeaf, err := ygot.PathToString(upd.Path)
-				if err != nil {
-					return fmt.Errorf("gnmidiff: %v", err)
-				}
-				val, err := protoLeafToJSON(upd.GetVal())
-				if err != nil {
-					return err
-				}
-				if prevVal, ok := intent.Updates[pathToLeaf]; ok && val != prevVal {
-					return fmt.Errorf("gnmidiff: leaf value set twice with different values in SetRequest: %v", pathToLeaf)
-				}
-				intent.Updates[pathToLeaf] = val
-			}
-		}
-		return nil
-	} else {
+	// Populate updates when the schema is unknown.
+	if newSchemaFn == nil {
 		var leafVal interface{}
 		isLeaf := true
 		switch tv.GetValue().(type) {
@@ -405,4 +363,81 @@ func populateUpdates(intent *setRequestIntent, path string, tv *gpb.TypedValue, 
 		}
 		return nil
 	}
+
+	gpath, err := ygot.StringToStructuredPath(path)
+	if err != nil {
+		return fmt.Errorf("gnmidiff: %v", err)
+	}
+
+	schema, err := newSchemaFn()
+	if err != nil {
+		return fmt.Errorf("gnmidiff: error creating new schema: %v", err)
+	}
+	rootSchema := schema.RootSchema()
+	targetSchema, err := util.FindLeafRefSchema(rootSchema, path)
+	if err != nil {
+		return fmt.Errorf("gnmidiff: error finding target schema: %v", err)
+	}
+	setNodeTargetSchema := rootSchema
+	setNodeTarget := schema.Root
+	setNodePath := &gpb.Path{}
+	if targetSchema.IsLeaf() {
+		// leaf replace is the same as a leaf update, so remove
+		// the deletion action to keep the intent minimal.
+		delete(intent.Deletes, path)
+	} else {
+		// For a non-leaf update, we want to call SetNode on
+		// the non-leaf node itself to avoid creating key
+		// leaves as a side-effect of unmarshalling a path that
+		// ends at a list entry.
+		setNodePath = gpath
+		gpath = &gpb.Path{}
+
+		nodeI, _, err := ytypes.GetOrCreateNode(rootSchema, schema.Root, setNodePath)
+		if err != nil {
+			return fmt.Errorf("failed to GetOrCreate the prefix node: %v", err)
+		}
+		targetType := reflect.TypeOf(nodeI).Elem()
+		var ok bool
+		if setNodeTarget, ok = reflect.New(targetType).Interface().(ygot.GoStruct); !ok {
+			return fmt.Errorf("prefix path points to a non-GoStruct, this is not allowed: %T, %v", nodeI, nodeI)
+		}
+		setNodeTargetSchema = schema.SchemaTree[targetType.Name()]
+	}
+
+	if err := ytypes.SetNode(setNodeTargetSchema, setNodeTarget, gpath, tv, &ytypes.InitMissingElements{}); err != nil {
+		return fmt.Errorf("gnmidiff: error unmarshalling update: %v", err)
+	}
+	notifs, err := ygot.TogNMINotifications(setNodeTarget, 0, ygot.GNMINotificationsConfig{UsePathElem: true})
+	if err != nil {
+		return fmt.Errorf("gnmidiff: error marshalling GoStruct: %v", err)
+	}
+	prefixPathStr := ""
+	if len(setNodePath.Elem) > 0 {
+		if prefixPathStr, err = ygot.PathToString(setNodePath); err != nil {
+			return fmt.Errorf("gnmidiff: error creating prefix path string: %v", err)
+		}
+	}
+	for _, n := range notifs {
+		for _, upd := range n.Update {
+			pathToLeaf, err := ygot.PathToString(upd.Path)
+			if err != nil {
+				return fmt.Errorf("gnmidiff: %v", err)
+			}
+			pathToLeaf = prefixPathStr + pathToLeaf
+			val, err := protoLeafToJSON(upd.GetVal())
+			if err != nil {
+				return err
+			}
+			if !strings.HasPrefix(pathToLeaf, path) {
+				// This was a list key that was created by SetNode, so drop it.
+				continue
+			}
+			if prevVal, ok := intent.Updates[pathToLeaf]; ok && val != prevVal {
+				return fmt.Errorf("gnmidiff: leaf value set twice with different values in SetRequest: %v", pathToLeaf)
+			}
+			intent.Updates[pathToLeaf] = val
+		}
+	}
+	return nil
 }

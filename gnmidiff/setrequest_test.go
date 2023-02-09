@@ -531,6 +531,8 @@ func TestDiffSetRequest(t *testing.T) {
 				"/interfaces/interface[name=eth1]/config/name": "eth1",
 			},
 			BOnlyUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth2]/name":              "eth2",
+				"/interfaces/interface[name=eth2]/config/name":       "eth2",
 				"/interfaces/interface[name=eth2]/config/mtu":        float64(1500),
 				"/interfaces/interface[name=eth0]/state/transceiver": "FDM",
 			},
@@ -542,8 +544,6 @@ func TestDiffSetRequest(t *testing.T) {
 				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
 				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
 				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
-				"/interfaces/interface[name=eth2]/name":                                                  "eth2",
-				"/interfaces/interface[name=eth2]/config/name":                                           "eth2",
 				"/interfaces/interface[name=eth2]/state/transceiver":                                     "FDM",
 			},
 			MismatchedUpdates: map[string]MismatchedUpdate{
