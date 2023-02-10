@@ -145,13 +145,12 @@ func (diff SetRequestIntentDiff) Format(f Format) string {
 // Currently, support is only for SetRequests without any delete paths, and
 // replace and updates that don't have conflicting leaf values. If not
 // supported, then an error will be returned.
-func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, newSchema func() (*ytypes.Schema, error)) (SetRequestIntentDiff, error) {
-	// TODO: implement newSchema handling.
-	intentA, err := minimalSetRequestIntent(a)
+func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, newSchemaFn func() (*ytypes.Schema, error)) (SetRequestIntentDiff, error) {
+	intentA, err := minimalSetRequestIntent(a, newSchemaFn)
 	if err != nil {
 		return SetRequestIntentDiff{}, fmt.Errorf("DiffSetRequest on a: %v", err)
 	}
-	intentB, err := minimalSetRequestIntent(b)
+	intentB, err := minimalSetRequestIntent(b, newSchemaFn)
 	if err != nil {
 		return SetRequestIntentDiff{}, fmt.Errorf("DiffSetRequest on b: %v", err)
 	}
@@ -196,16 +195,19 @@ func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, newSchema func() (*yty
 }
 
 type setRequestIntent struct {
+	// Deletes are deletions to any node.
 	Deletes map[string]struct{}
+	// Updates are leaf updates only.
 	Updates map[string]interface{}
 }
 
 // minimalSetRequestIntent returns a unique and minimal intent for a SetRequest.
 //
-// Currently, support is only for SetRequests without any delete paths, and
-// replace and updates that don't have conflicting leaf values. If not
+// TODO: Currently, support is only for SetRequests without any delete paths,
+// and replace and updates that don't have conflicting leaf values. If not
 // supported, then an error will be returned.
-func minimalSetRequestIntent(req *gpb.SetRequest) (setRequestIntent, error) {
+func minimalSetRequestIntent(req *gpb.SetRequest, newSchemaFn func() (*ytypes.Schema, error)) (setRequestIntent, error) {
+	// TODO: Handle prefix in SetRequest.
 	if req == nil {
 		req = &gpb.SetRequest{}
 	}
@@ -236,8 +238,8 @@ func minimalSetRequestIntent(req *gpb.SetRequest) (setRequestIntent, error) {
 
 	// Do prefix match to check for conflicting replace paths.
 	for _, path := range t.Keys() {
-		if matches := t.PrefixSearch(path); len(matches) >= 2 {
-			return setRequestIntent{}, fmt.Errorf("gnmidiff: conflicting replaces in SetRequest: %v", matches)
+		if matches := t.PrefixSearch(path + "/"); len(matches) >= 1 {
+			return setRequestIntent{}, fmt.Errorf("gnmidiff: conflicting replaces in SetRequest: %v, %v", path, matches)
 		}
 	}
 
@@ -259,8 +261,8 @@ func minimalSetRequestIntent(req *gpb.SetRequest) (setRequestIntent, error) {
 
 	// Do prefix match to check for conflicting update paths.
 	for _, path := range t.Keys() {
-		if matches := t.PrefixSearch(path); len(matches) >= 2 {
-			return setRequestIntent{}, fmt.Errorf("gnmidiff: bad SetRequest, there are leaf updates that have a prefix match: %v", matches)
+		if matches := t.PrefixSearch(path + "/"); len(matches) >= 1 {
+			return setRequestIntent{}, fmt.Errorf("gnmidiff: bad SetRequest, there are leaf updates that have a prefix match: %v, %v", path, matches)
 		}
 	}
 
