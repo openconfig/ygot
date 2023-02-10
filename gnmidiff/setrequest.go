@@ -16,7 +16,6 @@
 package gnmidiff
 
 import (
-	"bytes"
 	"encoding/base64"
 	"fmt"
 	"reflect"
@@ -150,7 +149,6 @@ func (diff SetRequestIntentDiff) Format(f Format) string {
 // replace and updates that don't have conflicting leaf values. If not
 // supported, then an error will be returned.
 func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, newSchemaFn func() (*ytypes.Schema, error)) (SetRequestIntentDiff, error) {
-	// TODO: Handle prefix in SetRequest.
 	intentA, err := minimalSetRequestIntent(a, newSchemaFn)
 	if err != nil {
 		return SetRequestIntentDiff{}, fmt.Errorf("DiffSetRequest on a: %v", err)
@@ -200,16 +198,19 @@ func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, newSchemaFn func() (*y
 }
 
 type setRequestIntent struct {
+	// Deletes are deletions to any node.
 	Deletes map[string]struct{}
+	// Updates are leaf updates only.
 	Updates map[string]interface{}
 }
 
 // minimalSetRequestIntent returns a unique and minimal intent for a SetRequest.
 //
-// Currently, support is only for SetRequests without any delete paths, and
-// replace and updates that don't have conflicting leaf values. If not
+// TODO: Currently, support is only for SetRequests without any delete paths,
+// and replace and updates that don't have conflicting leaf values. If not
 // supported, then an error will be returned.
 func minimalSetRequestIntent(req *gpb.SetRequest, newSchemaFn func() (*ytypes.Schema, error)) (setRequestIntent, error) {
+	// TODO: Handle prefix in SetRequest.
 	if req == nil {
 		req = &gpb.SetRequest{}
 	}
@@ -233,15 +234,15 @@ func minimalSetRequestIntent(req *gpb.SetRequest, newSchemaFn func() (*ytypes.Sc
 		intent.Deletes[path] = struct{}{}
 		t.Add(path, nil)
 
-		if err := populateUpdates(&intent, path, upd.GetVal(), newSchemaFn); err != nil {
+		if err := populateUpdate(&intent, path, upd.GetVal(), newSchemaFn); err != nil {
 			return setRequestIntent{}, err
 		}
 	}
 
 	// Do prefix match to check for conflicting replace paths.
 	for _, path := range t.Keys() {
-		if matches := t.PrefixSearch(path); len(matches) >= 2 {
-			return setRequestIntent{}, fmt.Errorf("gnmidiff: conflicting replaces in SetRequest: %v", matches)
+		if matches := t.PrefixSearch(path + "/"); len(matches) >= 1 {
+			return setRequestIntent{}, fmt.Errorf("gnmidiff: conflicting replaces in SetRequest: %v, %v", path, matches)
 		}
 	}
 
@@ -251,7 +252,7 @@ func minimalSetRequestIntent(req *gpb.SetRequest, newSchemaFn func() (*ytypes.Sc
 			return setRequestIntent{}, fmt.Errorf("gnmidiff: %v", err)
 		}
 
-		if err := populateUpdates(&intent, path, upd.GetVal(), newSchemaFn); err != nil {
+		if err := populateUpdate(&intent, path, upd.GetVal(), newSchemaFn); err != nil {
 			return setRequestIntent{}, err
 		}
 	}
@@ -263,8 +264,8 @@ func minimalSetRequestIntent(req *gpb.SetRequest, newSchemaFn func() (*ytypes.Sc
 
 	// Do prefix match to check for conflicting update paths.
 	for _, path := range t.Keys() {
-		if matches := t.PrefixSearch(path); len(matches) >= 2 {
-			return setRequestIntent{}, fmt.Errorf("gnmidiff: bad SetRequest, there are leaf updates that have a prefix match: %v", matches)
+		if matches := t.PrefixSearch(path + "/"); len(matches) >= 1 {
+			return setRequestIntent{}, fmt.Errorf("gnmidiff: bad SetRequest, there are leaf updates that have a prefix match: %v, %v", path, matches)
 		}
 	}
 
@@ -274,11 +275,7 @@ func minimalSetRequestIntent(req *gpb.SetRequest, newSchemaFn func() (*ytypes.Sc
 // binaryBase64 takes an input byte slice and returns it as a base64
 // encoded string.
 func binaryBase64(i []byte) string {
-	var b bytes.Buffer
-	encoder := base64.NewEncoder(base64.StdEncoding, &b)
-	encoder.Write(i)
-	encoder.Close()
-	return b.String()
+	return base64.StdEncoding.EncodeToString(i)
 }
 
 // protoLeafToJSON converts a gNMI proto scalar to the equivalent RFC7951 JSON
@@ -312,56 +309,25 @@ func protoLeafToJSON(tv *gpb.TypedValue) (interface{}, error) {
 	}
 }
 
-// populateUpdates populates all leaf updates at the given path into the intent.
+// populateUpdate populates all leaf updates at the given path into the intent.
+//
+// - newSchemaFn is intended to be provided via the function defined in generated
+// ygot code (e.g. exampleoc.Schema).
+// If newSchemaFn is nil, then it is assumed any JSON value in the input
+// SetRequest MUST conform to the OpenConfig YANG style guidelines. Otherwise
+// it is impossible to infer the list keys of a leaf update.
 //
 // Note: The input path must NOT end with "/".
 //
 // e.g. /a for b/c="foo" would introduce an update of /a/b/c="foo" into the intent.
-func populateUpdates(intent *setRequestIntent, path string, tv *gpb.TypedValue, newSchemaFn func() (*ytypes.Schema, error)) error {
+func populateUpdate(intent *setRequestIntent, path string, tv *gpb.TypedValue, newSchemaFn func() (*ytypes.Schema, error)) error {
 	if len(path) > 0 && path[len(path)-1] == '/' {
 		return fmt.Errorf("gnmidiff: invalid input path %q, must not end with \"/\"", path)
 	}
 
 	// Populate updates when the schema is unknown.
 	if newSchemaFn == nil {
-		var leafVal interface{}
-		isLeaf := true
-		switch tv.GetValue().(type) {
-		case *gpb.TypedValue_JsonIetfVal:
-			updates, err := flattenOCJSON(tv.GetJsonIetfVal(), false)
-			if err != nil {
-				return err
-			}
-			if val, ok := updates[""]; len(updates) == 1 && ok {
-				leafVal = val
-			} else {
-				isLeaf = false
-				for subpath, value := range updates {
-					pathToLeaf := path + subpath
-					if prevVal, ok := intent.Updates[pathToLeaf]; ok && val != prevVal {
-						return fmt.Errorf("gnmidiff: leaf value set twice in SetRequest: %v", pathToLeaf)
-					}
-					intent.Updates[pathToLeaf] = value
-				}
-			}
-		default:
-			var err error
-			leafVal, err = protoLeafToJSON(tv)
-			if err != nil {
-				return err
-			}
-		}
-
-		if isLeaf {
-			// leaf replace is the same as a leaf update, so remove
-			// the deletion action to keep the intent minimal.
-			delete(intent.Deletes, path)
-			if prevVal, ok := intent.Updates[path]; ok && leafVal != prevVal {
-				return fmt.Errorf("gnmidiff: leaf value set twice in SetRequest: %v", path)
-			}
-			intent.Updates[path] = leafVal
-		}
-		return nil
+		return populateUpdateNoSchema(intent, path, tv)
 	}
 
 	gpath, err := ygot.StringToStructuredPath(path)
@@ -369,6 +335,26 @@ func populateUpdates(intent *setRequestIntent, path string, tv *gpb.TypedValue, 
 		return fmt.Errorf("gnmidiff: %v", err)
 	}
 
+	// The code below uses the schema to populate leaves specified in the
+	// input TypedValue into the generated ygot-GoStruct, and then
+	// marshals the flattened leaf updates using ygot.TogNMINotifications.
+	//
+	// The procedure for populating the leaves differs by whether the input
+	// path is a leaf or a non-leaf.
+	//
+	// - For leaves, the procedure is straightforward: simply unmarshal and
+	// then marshal.
+	// - For non-leaves, the procedure is more complicated due to the
+	// implicit creation of list keys when a leaf is unmarshalled into a
+	// GoStruct: when the input path points to a list entry, but the input
+	// TypedValue does not contain list keys, then ygot.TogNMINotifications
+	// will marshal these list keys. Although this is technically not
+	// different in intent, for consistency with the non-schema-aware
+	// result, these list keys should not be part of the returned intent.
+	//
+	// To solve this problem, the unmarshal target is set to be the
+	// non-leaf node itself, which avoids the implicit creation of these
+	// list keys.
 	schema, err := newSchemaFn()
 	if err != nil {
 		return fmt.Errorf("gnmidiff: error creating new schema: %v", err)
@@ -408,6 +394,8 @@ func populateUpdates(intent *setRequestIntent, path string, tv *gpb.TypedValue, 
 	if err := ytypes.SetNode(setNodeTargetSchema, setNodeTarget, gpath, tv, &ytypes.InitMissingElements{}); err != nil {
 		return fmt.Errorf("gnmidiff: error unmarshalling update: %v", err)
 	}
+
+	// Marshal flattened leaf paths and convert to JSON types for populating the intent.
 	notifs, err := ygot.TogNMINotifications(setNodeTarget, 0, ygot.GNMINotificationsConfig{UsePathElem: true})
 	if err != nil {
 		return fmt.Errorf("gnmidiff: error marshalling GoStruct: %v", err)
@@ -438,6 +426,50 @@ func populateUpdates(intent *setRequestIntent, path string, tv *gpb.TypedValue, 
 			}
 			intent.Updates[pathToLeaf] = val
 		}
+	}
+	return nil
+}
+
+// populateUpdateNoSchema populates all leaf updates at the given path into the intent.
+//
+// e.g. /a for b/c="foo" would introduce an update of /a/b/c="foo" into the intent.
+func populateUpdateNoSchema(intent *setRequestIntent, path string, tv *gpb.TypedValue) error {
+	var leafVal interface{}
+	isLeaf := true
+	switch tv.GetValue().(type) {
+	case *gpb.TypedValue_JsonIetfVal:
+		updates, err := flattenOCJSON(tv.GetJsonIetfVal(), false)
+		if err != nil {
+			return err
+		}
+		if val, ok := updates[""]; len(updates) == 1 && ok {
+			leafVal = val
+		} else {
+			isLeaf = false
+			for subpath, value := range updates {
+				pathToLeaf := path + subpath
+				if prevVal, ok := intent.Updates[pathToLeaf]; ok && val != prevVal {
+					return fmt.Errorf("gnmidiff: leaf value set twice in SetRequest: %v", pathToLeaf)
+				}
+				intent.Updates[pathToLeaf] = value
+			}
+		}
+	default:
+		var err error
+		leafVal, err = protoLeafToJSON(tv)
+		if err != nil {
+			return err
+		}
+	}
+
+	if isLeaf {
+		// leaf replace is the same as a leaf update, so remove
+		// the deletion action to keep the intent minimal.
+		delete(intent.Deletes, path)
+		if prevVal, ok := intent.Updates[path]; ok && leafVal != prevVal {
+			return fmt.Errorf("gnmidiff: leaf value set twice in SetRequest: %v", path)
+		}
+		intent.Updates[path] = leafVal
 	}
 	return nil
 }
