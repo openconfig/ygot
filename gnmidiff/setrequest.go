@@ -321,6 +321,12 @@ func protoLeafToJSON(tv *gpb.TypedValue) (interface{}, error) {
 //
 // e.g. /a for b/c="foo" would introduce an update of /a/b/c="foo" into the intent.
 func populateUpdate(intent *setRequestIntent, path string, tv *gpb.TypedValue, newSchemaFn func() (*ytypes.Schema, error)) error {
+	// A function newSchemaFn is used as input instead of just
+	// ytypes.Schema in order to start with a clean root object each time
+	// unmarshalling happens. Otherwise there needs to be some `reflect`
+	// code that resets the root object each time to avoid previous
+	// unmarshalling done in previous invocations of `populateUpdates`
+	// polluting the results.
 	if len(path) > 0 && path[len(path)-1] == '/' {
 		return fmt.Errorf("gnmidiff: invalid input path %q, must not end with \"/\"", path)
 	}
