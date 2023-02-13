@@ -182,7 +182,7 @@ func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, schema *ytypes.Schema)
 		}
 		delete(intentA.Updates, path)
 		delete(intentB.Updates, path)
-		if vA != vB {
+		if !reflect.DeepEqual(vA, vB) { // leaf-lists cannot be compared directly.
 			diff.MismatchedUpdates[path] = MismatchedUpdate{A: vA, B: vB}
 		} else {
 			diff.CommonUpdates[path] = vA
@@ -373,7 +373,7 @@ func populateUpdate(intent *setRequestIntent, path string, tv *gpb.TypedValue, s
 		return fmt.Errorf("schema root is a non-GoStruct, this is not allowed: %T, %v", schema.Root, schema.Root)
 	}
 	setNodePath := &gpb.Path{}
-	if targetSchema.IsLeaf() {
+	if targetSchema.IsLeaf() || targetSchema.IsLeafList() {
 		// leaf replace is the same as a leaf update, so remove
 		// the deletion action to keep the intent minimal.
 		delete(intent.Deletes, path)

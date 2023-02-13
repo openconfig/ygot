@@ -198,6 +198,9 @@ func TestDiffSetRequest(t *testing.T) {
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/transceiver"),
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "FDM"}},
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/physical-channel"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{LeaflistVal: &gpb.ScalarArray{Element: []*gpb.TypedValue{{Value: &gpb.TypedValue_UintVal{UintVal: 42}}, {Value: &gpb.TypedValue_UintVal{UintVal: 84}}}}}},
 			}},
 		},
 		inB: &gpb.SetRequest{
@@ -214,6 +217,9 @@ func TestDiffSetRequest(t *testing.T) {
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/transceiver"),
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "FDM"}},
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/physical-channel"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{LeaflistVal: &gpb.ScalarArray{Element: []*gpb.TypedValue{{Value: &gpb.TypedValue_UintVal{UintVal: 42}}, {Value: &gpb.TypedValue_UintVal{UintVal: 84}}}}}},
 			}},
 		},
 		wantSetRequestDiff: SetRequestIntentDiff{
@@ -233,6 +239,7 @@ func TestDiffSetRequest(t *testing.T) {
 				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
 				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
 				"/interfaces/interface[name=eth0]/state/transceiver":                                     "FDM",
+				"/interfaces/interface[name=eth0]/state/physical-channel":                                []interface{}{float64(42), float64(84)},
 			},
 			MismatchedUpdates: map[string]MismatchedUpdate{},
 		},
