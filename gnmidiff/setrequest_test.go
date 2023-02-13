@@ -185,6 +185,9 @@ func TestDiffSetRequest(t *testing.T) {
 	}{{
 		desc: "exactly the same",
 		inA: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/acls"),
+			},
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
@@ -204,6 +207,9 @@ func TestDiffSetRequest(t *testing.T) {
 			}},
 		},
 		inB: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/acls"),
+			},
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
@@ -226,6 +232,7 @@ func TestDiffSetRequest(t *testing.T) {
 			AOnlyDeletes: map[string]struct{}{},
 			BOnlyDeletes: map[string]struct{}{},
 			CommonDeletes: map[string]struct{}{
+				"/acls":                            {},
 				"/interfaces/interface[name=eth0]": {},
 			},
 			AOnlyUpdates: map[string]interface{}{},
@@ -246,6 +253,9 @@ func TestDiffSetRequest(t *testing.T) {
 	}, {
 		desc: "not same but same intent",
 		inA: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/acls"),
+			},
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
@@ -262,6 +272,9 @@ func TestDiffSetRequest(t *testing.T) {
 			}},
 		},
 		inB: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/acls"),
+			},
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
@@ -281,6 +294,7 @@ func TestDiffSetRequest(t *testing.T) {
 			AOnlyDeletes: map[string]struct{}{},
 			BOnlyDeletes: map[string]struct{}{},
 			CommonDeletes: map[string]struct{}{
+				"/acls":                            {},
 				"/interfaces/interface[name=eth0]": {},
 			},
 			AOnlyUpdates: map[string]interface{}{},
@@ -483,6 +497,10 @@ func TestDiffSetRequest(t *testing.T) {
 	}, {
 		desc: "not the same with every difference case",
 		inA: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/acls"),
+				ygot.MustStringToPath("/error-correcting-codes"),
+			},
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth1]"),
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth1")}),
@@ -505,6 +523,10 @@ func TestDiffSetRequest(t *testing.T) {
 			}},
 		},
 		inB: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/macsec"),
+				ygot.MustStringToPath("/error-correcting-codes"),
+			},
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
@@ -526,12 +548,15 @@ func TestDiffSetRequest(t *testing.T) {
 		wantSetRequestDiff: SetRequestIntentDiff{
 			AOnlyDeletes: map[string]struct{}{
 				"/interfaces/interface[name=eth1]": {},
+				"/acls":                            {},
 			},
 			BOnlyDeletes: map[string]struct{}{
 				"/interfaces/interface[name=eth2]": {},
+				"/macsec":                          {},
 			},
 			CommonDeletes: map[string]struct{}{
 				"/interfaces/interface[name=eth0]": {},
+				"/error-correcting-codes":          {},
 			},
 			AOnlyUpdates: map[string]interface{}{
 				"/interfaces/interface[name=eth1]/name":        "eth1",
@@ -624,7 +649,50 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 				ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
 			},
 		},
+		wantIntent: setRequestIntent{
+			Deletes: map[string]struct{}{
+				"/interfaces/interface[name=eth0]/config/description": {},
+			},
+			Updates: map[string]interface{}{},
+		},
+	}, {
+		desc: "conflicting deletes",
+		inSetRequest: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+			},
+		},
 		wantErr: true,
+	}, {
+		desc: "conflicting delete with replace",
+		inSetRequest: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
+			},
+			Replace: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
+				Val:  must7951(ygot.String("I am an eth port")),
+			}},
+		},
+		wantErr: true,
+	}, {
+		desc: "delete with update on same path -- delete is removed",
+		inSetRequest: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
+			},
+			Update: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
+				Val:  must7951(ygot.String("I am an eth port")),
+			}},
+		},
+		wantIntent: setRequestIntent{
+			Deletes: map[string]struct{}{},
+			Updates: map[string]interface{}{
+				"/interfaces/interface[name=eth0]/config/description": "I am an eth port",
+			},
+		},
 	}, {
 		desc:         "empty",
 		inSetRequest: &gpb.SetRequest{},
@@ -941,6 +1009,9 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 	}, {
 		desc: "nested list",
 		inSetRequest: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/interfaces/interface[name=eth1]"),
+			},
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
@@ -959,6 +1030,7 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		wantIntent: setRequestIntent{
 			Deletes: map[string]struct{}{
 				"/interfaces/interface[name=eth0]": {},
+				"/interfaces/interface[name=eth1]": {},
 			},
 			Updates: map[string]interface{}{
 				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
