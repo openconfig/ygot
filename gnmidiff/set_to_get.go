@@ -2,6 +2,7 @@ package gnmidiff
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/derekparker/trie"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -69,7 +70,7 @@ func DiffSetRequestToNotifications(setreq *gpb.SetRequest, notifs []*gpb.Notific
 	for pathA, vA := range setIntent.Updates {
 		vB, ok := updates[pathA]
 		switch {
-		case ok && vB != vA:
+		case ok && !reflect.DeepEqual(vA, vB):
 			diff.MismatchedUpdates[pathA] = MismatchedUpdate{A: vA, B: vB}
 		case ok:
 			diff.CommonUpdates[pathA] = vA
