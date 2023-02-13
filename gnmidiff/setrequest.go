@@ -53,7 +53,7 @@ type SetRequestIntentDiff struct {
 	MismatchedUpdates map[string]MismatchedUpdate
 }
 
-// Format is the string format of any gNMI diff utility.
+// Format is the string format of any gNMI diff utility in this package.
 type Format struct {
 	// Full indicates that common values are also output.
 	Full bool
@@ -163,34 +163,30 @@ func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, newSchemaFn func() (*y
 		CommonUpdates:     map[string]interface{}{},
 		MismatchedUpdates: map[string]MismatchedUpdate{},
 	}
-	for pathA := range intentA.Deletes {
-		if _, ok := intentB.Deletes[pathA]; ok {
-			diff.CommonDeletes[pathA] = struct{}{}
+	for path := range intentA.Deletes {
+		if _, ok := intentB.Deletes[path]; ok {
+			delete(intentA.Deletes, path)
+			delete(intentB.Deletes, path)
+			diff.CommonDeletes[path] = struct{}{}
+		}
+	}
+	diff.AOnlyDeletes = intentA.Deletes
+	diff.BOnlyDeletes = intentB.Deletes
+	for path, vA := range intentA.Updates {
+		vB, ok := intentB.Updates[path]
+		if !ok {
+			continue
+		}
+		delete(intentA.Updates, path)
+		delete(intentB.Updates, path)
+		if vA != vB {
+			diff.MismatchedUpdates[path] = MismatchedUpdate{A: vA, B: vB}
 		} else {
-			diff.AOnlyDeletes[pathA] = struct{}{}
+			diff.CommonUpdates[path] = vA
 		}
 	}
-	for pathB := range intentB.Deletes {
-		if _, ok := intentA.Deletes[pathB]; !ok {
-			diff.BOnlyDeletes[pathB] = struct{}{}
-		}
-	}
-	for pathA, vA := range intentA.Updates {
-		vB, ok := intentB.Updates[pathA]
-		switch {
-		case ok && vB != vA:
-			diff.MismatchedUpdates[pathA] = MismatchedUpdate{A: vA, B: vB}
-		case ok:
-			diff.CommonUpdates[pathA] = vA
-		default:
-			diff.AOnlyUpdates[pathA] = vA
-		}
-	}
-	for pathB, vB := range intentB.Updates {
-		if _, ok := intentA.Updates[pathB]; !ok {
-			diff.BOnlyUpdates[pathB] = vB
-		}
-	}
+	diff.AOnlyUpdates = intentA.Updates
+	diff.BOnlyUpdates = intentB.Updates
 	return diff, nil
 }
 
