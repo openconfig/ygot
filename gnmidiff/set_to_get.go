@@ -30,14 +30,14 @@ type SetToNotifsDiff struct {
 // slice of Notifications representing the state of the target after applying
 // the SetRequest.
 //
-// newSchemaFn is intended to be provided via the function defined in generated
+// schema is intended to be provided via the function defined in generated
 // ygot code (e.g. exampleoc.Schema).
-// If newSchemaFn is not supplied, then any input JSON values MUST conform to the OpenConfig
+// If schema is not supplied, then any input JSON values MUST conform to the OpenConfig
 // YANG style guidelines. See the following for checking compliance.
 // * https://github.com/openconfig/oc-pyang
 // * https://github.com/openconfig/public/blob/master/doc/openconfig_style_guide.md
-func DiffSetRequestToNotifications(setreq *gpb.SetRequest, notifs []*gpb.Notification, newSchemaFn func() (*ytypes.Schema, error)) (SetToNotifsDiff, error) {
-	setIntent, err := minimalSetRequestIntent(setreq, newSchemaFn)
+func DiffSetRequestToNotifications(setreq *gpb.SetRequest, notifs []*gpb.Notification, schema *ytypes.Schema) (SetToNotifsDiff, error) {
+	setIntent, err := minimalSetRequestIntent(setreq, schema)
 	if err != nil {
 		return SetToNotifsDiff{}, fmt.Errorf("DiffSetRequestToNotifications while calculating setIntent: %v", err)
 	}
@@ -59,7 +59,7 @@ func DiffSetRequestToNotifications(setreq *gpb.SetRequest, notifs []*gpb.Notific
 			return SetToNotifsDiff{}, fmt.Errorf("Deletes in notifications not currently supported.")
 		}
 		for _, upd := range notif.Update {
-			if err := populateUpdate(&updateIntent, upd, newSchemaFn, false); err != nil {
+			if err := populateUpdate(&updateIntent, upd, schema, false); err != nil {
 				return SetToNotifsDiff{}, err
 			}
 		}

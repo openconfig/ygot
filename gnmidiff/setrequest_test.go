@@ -557,13 +557,16 @@ func TestDiffSetRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			for _, withNewSchemaFn := range []bool{false, true} {
-				var inNewSchemaFn func() (*ytypes.Schema, error)
-				if withNewSchemaFn {
-					inNewSchemaFn = exampleoc.Schema
+			for _, withSchema := range []bool{false, true} {
+				var inSchema *ytypes.Schema
+				if withSchema {
+					var err error
+					if inSchema, err = exampleoc.Schema(); err != nil {
+						t.Fatalf("schema has error: %v", err)
+					}
 				}
-				t.Run(fmt.Sprintf("withNewSchemaFn-%v", withNewSchemaFn), func(t *testing.T) {
-					got, err := DiffSetRequest(tt.inA, tt.inB, inNewSchemaFn)
+				t.Run(fmt.Sprintf("withSchema-%v", withSchema), func(t *testing.T) {
+					got, err := DiffSetRequest(tt.inA, tt.inB, inSchema)
 					if (err != nil) != tt.wantErr {
 						t.Fatalf("got error: %v, want error: %v", err, tt.wantErr)
 					}
@@ -965,17 +968,20 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			withNewSchemaFns := []bool{false}
+			withNewSchema := []bool{false}
 			if !tt.dontCheckWithSchema {
-				withNewSchemaFns = append(withNewSchemaFns, true)
+				withNewSchema = append(withNewSchema, true)
 			}
-			for _, withNewSchemaFn := range withNewSchemaFns {
-				var inNewSchemaFn func() (*ytypes.Schema, error)
-				if withNewSchemaFn {
-					inNewSchemaFn = exampleoc.Schema
+			for _, withSchema := range withNewSchema {
+				var inSchema *ytypes.Schema
+				if withSchema {
+					var err error
+					if inSchema, err = exampleoc.Schema(); err != nil {
+						t.Fatalf("schema has error: %v", err)
+					}
 				}
-				t.Run(fmt.Sprintf("withNewSchemaFn-%v", withNewSchemaFn), func(t *testing.T) {
-					got, err := minimalSetRequestIntent(tt.inSetRequest, inNewSchemaFn)
+				t.Run(fmt.Sprintf("withSchema-%v", withSchema), func(t *testing.T) {
+					got, err := minimalSetRequestIntent(tt.inSetRequest, inSchema)
 					if (err != nil) != tt.wantErr {
 						t.Fatalf("got error: %v, want error: %v", err, tt.wantErr)
 					}
