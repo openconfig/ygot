@@ -175,6 +175,47 @@ func TestSetRequestToNotifications(t *testing.T) {
 			MismatchedUpdates: map[string]MismatchedUpdate{},
 		},
 	}, {
+		desc: "delete in SetRequest",
+		inSetRequest: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+			},
+		},
+		inNotifications: []*gpb.Notification{{
+			Update: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: true}},
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/transceiver"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "FDM"}},
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/physical-channel"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{LeaflistVal: &gpb.ScalarArray{Element: []*gpb.TypedValue{{Value: &gpb.TypedValue_UintVal{UintVal: 42}}, {Value: &gpb.TypedValue_UintVal{UintVal: 84}}}}}},
+			}},
+		}},
+		wantSetToNotifsDiff: SetToNotifsDiff{
+			MissingUpdates: map[string]interface{}{},
+			ExtraUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
+				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
+				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
+				"/interfaces/interface[name=eth0]/state/transceiver":                                     "FDM",
+				"/interfaces/interface[name=eth0]/state/physical-channel":                                []interface{}{float64(42), float64(84)},
+			},
+			CommonUpdates:     map[string]interface{}{},
+			MismatchedUpdates: map[string]MismatchedUpdate{},
+		},
+	}, {
 		desc: "SetRequest has conflicts",
 		inSetRequest: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
@@ -451,6 +492,9 @@ func TestSetRequestToNotifications(t *testing.T) {
 		desc:                "not the same with every difference case using prefix-matching name",
 		dontCheckWithSchema: true,
 		inSetRequest: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/interfaces/interface[name=eth4]"),
+			},
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth1]"),
 				Val:  must7951(&Interface{Name: ygot.String("eth1")}), // missing
@@ -482,6 +526,9 @@ func TestSetRequestToNotifications(t *testing.T) {
 			}, {
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth3]"),
 				Val:  must7951(&Interface{Namer: ygot.String("Mallory")}), // dontcare
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth4]"),
+				Val:  must7951(&Interface{Namer: ygot.String("Charlie")}), // extra
 			}},
 		}},
 		wantSetToNotifsDiff: SetToNotifsDiff{
@@ -491,6 +538,7 @@ func TestSetRequestToNotifications(t *testing.T) {
 			},
 			ExtraUpdates: map[string]interface{}{
 				"/interfaces/interface[name=eth1]/config/namer": "Bob",
+				"/interfaces/interface[name=eth4]/config/namer": "Charlie",
 			},
 			CommonUpdates: map[string]interface{}{
 				"/interfaces/interface[name=eth0]/name":        "eth0",
