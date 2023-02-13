@@ -137,9 +137,9 @@ func (diff SetRequestIntentDiff) Format(f Format) string {
 
 // DiffSetRequest returns a unique and minimal intent diff of two SetRequests.
 //
-// newSchemaFn is intended to be provided via the function defined in generated
+// schema is intended to be provided via the function defined in generated
 // ygot code (e.g. exampleoc.Schema).
-// If newSchemaFn is nil, then DiffSetRequest will make the following assumption:
+// If schema is nil, then DiffSetRequest will make the following assumption:
 // - Any JSON value in the input SetRequest MUST conform to the OpenConfig
 // YANG style guidelines. See the following for checking compliance.
 // * https://github.com/openconfig/oc-pyang
@@ -148,12 +148,12 @@ func (diff SetRequestIntentDiff) Format(f Format) string {
 // Currently, support is only for SetRequests without any delete paths, and
 // replace and updates that don't have conflicting leaf values. If not
 // supported, then an error will be returned.
-func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, newSchemaFn func() (*ytypes.Schema, error)) (SetRequestIntentDiff, error) {
-	intentA, err := minimalSetRequestIntent(a, newSchemaFn)
+func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, schema *ytypes.Schema) (SetRequestIntentDiff, error) {
+	intentA, err := minimalSetRequestIntent(a, schema)
 	if err != nil {
 		return SetRequestIntentDiff{}, fmt.Errorf("DiffSetRequest on a: %v", err)
 	}
-	intentB, err := minimalSetRequestIntent(b, newSchemaFn)
+	intentB, err := minimalSetRequestIntent(b, schema)
 	if err != nil {
 		return SetRequestIntentDiff{}, fmt.Errorf("DiffSetRequest on b: %v", err)
 	}
@@ -205,7 +205,7 @@ type setRequestIntent struct {
 // TODO: Currently, support is only for SetRequests without any delete paths,
 // and replace and updates that don't have conflicting leaf values. If not
 // supported, then an error will be returned.
-func minimalSetRequestIntent(req *gpb.SetRequest, newSchemaFn func() (*ytypes.Schema, error)) (setRequestIntent, error) {
+func minimalSetRequestIntent(req *gpb.SetRequest, schema *ytypes.Schema) (setRequestIntent, error) {
 	// TODO: Handle prefix in SetRequest.
 	if req == nil {
 		req = &gpb.SetRequest{}
@@ -230,7 +230,7 @@ func minimalSetRequestIntent(req *gpb.SetRequest, newSchemaFn func() (*ytypes.Sc
 		intent.Deletes[path] = struct{}{}
 		t.Add(path, nil)
 
-		if err := populateUpdate(&intent, path, upd.GetVal(), newSchemaFn); err != nil {
+		if err := populateUpdate(&intent, path, upd.GetVal(), schema); err != nil {
 			return setRequestIntent{}, err
 		}
 	}
@@ -248,7 +248,7 @@ func minimalSetRequestIntent(req *gpb.SetRequest, newSchemaFn func() (*ytypes.Sc
 			return setRequestIntent{}, fmt.Errorf("gnmidiff: %v", err)
 		}
 
-		if err := populateUpdate(&intent, path, upd.GetVal(), newSchemaFn); err != nil {
+		if err := populateUpdate(&intent, path, upd.GetVal(), schema); err != nil {
 			return setRequestIntent{}, err
 		}
 	}
@@ -307,17 +307,17 @@ func protoLeafToJSON(tv *gpb.TypedValue) (interface{}, error) {
 
 // populateUpdate populates all leaf updates at the given path into the intent.
 //
-// - newSchemaFn is intended to be provided via the function defined in generated
+// - schema is intended to be provided via the function defined in generated
 // ygot code (e.g. exampleoc.Schema).
-// If newSchemaFn is nil, then it is assumed any JSON value in the input
+// If schema is nil, then it is assumed any JSON value in the input
 // SetRequest MUST conform to the OpenConfig YANG style guidelines. Otherwise
 // it is impossible to infer the list keys of a leaf update.
 //
 // Note: The input path must NOT end with "/".
 //
 // e.g. /a for b/c="foo" would introduce an update of /a/b/c="foo" into the intent.
-func populateUpdate(intent *setRequestIntent, path string, tv *gpb.TypedValue, newSchemaFn func() (*ytypes.Schema, error)) error {
-	// A function newSchemaFn is used as input instead of just
+func populateUpdate(intent *setRequestIntent, path string, tv *gpb.TypedValue, schema *ytypes.Schema) error {
+	// A function schema is used as input instead of just
 	// ytypes.Schema in order to start with a clean root object each time
 	// unmarshalling happens. Otherwise there needs to be some `reflect`
 	// code that resets the root object each time to avoid previous
@@ -328,7 +328,7 @@ func populateUpdate(intent *setRequestIntent, path string, tv *gpb.TypedValue, n
 	}
 
 	// Populate updates when the schema is unknown.
-	if newSchemaFn == nil {
+	if schema == nil {
 		return populateUpdateNoSchema(intent, path, tv)
 	}
 
@@ -357,9 +357,8 @@ func populateUpdate(intent *setRequestIntent, path string, tv *gpb.TypedValue, n
 	// To solve this problem, the unmarshal target is set to be the
 	// non-leaf node itself, which avoids the implicit creation of these
 	// list keys.
-	schema, err := newSchemaFn()
-	if err != nil {
-		return fmt.Errorf("gnmidiff: error creating new schema: %v", err)
+	if !schema.IsValid() {
+		return fmt.Errorf("gnmidiff: input schema is not valid: %+v", schema)
 	}
 	rootSchema := schema.RootSchema()
 	targetSchema, err := util.FindLeafRefSchema(rootSchema, path)
@@ -367,7 +366,12 @@ func populateUpdate(intent *setRequestIntent, path string, tv *gpb.TypedValue, n
 		return fmt.Errorf("gnmidiff: error finding target schema: %v", err)
 	}
 	setNodeTargetSchema := rootSchema
-	setNodeTarget := schema.Root
+	// Create a new empty root since we don't want previous updates to
+	// count as the current update.
+	setNodeTarget, ok := reflect.New(reflect.TypeOf(schema.Root).Elem()).Interface().(ygot.GoStruct)
+	if !ok {
+		return fmt.Errorf("schema root is a non-GoStruct, this is not allowed: %T, %v", schema.Root, schema.Root)
+	}
 	setNodePath := &gpb.Path{}
 	if targetSchema.IsLeaf() {
 		// leaf replace is the same as a leaf update, so remove
