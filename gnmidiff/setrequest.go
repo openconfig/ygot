@@ -329,12 +329,6 @@ func protoLeafToJSON(tv *gpb.TypedValue) (interface{}, error) {
 //
 // e.g. /a for b/c="foo" would introduce an update of /a/b/c="foo" into the intent.
 func populateUpdate(intent *setRequestIntent, update *gpb.Update, schema *ytypes.Schema, errorOnOverwrite bool) error {
-	// A function newSchemaFn is used as input instead of just
-	// ytypes.Schema in order to start with a clean root object each time
-	// unmarshalling happens. Otherwise there needs to be some `reflect`
-	// code that resets the root object each time to avoid previous
-	// unmarshalling done in previous invocations of `populateUpdates`
-	// polluting the results.
 	path, err := ygot.PathToString(update.Path)
 	if err != nil {
 		return fmt.Errorf("gnmidiff: %v", err)
@@ -383,7 +377,7 @@ func populateUpdate(intent *setRequestIntent, update *gpb.Update, schema *ytypes
 	}
 	setNodeTargetSchema := rootSchema
 	// Create a new empty root since we don't want previous updates to
-	// count as the current update.
+	// count as part of the current update.
 	setNodeTarget, ok := reflect.New(reflect.TypeOf(schema.Root).Elem()).Interface().(ygot.GoStruct)
 	if !ok {
 		return fmt.Errorf("schema root is a non-GoStruct, this is not allowed: %T, %v", schema.Root, schema.Root)
