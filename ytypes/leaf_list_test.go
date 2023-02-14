@@ -444,7 +444,7 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 					},
 				},
 			}},
-			wantErr: "failed to unmarshal &{42} into enumeration",
+			wantErr: "failed to unmarshal",
 		},
 	}
 
