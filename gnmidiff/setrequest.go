@@ -219,7 +219,7 @@ func prefixStr(prefix *gpb.Path) (string, error) {
 	}
 	prefixStr, err := ygot.PathToString(prefix)
 	if err != nil {
-		return "", fmt.Errorf("gnmidiff/prefixStr: %v", err)
+		return "", fmt.Errorf("gnmidiff/prefixStr: %w", err)
 	}
 	return prefixStr, nil
 }
@@ -229,15 +229,10 @@ func prefixStr(prefix *gpb.Path) (string, error) {
 func fullPathStr(prefix string, path *gpb.Path) (string, error) {
 	pathStr, err := ygot.PathToString(path)
 	if err != nil {
-		return "", fmt.Errorf("gnmidiff/fullPathStr: %v", err)
+		return "", fmt.Errorf("gnmidiff/fullPathStr: %w", err)
 	}
-	if prefix == "/" {
-		// We know pathStr always starts with "/" so don't want two "/"s.
-		prefix = ""
-	} else if pathStr == "/" {
-		// We don't want to end with a "/".
-		pathStr = ""
-	}
+	prefix = strings.TrimSuffix(prefix, "/")
+	pathStr = strings.TrimSuffix(pathStr, "/")
 	return prefix + pathStr, nil
 }
 
