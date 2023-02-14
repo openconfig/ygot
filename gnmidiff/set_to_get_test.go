@@ -11,6 +11,128 @@ import (
 	"github.com/openconfig/ygot/ytypes"
 )
 
+func TestSetToNotifsDiffFormat(t *testing.T) {
+	tests := []struct {
+		desc              string
+		inSetToNotifsDiff SetToNotifsDiff
+		inFormat          Format
+		want              string
+	}{{
+		desc: "compact output",
+		inSetToNotifsDiff: SetToNotifsDiff{
+			MissingUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth1]/name":        "eth1",
+				"/interfaces/interface[name=eth1]/config/name": "eth1",
+			},
+			ExtraUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth2]/name":              "eth2",
+				"/interfaces/interface[name=eth2]/config/name":       "eth2",
+				"/interfaces/interface[name=eth0]/state/transceiver": "FDM",
+			},
+			CommonUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
+				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
+				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
+				"/interfaces/interface[name=eth2]/state/transceiver":                                     "FDM",
+			},
+			MismatchedUpdates: map[string]MismatchedUpdate{
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical": {
+					A: false,
+					B: true,
+				},
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name": {
+					A: "foo",
+					B: "bar",
+				},
+			},
+		},
+		inFormat: Format{},
+		want: `SetToNotifsDiff(-want/SetRequest, +got/Notifications):
+- /interfaces/interface[name=eth1]/config/name: "eth1"
+- /interfaces/interface[name=eth1]/name: "eth1"
++ /interfaces/interface[name=eth0]/state/transceiver: "FDM"
++ /interfaces/interface[name=eth2]/config/name: "eth2"
++ /interfaces/interface[name=eth2]/name: "eth2"
+m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical:
+  - false
+  + true
+m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name:
+  - "foo"
+  + "bar"
+`,
+	}, {
+		desc: "full output",
+		inSetToNotifsDiff: SetToNotifsDiff{
+			MissingUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth1]/name":        "eth1",
+				"/interfaces/interface[name=eth1]/config/name": "eth1",
+			},
+			ExtraUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth2]/name":              "eth2",
+				"/interfaces/interface[name=eth2]/config/name":       "eth2",
+				"/interfaces/interface[name=eth0]/state/transceiver": "FDM",
+			},
+			CommonUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
+				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
+				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
+				"/interfaces/interface[name=eth2]/state/transceiver":                                     "FDM",
+			},
+			MismatchedUpdates: map[string]MismatchedUpdate{
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical": {
+					A: false,
+					B: true,
+				},
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name": {
+					A: "foo",
+					B: "bar",
+				},
+			},
+		},
+		inFormat: Format{
+			Full: true,
+		},
+		want: `SetToNotifsDiff(-want/SetRequest, +got/Notifications):
+  /interfaces/interface[name=eth0]/config/description: "I am an eth port"
+  /interfaces/interface[name=eth0]/config/name: "eth0"
+  /interfaces/interface[name=eth0]/name: "eth0"
+  /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled: true
+  /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index: 0
+  /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index: 0
+  /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status: "TESTING"
+  /interfaces/interface[name=eth2]/state/transceiver: "FDM"
+- /interfaces/interface[name=eth1]/config/name: "eth1"
+- /interfaces/interface[name=eth1]/name: "eth1"
++ /interfaces/interface[name=eth0]/state/transceiver: "FDM"
++ /interfaces/interface[name=eth2]/config/name: "eth2"
++ /interfaces/interface[name=eth2]/name: "eth2"
+m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical:
+  - false
+  + true
+m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name:
+  - "foo"
+  + "bar"
+`,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got := tt.inSetToNotifsDiff.Format(tt.inFormat)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("SetToNotifsDiff.Format (-want, +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestSetRequestToNotifications(t *testing.T) {
 	// TODO: test that deletes in notifs.
 	tests := []struct {

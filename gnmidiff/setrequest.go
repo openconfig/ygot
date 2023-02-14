@@ -71,6 +71,12 @@ type Format struct {
 	//
 	// empty implies no paths are excluded.
 	//ExcludeList []string
+	// title is an optional custom title of the diff.
+	title string
+	// aName is an optional custom name for A in the diff.
+	aName string
+	// bName is an optional custom name for B in the diff.
+	bName string
 }
 
 func formatJSONValue(value interface{}) interface{} {
@@ -109,14 +115,26 @@ func (diff SetRequestIntentDiff) Format(f Format) string {
 		}
 	}
 
-	b.WriteString("SetRequestIntentDiff(-A, +B):\n")
-	b.WriteString("-------- deletes --------\n")
-	if f.Full {
-		writeDeletes(diff.CommonDeletes, ' ')
+	if f.title == "" {
+		f.title = "SetRequestIntentDiff"
 	}
-	writeDeletes(diff.AOnlyDeletes, '-')
-	writeDeletes(diff.BOnlyDeletes, '+')
-	b.WriteString("-------- updates --------\n")
+	if f.aName == "" {
+		f.aName = "A"
+	}
+	if f.bName == "" {
+		f.bName = "B"
+	}
+	b.WriteString(fmt.Sprintf("%s(-%s, +%s):\n", f.title, f.aName, f.bName))
+
+	if len(diff.AOnlyDeletes)+len(diff.BOnlyDeletes)+len(diff.CommonDeletes) > 0 {
+		b.WriteString("-------- deletes --------\n")
+		if f.Full {
+			writeDeletes(diff.CommonDeletes, ' ')
+		}
+		writeDeletes(diff.AOnlyDeletes, '-')
+		writeDeletes(diff.BOnlyDeletes, '+')
+		b.WriteString("-------- updates --------\n")
+	}
 	if f.Full {
 		writeUpdates(diff.CommonUpdates, ' ')
 	}

@@ -17,14 +17,29 @@ import (
 // value.
 // TODO: Format function
 type SetToNotifsDiff struct {
-	// MissingUpdates are updates specified in the SetRequest missing in
+	// MissingUpdates (-) are updates specified in the SetRequest missing in
 	// the input Notifications.
 	MissingUpdates map[string]interface{}
-	// ExtraUpdates are updates not specified in the SetRequest that's
+	// ExtraUpdates (+) are updates not specified in the SetRequest that's
 	// present in the input Notifications.
 	ExtraUpdates      map[string]interface{}
 	CommonUpdates     map[string]interface{}
 	MismatchedUpdates map[string]MismatchedUpdate
+}
+
+// Format outputs the SetToNotifsDiff in human-readable format.
+//
+// NOTE: Do not depend on the output of this being stable.
+func (diff SetToNotifsDiff) Format(f Format) string {
+	f.title = "SetToNotifsDiff"
+	f.aName = "want/SetRequest"
+	f.bName = "got/Notifications"
+	return SetRequestIntentDiff{
+		AOnlyUpdates:      diff.MissingUpdates,
+		BOnlyUpdates:      diff.ExtraUpdates,
+		CommonUpdates:     diff.CommonUpdates,
+		MismatchedUpdates: diff.MismatchedUpdates,
+	}.Format(f)
 }
 
 // DiffSetRequestToNotifications returns a diff between a SetRequest and a
