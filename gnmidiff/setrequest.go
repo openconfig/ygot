@@ -212,16 +212,49 @@ func (intent *setRequestIntent) populateUpdate(pathToLeaf string, val interface{
 	return nil
 }
 
+// prefixStr returns the path version of a prefix path, handling corner cases.
+func prefixStr(prefix *gpb.Path) (string, error) {
+	if prefix == nil {
+		prefix = &gpb.Path{}
+	}
+	prefixStr, err := ygot.PathToString(prefix)
+	if err != nil {
+		return "", fmt.Errorf("gnmidiff/prefixStr: %v", err)
+	}
+	return prefixStr, nil
+}
+
+// fullPathStr returns the full string given a prefix and a proto path,
+// handling corner cases.
+func fullPathStr(prefix string, path *gpb.Path) (string, error) {
+	pathStr, err := ygot.PathToString(path)
+	if err != nil {
+		return "", fmt.Errorf("gnmidiff/fullPathStr: %v", err)
+	}
+	if prefix == "/" {
+		// We know pathStr always starts with "/" so don't want two "/"s.
+		prefix = ""
+	} else if pathStr == "/" {
+		// We don't want to end with a "/".
+		pathStr = ""
+	}
+	return prefix + pathStr, nil
+}
+
 // minimalSetRequestIntent returns a unique and minimal intent for a SetRequest.
 //
-// TODO: Currently, support is only for SetRequests without any delete paths,
+// TODO: Currently, support is only for SetRequests with delete paths,
 // and replace and updates that don't have conflicting leaf values. If not
 // supported, then an error will be returned.
 func minimalSetRequestIntent(req *gpb.SetRequest, schema *ytypes.Schema) (setRequestIntent, error) {
-	// TODO: Handle prefix in SetRequest.
 	if req == nil {
 		req = &gpb.SetRequest{}
 	}
+	prefix, err := prefixStr(req.Prefix)
+	if err != nil {
+		return setRequestIntent{}, fmt.Errorf("gnmidiff: %v", err)
+	}
+
 	intent := setRequestIntent{
 		Deletes: map[string]struct{}{},
 		Updates: map[string]interface{}{},
@@ -229,9 +262,9 @@ func minimalSetRequestIntent(req *gpb.SetRequest, schema *ytypes.Schema) (setReq
 	// NOTE: This simple trie will not work if we intend to check conflicts with wildcard deletion paths.
 	t := trie.New()
 	for _, gPath := range req.Delete {
-		path, err := ygot.PathToString(gPath)
+		path, err := fullPathStr(prefix, gPath)
 		if err != nil {
-			return setRequestIntent{}, fmt.Errorf("gnmidiff: %v", err)
+			return setRequestIntent{}, err
 		}
 		if _, ok := intent.Deletes[path]; ok {
 			return setRequestIntent{}, fmt.Errorf("gnmidiff: conflicting replaces in SetRequest: %v", path)
@@ -240,9 +273,9 @@ func minimalSetRequestIntent(req *gpb.SetRequest, schema *ytypes.Schema) (setReq
 		t.Add(path, nil)
 	}
 	for _, upd := range req.Replace {
-		path, err := ygot.PathToString(upd.Path)
+		path, err := fullPathStr(prefix, upd.Path)
 		if err != nil {
-			return setRequestIntent{}, fmt.Errorf("gnmidiff: %v", err)
+			return setRequestIntent{}, err
 		}
 		if _, ok := intent.Deletes[path]; ok {
 			return setRequestIntent{}, fmt.Errorf("gnmidiff: conflicting replaces in SetRequest: %v", path)
@@ -250,7 +283,7 @@ func minimalSetRequestIntent(req *gpb.SetRequest, schema *ytypes.Schema) (setReq
 		intent.Deletes[path] = struct{}{}
 		t.Add(path, nil)
 
-		if err := populateUpdate(&intent, upd, schema, true); err != nil {
+		if err := populateUpdate(&intent, path, upd.GetVal(), schema, true); err != nil {
 			return setRequestIntent{}, err
 		}
 	}
@@ -263,7 +296,12 @@ func minimalSetRequestIntent(req *gpb.SetRequest, schema *ytypes.Schema) (setReq
 	}
 
 	for _, upd := range req.Update {
-		if err := populateUpdate(&intent, upd, schema, true); err != nil {
+		path, err := fullPathStr(prefix, upd.Path)
+		if err != nil {
+			return setRequestIntent{}, err
+		}
+
+		if err := populateUpdate(&intent, path, upd.GetVal(), schema, true); err != nil {
 			return setRequestIntent{}, err
 		}
 	}
@@ -336,18 +374,14 @@ func protoLeafToJSON(tv *gpb.TypedValue) (interface{}, error) {
 // Note: The input path must NOT end with "/".
 //
 // e.g. /a for b/c="foo" would introduce an update of /a/b/c="foo" into the intent.
-func populateUpdate(intent *setRequestIntent, update *gpb.Update, schema *ytypes.Schema, errorOnOverwrite bool) error {
-	path, err := ygot.PathToString(update.Path)
-	if err != nil {
-		return fmt.Errorf("gnmidiff: %v", err)
-	}
+func populateUpdate(intent *setRequestIntent, path string, tv *gpb.TypedValue, schema *ytypes.Schema, errorOnOverwrite bool) error {
 	if len(path) > 0 && path[len(path)-1] == '/' {
 		return fmt.Errorf("gnmidiff: invalid input path %q, must not end with \"/\"", path)
 	}
 
 	// Populate updates when the schema is unknown.
 	if schema == nil {
-		return populateUpdateNoSchema(intent, path, update.Val, errorOnOverwrite)
+		return populateUpdateNoSchema(intent, path, tv, errorOnOverwrite)
 	}
 
 	gpath, err := ygot.StringToStructuredPath(path)
@@ -415,7 +449,7 @@ func populateUpdate(intent *setRequestIntent, update *gpb.Update, schema *ytypes
 		setNodeTargetSchema = schema.SchemaTree[targetType.Name()]
 	}
 
-	if err := ytypes.SetNode(setNodeTargetSchema, setNodeTarget, gpath, update.Val, &ytypes.InitMissingElements{}); err != nil {
+	if err := ytypes.SetNode(setNodeTargetSchema, setNodeTarget, gpath, tv, &ytypes.InitMissingElements{}); err != nil {
 		return fmt.Errorf("gnmidiff: error unmarshalling update: %v", err)
 	}
 

@@ -76,6 +76,62 @@ func TestSetRequestToNotifications(t *testing.T) {
 			MismatchedUpdates: map[string]MismatchedUpdate{},
 		},
 	}, {
+		desc: "exactly the same with prefix usage",
+		inSetRequest: &gpb.SetRequest{
+			Prefix: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+			Replace: []*gpb.Update{{
+				Path: ygot.MustStringToPath(""),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
+			}},
+			Update: []*gpb.Update{{
+				Path: ygot.MustStringToPath(""),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
+			}, {
+				Path: ygot.MustStringToPath("subinterfaces/subinterface[index=0]/config/enabled"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: true}},
+			}, {
+				Path: ygot.MustStringToPath("state/transceiver"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "FDM"}},
+			}, {
+				Path: ygot.MustStringToPath("state/physical-channel"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{LeaflistVal: &gpb.ScalarArray{Element: []*gpb.TypedValue{{Value: &gpb.TypedValue_UintVal{UintVal: 42}}, {Value: &gpb.TypedValue_UintVal{UintVal: 84}}}}}},
+			}},
+		},
+		inNotifications: []*gpb.Notification{{
+			Update: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: true}},
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/transceiver"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "FDM"}},
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/physical-channel"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{LeaflistVal: &gpb.ScalarArray{Element: []*gpb.TypedValue{{Value: &gpb.TypedValue_UintVal{UintVal: 42}}, {Value: &gpb.TypedValue_UintVal{UintVal: 84}}}}}},
+			}},
+		}},
+		wantSetToNotifsDiff: SetToNotifsDiff{
+			MissingUpdates: map[string]interface{}{},
+			ExtraUpdates:   map[string]interface{}{},
+			CommonUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
+				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
+				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
+				"/interfaces/interface[name=eth0]/state/transceiver":                                     "FDM",
+				"/interfaces/interface[name=eth0]/state/physical-channel":                                []interface{}{float64(42), float64(84)},
+			},
+			MismatchedUpdates: map[string]MismatchedUpdate{},
+		},
+	}, {
 		desc: "exactly the same but with some dont care paths in notifications",
 		inSetRequest: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
