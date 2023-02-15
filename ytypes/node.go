@@ -223,6 +223,8 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 						if err := json.Unmarshal(args.val.(*gpb.TypedValue).GetJsonIetfVal(), &val); err != nil {
 							return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v; %v", ft.Name, root, args.val, err)
 						}
+					case args.val.(*gpb.TypedValue).GetJsonVal() != nil:
+						return nil, status.Errorf(codes.InvalidArgument, "json_val format is deprecated, please use json_ietf_val")
 					case args.tolerateJSONInconsistenciesForVal:
 						encoding = gNMIEncodingWithJSONTolerance
 						val = args.val
