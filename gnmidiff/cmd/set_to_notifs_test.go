@@ -53,3 +53,27 @@ func TestSplitByEmptyline(t *testing.T) {
 		})
 	}
 }
+
+func TestNotifsFromFile(t *testing.T) {
+	tests := []struct {
+		desc       string
+		inFile     string
+		wantNotifs int
+	}{{
+		desc:       "basic",
+		inFile:     "notifs.textproto",
+		wantNotifs: 12,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := notifsFromFile(tt.inFile)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(tt.wantNotifs, len(got)); diff != "" {
+				t.Errorf("notifsFromFile (-want, +got):\n%s", diff)
+			}
+		})
+	}
+}
