@@ -1,0 +1,53 @@
+replace {
+  path {
+    elem {
+      name: "system"
+    }
+    elem {
+      name: "config"
+    }
+    elem {
+      name: "hostname"
+    }
+  }
+  val {
+    string_val: "rosesarered"
+  }
+}
+replace {
+  path {
+    elem {
+      name: "lacp"
+    }
+    elem {
+      name: "interfaces"
+    }
+    elem {
+      name: "interface"
+      key {
+        key: "name"
+        value: "Port-Channel9"
+      }
+    }
+  }
+  val {
+    json_ietf_val: "{\n  \"openconfig-lacp:config\": {\n    \"interval\": \"FAST\",\n    \"name\": \"Port-Channel9\"\n  },\n  \"openconfig-lacp:name\": \"Port-Channel9\"\n}"
+  }
+}
+update {
+  path {
+    elem {
+      name: "network-instances"
+    }
+    elem {
+      name: "network-instance"
+      key {
+        key: "name"
+        value: "VrfBlue"
+      }
+    }
+  }
+  val {
+    json_ietf_val: "{\n  \"openconfig-network-instance:config\": {\n    \"name\": \"VrfBlue\",\n    \"type\": \"openconfig-network-instance-types:L3VRF\"\n  },\n  \"openconfig-network-instance:name\": \"VrfBlue\"\n}"
+  }
+}

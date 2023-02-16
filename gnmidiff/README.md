@@ -3,5 +3,8 @@
 ```bash
 go install ./gnmidiff
 
-gnmidiff setrequest setrequest_a.textproto setrequest_b.textproto
+gnmidiff setrequest cmd/setrequest.textproto cmd/setrequest2.textproto
+
+gnmidiff set-to-notifs cmd/setrequest.textproto cmd/notifs.textproto
+gnmidiff set-to-notifs cmd/setrequest.textproto cmd/getresponse.textproto
 ```
