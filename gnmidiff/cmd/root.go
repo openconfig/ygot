@@ -43,6 +43,7 @@ func Execute() {
 	}
 
 	rootCmd.AddCommand(newSetRequestDiffCmd())
+	rootCmd.AddCommand(newSetToNotifsDiffCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
