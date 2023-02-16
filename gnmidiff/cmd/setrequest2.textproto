@@ -34,7 +34,7 @@ replace {
     json_ietf_val: "{\n  \"openconfig-lacp:config\": {\n    \"interval\": \"FAST\",\n    \"name\": \"Port-Channel9\"\n  },\n  \"openconfig-lacp:name\": \"Port-Channel9\"\n}"
   }
 }
-update {
+replace {
   path {
     elem {
       name: "network-instances"
