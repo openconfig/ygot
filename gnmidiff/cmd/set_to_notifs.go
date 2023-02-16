@@ -32,7 +32,7 @@ func newSetToNotifsDiffCmd() *cobra.Command {
 	setdiff := &cobra.Command{
 		Use:   "set-to-notifs",
 		RunE:  setToNotifsDiff,
-		Short: "Diffs the SetRequest intent and Notifications from the device.",
+		Short: "Diffs the SetRequest intent and Notifications (either from Get or Subscribe) from the device.",
 		Args:  cobra.MinimumNArgs(2),
 	}
 
@@ -88,6 +88,11 @@ func notifsFromFile(file string) ([]*gpb.Notification, error) {
 	for _, proto := range protos {
 		resp := &gpb.SubscribeResponse{}
 		if err := prototext.Unmarshal([]byte(proto), resp); err != nil {
+			resp := &gpb.GetResponse{}
+			// Check if it's a GetResponse
+			if err := prototext.Unmarshal([]byte(proto), resp); err == nil {
+				return resp.GetNotification(), err
+			}
 			return nil, fmt.Errorf("invalid Notification/SubscribeResponse from file %q: %v", file, err)
 		}
 		if notif := resp.GetUpdate(); notif != nil {

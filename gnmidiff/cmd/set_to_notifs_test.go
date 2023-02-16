@@ -60,8 +60,12 @@ func TestNotifsFromFile(t *testing.T) {
 		inFile     string
 		wantNotifs int
 	}{{
-		desc:       "basic",
+		desc:       "subscribeResponses",
 		inFile:     "notifs.textproto",
+		wantNotifs: 12,
+	}, {
+		desc:       "GetResponse",
+		inFile:     "getresponse.textproto",
 		wantNotifs: 12,
 	}}
 
