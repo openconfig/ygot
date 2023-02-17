@@ -282,7 +282,8 @@ func ComparePaths(a, b *gpb.Path) CompareRelation {
 	shortestLen := len(a.Elem)
 
 	// If path a is longer than b, then we start by assuming a subset relationship, and vice versa.
-	var relation CompareRelation
+	// Otherwise assume paths are equal.
+	relation := Equal
 	if len(a.Elem) > len(b.Elem) {
 		relation = Subset
 		shortestLen = len(b.Elem)
@@ -292,15 +293,15 @@ func ComparePaths(a, b *gpb.Path) CompareRelation {
 
 	for i := 0; i < shortestLen; i++ {
 		elemRelation := comparePathElem(a.Elem[i], b.Elem[i])
-		switch {
-		case elemRelation == PartialIntersect:
-			return PartialIntersect
-		case (relation == Subset && elemRelation == Superset) || (relation == Superset && elemRelation == Subset):
-			return PartialIntersect
-		case elemRelation == Subset || elemRelation == Superset:
-			relation = elemRelation
-		case elemRelation == Disjoint && relation == Equal:
-			relation = Disjoint
+		switch elemRelation {
+		case PartialIntersect, Disjoint:
+			return elemRelation
+		case Superset, Subset:
+			if relation == Equal {
+				relation = elemRelation
+			} else if elemRelation != relation {
+				return PartialIntersect
+			}
 		}
 	}
 
@@ -328,7 +329,7 @@ func comparePathElem(a, b *gpb.PathElem) CompareRelation {
 				return PartialIntersect
 			}
 			setRelation = Superset
-		case bVal == "*" || !ok: // Values not equal, a value is subset of b value.
+		case bVal == "*", !ok: // Values not equal, a value is subset of b value.
 			if setRelation == Superset {
 				return PartialIntersect
 			}
