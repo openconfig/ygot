@@ -1,7 +1,17 @@
 package main
 
-import "github.com/openconfig/ygot/gnmidiff/cmd"
+import (
+	"fmt"
+	"os"
+
+	"github.com/openconfig/ygot/gnmidiff/cmd"
+)
 
 func main() {
-	cmd.Execute()
+	rootCmd := cmd.RootCmd()
+
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
