@@ -268,18 +268,20 @@ const (
 	Subset
 	// Superset means a path is strictly larger than the other.
 	Superset
+	// PartialIntersect means a path partial overlaps the other.
+	PartialIntersect
 )
 
-// ComparePaths returns the relation between two paths.
+// ComparePaths returns the set relation between two paths.
 // It returns an error if the paths are invalid or not one of the relations.
-func ComparePaths(a, b *gpb.Path) (CompareRelation, error) {
+func ComparePaths(a, b *gpb.Path) CompareRelation {
 	if a.Origin != b.Origin {
-		return Disjoint, nil
+		return Disjoint
 	}
 
 	shortestLen := len(a.Elem)
 
-	// If path a is longer than b, it must be either a superset of b or disjoint and vice versa.
+	// If path a is longer than b, then we start by assuming a subset relationship, and vice versa.
 	var relation CompareRelation
 	if len(a.Elem) > len(b.Elem) {
 		relation = Subset
@@ -289,16 +291,12 @@ func ComparePaths(a, b *gpb.Path) (CompareRelation, error) {
 	}
 
 	for i := 0; i < shortestLen; i++ {
-		if a.Elem[i].Name != b.Elem[i].Name {
-			return Disjoint, nil
-		}
-		elemRelation, err := comparePathElem(a.Elem[i], b.Elem[i])
-		if err != nil {
-			return Disjoint, err
-		}
+		elemRelation := comparePathElem(a.Elem[i], b.Elem[i])
 		switch {
+		case elemRelation == PartialIntersect:
+			return PartialIntersect
 		case (relation == Subset && elemRelation == Superset) || (relation == Superset && elemRelation == Subset):
-			return Disjoint, fmt.Errorf("path elems are not consistently a subset/superset of b")
+			return PartialIntersect
 		case elemRelation == Subset || elemRelation == Superset:
 			relation = elemRelation
 		case elemRelation == Disjoint && relation == Equal:
@@ -306,50 +304,51 @@ func ComparePaths(a, b *gpb.Path) (CompareRelation, error) {
 		}
 	}
 
-	return relation, nil
+	return relation
 }
 
 // comparePathElem compare two path elements a, b and returns:
 // subset: if every definite key in a is wildcard in b.
 // superset: if every wildcard key in b is non-wildcard in b.
 // error: not two keys are both subset and superset.
-func comparePathElem(a, b *gpb.PathElem) (CompareRelation, error) {
+func comparePathElem(a, b *gpb.PathElem) CompareRelation {
+	if a.Name != b.Name {
+		return Disjoint
+	}
+
+	// Start by assuming a perfect match. Then relax this property as we scan through the key values.
 	setRelation := Equal
 	for k, aVal := range a.Key {
 		bVal, ok := b.Key[k]
 		switch {
-		case aVal == bVal: // Values are equal.
-			continue
-		case aVal == "*" && !ok: // Values are equal, matching explicit wildcard with implicit one.
+		case aVal == bVal, aVal == "*" && !ok: // Values are equal (possibly be implicit wildcards).
 			continue
 		case aVal == "*": // Values not equal, a value is superset of b value.
 			if setRelation == Subset {
-				return Disjoint, fmt.Errorf("path elem %v is not consistently a subset/superset of %v", a, b)
+				return PartialIntersect
 			}
 			setRelation = Superset
 		case bVal == "*" || !ok: // Values not equal, a value is subset of b value.
 			if setRelation == Superset {
-				return Disjoint, fmt.Errorf("path %v is not consistently a subset/superset of %v", a, b)
+				return PartialIntersect
 			}
 			setRelation = Subset
 		default: // Values not equal, but of the same size.
-			setRelation = Disjoint
+			return Disjoint
 		}
 	}
 	for k, bVal := range b.Key {
 		_, ok := a.Key[k]
 		switch {
-		case ok: // Already visited all the keys in a.
-			continue
-		case bVal == "*": // Values are equal, matching implicit wildcard.
+		case ok, bVal == "*": // Key has already been visited, or values are equal.
 			continue
 		case bVal != "*": // If a contains an implicit wildcard and b isn't.
 			if setRelation == Subset {
-				return Disjoint, fmt.Errorf("path %v is not consistently a superset of %v", a, b)
+				return PartialIntersect
 			}
 			setRelation = Superset
 		}
 	}
 
-	return setRelation, nil
+	return setRelation
 }

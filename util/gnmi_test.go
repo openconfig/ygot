@@ -1065,10 +1065,9 @@ func mustStringToPath(t testing.TB, path string) *gpb.Path {
 
 func TestComparePaths(t *testing.T) {
 	tests := []struct {
-		desc    string
-		a, b    *gpb.Path
-		want    util.CompareRelation
-		wantErr string
+		desc string
+		a, b *gpb.Path
+		want util.CompareRelation
 	}{{
 		desc: "different origins",
 		a:    &gpb.Path{Origin: "foo"},
@@ -1145,45 +1144,39 @@ func TestComparePaths(t *testing.T) {
 		b:    mustStringToPath(t, "/foo"),
 		want: util.Subset,
 	}, {
-		desc:    "error single elem is both subset and superset",
-		a:       mustStringToPath(t, "/foo[a=1][b=*]"),
-		b:       mustStringToPath(t, "/foo[a=*][b=1]"),
-		wantErr: "not consistently a subset/superset",
+		desc: "error single elem is both subset and superset",
+		a:    mustStringToPath(t, "/foo[a=1][b=*]"),
+		b:    mustStringToPath(t, "/foo[a=*][b=1]"),
+		want: util.PartialIntersect,
 	}, {
-		desc:    "error single elem is both subset and superset implicit wildcards",
-		a:       mustStringToPath(t, "/foo[a=1]"),
-		b:       mustStringToPath(t, "/foo[b=1]"),
-		wantErr: "not consistently a superset",
+		desc: "error single elem is both subset and superset implicit wildcards",
+		a:    mustStringToPath(t, "/foo[a=1]"),
+		b:    mustStringToPath(t, "/foo[b=1]"),
+		want: util.PartialIntersect,
 	}, {
-		desc:    "error path is both subset and superset",
-		a:       mustStringToPath(t, "/foo[a=*]/bar[b=1]"),
-		b:       mustStringToPath(t, "/foo[b=1]/bar[b=*]"),
-		wantErr: "path elems are not consistently a subset/superset",
+		desc: "error path is both subset and superset",
+		a:    mustStringToPath(t, "/foo[a=*]/bar[b=1]"),
+		b:    mustStringToPath(t, "/foo[b=1]/bar[b=*]"),
+		want: util.PartialIntersect,
 	}, {
-		desc:    "error path elem is both subset and superset",
-		a:       mustStringToPath(t, "/foo[a=1]/bar[b=*]"),
-		b:       mustStringToPath(t, "/foo[b=*]/bar[b=1]"),
-		wantErr: "path elems are not consistently a subset/superset",
+		desc: "error path elem is both subset and superset",
+		a:    mustStringToPath(t, "/foo[a=1]/bar[b=*]"),
+		b:    mustStringToPath(t, "/foo[b=*]/bar[b=1]"),
+		want: util.PartialIntersect,
 	}, {
-		desc:    "error shorter path is both subset and superset",
-		a:       mustStringToPath(t, "/foo[a=*]/bar"),
-		b:       mustStringToPath(t, "/foo[b=1]"),
-		wantErr: "path elems are not consistently a subset/superset",
+		desc: "error shorter path is both subset and superset",
+		a:    mustStringToPath(t, "/foo[a=*]/bar"),
+		b:    mustStringToPath(t, "/foo[b=1]"),
+		want: util.PartialIntersect,
 	}, {
-		desc:    "error path elem is both subset and superset",
-		a:       mustStringToPath(t, "/foo[a=1]"),
-		b:       mustStringToPath(t, "/foo[b=*]/bar"),
-		wantErr: "path elems are not consistently a subset/superset",
+		desc: "error path elem is both subset and superset",
+		a:    mustStringToPath(t, "/foo[a=1]"),
+		b:    mustStringToPath(t, "/foo[b=*]/bar"),
+		want: util.PartialIntersect,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			got, err := util.ComparePaths(tt.a, tt.b)
-			if diff := errdiff.Check(err, tt.wantErr); diff != "" {
-				t.Errorf("ComparePaths(%v, %v) got unexpected error diff: %s", tt.a, tt.b, diff)
-			}
-			if err != nil {
-				return
-			}
+			got := util.ComparePaths(tt.a, tt.b)
 			if got != tt.want {
 				t.Errorf("ComparePaths(%v, %v) got unexpected result: got %v, want %v", tt.a, tt.b, got, tt.want)
 			}
