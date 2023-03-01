@@ -17,12 +17,178 @@ package gnmidiff
 
 import (
 	"fmt"
+	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/derekparker/trie"
 	"github.com/openconfig/ygot/ygot"
+	"github.com/openconfig/ygot/ytypes"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
+
+// MismatchedUpdate represents two different update values for the same leaf
+// node.
+type MismatchedUpdate struct {
+	// A is the update value in A.
+	A interface{}
+	// B is the update value in B.
+	B interface{}
+}
+
+// SetRequestIntentDiff contains the intent difference between two SetRequests.
+//
+// - The key of the maps is the string representation of a gpb.Path constructed
+// by ygot.PathToString.
+// - The value of the update fields is the JSON_IETF representation of the
+// value.
+type SetRequestIntentDiff struct {
+	AOnlyDeletes      map[string]struct{}
+	BOnlyDeletes      map[string]struct{}
+	CommonDeletes     map[string]struct{}
+	AOnlyUpdates      map[string]interface{}
+	BOnlyUpdates      map[string]interface{}
+	CommonUpdates     map[string]interface{}
+	MismatchedUpdates map[string]MismatchedUpdate
+}
+
+// Format is the string format of any gNMI diff utility in this package.
+type Format struct {
+	// Full indicates that common values are also output.
+	Full bool
+	// TODO: Implement IncludeList and ExcludeList.
+	// IncludeList is a list of paths that will be included in the output.
+	// wildcards are allowed.
+	//
+	// empty implies all paths are included.
+	//IncludeList []string
+	// ExcludeList is a list of paths that will be excluded from the output.
+	// wildcards are allowed.
+	//
+	// empty implies no paths are excluded.
+	//ExcludeList []string
+}
+
+func formatJSONValue(value interface{}) interface{} {
+	if v, ok := value.(string); ok {
+		return strconv.Quote(v)
+	}
+	return value
+}
+
+// Format outputs the SetRequestIntentDiff in human-readable format.
+//
+// NOTE: Do not depend on the output of this being stable.
+func (diff SetRequestIntentDiff) Format(f Format) string {
+	var b strings.Builder
+	writeDeletes := func(deletePaths map[string]struct{}, symbol rune) {
+		var paths []string
+		for path := range deletePaths {
+			paths = append(paths, path)
+
+		}
+		sort.Strings(paths)
+		for _, path := range paths {
+			b.WriteString(fmt.Sprintf("%c %s: deleted\n", symbol, path))
+		}
+	}
+
+	writeUpdates := func(updates map[string]interface{}, symbol rune) {
+		var paths []string
+		for path := range updates {
+			paths = append(paths, path)
+
+		}
+		sort.Strings(paths)
+		for _, path := range paths {
+			b.WriteString(fmt.Sprintf("%c %s: %v\n", symbol, path, formatJSONValue(updates[path])))
+		}
+	}
+
+	b.WriteString("SetRequestIntentDiff(-A, +B):\n")
+	b.WriteString("-------- deletes --------\n")
+	if f.Full {
+		writeDeletes(diff.CommonDeletes, ' ')
+	}
+	writeDeletes(diff.AOnlyDeletes, '-')
+	writeDeletes(diff.BOnlyDeletes, '+')
+	b.WriteString("-------- updates --------\n")
+	if f.Full {
+		writeUpdates(diff.CommonUpdates, ' ')
+	}
+	writeUpdates(diff.AOnlyUpdates, '-')
+	writeUpdates(diff.BOnlyUpdates, '+')
+	var paths []string
+	for path := range diff.MismatchedUpdates {
+		paths = append(paths, path)
+
+	}
+	sort.Strings(paths)
+	for _, path := range paths {
+		mismatch := diff.MismatchedUpdates[path]
+		b.WriteString(fmt.Sprintf("m %s:\n  - %v\n  + %v\n", path, formatJSONValue(mismatch.A), formatJSONValue(mismatch.B)))
+	}
+	return b.String()
+}
+
+// DiffSetRequest returns a unique and minimal intent diff of two SetRequests.
+//
+// newSchema is intended to be provided via the function defined in generated
+// ygot code (e.g. exampleoc.Schema).
+// If newSchema is nil, then DiffSetRequest will make the following assumption:
+// - Any JSON value in the input SetRequest MUST conform to the OpenConfig
+// YANG style guidelines. See the following for checking compliance.
+// * https://github.com/openconfig/oc-pyang
+// * https://github.com/openconfig/public/blob/master/doc/openconfig_style_guide.md
+//
+// Currently, support is only for SetRequests without any delete paths, and
+// replace and updates that don't have conflicting leaf values. If not
+// supported, then an error will be returned.
+func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, newSchemaFn func() (*ytypes.Schema, error)) (SetRequestIntentDiff, error) {
+	intentA, err := minimalSetRequestIntent(a, newSchemaFn)
+	if err != nil {
+		return SetRequestIntentDiff{}, fmt.Errorf("DiffSetRequest on a: %v", err)
+	}
+	intentB, err := minimalSetRequestIntent(b, newSchemaFn)
+	if err != nil {
+		return SetRequestIntentDiff{}, fmt.Errorf("DiffSetRequest on b: %v", err)
+	}
+	diff := SetRequestIntentDiff{
+		AOnlyDeletes:      map[string]struct{}{},
+		BOnlyDeletes:      map[string]struct{}{},
+		CommonDeletes:     map[string]struct{}{},
+		AOnlyUpdates:      map[string]interface{}{},
+		BOnlyUpdates:      map[string]interface{}{},
+		CommonUpdates:     map[string]interface{}{},
+		MismatchedUpdates: map[string]MismatchedUpdate{},
+	}
+	for path := range intentA.Deletes {
+		if _, ok := intentB.Deletes[path]; ok {
+			delete(intentA.Deletes, path)
+			delete(intentB.Deletes, path)
+			diff.CommonDeletes[path] = struct{}{}
+		}
+	}
+	diff.AOnlyDeletes = intentA.Deletes
+	diff.BOnlyDeletes = intentB.Deletes
+	for path, vA := range intentA.Updates {
+		vB, ok := intentB.Updates[path]
+		if !ok {
+			continue
+		}
+		delete(intentA.Updates, path)
+		delete(intentB.Updates, path)
+		if vA != vB {
+			diff.MismatchedUpdates[path] = MismatchedUpdate{A: vA, B: vB}
+		} else {
+			diff.CommonUpdates[path] = vA
+		}
+	}
+	diff.AOnlyUpdates = intentA.Updates
+	diff.BOnlyUpdates = intentB.Updates
+	return diff, nil
+}
 
 type setRequestIntent struct {
 	// Deletes are deletions to any node.
@@ -36,7 +202,8 @@ type setRequestIntent struct {
 // TODO: Currently, support is only for SetRequests without any delete paths,
 // and replace and updates that don't have conflicting leaf values. If not
 // supported, then an error will be returned.
-func minimalSetRequestIntent(req *gpb.SetRequest) (setRequestIntent, error) {
+func minimalSetRequestIntent(req *gpb.SetRequest, newSchemaFn func() (*ytypes.Schema, error)) (setRequestIntent, error) {
+	// TODO: Handle prefix in SetRequest.
 	if req == nil {
 		req = &gpb.SetRequest{}
 	}
