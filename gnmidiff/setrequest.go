@@ -210,15 +210,23 @@ func minimalSetRequestIntent(req *gpb.SetRequest, schema *ytypes.Schema) (setReq
 	if req == nil {
 		req = &gpb.SetRequest{}
 	}
-	if len(req.Delete) > 0 {
-		return setRequestIntent{}, fmt.Errorf("gnmidiff: delete paths are not supported.")
-	}
 	intent := setRequestIntent{
 		Deletes: map[string]struct{}{},
 		Updates: map[string]interface{}{},
 	}
 	// NOTE: This simple trie will not work if we intend to check conflicts with wildcard deletion paths.
 	t := trie.New()
+	for _, gPath := range req.Delete {
+		path, err := ygot.PathToString(gPath)
+		if err != nil {
+			return setRequestIntent{}, fmt.Errorf("gnmidiff: %v", err)
+		}
+		if _, ok := intent.Deletes[path]; ok {
+			return setRequestIntent{}, fmt.Errorf("gnmidiff: conflicting replaces in SetRequest: %v", path)
+		}
+		intent.Deletes[path] = struct{}{}
+		t.Add(path, nil)
+	}
 	for _, upd := range req.Replace {
 		path, err := ygot.PathToString(upd.Path)
 		if err != nil {
