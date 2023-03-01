@@ -81,7 +81,7 @@ func DiffSetRequestToNotifications(setreq *gpb.SetRequest, notifs []*gpb.Notific
 			if err != nil {
 				return SetToNotifsDiff{}, err
 			}
-			if err := populateUpdate(&updateIntent, path, upd.Val, schema, false); err != nil {
+			if err := updateIntent.populateUpdate(path, upd.Val, schema, false); err != nil {
 				return SetToNotifsDiff{}, err
 			}
 		}
