@@ -145,9 +145,9 @@ func (diff SetRequestIntentDiff) Format(f Format) string {
 // * https://github.com/openconfig/oc-pyang
 // * https://github.com/openconfig/public/blob/master/doc/openconfig_style_guide.md
 //
-// Currently, support is only for SetRequests without any delete paths, and
-// replace and updates that don't have conflicting leaf values. If not
-// supported, then an error will be returned.
+// Currently, support is only for SetRequests whose delete, replace and updates
+// that don't have conflicts. If a conflict exists, then an error will be
+// returned.
 func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, schema *ytypes.Schema) (SetRequestIntentDiff, error) {
 	intentA, err := minimalSetRequestIntent(a, schema)
 	if err != nil {
@@ -200,11 +200,23 @@ type setRequestIntent struct {
 	Updates map[string]interface{}
 }
 
+// populateUpdate populates the intent with the leaf values provided.
+//
+// - errorOnOverwrite indicates that if the update overwrote any current values
+// in the intent, then error out.
+func (intent *setRequestIntent) populateUpdate(pathToLeaf string, val interface{}, errorOnOverwrite bool) error {
+	if prevVal, ok := intent.Updates[pathToLeaf]; errorOnOverwrite && ok && val != prevVal {
+		return fmt.Errorf("gnmidiff: leaf value set twice with different values in SetRequest: %v", pathToLeaf)
+	}
+	intent.Updates[pathToLeaf] = val
+	return nil
+}
+
 // minimalSetRequestIntent returns a unique and minimal intent for a SetRequest.
 //
-// TODO: Currently, support is only for SetRequests without any delete paths,
-// and replace and updates that don't have conflicting leaf values. If not
-// supported, then an error will be returned.
+// TODO: Currently, support is only for SetRequests whose delete, replace and updates
+// that don't have conflicts. If a conflict exists, then an error will be
+// returned.
 func minimalSetRequestIntent(req *gpb.SetRequest, schema *ytypes.Schema) (setRequestIntent, error) {
 	// TODO: Handle prefix in SetRequest.
 	if req == nil {
@@ -238,7 +250,7 @@ func minimalSetRequestIntent(req *gpb.SetRequest, schema *ytypes.Schema) (setReq
 		intent.Deletes[path] = struct{}{}
 		t.Add(path, nil)
 
-		if err := populateUpdate(&intent, path, upd.GetVal(), schema); err != nil {
+		if err := populateUpdate(&intent, upd, schema, true); err != nil {
 			return setRequestIntent{}, err
 		}
 	}
@@ -251,12 +263,7 @@ func minimalSetRequestIntent(req *gpb.SetRequest, schema *ytypes.Schema) (setReq
 	}
 
 	for _, upd := range req.Update {
-		path, err := ygot.PathToString(upd.Path)
-		if err != nil {
-			return setRequestIntent{}, fmt.Errorf("gnmidiff: %v", err)
-		}
-
-		if err := populateUpdate(&intent, path, upd.GetVal(), schema); err != nil {
+		if err := populateUpdate(&intent, upd, schema, true); err != nil {
 			return setRequestIntent{}, err
 		}
 	}
@@ -315,23 +322,32 @@ func protoLeafToJSON(tv *gpb.TypedValue) (interface{}, error) {
 
 // populateUpdate populates all leaf updates at the given path into the intent.
 //
+// For any leaf updates, the corresponding path in the intent's delete is
+// removed (if exists).
+//
 // - schema is intended to be provided via the function defined in generated
 // ygot code (e.g. exampleoc.Schema).
 // If schema is nil, then it is assumed any JSON value in the input
 // SetRequest MUST conform to the OpenConfig YANG style guidelines. Otherwise
 // it is impossible to infer the list keys of a leaf update.
+// - errorOnOverwrite indicates that if the update overwrote any current values
+// in the intent, then error out.
 //
 // Note: The input path must NOT end with "/".
 //
 // e.g. /a for b/c="foo" would introduce an update of /a/b/c="foo" into the intent.
-func populateUpdate(intent *setRequestIntent, path string, tv *gpb.TypedValue, schema *ytypes.Schema) error {
+func populateUpdate(intent *setRequestIntent, update *gpb.Update, schema *ytypes.Schema, errorOnOverwrite bool) error {
+	path, err := ygot.PathToString(update.Path)
+	if err != nil {
+		return fmt.Errorf("gnmidiff: %v", err)
+	}
 	if len(path) > 0 && path[len(path)-1] == '/' {
 		return fmt.Errorf("gnmidiff: invalid input path %q, must not end with \"/\"", path)
 	}
 
 	// Populate updates when the schema is unknown.
 	if schema == nil {
-		return populateUpdateNoSchema(intent, path, tv)
+		return populateUpdateNoSchema(intent, path, update.Val, errorOnOverwrite)
 	}
 
 	gpath, err := ygot.StringToStructuredPath(path)
@@ -399,7 +415,7 @@ func populateUpdate(intent *setRequestIntent, path string, tv *gpb.TypedValue, s
 		setNodeTargetSchema = schema.SchemaTree[targetType.Name()]
 	}
 
-	if err := ytypes.SetNode(setNodeTargetSchema, setNodeTarget, gpath, tv, &ytypes.InitMissingElements{}); err != nil {
+	if err := ytypes.SetNode(setNodeTargetSchema, setNodeTarget, gpath, update.Val, &ytypes.InitMissingElements{}); err != nil {
 		return fmt.Errorf("gnmidiff: error unmarshalling update: %v", err)
 	}
 
@@ -429,10 +445,9 @@ func populateUpdate(intent *setRequestIntent, path string, tv *gpb.TypedValue, s
 				// This was a list key that was created by SetNode, so drop it.
 				continue
 			}
-			if prevVal, ok := intent.Updates[pathToLeaf]; ok && val != prevVal {
-				return fmt.Errorf("gnmidiff: leaf value set twice with different values in SetRequest: %v", pathToLeaf)
+			if err := intent.populateUpdate(pathToLeaf, val, errorOnOverwrite); err != nil {
+				return err
 			}
-			intent.Updates[pathToLeaf] = val
 		}
 	}
 	return nil
@@ -441,7 +456,10 @@ func populateUpdate(intent *setRequestIntent, path string, tv *gpb.TypedValue, s
 // populateUpdateNoSchema populates all leaf updates at the given path into the intent.
 //
 // e.g. /a for b/c="foo" would introduce an update of /a/b/c="foo" into the intent.
-func populateUpdateNoSchema(intent *setRequestIntent, path string, tv *gpb.TypedValue) error {
+//
+// - errorOnOverwrite indicates that if the update overwrote any current values
+// in the intent, then error out.
+func populateUpdateNoSchema(intent *setRequestIntent, path string, tv *gpb.TypedValue, errorOnOverwrite bool) error {
 	var leafVal interface{}
 	isLeaf := true
 	switch tv.GetValue().(type) {
@@ -454,12 +472,10 @@ func populateUpdateNoSchema(intent *setRequestIntent, path string, tv *gpb.Typed
 			leafVal = val
 		} else {
 			isLeaf = false
-			for subpath, value := range updates {
-				pathToLeaf := path + subpath
-				if prevVal, ok := intent.Updates[pathToLeaf]; ok && val != prevVal {
-					return fmt.Errorf("gnmidiff: leaf value set twice in SetRequest: %v", pathToLeaf)
+			for subpath, val := range updates {
+				if err := intent.populateUpdate(path+subpath, val, errorOnOverwrite); err != nil {
+					return err
 				}
-				intent.Updates[pathToLeaf] = value
 			}
 		}
 	default:
@@ -474,10 +490,9 @@ func populateUpdateNoSchema(intent *setRequestIntent, path string, tv *gpb.Typed
 		// leaf replace is the same as a leaf update, so remove
 		// the deletion action to keep the intent minimal.
 		delete(intent.Deletes, path)
-		if prevVal, ok := intent.Updates[path]; ok && leafVal != prevVal {
-			return fmt.Errorf("gnmidiff: leaf value set twice in SetRequest: %v", path)
+		if err := intent.populateUpdate(path, leafVal, errorOnOverwrite); err != nil {
+			return err
 		}
-		intent.Updates[path] = leafVal
 	}
 	return nil
 }
