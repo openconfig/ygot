@@ -255,3 +255,101 @@ func JoinPaths(prefix, suffix *gpb.Path) (*gpb.Path, error) {
 	}
 	return joined, nil
 }
+
+// CompareRelation describes of the relation between to gNMI paths.
+type CompareRelation int
+
+const (
+	// Equal means the paths are the same.
+	Equal CompareRelation = iota
+	// Disjoint means the paths do not overlap at all.
+	Disjoint
+	// Subset means a path is strictly smaller than the other.
+	Subset
+	// Superset means a path is strictly larger than the other.
+	Superset
+	// PartialIntersect means a path partial overlaps the other.
+	PartialIntersect
+)
+
+// ComparePaths returns the set relation between two paths.
+// It returns an error if the paths are invalid or not one of the relations.
+func ComparePaths(a, b *gpb.Path) CompareRelation {
+	if a.Origin != b.Origin {
+		return Disjoint
+	}
+
+	shortestLen := len(a.Elem)
+
+	// If path a is longer than b, then we start by assuming a subset relationship, and vice versa.
+	// Otherwise assume paths are equal.
+	relation := Equal
+	if len(a.Elem) > len(b.Elem) {
+		relation = Subset
+		shortestLen = len(b.Elem)
+	} else if len(a.Elem) < len(b.Elem) {
+		relation = Superset
+	}
+
+	for i := 0; i < shortestLen; i++ {
+		elemRelation := comparePathElem(a.Elem[i], b.Elem[i])
+		switch elemRelation {
+		case PartialIntersect, Disjoint:
+			return elemRelation
+		case Superset, Subset:
+			if relation == Equal {
+				relation = elemRelation
+			} else if elemRelation != relation {
+				return PartialIntersect
+			}
+		}
+	}
+
+	return relation
+}
+
+// comparePathElem compare two path elements a, b and returns:
+// subset: if every definite key in a is wildcard in b.
+// superset: if every wildcard key in b is non-wildcard in b.
+// error: not two keys are both subset and superset.
+func comparePathElem(a, b *gpb.PathElem) CompareRelation {
+	if a.Name != b.Name {
+		return Disjoint
+	}
+
+	// Start by assuming a perfect match. Then relax this property as we scan through the key values.
+	setRelation := Equal
+	for k, aVal := range a.Key {
+		bVal, ok := b.Key[k]
+		switch {
+		case aVal == bVal, aVal == "*" && !ok: // Values are equal (possibly be implicit wildcards).
+			continue
+		case aVal == "*": // Values not equal, a value is superset of b value.
+			if setRelation == Subset {
+				return PartialIntersect
+			}
+			setRelation = Superset
+		case bVal == "*", !ok: // Values not equal, a value is subset of b value.
+			if setRelation == Superset {
+				return PartialIntersect
+			}
+			setRelation = Subset
+		default: // Values not equal, but of the same size.
+			return Disjoint
+		}
+	}
+	for k, bVal := range b.Key {
+		_, ok := a.Key[k]
+		switch {
+		case ok, bVal == "*": // Key has already been visited, or values are equal.
+			continue
+		case bVal != "*": // If a contains an implicit wildcard and b isn't.
+			if setRelation == Subset {
+				return PartialIntersect
+			}
+			setRelation = Superset
+		}
+	}
+
+	return setRelation
+}
