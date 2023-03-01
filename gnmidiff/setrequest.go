@@ -215,7 +215,7 @@ func (intent *setRequestIntent) populateUpdate(pathToLeaf string, val interface{
 // prefixStr returns the path version of a prefix path, handling corner cases.
 func prefixStr(prefix *gpb.Path) (string, error) {
 	if prefix == nil {
-		prefix = &gpb.Path{}
+		return "", nil
 	}
 	prefixStr, err := ygot.PathToString(prefix)
 	if err != nil {
