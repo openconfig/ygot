@@ -774,7 +774,7 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 
 	var ok bool
 	if ok = gNMIToYANGTypeMatches(ykind, tv, jsonTolerance); !ok {
-		return nil, fmt.Errorf("failed to unmarshal %v into %v", tv.GetValue(), yang.TypeKindToName[ykind])
+		return nil, fmt.Errorf("failed to unmarshal (%T, %v) into %v", tv.GetValue(), tv.GetValue(), yang.TypeKindToName[ykind])
 	}
 
 	switch ykind {
