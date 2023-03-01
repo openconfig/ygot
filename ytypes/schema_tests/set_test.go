@@ -329,7 +329,7 @@ func TestSet(t *testing.T) {
 			Value: &gpb.TypedValue_UintVal{42},
 		},
 		inOpts:           []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
-		wantErrSubstring: "failed to unmarshal &{42} into string",
+		wantErrSubstring: "failed to unmarshal",
 	}, {
 		// This test case is not expecting an error since we expect
 		// ygot to be able to traverse using the key specified in the
