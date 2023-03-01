@@ -15,7 +15,6 @@ import (
 // by ygot.PathToString.
 // - The value of the update fields is the JSON_IETF representation of the
 // value.
-// TODO: Format function
 type SetToNotifsDiff struct {
 	// MissingUpdates (-) are updates specified in the SetRequest missing in
 	// the input Notifications.
