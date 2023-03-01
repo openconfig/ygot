@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package util
+package util_test
 
 import (
 	"strings"
@@ -21,6 +21,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
+	"github.com/openconfig/ygot/ygot"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -123,7 +125,7 @@ func TestPathMatchesPrefix(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got, want := PathMatchesPrefix(pathNoKeysToGNMIPath(tt.path), strings.Split(tt.prefix, "/")), tt.want; got != want {
+			if got, want := util.PathMatchesPrefix(pathNoKeysToGNMIPath(tt.path), strings.Split(tt.prefix, "/")), tt.want; got != want {
 				t.Errorf("%s: got: %v want: %v", tt.desc, got, want)
 			}
 		})
@@ -191,7 +193,7 @@ func TestTrimGNMIPathPrefix(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			path := pathNoKeysToGNMIPath(tt.path)
 			prefix := strings.Split(tt.prefix, "/")
-			got := gnmiPathNoKeysToPath(TrimGNMIPathPrefix(path, prefix))
+			got := gnmiPathNoKeysToPath(util.TrimGNMIPathPrefix(path, prefix))
 			if got != tt.want {
 				t.Errorf("%s: got: %s want: %s", tt.desc, got, tt.want)
 			}
@@ -229,7 +231,7 @@ func TestPopGNMIPath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got, want := gnmiPathNoKeysToPath(PopGNMIPath(pathNoKeysToGNMIPath(tt.path))), tt.want; got != want {
+			if got, want := gnmiPathNoKeysToPath(util.PopGNMIPath(pathNoKeysToGNMIPath(tt.path))), tt.want; got != want {
 				t.Errorf("%s: got: %s want: %s", tt.desc, got, want)
 			}
 		})
@@ -325,7 +327,7 @@ func TestPathElemsEqual(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got := PathElemsEqual(tt.lhs, tt.rhs); got != tt.want {
+			if got := util.PathElemsEqual(tt.lhs, tt.rhs); got != tt.want {
 				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
 			}
 		})
@@ -424,7 +426,7 @@ func TestPathElemSlicesEqual(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got := PathElemSlicesEqual(tt.inElemsA, tt.inElemsB); got != tt.want {
+			if got := util.PathElemSlicesEqual(tt.inElemsA, tt.inElemsB); got != tt.want {
 				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
 			}
 		})
@@ -519,7 +521,7 @@ func TestPathMatchesPathElemPrefix(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got := PathMatchesPathElemPrefix(tt.inPath, tt.inPrefix); got != tt.want {
+			if got := util.PathMatchesPathElemPrefix(tt.inPath, tt.inPrefix); got != tt.want {
 				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
 			}
 		})
@@ -746,7 +748,7 @@ func TestPathMatchesQuery(t *testing.T) {
 	}}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got := PathMatchesQuery(tt.inPath, tt.inQuery); got != tt.want {
+			if got := util.PathMatchesQuery(tt.inPath, tt.inQuery); got != tt.want {
 				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
 			}
 		})
@@ -836,7 +838,7 @@ func TestTrimGNMIPathElemPrefix(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got := TrimGNMIPathElemPrefix(tt.inPath, tt.inPrefix); !proto.Equal(got, tt.want) {
+			if got := util.TrimGNMIPathElemPrefix(tt.inPath, tt.inPrefix); !proto.Equal(got, tt.want) {
 				t.Fatalf("did not get expected path, got: %s, want: %s", prototext.Format(got), prototext.Format(tt.want))
 			}
 		})
@@ -872,7 +874,7 @@ func TestFindPathElemPrefix(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		if got := FindPathElemPrefix(tt.inPaths); !proto.Equal(got, tt.want) {
+		if got := util.FindPathElemPrefix(tt.inPaths); !proto.Equal(got, tt.want) {
 			t.Errorf("%s: FindPathElemPrefix(%v): did not get expected prefix, got: %s, want: %s", tt.name, tt.inPaths, prototext.Format(got), prototext.Format(tt.want))
 		}
 	}
@@ -979,7 +981,7 @@ func TestFindModelData(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := FindModelData(tt.in)
+		got, err := util.FindModelData(tt.in)
 
 		if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 			t.Errorf("%s: FindModelData(%v): did not get expected error, %s", tt.name, tt.in, diff)
@@ -1039,7 +1041,7 @@ func TestJoinPaths(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			got, err := JoinPaths(tt.prefix, tt.suffix)
+			got, err := util.JoinPaths(tt.prefix, tt.suffix)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Errorf("JoinPaths(%v, %v) got unexpected error diff: %s", tt.prefix, tt.suffix, diff)
 			}
@@ -1048,6 +1050,135 @@ func TestJoinPaths(t *testing.T) {
 			}
 			if diff := cmp.Diff(tt.want, got, protocmp.Transform()); diff != "" {
 				t.Errorf("JoinPaths(%v, %v) got unexpected result diff(-want, +got): %s", tt.prefix, tt.suffix, diff)
+			}
+		})
+	}
+}
+
+func mustStringToPath(t testing.TB, path string) *gpb.Path {
+	p, err := ygot.StringToStructuredPath(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+func TestComparePaths(t *testing.T) {
+	tests := []struct {
+		desc string
+		a, b *gpb.Path
+		want util.CompareRelation
+	}{{
+		desc: "different origins",
+		a:    &gpb.Path{Origin: "foo"},
+		b:    &gpb.Path{Origin: "bar"},
+		want: util.Disjoint,
+	}, {
+		desc: "disjoint paths",
+		a:    mustStringToPath(t, "/foo"),
+		b:    mustStringToPath(t, "/bar"),
+		want: util.Disjoint,
+	}, {
+		desc: "disjoint paths by list keys",
+		a:    mustStringToPath(t, "/foo[a=1][b=2]"),
+		b:    mustStringToPath(t, "/foo[a=1][b=3]"),
+		want: util.Disjoint,
+	}, {
+		desc: "equal paths",
+		a:    mustStringToPath(t, "/foo"),
+		b:    mustStringToPath(t, "/foo"),
+		want: util.Equal,
+	}, {
+		desc: "equal paths with list keys",
+		a:    mustStringToPath(t, "/foo[a=1]"),
+		b:    mustStringToPath(t, "/foo[a=1]"),
+		want: util.Equal,
+	}, {
+		desc: "equal paths with implicit wildcards",
+		a:    mustStringToPath(t, "/foo[a=*]"),
+		b:    mustStringToPath(t, "/foo"),
+		want: util.Equal,
+	}, {
+		desc: "equal paths with implicit wildcards",
+		a:    mustStringToPath(t, "/foo"),
+		b:    mustStringToPath(t, "/foo[a=*]"),
+		want: util.Equal,
+	}, {
+		desc: "superset by length",
+		a:    mustStringToPath(t, "/foo"),
+		b:    mustStringToPath(t, "/foo/bar"),
+		want: util.Superset,
+	}, {
+		desc: "superset by length and keys",
+		a:    mustStringToPath(t, "/foo[a=*]"),
+		b:    mustStringToPath(t, "/foo[b=1]/bar"),
+		want: util.Superset,
+	}, {
+		desc: "superset by list keys",
+		a:    mustStringToPath(t, "/foo[a=*]"),
+		b:    mustStringToPath(t, "/foo[a=1]"),
+		want: util.Superset,
+	}, {
+		desc: "superset by list keys implicit wildcard",
+		a:    mustStringToPath(t, "/foo"),
+		b:    mustStringToPath(t, "/foo[a=1]"),
+		want: util.Superset,
+	}, {
+		desc: "subset by length",
+		a:    mustStringToPath(t, "/foo/bar"),
+		b:    mustStringToPath(t, "/foo"),
+		want: util.Subset,
+	}, {
+		desc: "subset by length and keys",
+		a:    mustStringToPath(t, "/foo[a=1]/bar"),
+		b:    mustStringToPath(t, "/foo[b=*]"),
+		want: util.Subset,
+	}, {
+		desc: "subset by list keys",
+		a:    mustStringToPath(t, "/foo[a=1]"),
+		b:    mustStringToPath(t, "/foo[a=*]"),
+		want: util.Subset,
+	}, {
+		desc: "subset by list keys implicit wildcard",
+		a:    mustStringToPath(t, "/foo[a=1]"),
+		b:    mustStringToPath(t, "/foo"),
+		want: util.Subset,
+	}, {
+		desc: "error single elem is both subset and superset",
+		a:    mustStringToPath(t, "/foo[a=1][b=*]"),
+		b:    mustStringToPath(t, "/foo[a=*][b=1]"),
+		want: util.PartialIntersect,
+	}, {
+		desc: "error single elem is both subset and superset implicit wildcards",
+		a:    mustStringToPath(t, "/foo[a=1]"),
+		b:    mustStringToPath(t, "/foo[b=1]"),
+		want: util.PartialIntersect,
+	}, {
+		desc: "error path is both subset and superset",
+		a:    mustStringToPath(t, "/foo[a=*]/bar[b=1]"),
+		b:    mustStringToPath(t, "/foo[b=1]/bar[b=*]"),
+		want: util.PartialIntersect,
+	}, {
+		desc: "error path elem is both subset and superset",
+		a:    mustStringToPath(t, "/foo[a=1]/bar[b=*]"),
+		b:    mustStringToPath(t, "/foo[b=*]/bar[b=1]"),
+		want: util.PartialIntersect,
+	}, {
+		desc: "error shorter path is both subset and superset",
+		a:    mustStringToPath(t, "/foo[a=*]/bar"),
+		b:    mustStringToPath(t, "/foo[b=1]"),
+		want: util.PartialIntersect,
+	}, {
+		desc: "error path elem is both subset and superset",
+		a:    mustStringToPath(t, "/foo[a=1]"),
+		b:    mustStringToPath(t, "/foo[b=*]/bar"),
+		want: util.PartialIntersect,
+	}}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got := util.ComparePaths(tt.a, tt.b)
+			if got != tt.want {
+				t.Errorf("ComparePaths(%v, %v) got unexpected result: got %v, want %v", tt.a, tt.b, got, tt.want)
 			}
 		})
 	}
