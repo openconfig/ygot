@@ -145,9 +145,9 @@ func (diff SetRequestIntentDiff) Format(f Format) string {
 // * https://github.com/openconfig/oc-pyang
 // * https://github.com/openconfig/public/blob/master/doc/openconfig_style_guide.md
 //
-// Currently, support is only for SetRequests without any delete paths, and
-// replace and updates that don't have conflicting leaf values. If not
-// supported, then an error will be returned.
+// Currently, support is only for SetRequests whose delete, replace and updates
+// that don't have conflicts. If a conflict exists, then an error will be
+// returned.
 func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, schema *ytypes.Schema) (SetRequestIntentDiff, error) {
 	intentA, err := minimalSetRequestIntent(a, schema)
 	if err != nil {
@@ -238,9 +238,9 @@ func fullPathStr(prefix string, path *gpb.Path) (string, error) {
 
 // minimalSetRequestIntent returns a unique and minimal intent for a SetRequest.
 //
-// TODO: Currently, support is only for SetRequests with delete paths,
-// and replace and updates that don't have conflicting leaf values. If not
-// supported, then an error will be returned.
+// TODO: Currently, support is only for SetRequests whose delete, replace and updates
+// that don't have conflicts. If a conflict exists, then an error will be
+// returned.
 func minimalSetRequestIntent(req *gpb.SetRequest, schema *ytypes.Schema) (setRequestIntent, error) {
 	if req == nil {
 		req = &gpb.SetRequest{}
