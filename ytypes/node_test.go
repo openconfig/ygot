@@ -2175,6 +2175,39 @@ func TestSetNode(t *testing.T) {
 			},
 		},
 		{
+			inDesc:   "fail setting with Json (non-ietf) value",
+			inSchema: containerWithStringKey(),
+			inParentFn: func() interface{} {
+				return &ContainerStruct1{
+					StructKeyList: map[string]*ListElemStruct1{
+						"forty-two": {
+							Key1: ygot.String("forty-two"),
+							Outer: &OuterContainerType1{
+								Inner: &InnerContainerType1{
+									Int32LeafName: ygot.Int32(42),
+								},
+							},
+						},
+					},
+				}
+			},
+			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/int32-leaf-field"),
+			inValJSON:        &gpb.TypedValue{Value: &gpb.TypedValue_JsonVal{JsonVal: []byte("43")}},
+			wantErrSubstring: "json_val format is deprecated, please use json_ietf_val",
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(42),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			inDesc:   "success setting already-set non-shadow leaf",
 			inSchema: containerWithStringKey(),
 			inParentFn: func() interface{} {
