@@ -1,0 +1,304 @@
+sync_response: true
+
+update: {
+  timestamp: 1676419100456944135
+  prefix: {
+    origin: "openconfig"
+    target: "fakedut"
+  }
+  update: {
+    path: {
+      elem: {
+        name: "system"
+      }
+      elem: {
+        name: "ssh-server"
+      }
+      elem: {
+        name: "state"
+      }
+      elem: {
+        name: "protocol-version"
+      }
+    }
+    val: {
+      string_val: "V2"
+    }
+  }
+}
+
+update: {
+  timestamp: 1676420328291197426
+  prefix: {
+    origin: "openconfig"
+    target: "fakedut"
+  }
+  update: {
+    path: {
+      elem: {
+        name: "system"
+      }
+      elem: {
+        name: "config"
+      }
+      elem: {
+        name: "hostname"
+      }
+    }
+    val: {
+      string_val: "rosesarered"
+    }
+  }
+}
+
+update: {
+  timestamp: 1676419100456944135
+  prefix: {
+    origin: "openconfig"
+    target: "fakedut"
+  }
+  update: {
+    path: {
+      elem: {
+        name: "system"
+      }
+      elem: {
+        name: "ntp"
+      }
+      elem: {
+        name: "state"
+      }
+      elem: {
+        name: "enabled"
+      }
+    }
+    val: {
+      bool_val: false
+    }
+  }
+}
+
+update: {
+  timestamp: 1676419100456944135
+  prefix: {
+    origin: "openconfig"
+    target: "fakedut"
+  }
+  update: {
+    path: {
+      elem: {
+        name: "system"
+      }
+      elem: {
+        name: "ntp"
+      }
+      elem: {
+        name: "state"
+      }
+      elem: {
+        name: "enable-ntp-auth"
+      }
+    }
+    val: {
+      bool_val: false
+    }
+  }
+}
+
+update: {
+  timestamp: 1676419100456944135
+  prefix: {
+    origin: "openconfig"
+    target: "fakedut"
+  }
+  update: {
+    path: {
+      elem: {
+        name: "system"
+      }
+      elem: {
+        name: "ssh-server"
+      }
+      elem: {
+        name: "state"
+      }
+      elem: {
+        name: "enable"
+      }
+    }
+    val: {
+      bool_val: true
+    }
+  }
+}
+
+update: {
+  timestamp: 1676420328448197153
+  prefix: {
+    origin: "openconfig"
+    target: "fakedut"
+  }
+  update: {
+    path: {
+      elem: {
+        name: "system"
+      }
+      elem: {
+        name: "state"
+      }
+      elem: {
+        name: "hostname"
+      }
+    }
+    val: {
+      string_val: "rosesarered"
+    }
+  }
+}
+
+update: {
+  timestamp: 1676419100459254468
+  prefix: {
+    origin: "openconfig"
+    target: "fakedut"
+  }
+  update: {
+    path: {
+      elem: {
+        name: "system"
+      }
+      elem: {
+        name: "state"
+      }
+      elem: {
+        name: "boot-time"
+      }
+    }
+    val: {
+      uint_val: 1676419100459308639
+    }
+  }
+}
+
+update: {
+  timestamp: 1676419100456944135
+  prefix: {
+    origin: "openconfig"
+    target: "fakedut"
+  }
+  update: {
+    path: {
+      elem: {
+        name: "system"
+      }
+      elem: {
+        name: "telnet-server"
+      }
+      elem: {
+        name: "state"
+      }
+      elem: {
+        name: "enable"
+      }
+    }
+    val: {
+      bool_val: false
+    }
+  }
+}
+
+update: {
+  timestamp: 1676422427135895887
+  prefix: {
+    origin: "openconfig"
+    target: "fakedut"
+  }
+  update: {
+    path: {
+      elem: {
+        name: "system"
+      }
+      elem: {
+        name: "config"
+      }
+      elem: {
+        name: "hostname"
+      }
+    }
+    val: {
+      string_val: "rosesareredd"
+    }
+  }
+}
+
+update: {
+  timestamp: 1676422427269965151
+  prefix: {
+    origin: "openconfig"
+    target: "fakedut"
+  }
+  update: {
+    path: {
+      elem: {
+        name: "system"
+      }
+      elem: {
+        name: "state"
+      }
+      elem: {
+        name: "hostname"
+      }
+    }
+    val: {
+      string_val: "rosesareredd"
+    }
+  }
+}
+
+update: {
+  timestamp: 1676422434342310772
+  prefix: {
+    origin: "openconfig"
+    target: "fakedut"
+  }
+  update: {
+    path: {
+      elem: {
+        name: "system"
+      }
+      elem: {
+        name: "config"
+      }
+      elem: {
+        name: "hostname"
+      }
+    }
+    val: {
+      string_val: "rosesarered"
+    }
+  }
+}
+
+update: {
+  timestamp: 1676422434479082363
+  prefix: {
+    origin: "openconfig"
+    target: "fakedut"
+  }
+  update: {
+    path: {
+      elem: {
+        name: "system"
+      }
+      elem: {
+        name: "state"
+      }
+      elem: {
+        name: "hostname"
+      }
+    }
+    val: {
+      string_val: "rosesarered"
+    }
+  }
+}

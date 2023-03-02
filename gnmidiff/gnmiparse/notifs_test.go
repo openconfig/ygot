@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package gnmiparse
 
 import (
 	"testing"
@@ -61,17 +61,17 @@ func TestNotifsFromFile(t *testing.T) {
 		wantNotifs int
 	}{{
 		desc:       "subscribeResponses",
-		inFile:     "notifs.textproto",
+		inFile:     "testdata/notifs.textproto",
 		wantNotifs: 12,
 	}, {
 		desc:       "GetResponse",
-		inFile:     "getresponse.textproto",
+		inFile:     "testdata/getresponse.textproto",
 		wantNotifs: 12,
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			got, err := notifsFromFile(tt.inFile)
+			got, err := NotifsFromFile(tt.inFile)
 			if err != nil {
 				t.Fatal(err)
 			}
