@@ -10,22 +10,7 @@ import (
 )
 
 // SetToNotifsDiff contains the difference from the SetRequest to the given Notifications.
-//
-// - The key of the maps is the string representation of a gpb.Path constructed
-// by ygot.PathToString.
-// - The value of the update fields is the JSON_IETF representation of the
-// value.
-// TODO: Format function
-type SetToNotifsDiff struct {
-	// MissingUpdates (-) are updates specified in the SetRequest missing in
-	// the input Notifications.
-	MissingUpdates map[string]interface{}
-	// ExtraUpdates (+) are updates not specified in the SetRequest that's
-	// present in the input Notifications.
-	ExtraUpdates      map[string]interface{}
-	CommonUpdates     map[string]interface{}
-	MismatchedUpdates map[string]MismatchedUpdate
-}
+type SetToNotifsDiff UpdateDiff
 
 // Format outputs the SetToNotifsDiff in human-readable format.
 //
@@ -34,12 +19,7 @@ func (diff SetToNotifsDiff) Format(f Format) string {
 	f.title = "SetToNotifsDiff"
 	f.aName = "want/SetRequest"
 	f.bName = "got/Notifications"
-	return SetRequestIntentDiff{
-		AOnlyUpdates:      diff.MissingUpdates,
-		BOnlyUpdates:      diff.ExtraUpdates,
-		CommonUpdates:     diff.CommonUpdates,
-		MismatchedUpdates: diff.MismatchedUpdates,
-	}.Format(f)
+	return StructuredDiff{UpdateDiff: UpdateDiff(diff)}.Format(f)
 }
 
 // DiffSetRequestToNotifications returns a diff between a SetRequest and a
