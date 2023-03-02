@@ -35,42 +35,46 @@ func TestSetRequestDiffFormat(t *testing.T) {
 	}{{
 		desc: "compact output",
 		inSetRequestDiff: SetRequestIntentDiff{
-			AOnlyDeletes: map[string]struct{}{
-				"/interfaces/interface[name=eth1]": {},
-			},
-			BOnlyDeletes: map[string]struct{}{
-				"/interfaces/interface[name=eth2]": {},
-			},
-			CommonDeletes: map[string]struct{}{
-				"/interfaces/interface[name=eth0]": {},
-			},
-			AOnlyUpdates: map[string]interface{}{
-				"/interfaces/interface[name=eth1]/name":        "eth1",
-				"/interfaces/interface[name=eth1]/config/name": "eth1",
-			},
-			BOnlyUpdates: map[string]interface{}{
-				"/interfaces/interface[name=eth2]/name":              "eth2",
-				"/interfaces/interface[name=eth2]/config/name":       "eth2",
-				"/interfaces/interface[name=eth0]/state/transceiver": "FDM",
-			},
-			CommonUpdates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
-				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
-				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
-				"/interfaces/interface[name=eth2]/state/transceiver":                                     "FDM",
-			},
-			MismatchedUpdates: map[string]MismatchedUpdate{
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical": {
-					A: false,
-					B: true,
+			DeleteDiff: DeleteDiff{
+				MissingDeletes: map[string]struct{}{
+					"/interfaces/interface[name=eth1]": {},
 				},
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name": {
-					A: "foo",
-					B: "bar",
+				ExtraDeletes: map[string]struct{}{
+					"/interfaces/interface[name=eth2]": {},
+				},
+				CommonDeletes: map[string]struct{}{
+					"/interfaces/interface[name=eth0]": {},
+				},
+			},
+			UpdateDiff: UpdateDiff{
+				MissingUpdates: map[string]interface{}{
+					"/interfaces/interface[name=eth1]/name":        "eth1",
+					"/interfaces/interface[name=eth1]/config/name": "eth1",
+				},
+				ExtraUpdates: map[string]interface{}{
+					"/interfaces/interface[name=eth2]/name":              "eth2",
+					"/interfaces/interface[name=eth2]/config/name":       "eth2",
+					"/interfaces/interface[name=eth0]/state/transceiver": "FDM",
+				},
+				CommonUpdates: map[string]interface{}{
+					"/interfaces/interface[name=eth0]/name":                                                  "eth0",
+					"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
+					"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
+					"/interfaces/interface[name=eth2]/state/transceiver":                                     "FDM",
+				},
+				MismatchedUpdates: map[string]MismatchedUpdate{
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical": {
+						A: false,
+						B: true,
+					},
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name": {
+						A: "foo",
+						B: "bar",
+					},
 				},
 			},
 		},
@@ -95,42 +99,46 @@ m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/nam
 	}, {
 		desc: "full output",
 		inSetRequestDiff: SetRequestIntentDiff{
-			AOnlyDeletes: map[string]struct{}{
-				"/interfaces/interface[name=eth1]": {},
-			},
-			BOnlyDeletes: map[string]struct{}{
-				"/interfaces/interface[name=eth2]": {},
-			},
-			CommonDeletes: map[string]struct{}{
-				"/interfaces/interface[name=eth0]": {},
-			},
-			AOnlyUpdates: map[string]interface{}{
-				"/interfaces/interface[name=eth1]/name":        "eth1",
-				"/interfaces/interface[name=eth1]/config/name": "eth1",
-			},
-			BOnlyUpdates: map[string]interface{}{
-				"/interfaces/interface[name=eth2]/name":              "eth2",
-				"/interfaces/interface[name=eth2]/config/name":       "eth2",
-				"/interfaces/interface[name=eth0]/state/transceiver": "FDM",
-			},
-			CommonUpdates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
-				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
-				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
-				"/interfaces/interface[name=eth2]/state/transceiver":                                     "FDM",
-			},
-			MismatchedUpdates: map[string]MismatchedUpdate{
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical": {
-					A: false,
-					B: true,
+			DeleteDiff: DeleteDiff{
+				MissingDeletes: map[string]struct{}{
+					"/interfaces/interface[name=eth1]": {},
 				},
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name": {
-					A: "foo",
-					B: "bar",
+				ExtraDeletes: map[string]struct{}{
+					"/interfaces/interface[name=eth2]": {},
+				},
+				CommonDeletes: map[string]struct{}{
+					"/interfaces/interface[name=eth0]": {},
+				},
+			},
+			UpdateDiff: UpdateDiff{
+				MissingUpdates: map[string]interface{}{
+					"/interfaces/interface[name=eth1]/name":        "eth1",
+					"/interfaces/interface[name=eth1]/config/name": "eth1",
+				},
+				ExtraUpdates: map[string]interface{}{
+					"/interfaces/interface[name=eth2]/name":              "eth2",
+					"/interfaces/interface[name=eth2]/config/name":       "eth2",
+					"/interfaces/interface[name=eth0]/state/transceiver": "FDM",
+				},
+				CommonUpdates: map[string]interface{}{
+					"/interfaces/interface[name=eth0]/name":                                                  "eth0",
+					"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
+					"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
+					"/interfaces/interface[name=eth2]/state/transceiver":                                     "FDM",
+				},
+				MismatchedUpdates: map[string]MismatchedUpdate{
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical": {
+						A: false,
+						B: true,
+					},
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name": {
+						A: "foo",
+						B: "bar",
+					},
 				},
 			},
 		},
@@ -185,6 +193,9 @@ func TestDiffSetRequest(t *testing.T) {
 	}{{
 		desc: "exactly the same",
 		inA: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/acls"),
+			},
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
@@ -204,6 +215,9 @@ func TestDiffSetRequest(t *testing.T) {
 			}},
 		},
 		inB: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/acls"),
+			},
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
@@ -223,29 +237,37 @@ func TestDiffSetRequest(t *testing.T) {
 			}},
 		},
 		wantSetRequestDiff: SetRequestIntentDiff{
-			AOnlyDeletes: map[string]struct{}{},
-			BOnlyDeletes: map[string]struct{}{},
-			CommonDeletes: map[string]struct{}{
-				"/interfaces/interface[name=eth0]": {},
+			DeleteDiff: DeleteDiff{
+				MissingDeletes: map[string]struct{}{},
+				ExtraDeletes:   map[string]struct{}{},
+				CommonDeletes: map[string]struct{}{
+					"/acls":                            {},
+					"/interfaces/interface[name=eth0]": {},
+				},
 			},
-			AOnlyUpdates: map[string]interface{}{},
-			BOnlyUpdates: map[string]interface{}{},
-			CommonUpdates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
-				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
-				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
-				"/interfaces/interface[name=eth0]/state/transceiver":                                     "FDM",
-				"/interfaces/interface[name=eth0]/state/physical-channel":                                []interface{}{float64(42), float64(84)},
+			UpdateDiff: UpdateDiff{
+				MissingUpdates: map[string]interface{}{},
+				ExtraUpdates:   map[string]interface{}{},
+				CommonUpdates: map[string]interface{}{
+					"/interfaces/interface[name=eth0]/name":                                                  "eth0",
+					"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
+					"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
+					"/interfaces/interface[name=eth0]/state/transceiver":                                     "FDM",
+					"/interfaces/interface[name=eth0]/state/physical-channel":                                []interface{}{float64(42), float64(84)},
+				},
+				MismatchedUpdates: map[string]MismatchedUpdate{},
 			},
-			MismatchedUpdates: map[string]MismatchedUpdate{},
 		},
 	}, {
 		desc: "not same but same intent",
 		inA: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/acls"),
+			},
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
@@ -262,6 +284,9 @@ func TestDiffSetRequest(t *testing.T) {
 			}},
 		},
 		inB: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/acls"),
+			},
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
@@ -278,24 +303,29 @@ func TestDiffSetRequest(t *testing.T) {
 			}},
 		},
 		wantSetRequestDiff: SetRequestIntentDiff{
-			AOnlyDeletes: map[string]struct{}{},
-			BOnlyDeletes: map[string]struct{}{},
-			CommonDeletes: map[string]struct{}{
-				"/interfaces/interface[name=eth0]": {},
+			DeleteDiff: DeleteDiff{
+				MissingDeletes: map[string]struct{}{},
+				ExtraDeletes:   map[string]struct{}{},
+				CommonDeletes: map[string]struct{}{
+					"/acls":                            {},
+					"/interfaces/interface[name=eth0]": {},
+				},
 			},
-			AOnlyUpdates: map[string]interface{}{},
-			BOnlyUpdates: map[string]interface{}{},
-			CommonUpdates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
-				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
-				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
-				"/interfaces/interface[name=eth0]/state/transceiver":                                     "FDM",
+			UpdateDiff: UpdateDiff{
+				MissingUpdates: map[string]interface{}{},
+				ExtraUpdates:   map[string]interface{}{},
+				CommonUpdates: map[string]interface{}{
+					"/interfaces/interface[name=eth0]/name":                                                  "eth0",
+					"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
+					"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
+					"/interfaces/interface[name=eth0]/state/transceiver":                                     "FDM",
+				},
+				MismatchedUpdates: map[string]MismatchedUpdate{},
 			},
-			MismatchedUpdates: map[string]MismatchedUpdate{},
 		},
 	}, {
 		desc: "SetRequest B has conflicts",
@@ -355,24 +385,28 @@ func TestDiffSetRequest(t *testing.T) {
 		},
 		inB: &gpb.SetRequest{},
 		wantSetRequestDiff: SetRequestIntentDiff{
-			AOnlyDeletes: map[string]struct{}{
-				"/interfaces/interface[name=eth0]": {},
+			DeleteDiff: DeleteDiff{
+				MissingDeletes: map[string]struct{}{
+					"/interfaces/interface[name=eth0]": {},
+				},
+				ExtraDeletes:  map[string]struct{}{},
+				CommonDeletes: map[string]struct{}{},
 			},
-			BOnlyDeletes:  map[string]struct{}{},
-			CommonDeletes: map[string]struct{}{},
-			AOnlyUpdates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
-				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
-				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
-				"/interfaces/interface[name=eth0]/state/transceiver":                                     "FDM",
+			UpdateDiff: UpdateDiff{
+				MissingUpdates: map[string]interface{}{
+					"/interfaces/interface[name=eth0]/name":                                                  "eth0",
+					"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
+					"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
+					"/interfaces/interface[name=eth0]/state/transceiver":                                     "FDM",
+				},
+				ExtraUpdates:      map[string]interface{}{},
+				CommonUpdates:     map[string]interface{}{},
+				MismatchedUpdates: map[string]MismatchedUpdate{},
 			},
-			BOnlyUpdates:      map[string]interface{}{},
-			CommonUpdates:     map[string]interface{}{},
-			MismatchedUpdates: map[string]MismatchedUpdate{},
 		},
 	}, {
 		desc: "only B",
@@ -396,28 +430,32 @@ func TestDiffSetRequest(t *testing.T) {
 			}},
 		},
 		wantSetRequestDiff: SetRequestIntentDiff{
-			AOnlyDeletes: map[string]struct{}{},
-			BOnlyDeletes: map[string]struct{}{
-				"/interfaces/interface[name=eth0]": {},
+			DeleteDiff: DeleteDiff{
+				MissingDeletes: map[string]struct{}{},
+				ExtraDeletes: map[string]struct{}{
+					"/interfaces/interface[name=eth0]": {},
+				},
+				CommonDeletes: map[string]struct{}{},
 			},
-			CommonDeletes: map[string]struct{}{},
-			AOnlyUpdates:  map[string]interface{}{},
-			BOnlyUpdates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
-				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
-				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
-				"/interfaces/interface[name=eth0]/config/mtu":                                            float64(1500),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
-				"/interfaces/interface[name=eth0]/state/transceiver":                                     "FDM",
+			UpdateDiff: UpdateDiff{
+				MissingUpdates: map[string]interface{}{},
+				ExtraUpdates: map[string]interface{}{
+					"/interfaces/interface[name=eth0]/name":                                                  "eth0",
+					"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
+					"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
+					"/interfaces/interface[name=eth0]/config/mtu":                                            float64(1500),
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
+					"/interfaces/interface[name=eth0]/state/transceiver":                                     "FDM",
+				},
+				CommonUpdates:     map[string]interface{}{},
+				MismatchedUpdates: map[string]MismatchedUpdate{},
 			},
-			CommonUpdates:     map[string]interface{}{},
-			MismatchedUpdates: map[string]MismatchedUpdate{},
 		},
 	}, {
-		desc: "mismatch",
+		desc: "mismatch with prefix usage",
 		inA: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
@@ -435,54 +473,63 @@ func TestDiffSetRequest(t *testing.T) {
 			}},
 		},
 		inB: &gpb.SetRequest{
+			Prefix: ygot.MustStringToPath("/interfaces"),
 			Replace: []*gpb.Update{{
-				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+				Path: ygot.MustStringToPath("/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
 			}},
 			Update: []*gpb.Update{{
-				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+				Path: ygot.MustStringToPath("/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING, Enabled: ygot.Bool(true)}}}),
 			}, {
-				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+				Path: ygot.MustStringToPath("/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Description: ygot.String("I am an eth port")}),
 			}},
 		},
 		wantSetRequestDiff: SetRequestIntentDiff{
-			AOnlyDeletes: map[string]struct{}{},
-			BOnlyDeletes: map[string]struct{}{},
-			CommonDeletes: map[string]struct{}{
-				"/interfaces/interface[name=eth0]": {},
+			DeleteDiff: DeleteDiff{
+				MissingDeletes: map[string]struct{}{},
+				ExtraDeletes:   map[string]struct{}{},
+				CommonDeletes: map[string]struct{}{
+					"/interfaces/interface[name=eth0]": {},
+				},
 			},
-			AOnlyUpdates: map[string]interface{}{},
-			BOnlyUpdates: map[string]interface{}{},
-			CommonUpdates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":                                             "eth0",
-				"/interfaces/interface[name=eth0]/config/name":                                      "eth0",
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index": float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":        float64(0),
-			},
-			MismatchedUpdates: map[string]MismatchedUpdate{
-				"/interfaces/interface[name=eth0]/config/description": {
-					A: "I am an ethernet port",
-					B: "I am an eth port",
+			UpdateDiff: UpdateDiff{
+				MissingUpdates: map[string]interface{}{},
+				ExtraUpdates:   map[string]interface{}{},
+				CommonUpdates: map[string]interface{}{
+					"/interfaces/interface[name=eth0]/name":                                             "eth0",
+					"/interfaces/interface[name=eth0]/config/name":                                      "eth0",
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index": float64(0),
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":        float64(0),
 				},
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": {
-					A: "DORMANT",
-					B: "TESTING",
-				},
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled": {
-					A: false,
-					B: true,
-				},
-				"/interfaces/interface[name=eth0]/state/transceiver": {
-					A: "TDM",
-					B: "FDM",
+				MismatchedUpdates: map[string]MismatchedUpdate{
+					"/interfaces/interface[name=eth0]/config/description": {
+						A: "I am an ethernet port",
+						B: "I am an eth port",
+					},
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": {
+						A: "DORMANT",
+						B: "TESTING",
+					},
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled": {
+						A: false,
+						B: true,
+					},
+					"/interfaces/interface[name=eth0]/state/transceiver": {
+						A: "TDM",
+						B: "FDM",
+					},
 				},
 			},
 		},
 	}, {
 		desc: "not the same with every difference case",
 		inA: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/acls"),
+				ygot.MustStringToPath("/error-correcting-codes"),
+			},
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth1]"),
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth1")}),
@@ -505,6 +552,10 @@ func TestDiffSetRequest(t *testing.T) {
 			}},
 		},
 		inB: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/macsec"),
+				ygot.MustStringToPath("/error-correcting-codes"),
+			},
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
@@ -524,39 +575,46 @@ func TestDiffSetRequest(t *testing.T) {
 			}},
 		},
 		wantSetRequestDiff: SetRequestIntentDiff{
-			AOnlyDeletes: map[string]struct{}{
-				"/interfaces/interface[name=eth1]": {},
+			DeleteDiff: DeleteDiff{
+				MissingDeletes: map[string]struct{}{
+					"/interfaces/interface[name=eth1]": {},
+					"/acls":                            {},
+				},
+				ExtraDeletes: map[string]struct{}{
+					"/interfaces/interface[name=eth2]": {},
+					"/macsec":                          {},
+				},
+				CommonDeletes: map[string]struct{}{
+					"/interfaces/interface[name=eth0]": {},
+					"/error-correcting-codes":          {},
+				},
 			},
-			BOnlyDeletes: map[string]struct{}{
-				"/interfaces/interface[name=eth2]": {},
-			},
-			CommonDeletes: map[string]struct{}{
-				"/interfaces/interface[name=eth0]": {},
-			},
-			AOnlyUpdates: map[string]interface{}{
-				"/interfaces/interface[name=eth1]/name":        "eth1",
-				"/interfaces/interface[name=eth1]/config/name": "eth1",
-			},
-			BOnlyUpdates: map[string]interface{}{
-				"/interfaces/interface[name=eth2]/name":              "eth2",
-				"/interfaces/interface[name=eth2]/config/name":       "eth2",
-				"/interfaces/interface[name=eth2]/config/mtu":        float64(1500),
-				"/interfaces/interface[name=eth0]/state/transceiver": "FDM",
-			},
-			CommonUpdates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
-				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
-				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
-				"/interfaces/interface[name=eth2]/state/transceiver":                                     "FDM",
-			},
-			MismatchedUpdates: map[string]MismatchedUpdate{
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical": {
-					A: false,
-					B: true,
+			UpdateDiff: UpdateDiff{
+				MissingUpdates: map[string]interface{}{
+					"/interfaces/interface[name=eth1]/name":        "eth1",
+					"/interfaces/interface[name=eth1]/config/name": "eth1",
+				},
+				ExtraUpdates: map[string]interface{}{
+					"/interfaces/interface[name=eth2]/name":              "eth2",
+					"/interfaces/interface[name=eth2]/config/name":       "eth2",
+					"/interfaces/interface[name=eth2]/config/mtu":        float64(1500),
+					"/interfaces/interface[name=eth0]/state/transceiver": "FDM",
+				},
+				CommonUpdates: map[string]interface{}{
+					"/interfaces/interface[name=eth0]/name":                                                  "eth0",
+					"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
+					"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
+					"/interfaces/interface[name=eth2]/state/transceiver":                                     "FDM",
+				},
+				MismatchedUpdates: map[string]MismatchedUpdate{
+					"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical": {
+						A: false,
+						B: true,
+					},
 				},
 			},
 		},
@@ -624,7 +682,50 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 				ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
 			},
 		},
+		wantIntent: setRequestIntent{
+			Deletes: map[string]struct{}{
+				"/interfaces/interface[name=eth0]/config/description": {},
+			},
+			Updates: map[string]interface{}{},
+		},
+	}, {
+		desc: "conflicting deletes",
+		inSetRequest: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+			},
+		},
 		wantErr: true,
+	}, {
+		desc: "conflicting delete with replace",
+		inSetRequest: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
+			},
+			Replace: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
+				Val:  must7951(ygot.String("I am an eth port")),
+			}},
+		},
+		wantErr: true,
+	}, {
+		desc: "delete with update on same path -- delete is removed",
+		inSetRequest: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
+			},
+			Update: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
+				Val:  must7951(ygot.String("I am an eth port")),
+			}},
+		},
+		wantIntent: setRequestIntent{
+			Deletes: map[string]struct{}{},
+			Updates: map[string]interface{}{
+				"/interfaces/interface[name=eth0]/config/description": "I am an eth port",
+			},
+		},
 	}, {
 		desc:         "empty",
 		inSetRequest: &gpb.SetRequest{},
@@ -941,6 +1042,9 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 	}, {
 		desc: "nested list",
 		inSetRequest: &gpb.SetRequest{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/interfaces/interface[name=eth1]"),
+			},
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
@@ -959,6 +1063,7 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		wantIntent: setRequestIntent{
 			Deletes: map[string]struct{}{
 				"/interfaces/interface[name=eth0]": {},
+				"/interfaces/interface[name=eth1]": {},
 			},
 			Updates: map[string]interface{}{
 				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
