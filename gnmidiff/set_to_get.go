@@ -53,14 +53,21 @@ func DiffSetRequestToNotifications(setreq *gpb.SetRequest, notifs []*gpb.Notific
 		Deletes: map[string]struct{}{},
 		Updates: map[string]interface{}{},
 	}
-	// TODO: Handle prefix in notification
 	for _, notif := range notifs {
 		// TODO: Handle deletes in notification.
 		if len(notif.Delete) > 0 {
 			return SetToNotifsDiff{}, fmt.Errorf("Deletes in notifications not currently supported.")
 		}
+		prefix, err := prefixStr(notif.Prefix)
+		if err != nil {
+			return SetToNotifsDiff{}, fmt.Errorf("gnmidiff: %v", err)
+		}
 		for _, upd := range notif.Update {
-			if err := populateUpdate(&updateIntent, upd, schema, false); err != nil {
+			path, err := fullPathStr(prefix, upd.Path)
+			if err != nil {
+				return SetToNotifsDiff{}, err
+			}
+			if err := populateUpdate(&updateIntent, path, upd.Val, schema, false); err != nil {
 				return SetToNotifsDiff{}, err
 			}
 		}

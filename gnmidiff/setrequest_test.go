@@ -431,7 +431,7 @@ func TestDiffSetRequest(t *testing.T) {
 			MismatchedUpdates: map[string]MismatchedUpdate{},
 		},
 	}, {
-		desc: "mismatch",
+		desc: "mismatch with prefix usage",
 		inA: &gpb.SetRequest{
 			Replace: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
@@ -449,15 +449,16 @@ func TestDiffSetRequest(t *testing.T) {
 			}},
 		},
 		inB: &gpb.SetRequest{
+			Prefix: ygot.MustStringToPath("/interfaces"),
 			Replace: []*gpb.Update{{
-				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+				Path: ygot.MustStringToPath("/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0"), Transceiver: ygot.String("FDM")}),
 			}},
 			Update: []*gpb.Update{{
-				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+				Path: ygot.MustStringToPath("/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING, Enabled: ygot.Bool(true)}}}),
 			}, {
-				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+				Path: ygot.MustStringToPath("/interface[name=eth0]"),
 				Val:  must7951(&exampleoc.Interface{Description: ygot.String("I am an eth port")}),
 			}},
 		},
