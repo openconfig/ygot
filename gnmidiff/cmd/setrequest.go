@@ -19,11 +19,9 @@ import (
 	"os"
 
 	"github.com/openconfig/ygot/gnmidiff"
+	"github.com/openconfig/ygot/gnmidiff/gnmiparse"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"google.golang.org/protobuf/encoding/prototext"
-
-	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 func newSetRequestDiffCmd() *cobra.Command {
@@ -39,28 +37,17 @@ func newSetRequestDiffCmd() *cobra.Command {
 	return setdiff
 }
 
-func setRequestFromFile(file string) (*gpb.SetRequest, error) {
-	sr := &gpb.SetRequest{}
-	bs, err := os.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-	prototext.Unmarshal(bs, sr)
-
-	return sr, nil
-}
-
 func setRequestDiff(cmd *cobra.Command, args []string) error {
 	format := gnmidiff.Format{
 		Full: viper.GetBool("full"),
 	}
 
-	srA, err := setRequestFromFile(args[0])
+	srA, err := gnmiparse.SetRequestFromFile(args[0])
 	if err != nil {
 		return err
 	}
 
-	srB, err := setRequestFromFile(args[1])
+	srB, err := gnmiparse.SetRequestFromFile(args[1])
 	if err != nil {
 		return err
 	}
