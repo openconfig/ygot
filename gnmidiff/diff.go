@@ -43,12 +43,23 @@ type StructuredDiff struct {
 	UpdateDiff
 }
 
+// DeleteDiff contains a set of difference fields representing delete paths.
+//
+// The key of the maps is the string representation of a gpb.Path constructed
+// by ygot.PathToString.
 type DeleteDiff struct {
 	MissingDeletes map[string]struct{}
 	ExtraDeletes   map[string]struct{}
 	CommonDeletes  map[string]struct{}
 }
 
+// UpdateDiff contains a set of update fields representing update path/values.
+//
+// - The key of the maps is the string representation of a gpb.Path constructed
+// by ygot.PathToString.
+// - The value of the update fields is the JSON_IETF representation of the
+// value. This is to facilitate comparing JSON_IETF-represented values whose
+// real data type is obscured without knowledge of the YANG schema.
 type UpdateDiff struct {
 	// MissingUpdates (-) are updates specified in the first argument but
 	// missing in the second argument.
