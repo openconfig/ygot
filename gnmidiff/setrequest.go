@@ -19,8 +19,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"reflect"
-	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/derekparker/trie"
@@ -31,126 +29,17 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
-// MismatchedUpdate represents two different update values for the same leaf
-// node.
-type MismatchedUpdate struct {
-	// A is the update value in A.
-	A interface{}
-	// B is the update value in B.
-	B interface{}
-}
-
 // SetRequestIntentDiff contains the intent difference between two SetRequests.
-//
-// - The key of the maps is the string representation of a gpb.Path constructed
-// by ygot.PathToString.
-// - The value of the update fields is the JSON_IETF representation of the
-// value.
-type SetRequestIntentDiff struct {
-	AOnlyDeletes      map[string]struct{}
-	BOnlyDeletes      map[string]struct{}
-	CommonDeletes     map[string]struct{}
-	AOnlyUpdates      map[string]interface{}
-	BOnlyUpdates      map[string]interface{}
-	CommonUpdates     map[string]interface{}
-	MismatchedUpdates map[string]MismatchedUpdate
-}
-
-// Format is the string format of any gNMI diff utility in this package.
-type Format struct {
-	// Full indicates that common values are also output.
-	Full bool
-	// TODO: Implement IncludeList and ExcludeList.
-	// IncludeList is a list of paths that will be included in the output.
-	// wildcards are allowed.
-	//
-	// empty implies all paths are included.
-	//IncludeList []string
-	// ExcludeList is a list of paths that will be excluded from the output.
-	// wildcards are allowed.
-	//
-	// empty implies no paths are excluded.
-	//ExcludeList []string
-	// title is an optional custom title of the diff.
-	title string
-	// aName is an optional custom name for A in the diff.
-	aName string
-	// bName is an optional custom name for B in the diff.
-	bName string
-}
-
-func formatJSONValue(value interface{}) interface{} {
-	if v, ok := value.(string); ok {
-		return strconv.Quote(v)
-	}
-	return value
-}
+type SetRequestIntentDiff StructuredDiff
 
 // Format outputs the SetRequestIntentDiff in human-readable format.
 //
 // NOTE: Do not depend on the output of this being stable.
 func (diff SetRequestIntentDiff) Format(f Format) string {
-	var b strings.Builder
-	writeDeletes := func(deletePaths map[string]struct{}, symbol rune) {
-		var paths []string
-		for path := range deletePaths {
-			paths = append(paths, path)
-
-		}
-		sort.Strings(paths)
-		for _, path := range paths {
-			b.WriteString(fmt.Sprintf("%c %s: deleted\n", symbol, path))
-		}
-	}
-
-	writeUpdates := func(updates map[string]interface{}, symbol rune) {
-		var paths []string
-		for path := range updates {
-			paths = append(paths, path)
-
-		}
-		sort.Strings(paths)
-		for _, path := range paths {
-			b.WriteString(fmt.Sprintf("%c %s: %v\n", symbol, path, formatJSONValue(updates[path])))
-		}
-	}
-
-	if f.title == "" {
-		f.title = "SetRequestIntentDiff"
-	}
-	if f.aName == "" {
-		f.aName = "A"
-	}
-	if f.bName == "" {
-		f.bName = "B"
-	}
-	b.WriteString(fmt.Sprintf("%s(-%s, +%s):\n", f.title, f.aName, f.bName))
-
-	if len(diff.AOnlyDeletes)+len(diff.BOnlyDeletes)+len(diff.CommonDeletes) > 0 {
-		b.WriteString("-------- deletes --------\n")
-		if f.Full {
-			writeDeletes(diff.CommonDeletes, ' ')
-		}
-		writeDeletes(diff.AOnlyDeletes, '-')
-		writeDeletes(diff.BOnlyDeletes, '+')
-		b.WriteString("-------- updates --------\n")
-	}
-	if f.Full {
-		writeUpdates(diff.CommonUpdates, ' ')
-	}
-	writeUpdates(diff.AOnlyUpdates, '-')
-	writeUpdates(diff.BOnlyUpdates, '+')
-	var paths []string
-	for path := range diff.MismatchedUpdates {
-		paths = append(paths, path)
-
-	}
-	sort.Strings(paths)
-	for _, path := range paths {
-		mismatch := diff.MismatchedUpdates[path]
-		b.WriteString(fmt.Sprintf("m %s:\n  - %v\n  + %v\n", path, formatJSONValue(mismatch.A), formatJSONValue(mismatch.B)))
-	}
-	return b.String()
+	f.title = "SetRequestIntentDiff"
+	f.aName = "A"
+	f.bName = "B"
+	return StructuredDiff(diff).Format(f)
 }
 
 // DiffSetRequest returns a unique and minimal intent diff of two SetRequests.
@@ -176,13 +65,17 @@ func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, schema *ytypes.Schema)
 		return SetRequestIntentDiff{}, fmt.Errorf("DiffSetRequest on b: %v", err)
 	}
 	diff := SetRequestIntentDiff{
-		AOnlyDeletes:      map[string]struct{}{},
-		BOnlyDeletes:      map[string]struct{}{},
-		CommonDeletes:     map[string]struct{}{},
-		AOnlyUpdates:      map[string]interface{}{},
-		BOnlyUpdates:      map[string]interface{}{},
-		CommonUpdates:     map[string]interface{}{},
-		MismatchedUpdates: map[string]MismatchedUpdate{},
+		DeleteDiff: DeleteDiff{
+			MissingDeletes: map[string]struct{}{},
+			ExtraDeletes:   map[string]struct{}{},
+			CommonDeletes:  map[string]struct{}{},
+		},
+		UpdateDiff: UpdateDiff{
+			MissingUpdates:    map[string]interface{}{},
+			ExtraUpdates:      map[string]interface{}{},
+			CommonUpdates:     map[string]interface{}{},
+			MismatchedUpdates: map[string]MismatchedUpdate{},
+		},
 	}
 	for path := range intentA.Deletes {
 		if _, ok := intentB.Deletes[path]; ok {
@@ -191,8 +84,8 @@ func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, schema *ytypes.Schema)
 			diff.CommonDeletes[path] = struct{}{}
 		}
 	}
-	diff.AOnlyDeletes = intentA.Deletes
-	diff.BOnlyDeletes = intentB.Deletes
+	diff.MissingDeletes = intentA.Deletes
+	diff.ExtraDeletes = intentB.Deletes
 	for path, vA := range intentA.Updates {
 		vB, ok := intentB.Updates[path]
 		if !ok {
@@ -206,8 +99,8 @@ func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, schema *ytypes.Schema)
 			diff.CommonUpdates[path] = vA
 		}
 	}
-	diff.AOnlyUpdates = intentA.Updates
-	diff.BOnlyUpdates = intentB.Updates
+	diff.MissingUpdates = intentA.Updates
+	diff.ExtraUpdates = intentB.Updates
 	return diff, nil
 }
 
