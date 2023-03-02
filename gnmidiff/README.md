@@ -3,7 +3,7 @@
 ```bash
 $ go install ./gnmidiff
 
-$ gnmidiff setrequest cmd/setrequest.textproto cmd/setrequest2.textproto
+$ gnmidiff setrequest cmd/demo/setrequest.textproto cmd/demo/setrequest2.textproto
 
 SetRequestIntentDiff(-A, +B):
 -------- deletes --------
@@ -13,7 +13,7 @@ m /system/config/hostname:
   - "violetsareblue"
   + "rosesarered"
 
-$ gnmidiff set-to-notifs cmd/setrequest.textproto cmd/notifs.textproto
+$ gnmidiff set-to-notifs cmd/demo/setrequest.textproto cmd/demo/notifs.textproto
 
 SetToNotifsDiff(-want/SetRequest, +got/Notifications):
 - /lacp/interfaces/interface[name=Port-Channel9]/config/interval: "FAST"
@@ -26,7 +26,7 @@ m /system/config/hostname:
   - "violetsareblue"
   + "rosesarered"
 
-$ gnmidiff set-to-notifs cmd/setrequest.textproto cmd/getresponse.textproto
+$ gnmidiff set-to-notifs cmd/demo/setrequest.textproto cmd/demo/getresponse.textproto
 
 SetToNotifsDiff(-want/SetRequest, +got/Notifications):
 - /lacp/interfaces/interface[name=Port-Channel9]/config/interval: "FAST"
