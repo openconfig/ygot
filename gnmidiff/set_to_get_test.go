@@ -11,8 +11,129 @@ import (
 	"github.com/openconfig/ygot/ytypes"
 )
 
+func TestSetToNotifsDiffFormat(t *testing.T) {
+	tests := []struct {
+		desc              string
+		inSetToNotifsDiff SetToNotifsDiff
+		inFormat          Format
+		want              string
+	}{{
+		desc: "compact output",
+		inSetToNotifsDiff: SetToNotifsDiff{
+			MissingUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth1]/name":        "eth1",
+				"/interfaces/interface[name=eth1]/config/name": "eth1",
+			},
+			ExtraUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth2]/name":              "eth2",
+				"/interfaces/interface[name=eth2]/config/name":       "eth2",
+				"/interfaces/interface[name=eth0]/state/transceiver": "FDM",
+			},
+			CommonUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
+				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
+				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
+				"/interfaces/interface[name=eth2]/state/transceiver":                                     "FDM",
+			},
+			MismatchedUpdates: map[string]MismatchedUpdate{
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical": {
+					A: false,
+					B: true,
+				},
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name": {
+					A: "foo",
+					B: "bar",
+				},
+			},
+		},
+		inFormat: Format{},
+		want: `SetToNotifsDiff(-want/SetRequest, +got/Notifications):
+- /interfaces/interface[name=eth1]/config/name: "eth1"
+- /interfaces/interface[name=eth1]/name: "eth1"
++ /interfaces/interface[name=eth0]/state/transceiver: "FDM"
++ /interfaces/interface[name=eth2]/config/name: "eth2"
++ /interfaces/interface[name=eth2]/name: "eth2"
+m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical:
+  - false
+  + true
+m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name:
+  - "foo"
+  + "bar"
+`,
+	}, {
+		desc: "full output",
+		inSetToNotifsDiff: SetToNotifsDiff{
+			MissingUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth1]/name":        "eth1",
+				"/interfaces/interface[name=eth1]/config/name": "eth1",
+			},
+			ExtraUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth2]/name":              "eth2",
+				"/interfaces/interface[name=eth2]/config/name":       "eth2",
+				"/interfaces/interface[name=eth0]/state/transceiver": "FDM",
+			},
+			CommonUpdates: map[string]interface{}{
+				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
+				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
+				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
+				"/interfaces/interface[name=eth2]/state/transceiver":                                     "FDM",
+			},
+			MismatchedUpdates: map[string]MismatchedUpdate{
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical": {
+					A: false,
+					B: true,
+				},
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name": {
+					A: "foo",
+					B: "bar",
+				},
+			},
+		},
+		inFormat: Format{
+			Full: true,
+		},
+		want: `SetToNotifsDiff(-want/SetRequest, +got/Notifications):
+  /interfaces/interface[name=eth0]/config/description: "I am an eth port"
+  /interfaces/interface[name=eth0]/config/name: "eth0"
+  /interfaces/interface[name=eth0]/name: "eth0"
+  /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled: true
+  /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index: 0
+  /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index: 0
+  /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status: "TESTING"
+  /interfaces/interface[name=eth2]/state/transceiver: "FDM"
+- /interfaces/interface[name=eth1]/config/name: "eth1"
+- /interfaces/interface[name=eth1]/name: "eth1"
++ /interfaces/interface[name=eth0]/state/transceiver: "FDM"
++ /interfaces/interface[name=eth2]/config/name: "eth2"
++ /interfaces/interface[name=eth2]/name: "eth2"
+m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/logical:
+  - false
+  + true
+m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/name:
+  - "foo"
+  + "bar"
+`,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got := tt.inSetToNotifsDiff.Format(tt.inFormat)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("SetToNotifsDiff.Format (-want, +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestSetRequestToNotifications(t *testing.T) {
-	// TODO: test that deletes in notifs.
 	tests := []struct {
 		desc                string
 		dontCheckWithSchema bool
@@ -131,6 +252,94 @@ func TestSetRequestToNotifications(t *testing.T) {
 			},
 			MismatchedUpdates: map[string]MismatchedUpdate{},
 		},
+	}, {
+		desc: "exactly the same with intervening deletes and overwrites",
+		inSetRequest: &gpb.SetRequest{
+			Replace: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
+			}},
+			Update: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING}}, Description: ygot.String("I am an eth port")}),
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: true}},
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/transceiver"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "FDM"}},
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/physical-channel"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{LeaflistVal: &gpb.ScalarArray{Element: []*gpb.TypedValue{{Value: &gpb.TypedValue_UintVal{UintVal: 42}}, {Value: &gpb.TypedValue_UintVal{UintVal: 84}}}}}},
+			}},
+		},
+		inNotifications: []*gpb.Notification{{
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/name"),
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/name"),
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
+			},
+			Update: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "temporal anomaly"}},
+			}},
+		}, {
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/name"),
+			},
+		}, {
+			Update: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/name"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "eth0"}},
+			}},
+		}, {
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/name"),
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/physical-channel"),
+			},
+			Update: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/physical-channel"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{LeaflistVal: &gpb.ScalarArray{Element: []*gpb.TypedValue{{Value: &gpb.TypedValue_UintVal{UintVal: 42}}, {Value: &gpb.TypedValue_UintVal{UintVal: 84}}}}}},
+			}},
+		}, {
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/name"),
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/transceiver"),
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index"),
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index"),
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status"),
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled"),
+			},
+			Update: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+				Val:  must7951(&exampleoc.Interface{Name: ygot.String("eth0")}),
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]"),
+				Val:  must7951(&exampleoc.Interface{Subinterface: map[uint32]*exampleoc.Interface_Subinterface{0: {Index: ygot.Uint32(0), OperStatus: exampleoc.Interface_OperStatus_TESTING}}, Description: ygot.String("temporal anomaly 2")}),
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{BoolVal: true}},
+			}, {
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/transceiver"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "TDM"}},
+			}},
+		}, {
+			Delete: []*gpb.Path{
+				ygot.MustStringToPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status"),
+			},
+			Update: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/transceiver"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "FDM"}},
+			}},
+		}, {
+			Update: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/config/description"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "I am an eth port"}},
+			}},
+		}},
+		wantErr:             true,
+		wantSetToNotifsDiff: SetToNotifsDiff{},
 	}, {
 		desc: "exactly the same but with some dont care paths in notifications",
 		inSetRequest: &gpb.SetRequest{
