@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: ['1.13', '1.14', '1.15', '1.16', '1.17', '1.18', '1.19', '1.20', '1.x']
+        go: ['1.18', '1.19', '1.20', '1.x']
 
     steps:
       - name: Install protobuf
@@ -29,14 +29,7 @@ jobs:
           go-version: ${{ matrix.go }}
         id: go
 
-      - if: ${{ matrix.go == '1.13' || matrix.go == '1.14' || matrix.go == '1.15' }}
-        name: Install protoc-gen-go, goimports, Staticcheck
-        run: |
-          GO111MODULE=on go get google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          GO111MODULE=on go get golang.org/x/tools/cmd/goimports@latest
-
-      - if: ${{ !(matrix.go == '1.13' || matrix.go == '1.14' || matrix.go == '1.15') }}
-        name: Install protoc-gen-go, goimports, Staticcheck
+      - name: Install protoc-gen-go, goimports, Staticcheck
         run: |
           go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
           go install golang.org/x/tools/cmd/goimports@latest
