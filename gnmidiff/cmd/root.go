@@ -42,6 +42,7 @@ func RootCmd() *cobra.Command {
 	}
 
 	rootCmd.AddCommand(newSetRequestDiffCmd())
+	rootCmd.AddCommand(newSetToNotifsDiffCmd())
 
 	return rootCmd
 }
