@@ -141,9 +141,7 @@ func (m unpopRange) Range(f func(protoreflect.FieldDescriptor, protoreflect.Valu
 		}
 
 		v := m.Get(fd)
-		isProto2Scalar := fd.Syntax() == protoreflect.Proto2 && fd.Default().IsValid()
-		isSingularMessage := fd.Cardinality() != protoreflect.Repeated && fd.Kind() == protoreflect.MessageKind
-		if isProto2Scalar || isSingularMessage {
+    if fd.HasPresence() {
 			v = protoreflect.Value{} // use invalid value to emit null
 		}
 		if !f(fd, v) {
