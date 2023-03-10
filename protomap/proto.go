@@ -141,7 +141,7 @@ func (m unpopRange) Range(f func(protoreflect.FieldDescriptor, protoreflect.Valu
 		}
 
 		v := m.Get(fd)
-    if fd.HasPresence() {
+		if fd.HasPresence() {
 			v = protoreflect.Value{} // use invalid value to emit null
 		}
 		if !f(fd, v) {
