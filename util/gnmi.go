@@ -275,7 +275,7 @@ const (
 // ComparePaths returns the set relation between two paths.
 // It returns an error if the paths are invalid or not one of the relations.
 func ComparePaths(a, b *gpb.Path) CompareRelation {
-	if a.Origin != b.Origin {
+	if equivalentOrigin := a.Origin == b.Origin || (a.Origin == "" && b.Origin == "openconfig") || (a.Origin == "openconfig" && b.Origin == ""); !equivalentOrigin {
 		return Disjoint
 	}
 
