@@ -1084,6 +1084,16 @@ func TestComparePaths(t *testing.T) {
 		b:    mustStringToPath(t, "/foo[a=1][b=3]"),
 		want: util.Disjoint,
 	}, {
+		desc: "origin a openconfig and origin b blank",
+		a:    &gpb.Path{Origin: "openconfig"},
+		b:    &gpb.Path{Origin: ""},
+		want: util.Equal,
+	}, {
+		desc: "origin a blank and origin b openconfig",
+		a:    &gpb.Path{Origin: ""},
+		b:    &gpb.Path{Origin: "openconfig"},
+		want: util.Equal,
+	}, {
 		desc: "equal paths",
 		a:    mustStringToPath(t, "/foo"),
 		b:    mustStringToPath(t, "/foo"),
