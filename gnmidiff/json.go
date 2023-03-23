@@ -33,29 +33,31 @@ import (
 // Output path format is per gNMI's path conventions.
 //
 // e.g.
-// {
-//   "openconfig-network-instance:config": {
-//     "description": "VRF RED",
-//     "enabled": true,
-//     "enabled-address-families": [
-//       "openconfig-types:IPV4",
-//       "openconfig-types:IPV6"
-//     ],
-//     "name": "RED",
-//     "type": "openconfig-network-instance-types:L3VRF"
-//     },
-//   "openconfig-network-instance:name": "RED"
-// }
+//
+//	{
+//	  "openconfig-network-instance:config": {
+//	    "description": "VRF RED",
+//	    "enabled": true,
+//	    "enabled-address-families": [
+//	      "openconfig-types:IPV4",
+//	      "openconfig-types:IPV6"
+//	    ],
+//	    "name": "RED",
+//	    "type": "openconfig-network-instance-types:L3VRF"
+//	    },
+//	  "openconfig-network-instance:name": "RED"
+//	}
 //
 // returns
-// {
-//   "openconfig-network-instance:config/description": "VRF RED",
-//   "openconfig-network-instance:config/enabled": true,
-//   "openconfig-network-instance:config/enabled-address-families": ["openconfig-types:IPV4", "openconfig-types:IPV6"],
-//   "openconfig-network-instance:config/name": "RED",
-//   "openconfig-network-instance:config/type": "openconfig-network-instance-types:L3VRF",
-//   "openconfig-network-instance:name": "RED",
-// }
+//
+//	{
+//	  "openconfig-network-instance:config/description": "VRF RED",
+//	  "openconfig-network-instance:config/enabled": true,
+//	  "openconfig-network-instance:config/enabled-address-families": ["openconfig-types:IPV4", "openconfig-types:IPV6"],
+//	  "openconfig-network-instance:config/name": "RED",
+//	  "openconfig-network-instance:config/type": "openconfig-network-instance-types:L3VRF",
+//	  "openconfig-network-instance:name": "RED",
+//	}
 //
 // When keepNamespace=false, then any namespace is removed from the flattened
 // *paths*, but still kept in any identity values.

@@ -174,7 +174,7 @@ jobs:
 
       - name: Gofmt
         run: |
-          for i in util ygot ygen ytypes ygot/pathtranslate testutil testcmp ypathgen; do
+          for i in `find . -type d | egrep -v "exampleoc|demo|proto|uexampleoc"`; do 
             diff -u <(echo -n) <(gofmt -d -s ./$i)
           done
 
