@@ -80,9 +80,9 @@ func TestSetRequestDiffFormat(t *testing.T) {
 		},
 		inFormat: Format{},
 		want: `SetRequestIntentDiff(-A, +B):
--------- deletes --------
-- /interfaces/interface[name=eth1]: deleted
-+ /interfaces/interface[name=eth2]: deleted
+-------- deletes/replaces --------
+- /interfaces/interface[name=eth1]: deleted or replaced only in A
++ /interfaces/interface[name=eth2]: deleted or replaced only in B
 -------- updates --------
 - /interfaces/interface[name=eth1]/config/name: "eth1"
 - /interfaces/interface[name=eth1]/name: "eth1"
@@ -146,10 +146,10 @@ m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/nam
 			Full: true,
 		},
 		want: `SetRequestIntentDiff(-A, +B):
--------- deletes --------
-  /interfaces/interface[name=eth0]: deleted
-- /interfaces/interface[name=eth1]: deleted
-+ /interfaces/interface[name=eth2]: deleted
+-------- deletes/replaces --------
+  /interfaces/interface[name=eth0]: deleted or replaced
+- /interfaces/interface[name=eth1]: deleted or replaced only in A
++ /interfaces/interface[name=eth2]: deleted or replaced only in B
 -------- updates --------
   /interfaces/interface[name=eth0]/config/description: "I am an eth port"
   /interfaces/interface[name=eth0]/config/name: "eth0"

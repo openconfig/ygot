@@ -6,8 +6,8 @@ $ go install ./gnmidiff
 $ gnmidiff setrequest cmd/demo/setrequest.textproto cmd/demo/setrequest2.textproto
 
 SetRequestIntentDiff(-A, +B):
--------- deletes --------
-+ /network-instances/network-instance[name=VrfBlue]: deleted
+-------- deletes/replaces --------
++ /network-instances/network-instance[name=VrfBlue]: deleted or replaced only in B
 -------- updates --------
 m /system/config/hostname:
   - "violetsareblue"

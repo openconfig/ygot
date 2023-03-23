@@ -92,6 +92,12 @@ type Format struct {
 	aName string
 	// bName is an optional custom name for B in the diff.
 	bName string
+	// deleteTitle is an optional custom name when titling the diff section
+	// with delete paths.
+	deleteTitle string
+	// deleteDesc is an optional custom description when describing a
+	// delete path in the diff.
+	deleteDesc string
 }
 
 func formatJSONValue(value interface{}) interface{} {
@@ -115,11 +121,17 @@ func (diff StructuredDiff) Format(f Format) string {
 	if f.bName == "" {
 		f.bName = "B"
 	}
+	if f.deleteTitle == "" {
+		f.deleteDesc = "deletes"
+	}
+	if f.deleteDesc == "" {
+		f.deleteTitle = "deleted only in %s"
+	}
 	b.WriteString(fmt.Sprintf("%s(-%s, +%s):\n", f.title, f.aName, f.bName))
 
 	deleteDiff := diff.DeleteDiff.format(f)
 	if deleteDiff != "" {
-		b.WriteString("-------- deletes --------\n")
+		b.WriteString(fmt.Sprintf("-------- %s --------\n", f.deleteTitle))
 		b.WriteString(deleteDiff)
 		b.WriteString("-------- updates --------\n")
 	}
@@ -177,7 +189,15 @@ func (diff DeleteDiff) format(f Format) string {
 		}
 		sort.Strings(paths)
 		for _, path := range paths {
-			b.WriteString(fmt.Sprintf("%c %s: deleted\n", symbol, path))
+			b.WriteString(fmt.Sprintf("%c %s: "+f.deleteDesc, symbol, path))
+			switch symbol {
+			case '-':
+				b.WriteString(fmt.Sprintf(" only in %s\n", f.aName))
+			case '+':
+				b.WriteString(fmt.Sprintf(" only in %s\n", f.bName))
+			default:
+				b.WriteString("\n")
+			}
 		}
 	}
 
