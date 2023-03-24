@@ -37,6 +37,8 @@ func (diff SetRequestIntentDiff) Format(f Format) string {
 	f.title = "SetRequestIntentDiff"
 	f.aName = "A"
 	f.bName = "B"
+	f.deleteTitle = "deletes/replaces"
+	f.deleteDesc = "deleted or replaced"
 	return StructuredDiff(diff).Format(f)
 }
 
