@@ -198,6 +198,30 @@ func getPathSpec(ni *util.NodeInfo) (*pathSpec, error) {
 	return nil, fmt.Errorf("could not find path specification annotation")
 }
 
+// pathInfo contains the path-value information for a single gNMI leaf.
+type pathInfo struct {
+	val  interface{}
+	path *gnmipb.Path
+}
+
+// toStringPathMap converts the pathSpec-value map to a simple path-value map.
+func toStringPathMap(pathMap map[*pathSpec]interface{}) (map[string]*pathInfo, error) {
+	strPathMap := map[string]*pathInfo{}
+	for paths, val := range pathMap {
+		for _, path := range paths.gNMIPaths {
+			strPath, err := PathToString(path)
+			if err != nil {
+				return nil, err
+			}
+			strPathMap[strPath] = &pathInfo{
+				val:  val,
+				path: path,
+			}
+		}
+	}
+	return strPathMap, nil
+}
+
 // findSetLeaves iteratively walks the fields of the supplied GoStruct, s, and
 // returns a map, keyed by the path of the leaves that are set, with a the value
 // that the leaf is set to. YANG lists (Go maps), and containers (Go structs) are
@@ -336,18 +360,16 @@ func leastSpecificPath(paths [][]string) []string {
 }
 
 // appendUpdate adds an update to the supplied gNMI Notification message corresponding
-// to the path and value supplied.
-func appendUpdate(n *gnmipb.Notification, path *pathSpec, val interface{}) error {
-	v, err := EncodeTypedValue(val, gnmipb.Encoding_PROTO)
+// to the path and value supplied. path is the string version of the path in pathInfo.
+func appendUpdate(n *gnmipb.Notification, path string, pathInfo *pathInfo) error {
+	v, err := EncodeTypedValue(pathInfo.val, gnmipb.Encoding_PROTO)
 	if err != nil {
-		return fmt.Errorf("cannot represent field value %v as TypedValue for path %v: %v", val, path, err)
+		return fmt.Errorf("cannot represent field value %v as TypedValue for path %v: %v", pathInfo.val, path, err)
 	}
-	for _, p := range path.gNMIPaths {
-		n.Update = append(n.Update, &gnmipb.Update{
-			Path: p,
-			Val:  v,
-		})
-	}
+	n.Update = append(n.Update, &gnmipb.Update{
+		Path: pathInfo.path,
+		Val:  v,
+	})
 	return nil
 }
 
@@ -440,29 +462,29 @@ func Diff(original, modified GoStruct, opts ...DiffOpt) (*gnmipb.Notification, e
 		return nil, fmt.Errorf("could not extract set leaves from modified struct: %v", err)
 	}
 
-	matched := map[*pathSpec]bool{}
+	origLeavesStr, err := toStringPathMap(origLeaves)
+	if err != nil {
+		return nil, fmt.Errorf("could not convert leaf path map to string path map: %v", err)
+	}
+	modLeavesStr, err := toStringPathMap(modLeaves)
+	if err != nil {
+		return nil, fmt.Errorf("could not convert leaf path map to string path map: %v", err)
+	}
+
 	n := &gnmipb.Notification{}
-	for origPath, origVal := range origLeaves {
-		var origMatched bool
-		for modPath, modVal := range modLeaves {
-			if origPath.Equal(modPath) {
-				// This path is set in both of the structs, so check whether the value
-				// is equal.
-				matched[modPath] = true
-				origMatched = true
-				if !reflect.DeepEqual(origVal, modVal) {
-					// The contents of the value should indicate that value a has changed
-					// to value b.
-					if err := appendUpdate(n, origPath, modVal); err != nil {
-						return nil, err
-					}
+	for origPath, origVal := range origLeavesStr {
+		if modVal, ok := modLeavesStr[origPath]; ok {
+			if !reflect.DeepEqual(origVal.val, modVal.val) {
+				// The contents of the value should indicate that value a has changed
+				// to value b.
+				if err := appendUpdate(n, origPath, modVal); err != nil {
+					return nil, err
 				}
 			}
-		}
-		if !origMatched {
+		} else if !ok {
 			// This leaf was set in the original struct, but not in the modified
 			// struct, therefore it has been deleted.
-			n.Delete = append(n.Delete, origPath.gNMIPaths...)
+			n.Delete = append(n.Delete, origVal.path)
 		}
 	}
 	if hasIgnoreAdditions(opts) != nil {
@@ -470,8 +492,8 @@ func Diff(original, modified GoStruct, opts ...DiffOpt) (*gnmipb.Notification, e
 	}
 	// Check that all paths that are in the modified struct have been examined, if
 	// not they are updates.
-	for modPath, modVal := range modLeaves {
-		if !matched[modPath] {
+	for modPath, modVal := range modLeavesStr {
+		if _, ok := origLeavesStr[modPath]; !ok {
 			if err := appendUpdate(n, modPath, modVal); err != nil {
 				return nil, err
 			}
