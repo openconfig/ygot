@@ -3,6 +3,7 @@ package gnmidiff
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/derekparker/trie"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -46,7 +47,7 @@ func DiffSetRequestToNotifications(setreq *gpb.SetRequest, notifs []*gpb.Notific
 
 	updateIntent := setRequestIntent{
 		Deletes: map[string]struct{}{},
-		Updates: map[string]interface{}{},
+		Updates: map[string]updateValue{},
 	}
 	for _, notif := range notifs {
 		// TODO: Handle deletes in notification.
@@ -72,12 +73,12 @@ func DiffSetRequestToNotifications(setreq *gpb.SetRequest, notifs []*gpb.Notific
 	for pathA, vA := range setIntent.Updates {
 		vB, ok := updates[pathA]
 		switch {
-		case ok && !reflect.DeepEqual(vA, vB):
-			diff.MismatchedUpdates[pathA] = MismatchedUpdate{A: vA, B: vB}
+		case ok && valuesEqual(vA, vB):
+			diff.CommonUpdates[pathA] = vA.val
 		case ok:
-			diff.CommonUpdates[pathA] = vA
+			diff.MismatchedUpdates[pathA] = MismatchedUpdate{A: vA.val, B: vB.val}
 		default:
-			diff.MissingUpdates[pathA] = vA
+			diff.MissingUpdates[pathA] = vA.val
 		}
 		delete(updates, pathA)
 	}
@@ -94,4 +95,63 @@ func DiffSetRequestToNotifications(setreq *gpb.SetRequest, notifs []*gpb.Notific
 	}
 
 	return diff, nil
+}
+
+// valuesEqual checks whether the values in a and b are equal.
+//
+// a and b are expected to contain either RFC7951 JSON-encoded values, or the
+// result from protoLeafToJSON.
+func valuesEqual(a, b updateValue) bool {
+	switch avals := a.val.(type) {
+	case []interface{}:
+		switch bvals := b.val.(type) {
+		case []interface{}:
+			for i := range avals {
+				if !valuesEqual(
+					updateValue{val: avals[i], fromScalar: a.fromScalar},
+					updateValue{val: bvals[i], fromScalar: b.fromScalar},
+				) {
+					return false
+				}
+			}
+			return true
+		}
+	}
+
+	av, bv := a.val, b.val
+
+	// When a comes from JSON and b from a TypedValue scalar, or vice
+	// versa, we want to declare them to same if a is a string and b is a
+	// uint64/int64 whose numeric values are equal. For more information
+	// see protoLeafToJSON().
+	if a.fromScalar != b.fromScalar {
+		switch b.val.(type) {
+		case string:
+			a, b = b, a
+		}
+
+		switch aval := a.val.(type) {
+		case string:
+			switch bval := b.val.(type) {
+			case uint64:
+				_, err := strconv.ParseUint(aval, 10, 64)
+				if err != nil {
+					break
+				}
+				if b.fromScalar {
+					bv = strconv.FormatUint(bval, 10)
+				}
+			case int64:
+				_, err := strconv.ParseInt(aval, 10, 64)
+				if err != nil {
+					break
+				}
+				if b.fromScalar {
+					bv = strconv.FormatInt(bval, 10)
+				}
+			}
+		}
+	}
+
+	return reflect.DeepEqual(av, bv)
 }

@@ -17,7 +17,6 @@ package gnmidiff
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/derekparker/trie"
@@ -89,18 +88,20 @@ func DiffSetRequest(a *gpb.SetRequest, b *gpb.SetRequest, schema *ytypes.Schema)
 	for path, vA := range intentA.Updates {
 		vB, ok := intentB.Updates[path]
 		if !ok {
+			diff.MissingUpdates[path] = vA.val
 			continue
 		}
 		delete(intentA.Updates, path)
 		delete(intentB.Updates, path)
-		if !reflect.DeepEqual(vA, vB) { // leaf-lists cannot be compared directly.
+		if !valuesEqual(vA, vB) {
 			diff.MismatchedUpdates[path] = MismatchedUpdate{A: vA, B: vB}
 		} else {
 			diff.CommonUpdates[path] = vA
 		}
 	}
-	diff.MissingUpdates = intentA.Updates
-	diff.ExtraUpdates = intentB.Updates
+	for path, vB := range intentB.Updates {
+		diff.ExtraUpdates[path] = vB.val
+	}
 	return diff, nil
 }
 
@@ -120,7 +121,7 @@ func minimalSetRequestIntent(req *gpb.SetRequest, schema *ytypes.Schema) (setReq
 
 	intent := setRequestIntent{
 		Deletes: map[string]struct{}{},
-		Updates: map[string]interface{}{},
+		Updates: map[string]updateValue{},
 	}
 	// NOTE: This simple trie will not work if we intend to check conflicts with wildcard deletion paths.
 	t := trie.New()

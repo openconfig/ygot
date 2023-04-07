@@ -27,6 +27,15 @@ import (
 	"github.com/openconfig/ygot/ytypes"
 )
 
+type updateValue struct {
+	val interface{}
+	// fromScalar indicates that the value was retrieved from a TypedValue
+	// scalar type and not JSON, and thus the diff routine must be
+	// cognizant that a uint64 or int64 value may actually need to be a
+	// string when comparing against JSON.
+	fromScalar bool
+}
+
 // setRequestIntent represents the minimal intent of a SetRequest.
 //
 // replaces in a SetRequest must be reduced into delete and updates.
@@ -34,18 +43,18 @@ type setRequestIntent struct {
 	// Deletes are deletions to any node.
 	Deletes map[string]struct{}
 	// Updates are leaf updates only.
-	Updates map[string]interface{}
+	Updates map[string]updateValue
 }
 
 // writeUpdate populates the intent with the leaf values provided.
 //
 // - errorOnOverwrite indicates that if the update overwrote any current values
 // in the intent, then error out.
-func (intent *setRequestIntent) writeUpdate(pathToLeaf string, val interface{}, errorOnOverwrite bool) error {
-	if prevVal, ok := intent.Updates[pathToLeaf]; errorOnOverwrite && ok && val != prevVal {
+func (intent *setRequestIntent) writeUpdate(pathToLeaf string, val interface{}, fromScalar, errorOnOverwrite bool) error {
+	if prevVal, ok := intent.Updates[pathToLeaf]; errorOnOverwrite && ok && val != prevVal.val {
 		return fmt.Errorf("gnmidiff: leaf value set twice with different values in SetRequest: %v", pathToLeaf)
 	}
-	intent.Updates[pathToLeaf] = val
+	intent.Updates[pathToLeaf] = updateValue{val: val, fromScalar: fromScalar}
 	return nil
 }
 
@@ -165,7 +174,7 @@ func (intent *setRequestIntent) populateUpdate(path string, tv *gpb.TypedValue, 
 			// This was a list key that was created by SetNode, so drop it.
 			continue
 		}
-		if err := intent.writeUpdate(pathToLeaf, val, errorOnOverwrite); err != nil {
+		if err := intent.writeUpdate(pathToLeaf, val, false, errorOnOverwrite); err != nil {
 			return err
 		}
 	}
@@ -181,6 +190,7 @@ func (intent *setRequestIntent) populateUpdate(path string, tv *gpb.TypedValue, 
 func populateUpdateNoSchema(intent *setRequestIntent, path string, tv *gpb.TypedValue, errorOnOverwrite bool) error {
 	var leafVal interface{}
 	isLeaf := true
+	fromScalar := false
 	switch tv.GetValue().(type) {
 	case *gpb.TypedValue_JsonIetfVal:
 		updates, err := flattenOCJSON(tv.GetJsonIetfVal(), false)
@@ -192,12 +202,13 @@ func populateUpdateNoSchema(intent *setRequestIntent, path string, tv *gpb.Typed
 		} else {
 			isLeaf = false
 			for subpath, val := range updates {
-				if err := intent.writeUpdate(path+subpath, val, errorOnOverwrite); err != nil {
+				if err := intent.writeUpdate(path+subpath, val, false, errorOnOverwrite); err != nil {
 					return err
 				}
 			}
 		}
 	default:
+		fromScalar = true
 		var err error
 		leafVal, err = protoLeafToJSON(tv)
 		if err != nil {
@@ -209,7 +220,7 @@ func populateUpdateNoSchema(intent *setRequestIntent, path string, tv *gpb.Typed
 		// leaf replace is the same as a leaf update, so remove
 		// the deletion action to keep the intent minimal.
 		delete(intent.Deletes, path)
-		if err := intent.writeUpdate(path, leafVal, errorOnOverwrite); err != nil {
+		if err := intent.writeUpdate(path, leafVal, fromScalar, errorOnOverwrite); err != nil {
 			return err
 		}
 	}
@@ -224,6 +235,9 @@ func binaryBase64(i []byte) string {
 
 // protoLeafToJSON converts a gNMI proto scalar to the equivalent RFC7951 JSON
 // representation.
+//
+// NOTE: The lossiness in TypedValue proto scalars prevents a one-to-one
+// mapping to JSON, namely for int64/uint64.
 func protoLeafToJSON(tv *gpb.TypedValue) (interface{}, error) {
 	switch tv.GetValue().(type) {
 	case *gpb.TypedValue_StringVal:

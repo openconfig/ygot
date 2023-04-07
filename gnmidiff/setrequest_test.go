@@ -799,7 +799,7 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 			Deletes: map[string]struct{}{
 				"/interfaces/interface[name=eth0]/config/description": {},
 			},
-			Updates: map[string]interface{}{},
+			Updates: map[string]updateValue{},
 		},
 	}, {
 		desc: "conflicting deletes",
@@ -835,8 +835,8 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		},
 		wantIntent: setRequestIntent{
 			Deletes: map[string]struct{}{},
-			Updates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/config/description": "I am an eth port",
+			Updates: map[string]updateValue{
+				"/interfaces/interface[name=eth0]/config/description": {val: "I am an eth port", fromScalar: false},
 			},
 		},
 	}, {
@@ -844,7 +844,7 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		inSetRequest: &gpb.SetRequest{},
 		wantIntent: setRequestIntent{
 			Deletes: map[string]struct{}{},
-			Updates: map[string]interface{}{},
+			Updates: map[string]updateValue{},
 		},
 	}, {
 		desc: "conflicting leaf replace",
@@ -929,8 +929,8 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		},
 		wantIntent: setRequestIntent{
 			Deletes: map[string]struct{}{},
-			Updates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/config/description": "I am an eth port",
+			Updates: map[string]updateValue{
+				"/interfaces/interface[name=eth0]/config/description": {val: "I am an eth port", fromScalar: false},
 			},
 		},
 	}, {
@@ -946,10 +946,10 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 			Deletes: map[string]struct{}{
 				"/interfaces/interface[name=eth0]": {},
 			},
-			Updates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":         "eth0",
-				"/interfaces/interface[name=eth0]/config/name":  "eth0",
-				"/interfaces/interface[name=eth0]/config/namer": "quisuisje",
+			Updates: map[string]updateValue{
+				"/interfaces/interface[name=eth0]/name":         {val: "eth0", fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/name":  {val: "eth0", fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/namer": {val: "quisuisje", fromScalar: false},
 			},
 		},
 	}, {
@@ -963,10 +963,10 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		},
 		wantIntent: setRequestIntent{
 			Deletes: map[string]struct{}{},
-			Updates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":         "eth0",
-				"/interfaces/interface[name=eth0]/config/name":  "eth0",
-				"/interfaces/interface[name=eth0]/config/namer": "quisuisje",
+			Updates: map[string]updateValue{
+				"/interfaces/interface[name=eth0]/name":         {val: "eth0", fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/name":  {val: "eth0", fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/namer": {val: "quisuisje", fromScalar: false},
 			},
 		},
 	}, {
@@ -981,9 +981,9 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 			Deletes: map[string]struct{}{
 				"/interfaces/interface[name=eth0]": {},
 			},
-			Updates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":        "eth0",
-				"/interfaces/interface[name=eth0]/config/name": "eth0",
+			Updates: map[string]updateValue{
+				"/interfaces/interface[name=eth0]/name":        {val: "eth0", fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/name": {val: "eth0", fromScalar: false},
 			},
 		},
 	}, {
@@ -996,8 +996,8 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		},
 		wantIntent: setRequestIntent{
 			Deletes: map[string]struct{}{},
-			Updates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/config/description": "I am an eth port",
+			Updates: map[string]updateValue{
+				"/interfaces/interface[name=eth0]/config/description": {val: "I am an eth port", fromScalar: false},
 			},
 		},
 	}, {
@@ -1010,9 +1010,9 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		},
 		wantIntent: setRequestIntent{
 			Deletes: map[string]struct{}{},
-			Updates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":        "eth0",
-				"/interfaces/interface[name=eth0]/config/name": "eth0",
+			Updates: map[string]updateValue{
+				"/interfaces/interface[name=eth0]/name":        {val: "eth0", fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/name": {val: "eth0", fromScalar: false},
 			},
 		},
 	}, {
@@ -1068,10 +1068,10 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 			Deletes: map[string]struct{}{
 				"/interfaces/interface[name=eth0]": {},
 			},
-			Updates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":               "eth0",
-				"/interfaces/interface[name=eth0]/config/name":        "eth0",
-				"/interfaces/interface[name=eth0]/config/description": "I am an eth port",
+			Updates: map[string]updateValue{
+				"/interfaces/interface[name=eth0]/name":               {val: "eth0", fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/name":        {val: "eth0", fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/description": {val: "I am an eth port", fromScalar: false},
 			},
 		},
 	}, {
@@ -1087,10 +1087,10 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		},
 		wantIntent: setRequestIntent{
 			Deletes: map[string]struct{}{},
-			Updates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":               "eth0",
-				"/interfaces/interface[name=eth0]/config/name":        "eth0",
-				"/interfaces/interface[name=eth0]/config/description": "I am an eth port",
+			Updates: map[string]updateValue{
+				"/interfaces/interface[name=eth0]/name":               {val: "eth0", fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/name":        {val: "eth0", fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/description": {val: "I am an eth port", fromScalar: false},
 			},
 		},
 	}, {
@@ -1106,10 +1106,10 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		},
 		wantIntent: setRequestIntent{
 			Deletes: map[string]struct{}{},
-			Updates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":               "eth0",
-				"/interfaces/interface[name=eth0]/config/name":        "eth0",
-				"/interfaces/interface[name=eth0]/config/description": "I am an eth port",
+			Updates: map[string]updateValue{
+				"/interfaces/interface[name=eth0]/name":               {val: "eth0", fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/name":        {val: "eth0", fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/description": {val: "I am an eth port", fromScalar: false},
 			},
 		},
 	}, {
@@ -1128,9 +1128,9 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 			Deletes: map[string]struct{}{
 				"/interfaces/interface[name=eth0]": {},
 			},
-			Updates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/config/mtu":         float64(1500),
-				"/interfaces/interface[name=eth0]/config/description": "I am an eth port",
+			Updates: map[string]updateValue{
+				"/interfaces/interface[name=eth0]/config/mtu":         {val: float64(1500), fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/description": {val: "I am an eth port", fromScalar: false},
 			},
 		},
 	}, {
@@ -1146,10 +1146,10 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 		},
 		wantIntent: setRequestIntent{
 			Deletes: map[string]struct{}{},
-			Updates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":               "eth0",
-				"/interfaces/interface[name=eth0]/config/name":        "eth0",
-				"/interfaces/interface[name=eth0]/config/description": "I am an eth port",
+			Updates: map[string]updateValue{
+				"/interfaces/interface[name=eth0]/name":               {val: "eth0", fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/name":        {val: "eth0", fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/description": {val: "I am an eth port", fromScalar: false},
 			},
 		},
 	}, {
@@ -1178,15 +1178,15 @@ func TestMinimalSetRequestIntent(t *testing.T) {
 				"/interfaces/interface[name=eth0]": {},
 				"/interfaces/interface[name=eth1]": {},
 			},
-			Updates: map[string]interface{}{
-				"/interfaces/interface[name=eth0]/name":                                                  "eth0",
-				"/interfaces/interface[name=eth0]/config/name":                                           "eth0",
-				"/interfaces/interface[name=eth0]/config/description":                                    "I am an eth port",
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             float64(0),
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": "TESTING",
-				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    true,
-				"/interfaces/interface[name=eth0]/state/transceiver":                                     "FDM",
+			Updates: map[string]updateValue{
+				"/interfaces/interface[name=eth0]/name":                                                  {val: "eth0", fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/name":                                           {val: "eth0", fromScalar: false},
+				"/interfaces/interface[name=eth0]/config/description":                                    {val: "I am an eth port", fromScalar: false},
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/index":      {val: float64(0), fromScalar: false},
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/index":             {val: float64(0), fromScalar: false},
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/oper-status": {val: "TESTING", fromScalar: false},
+				"/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/enabled":    {val: true, fromScalar: true},
+				"/interfaces/interface[name=eth0]/state/transceiver":                                     {val: "FDM", fromScalar: true},
 			},
 		},
 	}}
