@@ -189,7 +189,10 @@ func TestDiffSetRequest(t *testing.T) {
 		inA                *gpb.SetRequest
 		inB                *gpb.SetRequest
 		wantSetRequestDiff SetRequestIntentDiff
-		wantErr            bool
+		// If nil, then wantSetRequestDiff will be used.
+		wantSetRequestDiffWithSchema *SetRequestIntentDiff
+		wantErrNoSchema              bool
+		wantErrWithSchema            bool
 	}{{
 		desc: "exactly the same",
 		inA: &gpb.SetRequest{
@@ -364,7 +367,8 @@ func TestDiffSetRequest(t *testing.T) {
 				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "TDM"}},
 			}},
 		},
-		wantErr: true,
+		wantErrNoSchema:   true,
+		wantErrWithSchema: true,
 	}, {
 		desc: "only A",
 		inA: &gpb.SetRequest{
@@ -620,22 +624,131 @@ func TestDiffSetRequest(t *testing.T) {
 		},
 	}}
 
-	for _, tt := range tests {
+	jsonScalarTests := []struct {
+		desc               string
+		inA                *gpb.SetRequest
+		inB                *gpb.SetRequest
+		wantSetRequestDiff SetRequestIntentDiff
+		// If nil, then wantSetRequestDiff will be used.
+		wantSetRequestDiffWithSchema *SetRequestIntentDiff
+		wantErrNoSchema              bool
+		wantErrWithSchema            bool
+	}{{
+		desc: "int64 and string matches due to TypedValue and JSON",
+		inA: &gpb.SetRequest{
+			Update: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/counters/in-pkts"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_UintVal{UintVal: 42}},
+			}},
+		},
+		inB: &gpb.SetRequest{
+			Update: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/counters/in-pkts"),
+				Val:  must7951(ygot.Uint64(42)),
+			}},
+		},
+		wantSetRequestDiff: SetRequestIntentDiff{
+			DeleteDiff: DeleteDiff{
+				MissingDeletes: map[string]struct{}{},
+				ExtraDeletes:   map[string]struct{}{},
+				CommonDeletes:  map[string]struct{}{},
+			},
+			UpdateDiff: UpdateDiff{
+				MissingUpdates: map[string]interface{}{},
+				ExtraUpdates:   map[string]interface{}{},
+				CommonUpdates: map[string]interface{}{
+					"/interfaces/interface[name=eth0]/state/counters/in-pkts": "42",
+				},
+				MismatchedUpdates: map[string]MismatchedUpdate{},
+			},
+		},
+		wantSetRequestDiffWithSchema: &SetRequestIntentDiff{
+			DeleteDiff: DeleteDiff{
+				MissingDeletes: map[string]struct{}{},
+				ExtraDeletes:   map[string]struct{}{},
+				CommonDeletes:  map[string]struct{}{},
+			},
+			UpdateDiff: UpdateDiff{
+				MissingUpdates: map[string]interface{}{},
+				ExtraUpdates:   map[string]interface{}{},
+				CommonUpdates: map[string]interface{}{
+					"/interfaces/interface[name=eth0]/state/counters/in-pkts": "42",
+				},
+				MismatchedUpdates: map[string]MismatchedUpdate{},
+			},
+		},
+	}, {
+		desc: "int64 and string mismatch due to both TypedValue",
+		inA: &gpb.SetRequest{
+			Update: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/counters/in-pkts"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_UintVal{UintVal: 42}},
+			}},
+		},
+		inB: &gpb.SetRequest{
+			Update: []*gpb.Update{{
+				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/counters/in-pkts"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "42"}},
+			}},
+		},
+		wantSetRequestDiff: SetRequestIntentDiff{
+			DeleteDiff: DeleteDiff{
+				MissingDeletes: map[string]struct{}{},
+				ExtraDeletes:   map[string]struct{}{},
+				CommonDeletes:  map[string]struct{}{},
+			},
+			UpdateDiff: UpdateDiff{
+				MissingUpdates: map[string]interface{}{},
+				ExtraUpdates:   map[string]interface{}{},
+				CommonUpdates:  map[string]interface{}{},
+				MismatchedUpdates: map[string]MismatchedUpdate{
+					"/interfaces/interface[name=eth0]/state/counters/in-pkts": {A: float64(42), B: string("42")},
+				},
+			},
+		},
+		wantSetRequestDiffWithSchema: &SetRequestIntentDiff{
+			DeleteDiff: DeleteDiff{
+				MissingDeletes: map[string]struct{}{},
+				ExtraDeletes:   map[string]struct{}{},
+				CommonDeletes:  map[string]struct{}{},
+			},
+			UpdateDiff: UpdateDiff{
+				MissingUpdates: map[string]interface{}{},
+				ExtraUpdates:   map[string]interface{}{},
+				CommonUpdates:  map[string]interface{}{},
+				MismatchedUpdates: map[string]MismatchedUpdate{
+					"/interfaces/interface[name=eth0]/state/counters/in-pkts": {A: float64(42), B: string("42")},
+				},
+			},
+		},
+		wantErrWithSchema: true,
+	}}
+
+	for _, tt := range append(tests, jsonScalarTests...) {
 		t.Run(tt.desc, func(t *testing.T) {
 			for _, withSchema := range []bool{false, true} {
 				var inSchema *ytypes.Schema
+				wantSetRequestDiff := tt.wantSetRequestDiff
+				wantErr := tt.wantErrNoSchema
 				if withSchema {
 					var err error
 					if inSchema, err = exampleoc.Schema(); err != nil {
 						t.Fatalf("schema has error: %v", err)
 					}
+					if tt.wantSetRequestDiffWithSchema != nil {
+						wantSetRequestDiff = *tt.wantSetRequestDiffWithSchema
+					}
+					wantErr = tt.wantErrWithSchema
 				}
 				t.Run(fmt.Sprintf("withSchema-%v", withSchema), func(t *testing.T) {
 					got, err := DiffSetRequest(tt.inA, tt.inB, inSchema)
-					if (err != nil) != tt.wantErr {
-						t.Fatalf("got error: %v, want error: %v", err, tt.wantErr)
+					if (err != nil) != wantErr {
+						t.Fatalf("got error: %v, want error: %v", err, wantErr)
 					}
-					if diff := cmp.Diff(tt.wantSetRequestDiff, got); diff != "" {
+					if wantErr {
+						return
+					}
+					if diff := cmp.Diff(wantSetRequestDiff, got); diff != "" {
 						t.Errorf("DiffSetRequest (-want, +got):\n%s", diff)
 					}
 				})
