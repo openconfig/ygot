@@ -4212,7 +4212,7 @@ func TestMarshal7951(t *testing.T) {
 	}, {
 		desc: "int type",
 		in:   &renderExample{Int64Val: Int64(42)},
-		want: `{"int64-val":42}`,
+		want: `{"int64-val":"42"}`,
 	}, {
 		desc: "float type",
 		in:   &renderExample{FloatVal: Float64(42.42)},

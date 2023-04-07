@@ -634,7 +634,7 @@ func TestDiffSetRequest(t *testing.T) {
 		wantErrNoSchema              bool
 		wantErrWithSchema            bool
 	}{{
-		desc: "int64 and string matches due to TypedValue and JSON",
+		desc: "int64 and string deemed match due to non-one-to-one mapping between TypedValue and JSON",
 		inA: &gpb.SetRequest{
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/counters/in-pkts"),
@@ -678,7 +678,7 @@ func TestDiffSetRequest(t *testing.T) {
 			},
 		},
 	}, {
-		desc: "int64 and string mismatch due to both TypedValue",
+		desc: "int64 and string mismatch when both are TypedValue",
 		inA: &gpb.SetRequest{
 			Update: []*gpb.Update{{
 				Path: ygot.MustStringToPath("/interfaces/interface[name=eth0]/state/counters/in-pkts"),
@@ -692,21 +692,6 @@ func TestDiffSetRequest(t *testing.T) {
 			}},
 		},
 		wantSetRequestDiff: SetRequestIntentDiff{
-			DeleteDiff: DeleteDiff{
-				MissingDeletes: map[string]struct{}{},
-				ExtraDeletes:   map[string]struct{}{},
-				CommonDeletes:  map[string]struct{}{},
-			},
-			UpdateDiff: UpdateDiff{
-				MissingUpdates: map[string]interface{}{},
-				ExtraUpdates:   map[string]interface{}{},
-				CommonUpdates:  map[string]interface{}{},
-				MismatchedUpdates: map[string]MismatchedUpdate{
-					"/interfaces/interface[name=eth0]/state/counters/in-pkts": {A: float64(42), B: string("42")},
-				},
-			},
-		},
-		wantSetRequestDiffWithSchema: &SetRequestIntentDiff{
 			DeleteDiff: DeleteDiff{
 				MissingDeletes: map[string]struct{}{},
 				ExtraDeletes:   map[string]struct{}{},
