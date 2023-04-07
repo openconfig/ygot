@@ -18,6 +18,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -143,10 +144,14 @@ func (intent *setRequestIntent) populateUpdate(path string, tv *gpb.TypedValue, 
 		return fmt.Errorf("gnmidiff: error unmarshalling update: %v", err)
 	}
 
-	// Marshal flattened leaf paths and convert to JSON types for populating the intent.
-	notifs, err := ygot.TogNMINotifications(setNodeTarget, 0, ygot.GNMINotificationsConfig{UsePathElem: true})
+	jsonBytes, err := ygot.Marshal7951(setNodeTarget)
 	if err != nil {
 		return fmt.Errorf("gnmidiff: error marshalling GoStruct: %v", err)
+	}
+
+	updates, err := flattenOCJSON(jsonBytes, false)
+	if err != nil {
+		return err
 	}
 	prefixPathStr := ""
 	if len(setNodePath.Elem) > 0 {
@@ -154,24 +159,14 @@ func (intent *setRequestIntent) populateUpdate(path string, tv *gpb.TypedValue, 
 			return fmt.Errorf("gnmidiff: error creating prefix path string: %v", err)
 		}
 	}
-	for _, n := range notifs {
-		for _, upd := range n.Update {
-			pathToLeaf, err := ygot.PathToString(upd.Path)
-			if err != nil {
-				return fmt.Errorf("gnmidiff: %v", err)
-			}
-			pathToLeaf = prefixPathStr + pathToLeaf
-			val, err := protoLeafToJSON(upd.GetVal())
-			if err != nil {
-				return err
-			}
-			if !strings.HasPrefix(pathToLeaf, path) {
-				// This was a list key that was created by SetNode, so drop it.
-				continue
-			}
-			if err := intent.writeUpdate(pathToLeaf, val, errorOnOverwrite); err != nil {
-				return err
-			}
+	for subpath, val := range updates {
+		pathToLeaf := prefixPathStr + subpath
+		if !strings.HasPrefix(pathToLeaf, path) {
+			// This was a list key that was created by SetNode, so drop it.
+			continue
+		}
+		if err := intent.writeUpdate(pathToLeaf, val, errorOnOverwrite); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -236,11 +231,17 @@ func protoLeafToJSON(tv *gpb.TypedValue) (interface{}, error) {
 	case *gpb.TypedValue_BoolVal:
 		return tv.GetBoolVal(), nil
 	case *gpb.TypedValue_IntVal:
+		// NOTE: If that actual IntVal is an int64 in YANG, then this
+		// should've been a string. However, there is no way to tell
+		// that because TypedValue is lossy.
 		return float64(tv.GetIntVal()), nil
 	case *gpb.TypedValue_UintVal:
+		// NOTE: If that actual UintVal is an uint64 in YANG, then this
+		// should've been a string. However, there is no way to tell
+		// that because TypedValue is lossy.
 		return float64(tv.GetUintVal()), nil
 	case *gpb.TypedValue_DoubleVal:
-		return float64(tv.GetDoubleVal()), nil
+		return strconv.FormatFloat(tv.GetDoubleVal(), 'f', -1, 64), nil
 	case *gpb.TypedValue_LeaflistVal:
 		elems := tv.GetLeaflistVal().GetElement()
 		ss := make([]interface{}, len(elems))

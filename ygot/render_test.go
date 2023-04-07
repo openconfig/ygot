@@ -4210,6 +4210,14 @@ func TestMarshal7951(t *testing.T) {
 		in:   &renderExample{Empty: true},
 		want: `{"empty":[null]}`,
 	}, {
+		desc: "int type",
+		in:   &renderExample{Int64Val: Int64(42)},
+		want: `{"int64-val":"42"}`,
+	}, {
+		desc: "float type",
+		in:   &renderExample{FloatVal: Float64(42.42)},
+		want: `{"floatval":"42.42"}`,
+	}, {
 		desc: "indentation requested",
 		in: &renderExample{
 			Str: String("test-string"),
