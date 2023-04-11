@@ -1,0 +1,18 @@
+module openconfig-simple-augment-conflict {
+  prefix "conflict";
+  namespace "urn:conflict";
+
+  import openconfig-simple-target { prefix "t"; }
+
+  augment "/t:target" {
+    container foo {
+      container config {
+        leaf a { type string; }
+      }
+      container state {
+        config false;
+        leaf a { type string; }
+      }
+    }
+  }
+}
