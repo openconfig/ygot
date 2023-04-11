@@ -559,6 +559,26 @@ func TestSimpleStructs(t *testing.T) {
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-augmented.formatted-txt"),
 	}, {
+		name: "module with conflicting augments",
+		inFiles: []string{
+			filepath.Join(datapath, "openconfig-simple-target.yang"),
+			filepath.Join(datapath, "openconfig-simple-augment.yang"),
+			filepath.Join(datapath, "openconfig-simple-augment-conflict.yang"),
+		},
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					CompressBehaviour:          genutil.PreferIntendedConfig,
+					GenerateFakeRoot:           true,
+					EnumerationsUseUnderscores: true,
+				},
+			},
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
+		},
+		wantErrSubstring: `Duplicate node "foo" in "target"`,
+	}, {
 		name:    "variable and import explicitly specified",
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inConfig: CodeGenerator{
