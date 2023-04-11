@@ -172,7 +172,11 @@ func processModules(yangFiles, includePaths []string, options yang.Options) ([]*
 	// routines.
 	entries := []*yang.Entry{}
 	for _, modName := range modNames {
-		entries = append(entries, yang.ToEntry(mods[modName]))
+		entry := yang.ToEntry(mods[modName])
+		if errs := entry.GetErrors(); len(errs) > 0 {
+			return nil, util.Errors(errs)
+		}
+		entries = append(entries, entry)
 	}
 	return entries, nil
 }
