@@ -2135,49 +2135,6 @@ func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, pa
 	return listType, multiListKey, listMethodSpec, nil
 }
 
-// writeGoEnum takes an input goEnumeratedType, and generates the code corresponding
-// to it. If errors are encountered whilst mapping the enumeration to
-// code, they are returned. The enumDefinition template is used to convert a
-// constructed generatedGoEnumeration struct to code within the function.
-func writeGoEnum(inputEnum *goEnumeratedType) (string, error) {
-	var buf strings.Builder
-	if err := goEnumDefinitionTemplate.Execute(&buf, generatedGoEnumeration{
-		EnumerationPrefix: inputEnum.Name,
-		Values:            inputEnum.CodeValues,
-	}); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
-
-// writeGoEnumMap takes in a enumerated value map firstly keyed by the name of
-// the enumerated type, then by the enumerated type value. It outputs a piece
-// of generated Go code from which this information can be accessed
-// programmatically.
-func writeGoEnumMap(enums map[string]map[int64]ygot.EnumDefinition) (string, error) {
-	if len(enums) == 0 {
-		return "", nil
-	}
-
-	var buf bytes.Buffer
-	if err := goEnumMapTemplate.Execute(&buf, enums); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
-
-// generateEnumTypeMap outputs a map using the enumTypeMap template. It takes an
-// input of a map, keyed by schema path, to the string names of the enumerated
-// types that can correspond to the schema path. The map generated allows a
-// schemapath to be mapped into the reflect.Type representing the enum value.
-func generateEnumTypeMap(enumTypeMap map[string][]string) (string, error) {
-	var buf bytes.Buffer
-	if err := goEnumTypeMapTemplate.Execute(&buf, enumTypeMap); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
-
 // generateEnumTypeMapAccessor generates a function which returns the defined
 // enumTypeMap for a struct.
 func generateEnumTypeMapAccessor(b *bytes.Buffer, s generatedGoStruct) error {
@@ -2188,65 +2145,4 @@ func generateEnumTypeMapAccessor(b *bytes.Buffer, s generatedGoStruct) error {
 // belonging module as a string.
 func generateBelongingModuleFunction(b io.Writer, s generatedGoStruct) error {
 	return goBelongingModuleTemplate.Execute(b, s)
-}
-
-// writeGoSchema generates Go code which serialises the rawSchema byte slice
-// provided and stores it in a variable which can be written out to the generated
-// Go code file.
-func writeGoSchema(js []byte, schemaVarName string) (string, error) {
-	jbyte, err := ygen.WriteGzippedByteSlice(js)
-	if err != nil {
-		return "", fmt.Errorf("could not write Byte slice: %v", err)
-	}
-
-	vn := defaultSchemaVarName
-	if schemaVarName != "" {
-		vn = schemaVarName
-	}
-
-	in := struct {
-		VarName string
-		Schema  []string
-	}{
-		VarName: vn,
-		Schema:  ygen.BytesToGoByteSlice(jbyte),
-	}
-
-	var buf bytes.Buffer
-	if err := schemaVarTemplate.Execute(&buf, in); err != nil {
-		return "", err
-	}
-
-	return buf.String(), nil
-}
-
-// goLeafDefaults returns the default value(s) of the leaf e if specified. If it
-// is unspecified, the value specified by the type is returned if it is not nil,
-// otherwise nil is returned to indicate no default was specified.
-// TODO(wenbli): This doesn't handle unions. Deprecate this for v1 release.
-func goLeafDefaults(e *yang.Entry, t *ygen.MappedType) []string {
-	defaultValues := e.DefaultValues()
-	if len(defaultValues) == 0 && t.DefaultValue != nil {
-		defaultValues = []string{*t.DefaultValue}
-	}
-
-	for i, defVal := range defaultValues {
-		if t.IsEnumeratedValue {
-			defaultValues[i] = enumDefaultValue(t.NativeType, defVal, goEnumPrefix)
-		} else {
-			defaultValues[i] = quoteDefault(defVal, t.NativeType)
-		}
-	}
-
-	return defaultValues
-}
-
-// quoteDefault adds quotation marks to the value string if the goType specified
-// is a string, and hence requires quoting.
-func quoteDefault(value string, goType string) string {
-	if goType == "string" {
-		return fmt.Sprintf("%q", value)
-	}
-
-	return value
 }

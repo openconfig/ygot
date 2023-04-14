@@ -16,6 +16,7 @@ package gogen
 
 import (
 	"encoding/base64"
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -2913,5 +2914,61 @@ func TestYangDefaultValueToGo(t *testing.T) {
 		if tt.inCtx != nil {
 			tt.inType = nil
 		}
+	}
+}
+
+func TestGoLeafDefaults(t *testing.T) {
+	tests := []struct {
+		name   string
+		inLeaf *yang.Entry
+		inType *ygen.MappedType
+		want   []string
+	}{{
+		name: "quoted default in leaf",
+		inLeaf: &yang.Entry{
+			Default: []string{"a-default-value"},
+		},
+		inType: &ygen.MappedType{NativeType: "string"},
+		want:   []string{`"a-default-value"`},
+	}, {
+		name: "unquoted default in leaf",
+		inLeaf: &yang.Entry{
+			Default: []string{"42"},
+		},
+		inType: &ygen.MappedType{NativeType: "int32"},
+		want:   []string{"42"},
+	}, {
+		name: "two quoted defaults in leaf",
+		inLeaf: &yang.Entry{
+			Default: []string{"a-default-value", "second"},
+		},
+		inType: &ygen.MappedType{NativeType: "string"},
+		want:   []string{`"a-default-value"`, `"second"`},
+	}, {
+		name:   "no default",
+		inLeaf: &yang.Entry{},
+		inType: &ygen.MappedType{NativeType: "int32"},
+	}, {
+		name:   "default in type",
+		inLeaf: &yang.Entry{},
+		inType: &ygen.MappedType{NativeType: "int32", DefaultValue: ygot.String("0")},
+		want:   []string{"0"},
+	}, {
+		name:   "enumerated default in leaf",
+		inLeaf: &yang.Entry{Default: []string{"FORTY_TWO"}},
+		inType: &ygen.MappedType{
+			NativeType:        fmt.Sprintf("%sEnumType", goEnumPrefix),
+			IsEnumeratedValue: true,
+		},
+		want: []string{"EnumType_FORTY_TWO"},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := goLeafDefaults(tt.inLeaf, tt.inType)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Fatalf("did not get expected default, (-want, +got):\n%s", diff)
+			}
+		})
 	}
 }
