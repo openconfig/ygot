@@ -2,6 +2,7 @@
 package gogen
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"strings"
@@ -350,94 +351,44 @@ func (cg *CodeGenerator) Generate(yangFiles, includePaths []string) (*GeneratedC
 	}, nil
 }
 
-// goEnumeratedType contains the intermediate representation of an enumerated
-// type (identityref or enumeration) suitable for Go code generation.
-type goEnumeratedType struct {
-	Name       string
-	CodeValues map[int64]string
-	YANGValues map[int64]ygot.EnumDefinition
+// generateEnumTypeMap outputs a map using the enumTypeMap template. It takes an
+// input of a map, keyed by schema path, to the string names of the enumerated
+// types that can correspond to the schema path. The map generated allows a
+// schemapath to be mapped into the reflect.Type representing the enum value.
+func generateEnumTypeMap(enumTypeMap map[string][]string) (string, error) {
+	var buf bytes.Buffer
+	if err := goEnumTypeMapTemplate.Execute(&buf, enumTypeMap); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
-// enumGeneratedCode contains generated Go code for enumerated types.
-type enumGeneratedCode struct {
-	enums  []string
-	valMap string
-}
-
-// genGoEnumeratedTypes converts the input map of EnumeratedYANGType objects to
-// another intermediate representation suitable for Go code generation.
-func genGoEnumeratedTypes(enums map[string]*ygen.EnumeratedYANGType) (map[string]*goEnumeratedType, error) {
-	et := map[string]*goEnumeratedType{}
-	for _, e := range enums {
-		// initialised to be UNSET, such that it is possible to determine that the enumerated value
-		// was not modified.
-		values := map[int64]string{
-			0: "UNSET",
-		}
-
-		// origValues stores the original set of value names, these are not maintained to be
-		// Go-safe, and are rather used to map back to the original schema values if required.
-		// 0 is not populated within this map, such that the values can be used to check whether
-		// there was a valid entry in the original schema. The value is stored as a ygot
-		// EnumDefinition, which stores the name, and in the case of identity values, the
-		// module within which the identity was defined.
-		origValues := map[int64]ygot.EnumDefinition{}
-
-		switch e.Kind {
-		case ygen.IdentityType, ygen.SimpleEnumerationType, ygen.DerivedEnumerationType, ygen.UnionEnumerationType, ygen.DerivedUnionEnumerationType:
-			for i, v := range e.ValToYANGDetails {
-				values[int64(i)+1] = safeGoEnumeratedValueName(v.Name)
-				origValues[int64(i)+1] = v
-			}
-		default:
-			return nil, fmt.Errorf("unknown enumerated type %v", e.Kind)
-		}
-
-		et[e.Name] = &goEnumeratedType{
-			Name:       e.Name,
-			CodeValues: values,
-			YANGValues: origValues,
-		}
-	}
-	return et, nil
-}
-
-// writeGoEnumeratedTypes generates Go code for the input enumerations if they
-// are present in the usedEnums map.
-func writeGoEnumeratedTypes(enums map[string]*goEnumeratedType, usedEnums map[string]bool) (*enumGeneratedCode, error) {
-	orderedEnumNames := []string{}
-	for _, e := range enums {
-		orderedEnumNames = append(orderedEnumNames, e.Name)
-	}
-	sort.Strings(orderedEnumNames)
-
-	enumValMap := map[string]map[int64]ygot.EnumDefinition{}
-	enumSnippets := []string{}
-
-	for _, en := range orderedEnumNames {
-		e := enums[en]
-		if _, ok := usedEnums[fmt.Sprintf("%s%s", goEnumPrefix, e.Name)]; !ok {
-			// Don't output enumerated types that are not used in the code that we have
-			// such that we don't create generated code for a large array of types that
-			// just happen to be in modules that were included by other modules.
-			continue
-		}
-		enumOut, err := writeGoEnum(e)
-		if err != nil {
-			return nil, err
-		}
-		enumSnippets = append(enumSnippets, enumOut)
-		enumValMap[e.Name] = e.YANGValues
-	}
-
-	// Write the map of string -> int -> YANG enum name string out.
-	vmap, err := writeGoEnumMap(enumValMap)
+// writeGoSchema generates Go code which serialises the rawSchema byte slice
+// provided and stores it in a variable which can be written out to the generated
+// Go code file.
+func writeGoSchema(js []byte, schemaVarName string) (string, error) {
+	jbyte, err := ygen.WriteGzippedByteSlice(js)
 	if err != nil {
-		return nil, err
+		return "", fmt.Errorf("could not write Byte slice: %v", err)
 	}
 
-	return &enumGeneratedCode{
-		enums:  enumSnippets,
-		valMap: vmap,
-	}, nil
+	vn := defaultSchemaVarName
+	if schemaVarName != "" {
+		vn = schemaVarName
+	}
+
+	in := struct {
+		VarName string
+		Schema  []string
+	}{
+		VarName: vn,
+		Schema:  ygen.BytesToGoByteSlice(jbyte),
+	}
+
+	var buf bytes.Buffer
+	if err := schemaVarTemplate.Execute(&buf, in); err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }

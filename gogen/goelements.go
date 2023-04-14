@@ -758,3 +758,34 @@ func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, 
 		return "", yang.Ynone, fmt.Errorf("default value conversion: cannot create default value for unsupported type %v, type name: %q", ykind, args.yangType.Name)
 	}
 }
+
+// goLeafDefaults returns the default value(s) of the leaf e if specified. If it
+// is unspecified, the value specified by the type is returned if it is not nil,
+// otherwise nil is returned to indicate no default was specified.
+// TODO(wenbli): This doesn't handle unions. Deprecate this for v1 release.
+func goLeafDefaults(e *yang.Entry, t *ygen.MappedType) []string {
+	defaultValues := e.DefaultValues()
+	if len(defaultValues) == 0 && t.DefaultValue != nil {
+		defaultValues = []string{*t.DefaultValue}
+	}
+
+	for i, defVal := range defaultValues {
+		if t.IsEnumeratedValue {
+			defaultValues[i] = enumDefaultValue(t.NativeType, defVal, goEnumPrefix)
+		} else {
+			defaultValues[i] = quoteDefault(defVal, t.NativeType)
+		}
+	}
+
+	return defaultValues
+}
+
+// quoteDefault adds quotation marks to the value string if the goType specified
+// is a string, and hence requires quoting.
+func quoteDefault(value string, goType string) string {
+	if goType == "string" {
+		return fmt.Sprintf("%q", value)
+	}
+
+	return value
+}
