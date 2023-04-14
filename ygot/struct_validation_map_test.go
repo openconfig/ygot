@@ -1438,7 +1438,7 @@ func TestCopyStructError(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		if err := copyStruct(tt.inA, tt.inB); err == nil {
+		if err := copyStruct(tt.inA, tt.inB, ""); err == nil {
 			t.Errorf("%s: copyStruct(%v, %v): did not get nil error, got: %v, want: nil", tt.name, tt.inA, tt.inB, err)
 		}
 	}
@@ -1932,7 +1932,7 @@ func TestCopyStruct(t *testing.T) {
 			wantDst = reflect.ValueOf(tt.wantDst).Elem()
 		}
 
-		err := copyStruct(dst, src, tt.inOpts...)
+		err := copyStruct(dst, src, "", tt.inOpts...)
 		if (err != nil) != tt.wantErr {
 			t.Fatalf("%s: copyStruct(%v, %v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
 		}
@@ -1948,11 +1948,14 @@ func TestCopyStruct(t *testing.T) {
 }
 
 type validatedMergeTest struct {
-	String      *string
-	StringTwo   *string
-	Uint32Field *uint32
-	EnumValue   enumType
-	UnionField  copyUnion
+	String         *string
+	StringTwo      *string
+	Uint32Field    *uint32
+	EnumValue      enumType
+	UnionField     copyUnion
+	ContainerField *validatedMergeTestTwo
+	MapField       map[string]*validatedMergeTestTwo
+	SliceContainer *validatedMergeTestWithSlice
 }
 
 func (*validatedMergeTest) ΛValidate(...ValidationOption) error     { return nil }
@@ -2069,6 +2072,49 @@ var mergeStructTests = []struct {
 		EnumValue: EnumTypeValue,
 	},
 	wantErr: "destination and source values were set when merging enum field",
+}, {
+	name: "merge of multiple conflicting values: set to different values in both many places",
+	inA: &validatedMergeTest{
+		String:    String("foo"),
+		EnumValue: EnumTypeValueTwo,
+		ContainerField: &validatedMergeTestTwo{
+			String: String("foo"),
+		},
+		MapField: map[string]*validatedMergeTestTwo{
+			"foo": {
+				String: String("foo"),
+			},
+		},
+		SliceContainer: &validatedMergeTestWithSlice{
+			SliceField: []*validatedMergeTestSliceField{{
+				String: String("foo"),
+			}},
+		},
+	},
+	inB: &validatedMergeTest{
+		String:    String("bar"),
+		EnumValue: EnumTypeValue,
+		ContainerField: &validatedMergeTestTwo{
+			String: String("bar"),
+		},
+		MapField: map[string]*validatedMergeTestTwo{
+			"foo": {
+				String: String("bar"),
+			},
+		},
+		SliceContainer: &validatedMergeTestWithSlice{
+			SliceField: []*validatedMergeTestSliceField{{
+				String: String("foo"),
+			}, {
+				String: String("bar"),
+			}},
+		},
+	},
+	wantErr: `.String: destination value was set, but was not equal to source value when merging ptr field, src: bar, dst: foo
+.EnumValue: destination and source values were set when merging enum field, dst: 1, src: 2
+.ContainerField.String: destination value was set, but was not equal to source value when merging ptr field, src: bar, dst: foo
+.MapField["foo"].String: destination value was set, but was not equal to source value when merging ptr field, src: bar, dst: foo
+.SliceContainer.SliceField: source and destination lists must be unique`,
 }, {
 	name: "overwrite enum merge: set to different values in both",
 	inA: &validatedMergeTest{
@@ -2528,7 +2574,7 @@ func TestCopyErrorCases(t *testing.T) {
 		{"bad dst", reflect.ValueOf(map[string]string{}), reflect.ValueOf(uint32(42)), "received a non-map type in dst map field: uint32"},
 	}
 	for _, tt := range mapErrs {
-		if err := copyMapField(tt.inDst, tt.inSrc); err == nil || err.Error() != tt.wantErr {
+		if err := copyMapField(tt.inDst, tt.inSrc, ""); err == nil || err.Error() != tt.wantErr {
 			t.Errorf("%s: copyMapField(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
 		}
 	}
@@ -2537,7 +2583,7 @@ func TestCopyErrorCases(t *testing.T) {
 		{"non-ptr", reflect.ValueOf(""), reflect.ValueOf(""), "received non-ptr type: string"},
 	}
 	for _, tt := range ptrErrs {
-		if err := copyPtrField(tt.inDst, tt.inSrc); err == nil || err.Error() != tt.wantErr {
+		if err := copyPtrField(tt.inDst, tt.inSrc, ""); err == nil || err.Error() != tt.wantErr {
 			t.Errorf("%s: copyPtrField(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
 		}
 	}
