@@ -346,13 +346,13 @@ const (
 	// Child_InlineEnum_UNSET corresponds to the value UNSET of Child_InlineEnum
 	Child_InlineEnum_UNSET E_Child_InlineEnum = 0
 	// Child_InlineEnum_ADENINE corresponds to the value ADENINE of Child_InlineEnum
-	Child_InlineEnum_ADENINE E_Child_InlineEnum = 1
+	Child_InlineEnum_ADENINE E_Child_InlineEnum = 11
 	// Child_InlineEnum_THYMINE corresponds to the value THYMINE of Child_InlineEnum
-	Child_InlineEnum_THYMINE E_Child_InlineEnum = 2
+	Child_InlineEnum_THYMINE E_Child_InlineEnum = 12
 	// Child_InlineEnum_CYTOSINE corresponds to the value CYTOSINE of Child_InlineEnum
-	Child_InlineEnum_CYTOSINE E_Child_InlineEnum = 3
+	Child_InlineEnum_CYTOSINE E_Child_InlineEnum = 13
 	// Child_InlineEnum_GUANINE corresponds to the value GUANINE of Child_InlineEnum
-	Child_InlineEnum_GUANINE E_Child_InlineEnum = 4
+	Child_InlineEnum_GUANINE E_Child_InlineEnum = 14
 )
 
 // E_EnumModule_Cl is a derived int64 type which is used to represent
@@ -480,10 +480,10 @@ const (
 // valid YANG identifier.
 var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 	"E_Child_InlineEnum": {
-		1: {Name: "ADENINE"},
-		2: {Name: "THYMINE"},
-		3: {Name: "CYTOSINE"},
-		4: {Name: "GUANINE"},
+		11: {Name: "ADENINE"},
+		12: {Name: "THYMINE"},
+		13: {Name: "CYTOSINE"},
+		14: {Name: "GUANINE"},
 	},
 	"E_EnumModule_Cl": {
 		1: {Name: "X"},

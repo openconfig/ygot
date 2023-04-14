@@ -253,13 +253,13 @@ const (
 	// EnumModule_Child_InlineEnum_UNSET corresponds to the value UNSET of EnumModule_Child_InlineEnum
 	EnumModule_Child_InlineEnum_UNSET E_EnumModule_Child_InlineEnum = 0
 	// EnumModule_Child_InlineEnum_ADENINE corresponds to the value ADENINE of EnumModule_Child_InlineEnum
-	EnumModule_Child_InlineEnum_ADENINE E_EnumModule_Child_InlineEnum = 1
+	EnumModule_Child_InlineEnum_ADENINE E_EnumModule_Child_InlineEnum = 11
 	// EnumModule_Child_InlineEnum_THYMINE corresponds to the value THYMINE of EnumModule_Child_InlineEnum
-	EnumModule_Child_InlineEnum_THYMINE E_EnumModule_Child_InlineEnum = 2
+	EnumModule_Child_InlineEnum_THYMINE E_EnumModule_Child_InlineEnum = 12
 	// EnumModule_Child_InlineEnum_CYTOSINE corresponds to the value CYTOSINE of EnumModule_Child_InlineEnum
-	EnumModule_Child_InlineEnum_CYTOSINE E_EnumModule_Child_InlineEnum = 3
+	EnumModule_Child_InlineEnum_CYTOSINE E_EnumModule_Child_InlineEnum = 13
 	// EnumModule_Child_InlineEnum_GUANINE corresponds to the value GUANINE of EnumModule_Child_InlineEnum
-	EnumModule_Child_InlineEnum_GUANINE E_EnumModule_Child_InlineEnum = 4
+	EnumModule_Child_InlineEnum_GUANINE E_EnumModule_Child_InlineEnum = 14
 )
 
 // E_EnumModule_EnumModule_Cl is a derived int64 type which is used to represent
@@ -387,10 +387,10 @@ const (
 // valid YANG identifier.
 var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 	"E_EnumModule_Child_InlineEnum": {
-		1: {Name: "ADENINE"},
-		2: {Name: "THYMINE"},
-		3: {Name: "CYTOSINE"},
-		4: {Name: "GUANINE"},
+		11: {Name: "ADENINE"},
+		12: {Name: "THYMINE"},
+		13: {Name: "CYTOSINE"},
+		14: {Name: "GUANINE"},
 	},
 	"E_EnumModule_EnumModule_Cl": {
 		1: {Name: "X"},

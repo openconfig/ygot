@@ -43,7 +43,7 @@ module enum-module {
 
     leaf inline-enum {
       type enumeration {
-        enum ADENINE;
+        enum ADENINE { value 10; }
         enum THYMINE;
         enum CYTOSINE;
         enum GUANINE;
