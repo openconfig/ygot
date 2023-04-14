@@ -141,7 +141,17 @@ type EnumDefinition struct {
 	// DefiningModule specifies the module within which the enumeration was
 	// defined. Only populated for identity values.
 	DefiningModule string
-	// Value specifies the value of an "enumeration" type.
+	// Value is an optionally-populated field that specifies the value of
+	// an enumerated type.
+	//
+	// TODO: Consider removing this field and using a custom type in the
+	// ygen package since only the IR generation populates this field.
+	//
+	// When populated, the following values are recommended:
+	// For enumerations, this value is determined by goyang.
+	// For identityrefs, this value is determined by the lexicographical
+	// ordering of the identityref name, starting with 0 to be consistent
+	// with goyang's enumeration numbering.
 	Value int
 }
 

@@ -59,9 +59,9 @@ func genGoEnumeratedTypes(enums map[string]*ygen.EnumeratedYANGType) (map[string
 
 		switch e.Kind {
 		case ygen.IdentityType, ygen.SimpleEnumerationType, ygen.DerivedEnumerationType, ygen.UnionEnumerationType, ygen.DerivedUnionEnumerationType:
-			for i, v := range e.ValToYANGDetails {
-				values[int64(i)+1] = safeGoEnumeratedValueName(v.Name)
-				origValues[int64(i)+1] = v
+			for _, v := range e.ValToYANGDetails {
+				values[int64(v.Value)+1] = safeGoEnumeratedValueName(v.Name)
+				origValues[int64(v.Value)+1] = v
 			}
 		default:
 			return nil, fmt.Errorf("unknown enumerated type %v", e.Kind)

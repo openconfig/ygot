@@ -143,10 +143,11 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 			}
 			sort.Strings(valNames)
 
-			for _, v := range valNames {
+			for i, v := range valNames {
 				et.ValToYANGDetails = append(et.ValToYANGDetails, ygot.EnumDefinition{
 					Name:           v,
 					DefiningModule: genutil.ParentModuleName(valLookup[v]),
+					Value:          i,
 				})
 			}
 		default:
@@ -154,13 +155,14 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 			// Goyang entry construct. The values are accessed in a map keyed by an int64
 			// and with a value of the name of the enumerated value - retrieved via ValueMap().
 			var values []int
-			for v := range enum.entry.Type.Enum.ValueMap() {
+			valueMap := enum.entry.Type.Enum.ValueMap()
+			for v := range valueMap {
 				values = append(values, int(v))
 			}
 			sort.Ints(values)
 			for _, v := range values {
 				et.ValToYANGDetails = append(et.ValToYANGDetails, ygot.EnumDefinition{
-					Name:  enum.entry.Type.Enum.ValueMap()[int64(v)],
+					Name:  valueMap[int64(v)],
 					Value: v,
 				})
 			}
