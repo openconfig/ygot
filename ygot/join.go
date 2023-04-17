@@ -20,13 +20,13 @@
 
 package ygot
 
-// join returns an error that wraps the given errors.
+// joinErrors returns an error that wraps the given errors.
 // Any nil error values are discarded.
-// join returns nil if errs contains no non-nil values.
+// joinErrors returns nil if errs contains no non-nil values.
 // The error formats as the concatenation of the strings obtained
 // by calling the Error method of each element of errs, with a newline
 // between each string.
-func join(errs ...error) error {
+func joinErrors(errs ...error) error {
 	n := 0
 	for _, err := range errs {
 		if err != nil {
