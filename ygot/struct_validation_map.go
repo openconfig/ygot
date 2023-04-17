@@ -706,7 +706,7 @@ func copyStruct(dstVal, srcVal reflect.Value, accessPath string, opts ...MergeOp
 			dstField.Set(srcField)
 		}
 	}
-	return join(errs...)
+	return joinErrors(errs...)
 }
 
 // copyPtrField copies srcField to dstField. srcField and dstField must be
@@ -864,7 +864,7 @@ func copyMapField(dstField, srcField reflect.Value, accessPath string, opts ...M
 		}
 		dstField.SetMapIndex(k, d)
 	}
-	return join(errs...)
+	return joinErrors(errs...)
 }
 
 // mapTypes provides a specification of a map.
@@ -945,7 +945,7 @@ func copySliceField(dstField, srcField reflect.Value, accessPath string, opts ..
 		}
 		dstField.Set(reflect.Append(dstField, v))
 	}
-	return join(errs...)
+	return joinErrors(errs...)
 }
 
 // uniqueSlices takes two reflect.Values which must represent slices, and determines

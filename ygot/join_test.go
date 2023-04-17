@@ -27,14 +27,14 @@ import (
 )
 
 func TestJoinReturnsNil(t *testing.T) {
-	if err := join(); err != nil {
-		t.Errorf("join() = %v, want nil", err)
+	if err := joinErrors(); err != nil {
+		t.Errorf("joinErrors() = %v, want nil", err)
 	}
-	if err := join(nil); err != nil {
-		t.Errorf("join(nil) = %v, want nil", err)
+	if err := joinErrors(nil); err != nil {
+		t.Errorf("joinErrors(nil) = %v, want nil", err)
 	}
-	if err := join(nil, nil); err != nil {
-		t.Errorf("join(nil, nil) = %v, want nil", err)
+	if err := joinErrors(nil, nil); err != nil {
+		t.Errorf("joinErrors(nil, nil) = %v, want nil", err)
 	}
 }
 
@@ -54,7 +54,7 @@ func TestJoin(t *testing.T) {
 		errs: []error{err1, nil, err2},
 		want: []error{err1, err2},
 	}} {
-		got := join(test.errs...).(interface{ Unwrap() []error }).Unwrap()
+		got := joinErrors(test.errs...).(interface{ Unwrap() []error }).Unwrap()
 		if !reflect.DeepEqual(got, test.want) {
 			t.Errorf("Join(%v) = %v; want %v", test.errs, got, test.want)
 		}
@@ -80,7 +80,7 @@ func TestJoinErrorMethod(t *testing.T) {
 		errs: []error{err1, nil, err2},
 		want: "err1\nerr2",
 	}} {
-		got := join(test.errs...).Error()
+		got := joinErrors(test.errs...).Error()
 		if got != test.want {
 			t.Errorf("Join(%v).Error() = %q; want %q", test.errs, got, test.want)
 		}
