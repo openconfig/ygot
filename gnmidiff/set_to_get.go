@@ -67,7 +67,7 @@ func DiffSetRequestToNotifications(setreq *gpb.SetRequest, notifs []*gpb.Notific
 			}
 		}
 	}
-	updates := updateIntent.Updates
+	updates, err := flattenNotifications(notifs...)
 
 	for pathA, vA := range setIntent.Updates {
 		vB, ok := updates[pathA]

@@ -133,7 +133,7 @@ m /interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/state/nam
 	}
 }
 
-func TestSetRequestToNotifications(t *testing.T) {
+func TestDiffSetRequestToNotifications(t *testing.T) {
 	tests := []struct {
 		desc                string
 		dontCheckWithSchema bool
