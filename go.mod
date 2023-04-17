@@ -10,7 +10,7 @@ require (
 	github.com/kylelemons/godebug v1.1.0
 	github.com/openconfig/gnmi v0.9.1
 	github.com/openconfig/goyang v1.2.0
-	github.com/openconfig/gribi v0.1.1-0.20221218044856-ec9f4fc18013
+	github.com/openconfig/gribi v1.0.0
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.15.0
