@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Adapted from https://cs.opensource.google/go/go/+/refs/tags/go1.20.3:src/errors/join.go
+// Adapted from errors.Join() introduced in go1.20 for compatibility with older Go versions.
 
 // Copyright 2022 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
