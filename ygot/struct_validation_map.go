@@ -29,6 +29,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/ygot/util"
 )
 
@@ -672,7 +673,8 @@ func copyStruct(dstVal, srcVal reflect.Value, accessPath string, opts ...MergeOp
 		return fmt.Errorf("cannot handle non-struct types, src: %v, dst: %v", srcVal.Type().Kind(), dstVal.Type().Kind())
 	}
 
-	var errs []error
+	var errs errlist.Error
+	errs.Separator = "\n"
 	for i := 0; i < srcVal.NumField(); i++ {
 		srcField := srcVal.Field(i)
 		dstField := dstVal.Field(i)
@@ -680,13 +682,13 @@ func copyStruct(dstVal, srcVal reflect.Value, accessPath string, opts ...MergeOp
 
 		switch srcField.Kind() {
 		case reflect.Ptr:
-			errs = append(errs, copyPtrField(dstField, srcField, accessPath, opts...))
+			errs.Add(copyPtrField(dstField, srcField, accessPath, opts...))
 		case reflect.Interface:
-			errs = append(errs, copyInterfaceField(dstField, srcField, accessPath, opts...))
+			errs.Add(copyInterfaceField(dstField, srcField, accessPath, opts...))
 		case reflect.Map:
-			errs = append(errs, copyMapField(dstField, srcField, accessPath, opts...))
+			errs.Add(copyMapField(dstField, srcField, accessPath, opts...))
 		case reflect.Slice:
-			errs = append(errs, copySliceField(dstField, srcField, accessPath, opts...))
+			errs.Add(copySliceField(dstField, srcField, accessPath, opts...))
 		case reflect.Int64:
 			// In the case of an int64 field, which represents a YANG enumeration
 			// we should only set the value in the destination if it is not set
@@ -695,7 +697,7 @@ func copyStruct(dstVal, srcVal reflect.Value, accessPath string, opts ...MergeOp
 			switch {
 			case vSrc != 0 && vDst != 0 && vSrc != vDst:
 				if !fieldOverwriteEnabled(opts) {
-					errs = append(errs, fmt.Errorf("%s: destination and source values were set when merging enum field, dst: %d, src: %d", accessPath, vSrc, vDst))
+					errs.Add(fmt.Errorf("%s: destination and source values were set when merging enum field, dst: %d, src: %d", accessPath, vSrc, vDst))
 					break
 				}
 				dstField.Set(srcField)
@@ -706,7 +708,7 @@ func copyStruct(dstVal, srcVal reflect.Value, accessPath string, opts ...MergeOp
 			dstField.Set(srcField)
 		}
 	}
-	return joinErrors(errs...)
+	return errs.Err()
 }
 
 // copyPtrField copies srcField to dstField. srcField and dstField must be
@@ -851,7 +853,8 @@ func copyMapField(dstField, srcField reflect.Value, accessPath string, opts ...M
 		dstKeys[k.Interface()] = true
 	}
 
-	var errs []error
+	errs := &errlist.Error{}
+	errs.Separator = "\n"
 	for _, k := range srcField.MapKeys() {
 		v := srcField.MapIndex(k)
 		d := reflect.New(v.Elem().Type())
@@ -859,12 +862,12 @@ func copyMapField(dstField, srcField reflect.Value, accessPath string, opts ...M
 			d = dstField.MapIndex(k)
 		}
 		if err := copyStruct(d.Elem(), v.Elem(), fmt.Sprintf("%s[%#v]", accessPath, k.Interface()), opts...); err != nil {
-			errs = append(errs, err)
+			errs.Add(err)
 			continue
 		}
 		dstField.SetMapIndex(k, d)
 	}
-	return joinErrors(errs...)
+	return errs.Err()
 }
 
 // mapTypes provides a specification of a map.
@@ -935,17 +938,18 @@ func copySliceField(dstField, srcField reflect.Value, accessPath string, opts ..
 		return nil
 	}
 
-	var errs []error
+	errs := &errlist.Error{}
+	errs.Separator = "\n"
 	for i := 0; i < srcField.Len(); i++ {
 		v := srcField.Index(i)
 		d := reflect.New(v.Type().Elem())
 		if err := copyStruct(d.Elem(), v.Elem(), fmt.Sprintf("%s[%v]", accessPath, i), opts...); err != nil {
-			errs = append(errs, err)
+			errs.Add(err)
 			continue
 		}
 		dstField.Set(reflect.Append(dstField, v))
 	}
-	return joinErrors(errs...)
+	return errs.Err()
 }
 
 // uniqueSlices takes two reflect.Values which must represent slices, and determines
