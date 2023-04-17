@@ -604,7 +604,7 @@ func MergeStructInto(dst, src GoStruct, opts ...MergeOpt) error {
 		return fmt.Errorf("cannot merge structs that are not of matching types, %T != %T", dst, src)
 	}
 
-	return copyStruct(reflect.ValueOf(dst).Elem(), reflect.ValueOf(src).Elem(), opts...)
+	return copyStruct(reflect.ValueOf(dst).Elem(), reflect.ValueOf(src).Elem(), "", opts...)
 }
 
 // DeepCopy returns a deep copy of the supplied GoStruct. A new copy
@@ -626,7 +626,7 @@ func deepCopy(s GoStruct, keepEmptyMaps bool) (GoStruct, error) {
 	if keepEmptyMaps {
 		opts = append(opts, &MergeEmptyMaps{})
 	}
-	if err := copyStruct(n.Elem(), reflect.ValueOf(s).Elem(), opts...); err != nil {
+	if err := copyStruct(n.Elem(), reflect.ValueOf(s).Elem(), "", opts...); err != nil {
 		return nil, fmt.Errorf("cannot DeepCopy struct: %v", err)
 	}
 	return n.Interface().(GoStruct), nil
@@ -657,7 +657,13 @@ func mergeEmptyMapsEnabled(opts []MergeOpt) bool {
 }
 
 // copyStruct copies the fields of srcVal into the dstVal struct in-place.
-func copyStruct(dstVal, srcVal reflect.Value, opts ...MergeOpt) error {
+//
+// - accessPath is the programmatic access path to the struct. It is used for
+// generating a more usable error message. (e.g. Field1.Map2["foo"].Field3)
+// When calling at the top level, "" should be used.
+//
+// It fails-slow: accumulates errors prior to return.
+func copyStruct(dstVal, srcVal reflect.Value, accessPath string, opts ...MergeOpt) error {
 	if srcVal.Type() != dstVal.Type() {
 		return fmt.Errorf("cannot copy %s to %s", srcVal.Type().Name(), dstVal.Type().Name())
 	}
@@ -666,27 +672,21 @@ func copyStruct(dstVal, srcVal reflect.Value, opts ...MergeOpt) error {
 		return fmt.Errorf("cannot handle non-struct types, src: %v, dst: %v", srcVal.Type().Kind(), dstVal.Type().Kind())
 	}
 
+	var errs []error
 	for i := 0; i < srcVal.NumField(); i++ {
 		srcField := srcVal.Field(i)
 		dstField := dstVal.Field(i)
+		accessPath := accessPath + "." + srcVal.Type().Field(i).Name
 
 		switch srcField.Kind() {
 		case reflect.Ptr:
-			if err := copyPtrField(dstField, srcField, opts...); err != nil {
-				return err
-			}
+			errs = append(errs, copyPtrField(dstField, srcField, accessPath, opts...))
 		case reflect.Interface:
-			if err := copyInterfaceField(dstField, srcField, opts...); err != nil {
-				return err
-			}
+			errs = append(errs, copyInterfaceField(dstField, srcField, accessPath, opts...))
 		case reflect.Map:
-			if err := copyMapField(dstField, srcField, opts...); err != nil {
-				return err
-			}
+			errs = append(errs, copyMapField(dstField, srcField, accessPath, opts...))
 		case reflect.Slice:
-			if err := copySliceField(dstField, srcField, opts...); err != nil {
-				return err
-			}
+			errs = append(errs, copySliceField(dstField, srcField, accessPath, opts...))
 		case reflect.Int64:
 			// In the case of an int64 field, which represents a YANG enumeration
 			// we should only set the value in the destination if it is not set
@@ -695,7 +695,8 @@ func copyStruct(dstVal, srcVal reflect.Value, opts ...MergeOpt) error {
 			switch {
 			case vSrc != 0 && vDst != 0 && vSrc != vDst:
 				if !fieldOverwriteEnabled(opts) {
-					return fmt.Errorf("destination and source values were set when merging enum field, dst: %d, src: %d", vSrc, vDst)
+					errs = append(errs, fmt.Errorf("%s: destination and source values were set when merging enum field, dst: %d, src: %d", accessPath, vSrc, vDst))
+					break
 				}
 				dstField.Set(srcField)
 			case vSrc != 0 && vDst == 0:
@@ -705,7 +706,7 @@ func copyStruct(dstVal, srcVal reflect.Value, opts ...MergeOpt) error {
 			dstField.Set(srcField)
 		}
 	}
-	return nil
+	return joinErrors(errs...)
 }
 
 // copyPtrField copies srcField to dstField. srcField and dstField must be
@@ -715,7 +716,7 @@ func copyStruct(dstVal, srcVal reflect.Value, opts ...MergeOpt) error {
 // is returned. If the source and destination both have a pointer field, which is
 // populated then an error is returned unless the value of the field is
 // equal in both structs.
-func copyPtrField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
+func copyPtrField(dstField, srcField reflect.Value, accessPath string, opts ...MergeOpt) error {
 
 	if util.IsNilOrInvalidValue(srcField) {
 		return nil
@@ -738,7 +739,7 @@ func copyPtrField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 			d = dstField
 		}
 
-		if err := copyStruct(d.Elem(), srcField.Elem(), opts...); err != nil {
+		if err := copyStruct(d.Elem(), srcField.Elem(), accessPath, opts...); err != nil {
 			return err
 		}
 		dstField.Set(d)
@@ -748,7 +749,7 @@ func copyPtrField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 	if !util.IsNilOrInvalidValue(dstField) {
 		s, d := srcField.Elem().Interface(), dstField.Elem().Interface()
 		if !fieldOverwriteEnabled(opts) && !reflect.DeepEqual(s, d) {
-			return fmt.Errorf("destination value was set, but was not equal to source value when merging ptr field, src: %v, dst: %v", s, d)
+			return fmt.Errorf("%s: destination value was set, but was not equal to source value when merging ptr field, src: %v, dst: %v", accessPath, s, d)
 		}
 	}
 
@@ -760,7 +761,7 @@ func copyPtrField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 
 // copyInterfaceField copies srcField into dstField. Both srcField and dstField
 // are reflect.Value structs which contain an interface value.
-func copyInterfaceField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
+func copyInterfaceField(dstField, srcField reflect.Value, accessPath string, opts ...MergeOpt) error {
 	if util.IsNilOrInvalidValue(srcField) {
 		return nil
 	}
@@ -776,12 +777,12 @@ func copyInterfaceField(dstField, srcField reflect.Value, opts ...MergeOpt) erro
 		if !util.IsNilOrInvalidValue(dstField) {
 			dV := dstField.Elem().Elem() // Dereference dst to a struct.
 			if !fieldOverwriteEnabled(opts) && !reflect.DeepEqual(s.Interface(), dV.Interface()) {
-				return fmt.Errorf("interface field was set in both src and dst and was not equal, src: %v, dst: %v", s.Interface(), dV.Interface())
+				return fmt.Errorf("%s: interface field was set in both src and dst and was not equal, src: %v, dst: %v", accessPath, s.Interface(), dV.Interface())
 			}
 		}
 
 		d := reflect.New(s.Type())
-		if err := copyStruct(d.Elem(), s, opts...); err != nil {
+		if err := copyStruct(d.Elem(), s, accessPath, opts...); err != nil {
 			return err
 		}
 		dstField.Set(d)
@@ -790,7 +791,7 @@ func copyInterfaceField(dstField, srcField reflect.Value, opts ...MergeOpt) erro
 		if !util.IsNilOrInvalidValue(dstField) {
 			s, d := srcField.Interface(), dstField.Interface()
 			if !fieldOverwriteEnabled(opts) && !reflect.DeepEqual(s, d) {
-				return fmt.Errorf("interface field was set in both src and dst and was not equal, src: %v, dst: %v", s, d)
+				return fmt.Errorf("%s: interface field was set in both src and dst and was not equal, src: %v, dst: %v", accessPath, s, d)
 			}
 		}
 
@@ -805,7 +806,7 @@ func copyInterfaceField(dstField, srcField reflect.Value, opts ...MergeOpt) erro
 		if !util.IsNilOrInvalidValue(dstField) {
 			s, d := srcField.Interface(), dstField.Interface()
 			if !fieldOverwriteEnabled(opts) && !reflect.DeepEqual(s, d) {
-				return fmt.Errorf("interface field was set in both src and dst and was not equal, src: %v, dst: %v", s, d)
+				return fmt.Errorf("%s: interface field was set in both src and dst and was not equal, src: %v, dst: %v", accessPath, s, d)
 			}
 		}
 		dstField.Set(srcField)
@@ -819,7 +820,7 @@ func copyInterfaceField(dstField, srcField reflect.Value, opts ...MergeOpt) erro
 // are populated, and have non-overlapping keys, they are merged. If the same
 // key is populated in srcField and dstField, their contents are merged if they
 // do not overlap, otherwise an error is returned.
-func copyMapField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
+func copyMapField(dstField, srcField reflect.Value, accessPath string, opts ...MergeOpt) error {
 	if !util.IsValueMap(srcField) {
 		return fmt.Errorf("received a non-map type in src map field: %v", srcField.Kind())
 	}
@@ -850,18 +851,20 @@ func copyMapField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 		dstKeys[k.Interface()] = true
 	}
 
+	var errs []error
 	for _, k := range srcField.MapKeys() {
 		v := srcField.MapIndex(k)
 		d := reflect.New(v.Elem().Type())
 		if _, ok := dstKeys[k.Interface()]; ok {
 			d = dstField.MapIndex(k)
 		}
-		if err := copyStruct(d.Elem(), v.Elem(), opts...); err != nil {
-			return err
+		if err := copyStruct(d.Elem(), v.Elem(), fmt.Sprintf("%s[%#v]", accessPath, k.Interface()), opts...); err != nil {
+			errs = append(errs, err)
+			continue
 		}
 		dstField.SetMapIndex(k, d)
 	}
-	return nil
+	return joinErrors(errs...)
 }
 
 // mapTypes provides a specification of a map.
@@ -903,7 +906,7 @@ func validateMap(srcField, dstField reflect.Value) (*mapType, error) {
 // copySliceField copies srcField into dstField. Both srcField and dstField
 // must have a kind of reflect.Slice kind and contain pointers to structs. If
 // the slice in dstField is populated an error is returned.
-func copySliceField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
+func copySliceField(dstField, srcField reflect.Value, accessPath string, opts ...MergeOpt) error {
 	if dstField.Len() == 0 && srcField.Len() == 0 {
 		return nil
 	}
@@ -920,7 +923,7 @@ func copySliceField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 
 		if !unique {
 			// YANG lists and leaf-lists must be unique.
-			return fmt.Errorf("source and destination lists must be unique, got src: %v, dst: %v", srcField, dstField)
+			return fmt.Errorf("%s: source and destination lists must be unique, got src: %v, dst: %v", accessPath, srcField, dstField)
 		}
 	}
 
@@ -932,15 +935,17 @@ func copySliceField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 		return nil
 	}
 
+	var errs []error
 	for i := 0; i < srcField.Len(); i++ {
 		v := srcField.Index(i)
 		d := reflect.New(v.Type().Elem())
-		if err := copyStruct(d.Elem(), v.Elem(), opts...); err != nil {
-			return err
+		if err := copyStruct(d.Elem(), v.Elem(), fmt.Sprintf("%s[%v]", accessPath, i), opts...); err != nil {
+			errs = append(errs, err)
+			continue
 		}
 		dstField.Set(reflect.Append(dstField, v))
 	}
-	return nil
+	return joinErrors(errs...)
 }
 
 // uniqueSlices takes two reflect.Values which must represent slices, and determines
