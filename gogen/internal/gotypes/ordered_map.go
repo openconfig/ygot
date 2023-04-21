@@ -30,18 +30,20 @@ type RoutingPolicy_PolicyDefinition struct {
 	// value is usable. This is unlike the regular unordered lists where
 	// the various helpers need to reside on the parent struct in order to
 	// avoid a nil pointer exception on the raw map type.
-	Statement RoutingPolicy_PolicyDefinition_Statement_Map
+	Statement RoutingPolicy_PolicyDefinition_Statement_OrderedMap
 }
 
 // RoutingPolicy_PolicyDefinition_Statement represents an ordered-map element.
 type RoutingPolicy_PolicyDefinition_Statement struct {
+	// DummyActions are dummy BGP policy actions intended to represent that
+	// ordered maps can have values alongside keys.
 	DummyActions []string
 	Name         *string
 }
 
-// RoutingPolicy_PolicyDefinition_Statement_Map is a candidate ordered-map
+// RoutingPolicy_PolicyDefinition_Statement_OrderedMap is a candidate ordered-map
 // implementation.
-type RoutingPolicy_PolicyDefinition_Statement_Map struct {
+type RoutingPolicy_PolicyDefinition_Statement_OrderedMap struct {
 	// TODO: Add a mutex here and add race tests after implementing
 	// ygot.Equal and evaluating the thread-safety of ygot.
 	//mu       sync.RWmutex
@@ -53,19 +55,19 @@ type RoutingPolicy_PolicyDefinition_Statement_Map struct {
 }
 
 // init initializes any uninitialized values.
-func (o *RoutingPolicy_PolicyDefinition_Statement_Map) init() {
+func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) init() {
 	if o.valueMap == nil {
 		o.valueMap = map[string]*RoutingPolicy_PolicyDefinition_Statement{}
 	}
 }
 
 // Keys returns a copy of the list's keys.
-func (o *RoutingPolicy_PolicyDefinition_Statement_Map) Keys() []string {
+func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) Keys() []string {
 	return append([]string{}, o.keys...)
 }
 
-// ValueSlice returns the current set of the list's values in order.
-func (o *RoutingPolicy_PolicyDefinition_Statement_Map) ValueSlice() []*RoutingPolicy_PolicyDefinition_Statement {
+// Values returns the current set of the list's values in order.
+func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) Values() []*RoutingPolicy_PolicyDefinition_Statement {
 	var values []*RoutingPolicy_PolicyDefinition_Statement
 	for _, key := range o.keys {
 		values = append(values, o.valueMap[key])
@@ -73,21 +75,23 @@ func (o *RoutingPolicy_PolicyDefinition_Statement_Map) ValueSlice() []*RoutingPo
 	return values
 }
 
-// Len returns a size of RoutingPolicy_PolicyDefinition_Statement_Map
-func (o *RoutingPolicy_PolicyDefinition_Statement_Map) Len() int {
+// Len returns a size of RoutingPolicy_PolicyDefinition_Statement_OrderedMap
+func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) Len() int {
 	return len(o.keys)
 }
 
-// Get returns a value corresponding to the key. If the key is not found, the zero
-// value of K is returned with found being false.
-// Get is O(1).
-func (o *RoutingPolicy_PolicyDefinition_Statement_Map) Get(key string) *RoutingPolicy_PolicyDefinition_Statement {
+// Get returns the value corresponding to the key. If the key is not found, nil
+// is returned.
+func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) Get(key string) *RoutingPolicy_PolicyDefinition_Statement {
 	val, _ := o.valueMap[key]
 	return val
 }
 
 // Delete deletes an element -- this is O(n) to keep the simple implementation.
-func (o *RoutingPolicy_PolicyDefinition_Statement_Map) Delete(key string) bool {
+func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) Delete(key string) bool {
+	if _, ok := o.valueMap[key]; !ok {
+		return false
+	}
 	for i, k := range o.keys {
 		if k == key {
 			o.keys = append(o.keys[:i], o.keys[i+1:]...)
@@ -100,7 +104,7 @@ func (o *RoutingPolicy_PolicyDefinition_Statement_Map) Delete(key string) bool {
 
 // Append appends a policy statement, returning an error if the statement
 // already exists or if the key is unspecified.
-func (o *RoutingPolicy_PolicyDefinition_Statement_Map) Append(statement *RoutingPolicy_PolicyDefinition_Statement) error {
+func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) Append(statement *RoutingPolicy_PolicyDefinition_Statement) error {
 	if statement == nil {
 		return errors.New("nil statement")
 	}
@@ -117,28 +121,10 @@ func (o *RoutingPolicy_PolicyDefinition_Statement_Map) Append(statement *Routing
 	return nil
 }
 
-// Update updates a current policy statement, returning an error if the statement
-// doesn't exist or if the key is unspecified.
-func (o *RoutingPolicy_PolicyDefinition_Statement_Map) Update(statement *RoutingPolicy_PolicyDefinition_Statement) error {
-	if statement == nil {
-		return errors.New("nil statement")
-	}
-	if statement.Name == nil {
-		return errors.New("nil key Name")
-	}
-	key := *statement.Name
-	if _, ok := o.valueMap[key]; !ok {
-		return fmt.Errorf("statement doesn't exist: %v", key)
-	}
-	o.init()
-	o.valueMap[key] = statement
-	return nil
-}
-
 // AppendNew creates and appends a new policy statement, returning the
 // newly-initialized statement. It returns an error if the statement already
 // exists.
-func (o *RoutingPolicy_PolicyDefinition_Statement_Map) AppendNew(key string) (*RoutingPolicy_PolicyDefinition_Statement, error) {
+func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) AppendNew(key string) (*RoutingPolicy_PolicyDefinition_Statement, error) {
 	if _, ok := o.valueMap[key]; ok {
 		return nil, fmt.Errorf("duplicate key for list Statement %v", key)
 	}
