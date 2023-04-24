@@ -2,7 +2,7 @@ module refschema {
   prefix "rs";
   namespace "urn:rs";
 
-  import testschema { prefix "ts"; }
+  import utestschema { prefix "ts"; }
 
   container ref {
     list reference {

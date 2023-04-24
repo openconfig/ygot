@@ -17,14 +17,14 @@ package schemaops
 import (
 	"testing"
 
-	"github.com/openconfig/ygot/integration_tests/schemaops/testschema"
+	"github.com/openconfig/ygot/integration_tests/schemaops/utestschema"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
 )
 
 func TestGetOrCreateNode(t *testing.T) {
 	t.Run("list with absolute leafref key, #489", func(t *testing.T) {
-		ysch, err := testschema.Schema()
+		ysch, err := utestschema.Schema()
 		if err != nil {
 			t.Fatalf("could not get schema from test package, %v", err)
 		}

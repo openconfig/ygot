@@ -1,3 +1,3 @@
-package testschema
+package utestschema
 
 //go:generate ./update.sh
