@@ -37,5 +37,3 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/openconfig/goyang => /usr/local/google/home/wenbli/gocode/src/github.com/openconfig/goyang
