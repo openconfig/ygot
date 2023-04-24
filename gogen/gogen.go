@@ -280,8 +280,10 @@ type generatedDefaultMethod struct {
 	Receiver string
 	// ChildContainerNames are the names of the container fields of the GoStruct.
 	ChildContainerNames []string
-	// ChildContainerNames are the names of the list fields of the GoStruct.
-	ChildListNames []string
+	// ChildUnorderedListNames are the names of the unordered list fields of the GoStruct.
+	ChildUnorderedListNames []string
+	// ChildOrderedListNames are the names of the ordered list fields of the GoStruct.
+	ChildOrderedListNames []string
 	// Leaves represent the leaf fields of the GoStruct.
 	Leaves []*generatedLeafGetter
 }
@@ -638,8 +640,13 @@ func (t *{{ .Receiver }}) PopulateDefaults() {
 	{{- range $containerName := .ChildContainerNames }}
 	t.{{ $containerName }}.PopulateDefaults()
 	{{- end }}
-	{{- range $listName := .ChildListNames }}
+	{{- range $listName := .ChildUnorderedListNames }}
 	for _, e := range t.{{ $listName }} {
+		e.PopulateDefaults()
+	}
+	{{- end }}
+	{{- range $listName := .ChildOrderedListNames }}
+	for _, e := range t.{{ $listName }}.Values() {
 		e.PopulateDefaults()
 	}
 	{{- end }}
@@ -974,6 +981,8 @@ func writeGoStruct(targetStruct *ygen.ParsedDirectory, goStructElements map[stri
 	// lists that are fields of the struct.
 	associatedListKeyStructs := []*generatedGoMultiKeyListStruct{}
 
+	var associatedOrderedMapStructs []*generatedOrderedMapStruct
+
 	// associatedListMethods is a slice of pointers to generatedGoListMethod structs
 	// which describe methods that use the target struct as a receiver. These structs
 	// represent the methods that are used as helpers such as those methods that allow
@@ -1036,7 +1045,7 @@ func writeGoStruct(targetStruct *ygen.ParsedDirectory, goStructElements map[stri
 			// If the field within the struct is a list, then generate code for this list. This
 			// includes extracting any new types that are required to represent the key of a
 			// list that has multiple keys.
-			fieldType, multiKeyListKey, listMethods, listErr := yangListFieldToGoType(field, fieldName, targetStruct, goStructElements)
+			fieldType, multiKeyListKey, listMethods, orderedMapSpec, listErr := yangListFieldToGoType(field, fieldName, targetStruct, goStructElements)
 			if listErr != nil {
 				errs = append(errs, listErr)
 			}
@@ -1046,10 +1055,15 @@ func writeGoStruct(targetStruct *ygen.ParsedDirectory, goStructElements map[stri
 				Type:       fieldType,
 				IsYANGList: true,
 			}
-			associatedDefaultMethod.ChildListNames = append(associatedDefaultMethod.ChildListNames, fieldName)
 
 			if listMethods != nil {
 				associatedListMethods = append(associatedListMethods, listMethods)
+				associatedDefaultMethod.ChildUnorderedListNames = append(associatedDefaultMethod.ChildUnorderedListNames, fieldName)
+			}
+
+			if orderedMapSpec != nil {
+				associatedOrderedMapStructs = append(associatedOrderedMapStructs, orderedMapSpec)
+				associatedDefaultMethod.ChildOrderedListNames = append(associatedDefaultMethod.ChildOrderedListNames, fieldName)
 			}
 
 			if multiKeyListKey != nil {
@@ -1323,6 +1337,12 @@ func writeGoStruct(targetStruct *ygen.ParsedDirectory, goStructElements map[stri
 
 	if goOpts.GenerateLeafSetters {
 		if err := generateLeafSetters(&methodBuf, associatedLeafSetters); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	for _, s := range associatedOrderedMapStructs {
+		if err := generateOrderedMapStruct(&methodBuf, s); err != nil {
 			errs = append(errs, err)
 		}
 	}

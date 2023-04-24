@@ -49,6 +49,11 @@ type yangTestCase struct {
 // expected, but it ensures that the input file does not contain Go which is
 // invalid.
 func TestSimpleStructs(t *testing.T) {
+	enableOrderedMap = true
+	defer func() {
+		enableOrderedMap = false
+	}()
+
 	tests := []yangTestCase{{
 		name:    "simple openconfig test, with compression, with (useless) enum org name trimming",
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},

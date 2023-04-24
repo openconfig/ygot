@@ -9,7 +9,7 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/kylelemons/godebug v1.1.0
 	github.com/openconfig/gnmi v0.9.1
-	github.com/openconfig/goyang v1.2.0
+	github.com/openconfig/goyang v1.2.1-0.20230421221935-995a9c795f01
 	github.com/openconfig/gribi v1.0.0
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/spf13/cobra v1.7.0
@@ -37,3 +37,5 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/openconfig/goyang => /usr/local/google/home/wenbli/gocode/src/github.com/openconfig/goyang

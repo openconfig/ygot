@@ -218,7 +218,8 @@
                                             "ListAttr": {
                                                 "MinElements": 0,
                                                 "MaxElements": 18446744073709551615,
-                                                "OrderedBy": null
+                                                "OrderedBy": null,
+                                                "OrderedByUser": false
                                             }
                                         },
                                         "hold-time": {
@@ -336,7 +337,8 @@
                             "ListAttr": {
                                 "MinElements": 0,
                                 "MaxElements": 18446744073709551615,
-                                "OrderedBy": null
+                                "OrderedBy": null,
+                                "OrderedByUser": false
                             },
                             "Annotation": {
                                 "schemapath": "/openconfig-options/bgp/neighbors/neighbor",

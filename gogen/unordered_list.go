@@ -23,6 +23,17 @@ import (
 	"github.com/openconfig/ygot/ygen"
 )
 
+var (
+	// enableOrderedMap enables generation of ordered maps. This flag is
+	// used to avoid rolling out a feature that's not fully supported
+	// leading to backwards-incompatible errors, while continuing to allow
+	// development on the main branch.
+	//
+	// TODO: remove this flag when ygot supports all helpers for ordered
+	// maps.
+	enableOrderedMap bool = false
+)
+
 // generatedGoMultiKeyListStruct is used to represent a struct used as a key of a YANG list that has multiple
 // key elements.
 type generatedGoMultiKeyListStruct struct {
@@ -519,38 +530,44 @@ func generateGetListKey(buf *bytes.Buffer, s *ygen.ParsedDirectory, nameMap map[
 	return goKeyMapTemplate.Execute(buf, h)
 }
 
-// yangListFieldToGoType takes a yang.Entry (listField) and returns a string corresponding to the Go
-// type that should be used to represent it within its parent struct (the parent argument). A map, keyed
-// by schema path, of the other code entities that have been extracted within the context that the
-// listField is being generated are provided to the function as input, such that the struct representing
-// the list itself can be cross-referenced.
+// yangListFieldToGoType takes a yang node description (listField) and returns
+// a string corresponding to the Go type that should be used to represent it
+// within its parent struct (the parent argument). If applicable, it also
+// returns generated code specifications for list-associated Go types. If a
+// particular specification is not applicable, then nil is returned for that
+// type.
 //
-// In all cases, the type of list field is the struct which is defined to reference the list, used as
-// the base type. This type is then modified based on how the list is keyed:
+// In all cases, the type of list field is the struct which is defined to
+// reference the list, used as the base type. This type is then modified based
+// on how the list is keyed:
 //   - If the list is a config false, keyless list - a slice of the list's type is returned.
 //   - If the list has a single key, a map, keyed by the single key's type is returned.
 //   - If the list has multiple keys, a new struct is defined which represents the set of
 //     leaves that make up the key. The type of the list is then a map, keyed by the new struct
 //     type.
+//   - If the list has "ordered-by user", then for the single and multiple key
+//     cases, a struct that represents an ordered map keyed by the same key
+//     type as the unordered map representation described above.
 //
 // In the case that the list has multiple keys, the type generated as the key of the list is returned.
 // If errors are encountered during the type generation for the list, the error is returned.
-func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, parent *ygen.ParsedDirectory, goStructElements map[string]*ygen.ParsedDirectory) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
+func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, parent *ygen.ParsedDirectory, goStructElements map[string]*ygen.ParsedDirectory) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, *generatedOrderedMapStruct, error) {
 	// The list itself, since it is a container, has a struct associated with it. Retrieve
 	// this from the set of Directory structs for which code (a Go struct) will be
 	//  generated such that additional details can be used in the code generation.
 	listElem, ok := goStructElements[listField.YANGDetails.Path]
 	if !ok {
-		return "", nil, nil, fmt.Errorf("struct for %s did not exist", listField.YANGDetails.Path)
+		return "", nil, nil, nil, fmt.Errorf("struct for %s did not exist", listField.YANGDetails.Path)
 	}
 
 	if len(listElem.ListKeys) == 0 {
 		// Keyless list therefore represent this as a slice of pointers to
 		// the struct that represents the list element itself.
-		return fmt.Sprintf("[]*%s", listElem.Name), nil, nil, nil
+		return fmt.Sprintf("[]*%s", listElem.Name), nil, nil, nil, nil
 	}
 
 	var listType string
+	var keyType string
 	var multiListKey *generatedGoMultiKeyListStruct
 	var listKeys []goStructField
 	var listKeyStructName string
@@ -573,7 +590,7 @@ func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, pa
 	for _, keName := range listElem.ListKeyYANGNames {
 		keyType, ok := listElem.Fields[keName]
 		if !ok {
-			return "", nil, nil, fmt.Errorf("did not find type for key %s", keName)
+			return "", nil, nil, nil, fmt.Errorf("did not find type for key %s", keName)
 		}
 
 		keyField := goStructField{
@@ -594,6 +611,7 @@ func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, pa
 		// a key, so we do not need to handle the case whereby we would have to
 		// have a slice which keys the list.
 		listType = fmt.Sprintf("map[%s]*%s", listKeys[0].Type, listElem.Name)
+		keyType = listKeys[0].Type
 	default:
 		// This is a list with multiple keys, so we need to generate a new structure
 		// that represents the list key itself - this struct is described in a
@@ -607,7 +625,7 @@ func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, pa
 		if names[listKeyStructName] {
 			listKeyStructName = fmt.Sprintf("%s_%s_YANGListKey", parent.Name, listFieldName)
 			if names[listKeyStructName] {
-				return "", nil, nil, fmt.Errorf("unexpected generated list key name conflict for %s", listField.YANGDetails.Path)
+				return "", nil, nil, nil, fmt.Errorf("unexpected generated list key name conflict for %s", listField.YANGDetails.Path)
 			}
 			names[listKeyStructName] = true
 		}
@@ -618,17 +636,32 @@ func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, pa
 			Keys:          listKeys,
 		}
 		listType = fmt.Sprintf("map[%s]*%s", listKeyStructName, listElem.Name)
+		keyType = listKeyStructName
 	}
 
-	// Generate the specification for the methods that should be generated for this
-	// list, such that this can be handed to the relevant templates to generate code.
-	listMethodSpec := &generatedGoListMethod{
-		ListName:  listFieldName,
-		ListType:  listElem.Name,
-		KeyStruct: listKeyStructName,
-		Keys:      listKeys,
-		Receiver:  parent.Name,
+	var listMethodSpec *generatedGoListMethod
+	var orderedMapSpec *generatedOrderedMapStruct
+
+	if listField.YANGDetails.OrderedByUser && enableOrderedMap {
+		listType = fmt.Sprintf("%s_OrderedMap", listElem.Name)
+		// Create spec for generating ordered maps.
+		orderedMapSpec = &generatedOrderedMapStruct{
+			StructName:      listType,
+			KeyName:         keyType,
+			ListElementName: listElem.Name,
+			Keys:            listKeys,
+		}
+	} else {
+		// Generate the specification for the methods that should be generated for this
+		// list, such that this can be handed to the relevant templates to generate code.
+		listMethodSpec = &generatedGoListMethod{
+			ListName:  listFieldName,
+			ListType:  listElem.Name,
+			KeyStruct: listKeyStructName,
+			Keys:      listKeys,
+			Receiver:  parent.Name,
+		}
 	}
 
-	return listType, multiListKey, listMethodSpec, nil
+	return listType, multiListKey, listMethodSpec, orderedMapSpec, nil
 }
