@@ -10,8 +10,8 @@ runsed() {
   fi
 }
 
-go run ../../../generator/generator.go -path="." -output_file=testschema.go \
-  -package_name=testschema -generate_fakeroot -fakeroot_name=device \
+go run ../../../generator/generator.go -path="." -output_file=utestschema.go \
+  -package_name=utestschema -generate_fakeroot -fakeroot_name=device \
   -shorten_enum_leaf_names \
   -typedef_enum_with_defmod \
   -enum_suffix_for_simple_union_enums \
@@ -21,6 +21,7 @@ go run ../../../generator/generator.go -path="." -output_file=testschema.go \
   -generate_leaf_getters \
   -generate_simple_unions \
   -annotations \
-  yang/testschema.yang \
-  yang/refschema.yang
-gofmt -w -s testschema.go
+  ../yang/utestschema.yang \
+  ../yang/refschema.yang \
+  ../yang/ctestschema.yang
+gofmt -w -s utestschema.go

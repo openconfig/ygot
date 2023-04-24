@@ -1,0 +1,20 @@
+module utestschema {
+  prefix "uts";
+  namespace "urn:uts";
+
+  description
+    "utestschema contains elements that are only expected to work for the
+    uncompressed generation option.";
+
+  container target {
+    list entity {
+      key "name";
+
+      leaf name { type string; }
+    }
+  }
+
+  grouping list-config {
+    leaf key { type string; }
+  }
+}

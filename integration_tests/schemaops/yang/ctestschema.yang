@@ -1,0 +1,47 @@
+module ctestschema {
+  prefix "cts";
+  namespace "urn:cts";
+
+  description
+    "ctestschema contains elements that are compatible for compressed (and
+    therefore also uncompressed) generation options.";
+
+  container ordered-lists {
+    list ordered-list {
+      key "key";
+      ordered-by user;
+
+      leaf key { type leafref { path "../config/key"; } }
+
+      container config {
+        uses list-config;
+      }
+
+      container state {
+        config false;
+        uses list-config;
+      }
+    }
+  }
+
+  container unordered-lists {
+    list unordered-list {
+      key "key";
+
+      leaf key { type leafref { path "../config/key"; } }
+
+      container config {
+        uses list-config;
+      }
+
+      container state {
+        config false;
+        uses list-config;
+      }
+    }
+  }
+
+  grouping list-config {
+    leaf key { type string; }
+  }
+}
