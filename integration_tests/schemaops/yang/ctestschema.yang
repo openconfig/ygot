@@ -43,5 +43,31 @@ module ctestschema {
 
   grouping list-config {
     leaf key { type string; }
+    leaf value { type string; }
+  }
+
+  container ordered-multikeyed-lists {
+    list ordered-multikeyed-list {
+      key "key1 key2";
+      ordered-by user;
+
+      leaf key1 { type leafref { path "../config/key1"; } }
+      leaf key2 { type leafref { path "../config/key2"; } }
+
+      container config {
+        uses multikeyed-list-config;
+      }
+
+      container state {
+        config false;
+        uses multikeyed-list-config;
+      }
+    }
+  }
+
+  grouping multikeyed-list-config {
+    leaf key1 { type string; }
+    leaf key2 { type uint64; }
+    leaf value { type string; }
   }
 }

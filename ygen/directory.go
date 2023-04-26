@@ -255,12 +255,14 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 				t := LeafNode
 				if field.IsLeafList() {
 					t = LeafListNode
+					nd.YANGDetails.OrderedByUser = field.ListAttr.OrderedByUser
 				}
 
 				nd.Type = t
 				nd.LangType = mtype
 			case field.IsList():
 				nd.Type = ListNode
+				nd.YANGDetails.OrderedByUser = field.ListAttr.OrderedByUser
 			case util.IsAnydata(field):
 				nd.Type = AnyDataNode
 			default:

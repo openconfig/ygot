@@ -673,6 +673,9 @@ type YANGNodeDetails struct {
 	PresenceStatement *string
 	// Description contains the description of the node.
 	Description string
+	// OrderedByUser indicates whether the node has the modifier
+	// "ordered-by user".
+	OrderedByUser bool
 }
 
 // EnumeratedValueType is used to indicate the source YANG type
