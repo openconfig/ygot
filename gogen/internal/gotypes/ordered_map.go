@@ -33,6 +33,7 @@ type RoutingPolicy_PolicyDefinition struct {
 	Statement *RoutingPolicy_PolicyDefinition_Statement_OrderedMap
 }
 
+// AppendNewStatement appends a new policy statement with the given key.
 func (s *RoutingPolicy_PolicyDefinition) AppendNewStatement(key string) (*RoutingPolicy_PolicyDefinition_Statement, error) {
 	if s.Statement == nil {
 		s.Statement = &RoutingPolicy_PolicyDefinition_Statement_OrderedMap{}
@@ -40,6 +41,7 @@ func (s *RoutingPolicy_PolicyDefinition) AppendNewStatement(key string) (*Routin
 	return s.Statement.AppendNew(key)
 }
 
+// AppendStatement appends the given statement, extracting the key from the value.
 func (s *RoutingPolicy_PolicyDefinition) AppendStatement(statement *RoutingPolicy_PolicyDefinition_Statement) error {
 	if s.Statement == nil {
 		s.Statement = &RoutingPolicy_PolicyDefinition_Statement_OrderedMap{}
@@ -47,10 +49,12 @@ func (s *RoutingPolicy_PolicyDefinition) AppendStatement(statement *RoutingPolic
 	return s.Statement.Append(statement)
 }
 
+// GetStatement gets the statement with the given key.
 func (s *RoutingPolicy_PolicyDefinition) GetStatement(key string) *RoutingPolicy_PolicyDefinition_Statement {
 	return s.Statement.Get(key)
 }
 
+// DeleteStatement deletes the statement with the given key.
 func (s *RoutingPolicy_PolicyDefinition) DeleteStatement(key string) bool {
 	return s.Statement.Delete(key)
 }
