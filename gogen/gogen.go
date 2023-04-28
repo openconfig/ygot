@@ -1342,6 +1342,9 @@ func writeGoStruct(targetStruct *ygen.ParsedDirectory, goStructElements map[stri
 	}
 
 	for _, s := range associatedOrderedMapStructs {
+		if err := generateOrderedMapParentMethods(&methodBuf, s); err != nil {
+			errs = append(errs, err)
+		}
 		if err := generateOrderedMapStruct(&methodBuf, s); err != nil {
 			errs = append(errs, err)
 		}
