@@ -21,7 +21,7 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
-func checkState(t *testing.T, got, want RoutingPolicy_PolicyDefinition_Statement_OrderedMap) {
+func checkState(t *testing.T, got, want *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) {
 	t.Helper()
 	if len(want.keys) != len(want.valueMap) {
 		t.Fatalf("Invalid map: number of keys and values must match: %v", want)
@@ -46,7 +46,7 @@ func checkState(t *testing.T, got, want RoutingPolicy_PolicyDefinition_Statement
 }
 
 func TestOrderedMap(t *testing.T) {
-	var m RoutingPolicy_PolicyDefinition_Statement_OrderedMap
+	m := &RoutingPolicy_PolicyDefinition_Statement_OrderedMap{}
 
 	// Action & check: Delete prior to initialization
 	if deleted, want := m.Delete("foo"), false; deleted != want {
@@ -65,7 +65,7 @@ func TestOrderedMap(t *testing.T) {
 	}
 
 	// Check
-	checkState(t, m, RoutingPolicy_PolicyDefinition_Statement_OrderedMap{
+	checkState(t, m, &RoutingPolicy_PolicyDefinition_Statement_OrderedMap{
 		keys: []string{"foo"},
 		valueMap: map[string]*RoutingPolicy_PolicyDefinition_Statement{
 			"foo": {
@@ -84,7 +84,7 @@ func TestOrderedMap(t *testing.T) {
 	}
 
 	// Check
-	checkState(t, m, RoutingPolicy_PolicyDefinition_Statement_OrderedMap{
+	checkState(t, m, &RoutingPolicy_PolicyDefinition_Statement_OrderedMap{
 		keys: []string{"foo"},
 		valueMap: map[string]*RoutingPolicy_PolicyDefinition_Statement{
 			"foo": {
@@ -109,7 +109,7 @@ func TestOrderedMap(t *testing.T) {
 	}
 
 	// Check
-	checkState(t, m, RoutingPolicy_PolicyDefinition_Statement_OrderedMap{
+	checkState(t, m, &RoutingPolicy_PolicyDefinition_Statement_OrderedMap{
 		keys: []string{"foo", "bar"},
 		valueMap: map[string]*RoutingPolicy_PolicyDefinition_Statement{
 			"foo": {
@@ -132,7 +132,105 @@ func TestOrderedMap(t *testing.T) {
 	}
 
 	// Check
-	checkState(t, m, RoutingPolicy_PolicyDefinition_Statement_OrderedMap{
+	checkState(t, m, &RoutingPolicy_PolicyDefinition_Statement_OrderedMap{
+		keys: []string{"bar"},
+		valueMap: map[string]*RoutingPolicy_PolicyDefinition_Statement{
+			"bar": {
+				Name:         ygot.String("bar"),
+				DummyActions: []string{"reject all packets from Google"},
+			},
+		},
+	})
+}
+
+func TestOrderedMapFromParent(t *testing.T) {
+	var m RoutingPolicy_PolicyDefinition
+
+	// Action & check: Delete prior to initialization
+	if deleted, want := m.DeleteStatement("foo"), false; deleted != want {
+		t.Errorf("deleted: got %v, want %v", deleted, want)
+	}
+
+	// Action: AppendNew
+	policy, err := m.AppendNewStatement("foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Negative test
+	policy.DummyActions = append(policy.DummyActions, "accept all packets from Google")
+	if _, err := m.AppendNewStatement("foo"); err == nil {
+		t.Fatalf("Expected error due to duplicate, got %v", err)
+	}
+
+	// Check
+	checkState(t, m.Statement, &RoutingPolicy_PolicyDefinition_Statement_OrderedMap{
+		keys: []string{"foo"},
+		valueMap: map[string]*RoutingPolicy_PolicyDefinition_Statement{
+			"foo": {
+				Name:         ygot.String("foo"),
+				DummyActions: []string{"accept all packets from Google"},
+			},
+		},
+	})
+
+	// Action: Get & modify
+	policy = m.GetStatement("foo")
+	policy.DummyActions = nil
+	// Negative test
+	if policy2 := m.GetStatement("bar"); policy2 != nil {
+		t.Fatalf("Expected a nil policy since key doesn't exist, got %v", policy2)
+	}
+
+	// Check
+	checkState(t, m.Statement, &RoutingPolicy_PolicyDefinition_Statement_OrderedMap{
+		keys: []string{"foo"},
+		valueMap: map[string]*RoutingPolicy_PolicyDefinition_Statement{
+			"foo": {
+				Name: ygot.String("foo"),
+			},
+		},
+	})
+
+	// Action: Append
+	if err := m.AppendStatement(&RoutingPolicy_PolicyDefinition_Statement{
+		Name:         ygot.String("bar"),
+		DummyActions: []string{"reject all packets from Google"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	// Negative test
+	if err := m.AppendStatement(&RoutingPolicy_PolicyDefinition_Statement{
+		Name:         ygot.String("bar"),
+		DummyActions: []string{"reject all packets from Google"},
+	}); err == nil {
+		t.Fatalf("Expected error due to duplicate element, got %v", err)
+	}
+
+	// Check
+	checkState(t, m.Statement, &RoutingPolicy_PolicyDefinition_Statement_OrderedMap{
+		keys: []string{"foo", "bar"},
+		valueMap: map[string]*RoutingPolicy_PolicyDefinition_Statement{
+			"foo": {
+				Name: ygot.String("foo"),
+			},
+			"bar": {
+				Name:         ygot.String("bar"),
+				DummyActions: []string{"reject all packets from Google"},
+			},
+		},
+	})
+
+	// Action: Delete
+	if deleted, want := m.DeleteStatement("foo"), true; deleted != want {
+		t.Errorf("deleted: got %v, want %v", deleted, want)
+	}
+	// Negative test
+	if deleted, want := m.DeleteStatement("foo"), false; deleted != want {
+		t.Errorf("deleted: got %v, want %v", deleted, want)
+	}
+
+	// Check
+	checkState(t, m.Statement, &RoutingPolicy_PolicyDefinition_Statement_OrderedMap{
 		keys: []string{"bar"},
 		valueMap: map[string]*RoutingPolicy_PolicyDefinition_Statement{
 			"bar": {
