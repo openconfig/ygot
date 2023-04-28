@@ -30,7 +30,33 @@ type RoutingPolicy_PolicyDefinition struct {
 	// value is usable. This is unlike the regular unordered lists where
 	// the various helpers need to reside on the parent struct in order to
 	// avoid a nil pointer exception on the raw map type.
-	Statement RoutingPolicy_PolicyDefinition_Statement_OrderedMap
+	Statement *RoutingPolicy_PolicyDefinition_Statement_OrderedMap
+}
+
+// AppendNewStatement appends a new policy statement with the given key.
+func (s *RoutingPolicy_PolicyDefinition) AppendNewStatement(key string) (*RoutingPolicy_PolicyDefinition_Statement, error) {
+	if s.Statement == nil {
+		s.Statement = &RoutingPolicy_PolicyDefinition_Statement_OrderedMap{}
+	}
+	return s.Statement.AppendNew(key)
+}
+
+// AppendStatement appends the given statement, extracting the key from the value.
+func (s *RoutingPolicy_PolicyDefinition) AppendStatement(statement *RoutingPolicy_PolicyDefinition_Statement) error {
+	if s.Statement == nil {
+		s.Statement = &RoutingPolicy_PolicyDefinition_Statement_OrderedMap{}
+	}
+	return s.Statement.Append(statement)
+}
+
+// GetStatement gets the statement with the given key.
+func (s *RoutingPolicy_PolicyDefinition) GetStatement(key string) *RoutingPolicy_PolicyDefinition_Statement {
+	return s.Statement.Get(key)
+}
+
+// DeleteStatement deletes the statement with the given key.
+func (s *RoutingPolicy_PolicyDefinition) DeleteStatement(key string) bool {
+	return s.Statement.Delete(key)
 }
 
 // RoutingPolicy_PolicyDefinition_Statement represents an ordered-map element.
@@ -56,6 +82,9 @@ type RoutingPolicy_PolicyDefinition_Statement_OrderedMap struct {
 
 // init initializes any uninitialized values.
 func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) init() {
+	if o == nil {
+		return
+	}
 	if o.valueMap == nil {
 		o.valueMap = map[string]*RoutingPolicy_PolicyDefinition_Statement{}
 	}
@@ -63,11 +92,17 @@ func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) init() {
 
 // Keys returns a copy of the list's keys.
 func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) Keys() []string {
+	if o == nil {
+		return nil
+	}
 	return append([]string{}, o.keys...)
 }
 
 // Values returns the current set of the list's values in order.
 func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) Values() []*RoutingPolicy_PolicyDefinition_Statement {
+	if o == nil {
+		return nil
+	}
 	var values []*RoutingPolicy_PolicyDefinition_Statement
 	for _, key := range o.keys {
 		values = append(values, o.valueMap[key])
@@ -77,18 +112,27 @@ func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) Values() []*Routin
 
 // Len returns a size of RoutingPolicy_PolicyDefinition_Statement_OrderedMap
 func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) Len() int {
+	if o == nil {
+		return 0
+	}
 	return len(o.keys)
 }
 
 // Get returns the value corresponding to the key. If the key is not found, nil
 // is returned.
 func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) Get(key string) *RoutingPolicy_PolicyDefinition_Statement {
+	if o == nil {
+		return nil
+	}
 	val, _ := o.valueMap[key]
 	return val
 }
 
 // Delete deletes an element -- this is O(n) to keep the simple implementation.
 func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) Delete(key string) bool {
+	if o == nil {
+		return false
+	}
 	if _, ok := o.valueMap[key]; !ok {
 		return false
 	}
@@ -105,6 +149,9 @@ func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) Delete(key string)
 // Append appends a policy statement, returning an error if the statement
 // already exists or if the key is unspecified.
 func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) Append(statement *RoutingPolicy_PolicyDefinition_Statement) error {
+	if o == nil {
+		return errors.New("nil ordered map, cannot append statement")
+	}
 	if statement == nil {
 		return errors.New("nil statement")
 	}
@@ -125,6 +172,9 @@ func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) Append(statement *
 // newly-initialized statement. It returns an error if the statement already
 // exists.
 func (o *RoutingPolicy_PolicyDefinition_Statement_OrderedMap) AppendNew(key string) (*RoutingPolicy_PolicyDefinition_Statement, error) {
+	if o == nil {
+		return nil, errors.New("nil ordered map, cannot append new statement")
+	}
 	if _, ok := o.valueMap[key]; ok {
 		return nil, fmt.Errorf("duplicate key for list Statement %v", key)
 	}
