@@ -3945,6 +3945,21 @@ func TestKeyValueAsString(t *testing.T) {
 }
 
 func TestEncodeTypedValue(t *testing.T) {
+	getOrderedMap := func() *OrderedMap {
+		orderedMap := &OrderedMap{}
+		v, err := orderedMap.AppendNew("foo")
+		if err != nil {
+			t.Error(err)
+		}
+		v.Value = String("foo-val")
+		v, err = orderedMap.AppendNew("bar")
+		if err != nil {
+			t.Error(err)
+		}
+		v.Value = String("bar-val")
+		return orderedMap
+	}
+
 	tests := []struct {
 		name             string
 		inVal            interface{}
@@ -4053,6 +4068,45 @@ func TestEncodeTypedValue(t *testing.T) {
 			}},
 		},
 	}, {
+		name:  "ordered list type",
+		inVal: getOrderedMap(),
+		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonVal{[]byte(`[
+  {
+    "config": {
+      "key": "foo",
+      "value": "foo-val"
+    },
+    "key": "foo"
+  },
+  {
+    "config": {
+      "key": "bar",
+      "value": "bar-val"
+    },
+    "key": "bar"
+  }
+]`)}},
+	}, {
+		name:  "ordered list type - ietf json",
+		inVal: getOrderedMap(),
+		inEnc: gnmipb.Encoding_JSON_IETF,
+		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(`[
+  {
+    "ctestschema:config": {
+      "key": "foo",
+      "value": "foo-val"
+    },
+    "ctestschema:key": "foo"
+  },
+  {
+    "ctestschema:config": {
+      "key": "bar",
+      "value": "bar-val"
+    },
+    "ctestschema:key": "bar"
+  }
+]`)}},
+	}, {
 		name: "struct val - ietf json",
 		inVal: &ietfRenderExample{
 			F1: String("hello"),
@@ -4122,8 +4176,8 @@ func TestEncodeTypedValue(t *testing.T) {
 				t.Fatalf("did not get expected error, %s", diff)
 			}
 
-			if !proto.Equal(got, tt.want) {
-				t.Fatalf("did not get expected value, got: %v, want: %v", got, tt.want)
+			if diff := cmp.Diff(tt.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("(-want, +got)\n%s", diff)
 			}
 		})
 	}
