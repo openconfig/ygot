@@ -1426,15 +1426,15 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 			// This is an ordered-map for YANG "ordered-by user" lists.
 			valuesMethod := field.MethodByName("Values")
 			if !valuesMethod.IsValid() || valuesMethod.IsZero() {
-				return nil, fmt.Errorf("Did not find Values() method on type: %v", field.Type().Name())
+				return nil, fmt.Errorf("did not find Values() method on type: %v", field.Type().Name())
 			}
 			ret := valuesMethod.Call(nil)
 			if got, wantReturnN := len(ret), 1; got != wantReturnN {
-				return nil, fmt.Errorf("Values() method doesn't have expected number of return values, got %v, want %v", got, wantReturnN)
+				return nil, fmt.Errorf("method Values() doesn't have expected number of return values, got %v, want %v", got, wantReturnN)
 			}
 			values := ret[0]
 			if gotKind := values.Type().Kind(); gotKind != reflect.Slice {
-				return nil, fmt.Errorf("Values() method did not return a slice value, got %v", gotKind)
+				return nil, fmt.Errorf("method Values() did not return a slice value, got %v", gotKind)
 			}
 			return jsonValue(values, parentMod, args)
 		}
