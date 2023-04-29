@@ -4265,6 +4265,21 @@ func TestFindUpdatedLeaves(t *testing.T) {
 }
 
 func TestMarshal7951(t *testing.T) {
+	getOrderedMap := func() *OrderedMap {
+		orderedMap := &OrderedMap{}
+		v, err := orderedMap.AppendNew("foo")
+		if err != nil {
+			t.Error(err)
+		}
+		v.Value = String("foo-val")
+		v, err = orderedMap.AppendNew("bar")
+		if err != nil {
+			t.Error(err)
+		}
+		v.Value = String("bar-val")
+		return orderedMap
+	}
+
 	tests := []struct {
 		desc             string
 		in               interface{}
@@ -4380,6 +4395,16 @@ func TestMarshal7951(t *testing.T) {
 		desc: "float type",
 		in:   &renderExample{FloatVal: Float64(42.42)},
 		want: `{"floatval":"42.42"}`,
+	}, {
+		desc: "container with ordered list",
+		in: &mapStructTestOne{
+			OrderedList: getOrderedMap(),
+		},
+		want: `{"ordered-lists":{"ordered-list":[{"config":{"key":"foo","value":"foo-val"},"key":"foo"},{"config":{"key":"bar","value":"bar-val"},"key":"bar"}]}}`,
+	}, {
+		desc: "ordered list",
+		in:   getOrderedMap(),
+		want: `[{"config":{"key":"foo","value":"foo-val"},"key":"foo"},{"config":{"key":"bar","value":"bar-val"},"key":"bar"}]`,
 	}, {
 		desc: "indentation requested",
 		in: &renderExample{
