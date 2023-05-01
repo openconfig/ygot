@@ -601,27 +601,67 @@ func KeyValueAsString(v interface{}) (string, error) {
 
 	switch kv.Kind() {
 	case reflect.Int:
-		return strconv.Itoa(v.(int)), nil
+		if val, ok := v.(int); ok {
+			return strconv.Itoa(int(val)), nil
+		}
+
+		return fmt.Sprintf("%d", v), nil
 	case reflect.Int8:
-		return strconv.Itoa(int(v.(int8))), nil
+		if val, ok := v.(int8); ok {
+			return strconv.Itoa(int(val)), nil
+		}
+
+		return fmt.Sprintf("%d", v), nil
 	case reflect.Int16:
-		return strconv.Itoa(int(v.(int16))), nil
+		if val, ok := v.(int16); ok {
+			return strconv.FormatInt(int64(val), 10), nil
+		}
+
+		return fmt.Sprintf("%d", v), nil
 	case reflect.Int32:
-		return strconv.Itoa(int(v.(int32))), nil
+		if val, ok := v.(int32); ok {
+			return strconv.FormatInt(int64(val), 10), nil
+		}
+
+		return fmt.Sprintf("%d", v), nil
 	case reflect.Uint:
-		return strconv.FormatUint(uint64(v.(uint)), 10), nil
+		if val, ok := v.(uint); ok {
+			return strconv.FormatUint(uint64(val), 10), nil
+		}
+
+		return fmt.Sprintf("%d", v), nil
 	case reflect.Uint8:
-		return strconv.FormatUint(uint64(v.(uint8)), 10), nil
+		if val, ok := v.(uint8); ok {
+			return strconv.FormatUint(uint64(val), 10), nil
+		}
+
+		return fmt.Sprintf("%d", v), nil
 	case reflect.Uint16:
-		return strconv.FormatUint(uint64(v.(uint16)), 10), nil
+		if val, ok := v.(uint16); ok {
+			return strconv.FormatUint(uint64(val), 10), nil
+		}
+
+		return fmt.Sprintf("%d", v), nil
 	case reflect.Uint32:
-		return strconv.FormatUint(uint64(v.(uint32)), 10), nil
+		if val, ok := v.(uint32); ok {
+			return strconv.FormatUint(uint64(val), 10), nil
+		}
+
+		return fmt.Sprintf("%d", v), nil
 	case reflect.Uint64:
-		return strconv.FormatUint(v.(uint64), 10), nil
+		if val, ok := v.(uint64); ok {
+			return strconv.FormatUint(uint64(val), 10), nil
+		}
+
+		return fmt.Sprintf("%d", v), nil
 	case reflect.Float64:
 		return fmt.Sprintf("%g", v), nil
 	case reflect.String:
-		return v.(string), nil
+		if val, ok := v.(string); ok {
+			return val, nil
+		}
+
+		return fmt.Sprintf("%s", v), nil
 	case reflect.Bool:
 		return fmt.Sprintf("%t", v), nil
 	case reflect.Ptr:
