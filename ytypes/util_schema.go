@@ -157,14 +157,14 @@ func directDescendantSchema(f reflect.StructField) (string, error) {
 	}
 
 	// Early return for performance.
-	if strings.Index(pathAnnotation, "|") == -1 && strings.Index(pathAnnotation, "/") == -1 {
+	if !strings.Contains(pathAnnotation, "|") && !strings.Contains(pathAnnotation, "/") {
 		return pathAnnotation, nil
 	}
 
 	paths := strings.Split(pathAnnotation, "|")
 
 	for _, pth := range paths {
-		if strings.Index(pth, "/") == -1 {
+		if !strings.Contains(pth, "/") {
 			return pth, nil
 		}
 	}

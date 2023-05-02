@@ -31,7 +31,7 @@ func SchemaPaths(f reflect.StructField) ([][]string, error) {
 	}
 
 	// Early return for performance.
-	if strings.Index(pathTag, "|") == -1 {
+	if !strings.Contains(pathTag, "|") {
 		return [][]string{stripModulePrefixes(strings.Split(pathTag, "/"))}, nil
 	}
 
@@ -131,7 +131,7 @@ func relativeSchemaPath(f reflect.StructField, preferShadowPath bool) ([]string,
 		return nil, fmt.Errorf("field %s did not specify a shadow-path", f.Name)
 	}
 
-	if strings.Index(pathTag, "|") == -1 {
+	if !strings.Contains(pathTag, "|") {
 		pathTag = strings.TrimPrefix(pathTag, "/")
 		return strings.Split(pathTag, "/"), nil
 	}
