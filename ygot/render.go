@@ -1240,10 +1240,10 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 		//
 		// Currently, this shortcut only handles cases when not prepending the module name
 		// and not having a "|" separator in the path tag.
-		if prependmods == nil && strings.Index(pathAnnotation, "|") == -1 {
+		if prependmods == nil && !strings.Contains(pathAnnotation, "|") {
 			parent := jsonout
 
-			if strings.Index(pathAnnotation, "/") == -1 {
+			if !strings.Contains(pathAnnotation, "/") {
 				parent[pathAnnotation] = value
 				continue
 			}
@@ -1392,9 +1392,9 @@ func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (inte
 			}
 
 			var kn string
-			switch keyval.(type) {
+			switch keyval := keyval.(type) {
 			case string:
-				kn = keyval.(string)
+				kn = keyval
 			default:
 				kn = fmt.Sprintf("%v", keyval)
 			}

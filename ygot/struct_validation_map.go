@@ -83,7 +83,7 @@ func structTagToLibPaths(mapPaths []*gnmiPath, f reflect.StructField, parentPath
 // Note: the mapPaths input is modified in-place.
 func pathAnnotationToLibPaths(mapPaths []*gnmiPath, pathAnnotation string, parentPath *gnmiPath) (int, error) {
 	var tagPaths []string
-	if strings.Index(pathAnnotation, "|") == -1 {
+	if !strings.Contains(pathAnnotation, "|") {
 		tagPaths = []string{pathAnnotation}
 	} else {
 		tagPaths = strings.Split(pathAnnotation, "|")
@@ -91,7 +91,7 @@ func pathAnnotationToLibPaths(mapPaths []*gnmiPath, pathAnnotation string, paren
 
 	for idx, p := range tagPaths {
 		var pSplit []string
-		if strings.Index(p, "/") == -1 {
+		if !strings.Contains(p, "/") {
 			pSplit = []string{p}
 		} else {
 			pSplit = strings.Split(p, "/")
@@ -152,7 +152,7 @@ func structTagToLibModules(f reflect.StructField, preferShadowPath bool) ([]*gnm
 	var mapModules []*gnmiPath
 
 	var moduleSplit []string
-	if strings.Index(moduleAnnotation, "|") == -1 {
+	if !strings.Contains(moduleAnnotation, "|") {
 		moduleSplit = append(moduleSplit, moduleAnnotation)
 	} else {
 		moduleSplit = strings.Split(moduleAnnotation, "|")
