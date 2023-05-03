@@ -830,6 +830,10 @@ func TestStripModulePrefix(t *testing.T) {
 		desc:     "empty string",
 		inName:   "",
 		wantName: "",
+	}, {
+		desc:     "a single `:`",
+		inName:   ":",
+		wantName: "",
 	}}
 
 	for _, tt := range tests {

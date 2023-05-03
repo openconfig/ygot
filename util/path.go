@@ -348,7 +348,7 @@ func stripModulePrefixWithCheck(name string) (string, error) {
 // where remote paths are referenced.
 func StripModulePrefix(name string) string {
 	for i, r := range name {
-		if r == ':' && len(name) > i+1 {
+		if r == ':' {
 			return name[i+1:]
 		}
 	}
