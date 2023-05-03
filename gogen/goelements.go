@@ -660,6 +660,11 @@ func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, 
 			}
 		}
 
+		// Underscores are not allowed in the value, although `strconv` allows them in certain formats.
+		if strings.Contains(value, "_") {
+			return "", yang.Ynone, fmt.Errorf("default value conversion: `_` is not allowed in the value %s", value)
+		}
+
 		if signed {
 			val, err := strconv.ParseInt(value, 0, bits)
 			if err != nil {

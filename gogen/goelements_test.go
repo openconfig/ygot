@@ -1590,6 +1590,11 @@ func TestYangDefaultValueToGo(t *testing.T) {
 		wantKind:      yang.Yint16,
 		wantUnionName: "UnionInt16(-129)",
 	}, {
+		name:    "int16 (integer literal -- disallowed)",
+		inType:  &yang.YangType{Kind: yang.Yint16},
+		inValue: "10_000",
+		wantErr: true,
+	}, {
 		name:          "int32",
 		inType:        &yang.YangType{Kind: yang.Yint32},
 		inValue:       "8",
