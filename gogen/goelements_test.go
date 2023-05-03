@@ -1578,6 +1578,11 @@ func TestYangDefaultValueToGo(t *testing.T) {
 		inValue: "-129",
 		wantErr: true,
 	}, {
+		name:    "int8 (empty value)",
+		inType:  &yang.YangType{Kind: yang.Yuint8},
+		inValue: "",
+		wantErr: true,
+	}, {
 		name:          "int16",
 		inType:        &yang.YangType{Kind: yang.Yint16},
 		inValue:       "-129",
@@ -1889,6 +1894,11 @@ func TestYangDefaultValueToGo(t *testing.T) {
 		name:    "uint8 (octal with a `-` sign -- invalid syntax)",
 		inType:  &yang.YangType{Kind: yang.Yuint8},
 		inValue: "-042",
+		wantErr: true,
+	}, {
+		name:    "int8 (binary format -- disallowed)",
+		inType:  &yang.YangType{Kind: yang.Yuint8},
+		inValue: "0b01",
 		wantErr: true,
 	}, {
 		name:    "decimal64",

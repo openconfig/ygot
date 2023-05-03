@@ -643,6 +643,23 @@ func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, 
 			return "", yang.Ynone, err
 		}
 
+		// Check if the value is an empty string.
+		if len(value) == 0 {
+			return "", yang.Ynone, fmt.Errorf("default value conversion: empty value")
+		}
+
+		// When the default value of int/uint is not base-10, check if the base should be supported according to
+		// https://datatracker.ietf.org/doc/html/rfc7950#section-9.2.1
+		//
+		// When the first character in the value is `0`, the value could be hexadecimal, octal or binary. While hexadecimal
+		// and octal values are supported (with an optional sign prefix), binary is not allowed by the RFC. The format support
+		// of `strconv.ParseInt/ParseUint` functions should be further constrained.
+		if value[0] == '0' {
+			if len(value) > 1 && (value[1] == 'b' || value[1] == 'B') {
+				return "", yang.Ynone, fmt.Errorf("default value conversion: base 2 value `%s` is not allowed", value)
+			}
+		}
+
 		if signed {
 			val, err := strconv.ParseInt(value, 0, bits)
 			if err != nil {
