@@ -346,18 +346,21 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 	schemaKeyMap := map[string]string{}
 
 	// Reduce FieldByName calls in the loop and reduce Field calls and tag lookup calls in the loop.
-	if listKeyT.Kind() == reflect.Struct {
+	if util.IsTypeStruct(listKeyT) {
 		for i := 0; i < listKeyT.NumField(); i++ {
 			fieldName := listKeyT.Field(i).Name
-			if elem, ok := listElemT.Elem().FieldByName(fieldName); ok {
-				schemaKey, err := directDescendantSchema(elem)
-				if err != nil {
-					return nil, status.Errorf(codes.Unknown, "unable to get direct descendant schema name for %v: %v", schemaKey, err)
-				}
 
-				schemaKeyMap[fieldName] = schemaKey
+			elem, ok := listElemT.Elem().FieldByName(fieldName)
+			if !ok {
+				return nil, status.Errorf(codes.NotFound, "element struct type %v does not contain key field %s", listElemT, fieldName)
 			}
 
+			schemaKey, err := directDescendantSchema(elem)
+			if err != nil {
+				return nil, status.Errorf(codes.Unknown, "unable to get direct descendant schema name for %v: %v", schemaKey, err)
+			}
+
+			schemaKeyMap[fieldName] = schemaKey
 			listKeyFieldNameMap[i] = fieldName
 		}
 	}
@@ -436,7 +439,7 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 
 			schemaKey, ok := schemaKeyMap[fieldName]
 			if !ok {
-				return nil, status.Errorf(codes.NotFound, "element struct type %v does not contain key field %s", listElemT, fieldName)
+				return nil, status.Errorf(codes.Internal, "element struct type %v does not contain key field %s", listElemT, fieldName)
 			}
 
 			pathKey, ok := path.GetElem()[0].GetKey()[schemaKey]
