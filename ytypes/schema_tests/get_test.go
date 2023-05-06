@@ -182,7 +182,7 @@ func TestGetNodeFull(t *testing.T) {
 			return d
 		}(),
 		inSchema:         rootSchema,
-		inPath:           mustPath("/interfaces/interface[name=eth3]"),
+		inPath:           mustPath("/interfaces/interface[name=eth0]"),
 		wantErrSubstring: "NotFound",
 	}}
 
