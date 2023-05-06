@@ -240,7 +240,7 @@ func (c *NodeCache) get(path *gpb.Path) ([]*TreeNode, error) {
 
 	if nodeInfo, ok := c.store[pathRep]; ok {
 		ret := nodeInfo.nodes
-		if ret == nil || len(ret) == 0 {
+		if len(ret) == 0 {
 			return nil, status.Error(codes.NotFound, "cache: no node was found.")
 		} else if util.IsValueNil(ret[0].Data) {
 			return nil, status.Error(codes.NotFound, "cache: nil value node was found.")
