@@ -116,7 +116,7 @@ func retrieveNode(schema *yang.Entry, parent, root interface{}, path, traversedP
 		}}
 
 		if args.nodeCache != nil && traversedPath != nil && parent != nil && root != nil {
-			args.nodeCache.update(nodes, nil, traversedPath, parent, root, args.uniquePathRepresentation)
+			args.nodeCache.update(nodes, path, traversedPath, parent, root, args.uniquePathRepresentation)
 		}
 		return nodes, nil
 	case util.IsValueNil(root):

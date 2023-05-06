@@ -100,9 +100,7 @@ func (c *NodeCache) set(path *gpb.Path, val interface{}, opts ...SetNodeOpt) (se
 	root := &nodeInfo.root
 
 	// Set value in the config tree.
-	switch {
-	case val.(*gpb.TypedValue).GetJsonIetfVal() != nil:
-	default:
+	if val.(*gpb.TypedValue).GetJsonIetfVal() == nil {
 		var encoding Encoding
 		var options []UnmarshalOpt
 		if hasSetNodePreferShadowPath(opts) {
@@ -217,7 +215,7 @@ func (c *NodeCache) delete(path *gpb.Path) {
 
 	keysToDelete := []string{}
 	for k := range c.store {
-		if strings.Contains(k, nodePath) {
+		if strings.Contains(k, nodePath) || strings.HasSuffix(nodePath, k) {
 			keysToDelete = append(keysToDelete, k)
 		}
 	}

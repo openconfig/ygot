@@ -72,7 +72,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-2"},
 		},
 		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantNode: &ytypes.TreeNode{
@@ -114,7 +114,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-2"},
 		},
 		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantNode: &ytypes.TreeNode{
@@ -163,7 +163,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_UintVal{5},
+			Value: &gpb.TypedValue_UintVal{UintVal: 5},
 		},
 		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantNode: &ytypes.TreeNode{
@@ -212,7 +212,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-2"},
 		},
 		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantNode: &ytypes.TreeNode{
@@ -254,7 +254,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-2"},
 		},
 		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantNode: &ytypes.TreeNode{
@@ -297,7 +297,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-2"},
 		},
 		inOpts:           []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantErrSubstring: "no match found",
@@ -310,7 +310,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_IntVal{42},
+			Value: &gpb.TypedValue_IntVal{IntVal: 42},
 		},
 		wantErrSubstring: "no match found",
 	}, {
@@ -326,7 +326,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_UintVal{42},
+			Value: &gpb.TypedValue_UintVal{UintVal: 42},
 		},
 		inOpts:           []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantErrSubstring: "failed to unmarshal",
