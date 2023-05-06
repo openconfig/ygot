@@ -870,6 +870,17 @@ func hasDelNodePreferShadowPath(opts []DelNodeOpt) bool {
 	return false
 }
 
+// findNodeCache finds the `NodeCacheOpt` and returns the node cache pointer inside of
+// the `NodeCacheOpt`. If no `NodeCacheOpt` is found, nil is returned.
+func findNodeCache(opts []DelNodeOpt) *NodeCache {
+	for _, o := range opts {
+		if nodeCacheOpt, ok := o.(*NodeCacheOpt); ok {
+			return nodeCacheOpt.NodeCache
+		}
+	}
+	return nil
+}
+
 // DeleteNode zeroes the value of the node specified by the supplied path from
 // the specified root, whose schema must also be supplied. If the node
 // specified by that path is already its zero value, or an intermediate node
@@ -883,6 +894,7 @@ func DeleteNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...De
 	_, err := retrieveNode(schema, nil, root, path, nil, retrieveNodeArgs{
 		delete:           true,
 		preferShadowPath: hasDelNodePreferShadowPath(opts),
+		nodeCache:        findNodeCache(opts),
 	})
 
 	return err

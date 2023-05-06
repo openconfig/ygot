@@ -63,6 +63,7 @@ func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, opts ...UnmarshalO
 			updateOpts = append(updateOpts, &IgnoreExtraFields{})
 		case *NodeCacheOpt:
 			getOrCreateOpts = append(getOrCreateOpts, o)
+			deleteOpts = append(deleteOpts, o)
 			updateOpts = append(updateOpts, o)
 		}
 	}

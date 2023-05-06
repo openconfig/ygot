@@ -19,7 +19,7 @@ import (
 // noticeable performance boosts on a busy server that calls functions such as `SetNode`
 // and `GetNode` frequently.
 //
-// Passing in the reference of the `node cache` could prevent making the `ytypes` package
+// Passing in the pointer of the `node cache` would prevent making the `ytypes` package
 // stateful. The applications that use the `ytypes` package maintain the `node cache`.
 type NodeCacheOpt struct {
 	NodeCache *NodeCache
@@ -37,6 +37,9 @@ func (*NodeCacheOpt) IsUnmarshalOpt() {}
 // IsGetOrCreateNodeOpt implements the GetOrCreateNodeOpt interface.
 func (*NodeCacheOpt) IsGetOrCreateNodeOpt() {}
 
+// IsDelNodeOpt implements the DelNodeOpt interface.
+func (*NodeCacheOpt) IsDelNodeOpt() {}
+
 // cachedNodeInfo is used to provide shortcuts to making operations
 // to the nodes without having to traverse the config tree for every operation.
 type cachedNodeInfo struct {
@@ -47,15 +50,15 @@ type cachedNodeInfo struct {
 
 // NodeCache is a thread-safe struct that's used for providing fast-paths for config tree traversals.
 type NodeCache struct {
-	store map[string]*cachedNodeInfo
 	mu    *sync.RWMutex
+	store map[string]*cachedNodeInfo
 }
 
 // NewNodeCache returns the pointer of a new `NodeCache` instance.
 func NewNodeCache() *NodeCache {
 	return &NodeCache{
-		store: map[string]*cachedNodeInfo{},
 		mu:    &sync.RWMutex{},
+		store: map[string]*cachedNodeInfo{},
 	}
 }
 
