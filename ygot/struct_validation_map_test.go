@@ -290,24 +290,14 @@ func TestStructTagToLibPaths(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		func() {
-			mapPaths := mapPathsPool.Get().([]*gnmiPath)
-			defer mapPathsPool.Put(mapPaths)
+		got, err := structTagToLibPaths(tt.inField, tt.inParent, tt.inPreferShadowPath)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: structTagToLibPaths(%v, %v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, tt.inPreferShadowPath, err, tt.wantErr)
+		}
 
-			n, err := structTagToLibPaths(mapPaths, tt.inField, tt.inParent, tt.inPreferShadowPath)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("%s: structTagToLibPaths(%v, %v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, tt.inPreferShadowPath, err, tt.wantErr)
-			}
-
-			var p []*gnmiPath = nil
-			if n > 0 {
-				p = mapPaths[:n]
-			}
-
-			if diff := cmp.Diff(tt.want, p, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
-				t.Errorf("%s: structTagToLibPaths(%v, %v, %v): did not get expected set of map paths, diff(-want, +got):\n%s", tt.name, tt.inField, tt.inParent, tt.inPreferShadowPath, diff)
-			}
-		}()
+		if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
+			t.Errorf("%s: structTagToLibPaths(%v, %v, %v): did not get expected set of map paths, diff(-want, +got):\n%s", tt.name, tt.inField, tt.inParent, tt.inPreferShadowPath, diff)
+		}
 	}
 }
 
