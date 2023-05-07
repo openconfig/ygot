@@ -7,7 +7,6 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
 
-	"github.com/openconfig/gnmi/proto/gnmi"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -481,8 +480,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 			`{"name":"key1"}`: {
 				nodes: []*TreeNode{{
 					Data: func(s string) *string { return &s }("hello"),
-					Path: &gnmi.Path{
-						Elem: []*gnmi.PathElem{{Name: "key1"}},
+					Path: &gpb.Path{
+						Elem: []*gpb.PathElem{{Name: "key1"}},
 					},
 				}},
 			},
@@ -492,8 +491,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 						Data: &InnerContainerType1{
 							Int32LeafListName: []int32{42},
 						},
-						Path: &gnmi.Path{
-							Elem: []*gnmi.PathElem{
+						Path: &gpb.Path{
+							Elem: []*gpb.PathElem{
 								{Name: "outer"},
 								{Name: "inner"},
 							},
@@ -533,8 +532,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 			`{"name":"key1"}`: {
 				nodes: []*TreeNode{{
 					Data: func(s string) *string { return &s }("hello"),
-					Path: &gnmi.Path{
-						Elem: []*gnmi.PathElem{{Name: "key1"}},
+					Path: &gpb.Path{
+						Elem: []*gpb.PathElem{{Name: "key1"}},
 					},
 				}},
 			},
@@ -544,8 +543,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 						Data: &InnerContainerType1{
 							Int32LeafListName: []int32{43},
 						},
-						Path: &gnmi.Path{
-							Elem: []*gnmi.PathElem{
+						Path: &gpb.Path{
+							Elem: []*gpb.PathElem{
 								{Name: "outer"},
 								{Name: "inner"},
 							},
@@ -586,8 +585,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 			`{"name":"key1"}`: {
 				nodes: []*TreeNode{{
 					Data: func(s string) *string { return &s }("hello"),
-					Path: &gnmi.Path{
-						Elem: []*gnmi.PathElem{{Name: "key1"}},
+					Path: &gpb.Path{
+						Elem: []*gpb.PathElem{{Name: "key1"}},
 					},
 				}},
 			},
@@ -597,8 +596,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 						Data: &InnerContainerType1{
 							Int32LeafListName: []int32{41},
 						},
-						Path: &gnmi.Path{
-							Elem: []*gnmi.PathElem{
+						Path: &gpb.Path{
+							Elem: []*gpb.PathElem{
 								{Name: "outer"},
 								{Name: "inner"},
 							},
@@ -642,8 +641,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 			`{"name":"key1"}`: {
 				nodes: []*TreeNode{{
 					Data: func(s string) *string { return &s }("hello"),
-					Path: &gnmi.Path{
-						Elem: []*gnmi.PathElem{{Name: "key1"}},
+					Path: &gpb.Path{
+						Elem: []*gpb.PathElem{{Name: "key1"}},
 					},
 				}},
 			},
@@ -654,8 +653,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 							Int32LeafListName: []int32{40},
 							StringLeafName:    func(s string) *string { return &s }("foo"),
 						},
-						Path: &gnmi.Path{
-							Elem: []*gnmi.PathElem{
+						Path: &gpb.Path{
+							Elem: []*gpb.PathElem{
 								{Name: "outer"},
 								{Name: "inner"},
 							},
@@ -667,8 +666,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 				nodes: []*TreeNode{
 					{
 						Data: func(s string) *string { return &s }("foo"),
-						Path: &gnmi.Path{
-							Elem: []*gnmi.PathElem{
+						Path: &gpb.Path{
+							Elem: []*gpb.PathElem{
 								{Name: "outer"},
 								{Name: "inner"},
 								{Name: "string-leaf-field"},
@@ -694,8 +693,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 			`{"name":"key1"}`: {
 				nodes: []*TreeNode{{
 					Data: func(s string) *string { return &s }("hello"),
-					Path: &gnmi.Path{
-						Elem: []*gnmi.PathElem{{Name: "key1"}},
+					Path: &gpb.Path{
+						Elem: []*gpb.PathElem{{Name: "key1"}},
 					},
 				}},
 			},
@@ -731,8 +730,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 			`{"name":"key1"}`: {
 				nodes: []*TreeNode{{
 					Data: func(s string) *string { return &s }("world"),
-					Path: &gnmi.Path{
-						Elem: []*gnmi.PathElem{{Name: "key1"}},
+					Path: &gpb.Path{
+						Elem: []*gpb.PathElem{{Name: "key1"}},
 					},
 				}},
 			},
@@ -740,8 +739,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 				nodes: []*TreeNode{
 					{
 						Data: func(val int32) *int32 { return &val }(42),
-						Path: &gnmi.Path{
-							Elem: []*gnmi.PathElem{
+						Path: &gpb.Path{
+							Elem: []*gpb.PathElem{
 								{Name: "outer"},
 								{Name: "inner"},
 								{Name: "config"},
@@ -774,8 +773,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 			`{"name":"key1"}`: {
 				nodes: []*TreeNode{{
 					Data: func(s string) *string { return &s }("world"),
-					Path: &gnmi.Path{
-						Elem: []*gnmi.PathElem{{Name: "key1"}},
+					Path: &gpb.Path{
+						Elem: []*gpb.PathElem{{Name: "key1"}},
 					},
 				}},
 			},
@@ -783,8 +782,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 				nodes: []*TreeNode{
 					{
 						Data: func(val int32) *int32 { return &val }(42),
-						Path: &gnmi.Path{
-							Elem: []*gnmi.PathElem{
+						Path: &gpb.Path{
+							Elem: []*gpb.PathElem{
 								{Name: "outer"},
 								{Name: "inner"},
 								{Name: "config"},
@@ -830,8 +829,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 			`{"name":"key1"}`: {
 				nodes: []*TreeNode{{
 					Data: func(s string) *string { return &s }("world"),
-					Path: &gnmi.Path{
-						Elem: []*gnmi.PathElem{{Name: "key1"}},
+					Path: &gpb.Path{
+						Elem: []*gpb.PathElem{{Name: "key1"}},
 					},
 				}},
 			},
@@ -843,8 +842,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 							Int32LeafListName: []int32{40},
 							StringLeafName:    func(s string) *string { return &s }("foo"),
 						},
-						Path: &gnmi.Path{
-							Elem: []*gnmi.PathElem{
+						Path: &gpb.Path{
+							Elem: []*gpb.PathElem{
 								{Name: "outer"},
 								{Name: "inner"},
 							},
@@ -856,8 +855,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 				nodes: []*TreeNode{
 					{
 						Data: func(val int32) *int32 { return &val }(42),
-						Path: &gnmi.Path{
-							Elem: []*gnmi.PathElem{
+						Path: &gpb.Path{
+							Elem: []*gpb.PathElem{
 								{Name: "outer"},
 								{Name: "inner"},
 								{Name: "config"},
@@ -871,8 +870,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 				nodes: []*TreeNode{
 					{
 						Data: func(s string) *string { return &s }("foo"),
-						Path: &gnmi.Path{
-							Elem: []*gnmi.PathElem{
+						Path: &gpb.Path{
+							Elem: []*gpb.PathElem{
 								{Name: "outer"},
 								{Name: "inner"},
 								{Name: "string-leaf-field"},
@@ -887,7 +886,7 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 		inSchema: inSchema,
 		inReq: &gpb.SetRequest{
 			Prefix: &gpb.Path{},
-			Delete: []*gnmi.Path{mustPath("/outer/inner/config/int32-leaf-field")},
+			Delete: []*gpb.Path{mustPath("/outer/inner/config/int32-leaf-field")},
 		},
 		want: &ListElemStruct1{
 			Key1: ygot.String("world"),
@@ -902,8 +901,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 			`{"name":"key1"}`: {
 				nodes: []*TreeNode{{
 					Data: func(s string) *string { return &s }("world"),
-					Path: &gnmi.Path{
-						Elem: []*gnmi.PathElem{{Name: "key1"}},
+					Path: &gpb.Path{
+						Elem: []*gpb.PathElem{{Name: "key1"}},
 					},
 				}},
 			},
@@ -914,8 +913,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 							Int32LeafListName: []int32{40},
 							StringLeafName:    func(s string) *string { return &s }("foo"),
 						},
-						Path: &gnmi.Path{
-							Elem: []*gnmi.PathElem{
+						Path: &gpb.Path{
+							Elem: []*gpb.PathElem{
 								{Name: "outer"},
 								{Name: "inner"},
 							},
@@ -927,8 +926,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 				nodes: []*TreeNode{
 					{
 						Data: func(s string) *string { return &s }("foo"),
-						Path: &gnmi.Path{
-							Elem: []*gnmi.PathElem{
+						Path: &gpb.Path{
+							Elem: []*gpb.PathElem{
 								{Name: "outer"},
 								{Name: "inner"},
 								{Name: "string-leaf-field"},
@@ -963,8 +962,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 			`{"name":"key1"}`: {
 				nodes: []*TreeNode{{
 					Data: func(s string) *string { return &s }("world"),
-					Path: &gnmi.Path{
-						Elem: []*gnmi.PathElem{{Name: "key1"}},
+					Path: &gpb.Path{
+						Elem: []*gpb.PathElem{{Name: "key1"}},
 					},
 				}},
 			},
@@ -976,8 +975,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 							StringLeafName:    func(s string) *string { return &s }("bar"),
 						},
 					},
-					Path: &gnmi.Path{
-						Elem: []*gnmi.PathElem{{Name: "outer"}},
+					Path: &gpb.Path{
+						Elem: []*gpb.PathElem{{Name: "outer"}},
 					},
 				}},
 			},
@@ -988,8 +987,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 							Int32LeafListName: []int32{40},
 							StringLeafName:    func(s string) *string { return &s }("bar"),
 						},
-						Path: &gnmi.Path{
-							Elem: []*gnmi.PathElem{
+						Path: &gpb.Path{
+							Elem: []*gpb.PathElem{
 								{Name: "outer"},
 								{Name: "inner"},
 							},
@@ -1001,8 +1000,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 				nodes: []*TreeNode{
 					{
 						Data: func(s string) *string { return &s }("bar"),
-						Path: &gnmi.Path{
-							Elem: []*gnmi.PathElem{
+						Path: &gpb.Path{
+							Elem: []*gpb.PathElem{
 								{Name: "inner"},
 								{Name: "string-leaf-field"},
 							},
@@ -1033,7 +1032,7 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 		inSchema: inSchema,
 		inReq: &gpb.SetRequest{
 			Prefix: &gpb.Path{},
-			Delete: []*gnmi.Path{mustPath("/outer/inner/string-leaf-field")},
+			Delete: []*gpb.Path{mustPath("/outer/inner/string-leaf-field")},
 		},
 		want: &ListElemStruct1{
 			Key1: ygot.String("world"),
@@ -1047,8 +1046,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 			`{"name":"key1"}`: {
 				nodes: []*TreeNode{{
 					Data: func(s string) *string { return &s }("world"),
-					Path: &gnmi.Path{
-						Elem: []*gnmi.PathElem{{Name: "key1"}},
+					Path: &gpb.Path{
+						Elem: []*gpb.PathElem{{Name: "key1"}},
 					},
 				}},
 			},
@@ -1059,8 +1058,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 							Int32LeafListName: []int32{40},
 						},
 					},
-					Path: &gnmi.Path{
-						Elem: []*gnmi.PathElem{{Name: "outer"}},
+					Path: &gpb.Path{
+						Elem: []*gpb.PathElem{{Name: "outer"}},
 					},
 				}},
 			},
@@ -1070,8 +1069,8 @@ func TestUnmarshalSetRequestWithNodeCache(t *testing.T) {
 						Data: &InnerContainerType1{
 							Int32LeafListName: []int32{40},
 						},
-						Path: &gnmi.Path{
-							Elem: []*gnmi.PathElem{
+						Path: &gpb.Path{
+							Elem: []*gpb.PathElem{
 								{Name: "outer"},
 								{Name: "inner"},
 							},
