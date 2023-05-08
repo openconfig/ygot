@@ -110,6 +110,18 @@ func (c *NodeCache) set(path *gpb.Path, val interface{}, opts ...SetNodeOpt) (se
 	parent := &nodeInfo.parent
 	root := &nodeInfo.root
 
+	if schema == nil {
+		err = status.Error(codes.Internal, "cache: the schema is nil")
+		c.mu.Unlock()
+		return
+	}
+
+	if parent == nil {
+		err = status.Error(codes.Internal, "cache: the parent is nil")
+		c.mu.Unlock()
+		return
+	}
+
 	// Set value in the config tree.
 	if (*schema).Parent != nil && (*schema).Parent.IsContainer() {
 		var encoding Encoding
