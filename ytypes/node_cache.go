@@ -111,7 +111,7 @@ func (c *NodeCache) set(path *gpb.Path, val interface{}, opts ...SetNodeOpt) (se
 	root := &nodeInfo.root
 
 	// Set value in the config tree.
-	if val.(*gpb.TypedValue).GetJsonIetfVal() == nil {
+	if (*schema).Parent != nil && (*schema).Parent.IsContainer() {
 		var encoding Encoding
 		var options []UnmarshalOpt
 		if hasSetNodePreferShadowPath(opts) {
@@ -129,7 +129,9 @@ func (c *NodeCache) set(path *gpb.Path, val interface{}, opts ...SetNodeOpt) (se
 		}
 
 		// This call updates the node's value in the config tree.
-		if err = unmarshalGeneric(*schema, *parent, val, encoding, options...); err != nil {
+		if e := unmarshalGeneric(*schema, *parent, val, encoding, options...); e != nil {
+			// Note: the unmarshalling could still fail in certain cases. We may not want the node cache
+			// to block the `Set` so this error is not returned.
 			c.mu.Unlock()
 			return
 		}

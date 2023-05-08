@@ -116,7 +116,16 @@ func retrieveNode(schema *yang.Entry, parent, root interface{}, path, traversedP
 		}}
 
 		if args.nodeCache != nil && traversedPath != nil && parent != nil && root != nil {
-			args.nodeCache.update(nodes, path, traversedPath, parent, root, args.uniquePathRepresentation)
+			// Note: appending to the slice will change the field's address and there is currently no good solution
+			// to work around this limitation.
+			//
+			// With the memory address being changed, the node cache will lose track of the config tree's fields'
+			// memory addresses which creates a synchronization issue in the node cache.
+			//
+			// To work around this, leaf-list and list schemas are not handled by the node cache for now.
+			if schema != nil && !schema.IsLeafList() && !schema.IsList() {
+				args.nodeCache.update(nodes, path, traversedPath, parent, root, args.uniquePathRepresentation)
+			}
 		}
 		return nodes, nil
 	case util.IsValueNil(root):
