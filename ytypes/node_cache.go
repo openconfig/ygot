@@ -70,6 +70,14 @@ func (c *NodeCache) Reset() {
 	c.store = map[string]*cachedNodeInfo{}
 }
 
+// Size returns the size of the cache (number of entries).
+func (c *NodeCache) Size() int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return len(c.store)
+}
+
 // setNodeCache uses the cached information to set the node instead of traversalling the config tree.
 // This improves runtime performance of the library.
 func (c *NodeCache) set(path *gpb.Path, val interface{}, opts ...SetNodeOpt) (setComplete bool, err error) {
