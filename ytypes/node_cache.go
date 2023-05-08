@@ -97,9 +97,12 @@ func (c *NodeCache) set(path *gpb.Path, val interface{}, opts ...SetNodeOpt) (se
 	c.mu.Lock()
 
 	// If the path was cached, use the shortcut for setting the node value.
+	// Otherwise, return and continue the rest of `SetNode`.
 	nodeInfo, ok := c.store[pathRep]
 	if !ok || len(nodeInfo.nodes) == 0 {
 		c.mu.Unlock()
+
+		// nil error is returned
 		return
 	}
 
@@ -126,11 +129,7 @@ func (c *NodeCache) set(path *gpb.Path, val interface{}, opts ...SetNodeOpt) (se
 		}
 
 		// This call updates the node's value in the config tree.
-		if e := unmarshalGeneric(*schema, *parent, val, encoding, options...); e != nil {
-			// When the node doesn't exist the unmarshal call will fail. Within the setNodeCache function this
-			// should not return an error. Instead, this should return setComplete == false to let the ygot library
-			// continue to go through the node creation process.
-			fmt.Printf("node cache - unmarshalling error: %s\n", e)
+		if err = unmarshalGeneric(*schema, *parent, val, encoding, options...); err != nil {
 			c.mu.Unlock()
 			return
 		}
@@ -162,7 +161,9 @@ func (c *NodeCache) set(path *gpb.Path, val interface{}, opts ...SetNodeOpt) (se
 
 	err = status.Errorf(
 		codes.Unknown,
-		"failed to retrieve node, value %v",
+		"failed to retrieve node, parent %T, value %v (%T)",
+		parent,
+		val,
 		val,
 	)
 
@@ -247,9 +248,9 @@ func (c *NodeCache) get(path *gpb.Path) ([]*TreeNode, error) {
 	if nodeInfo, ok := c.store[pathRep]; ok {
 		ret := nodeInfo.nodes
 		if len(ret) == 0 {
-			return nil, status.Error(codes.NotFound, "cache: no node was found.")
+			return nil, status.Error(codes.NotFound, "cache: no node was found")
 		} else if util.IsValueNil(ret[0].Data) {
-			return nil, status.Error(codes.NotFound, "cache: nil value node was found.")
+			return nil, status.Error(codes.NotFound, "cache: nil value node was found")
 		}
 
 		return ret, nil
@@ -276,7 +277,8 @@ func (c *NodeCache) get(path *gpb.Path) ([]*TreeNode, error) {
 func uniquePathRepresentation(path *gpb.Path) (string, error) {
 	b, err := json.Marshal(path.GetElem())
 	if err != nil {
-		return "", err
+		// This should never happen.
+		return "", status.Error(codes.Internal, fmt.Sprintf("cache: failed to compute unique path representation for path %v", path))
 	}
 
 	return strings.TrimRight(strings.TrimLeft(string(b), "["), "]"), nil

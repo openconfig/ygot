@@ -7,6 +7,7 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
+// TestNodeCacheSizeAndReset checks the 2 simple methods `Size` and `Reset`.
 func TestNodeCacheSizeAndReset(t *testing.T) {
 	nodeCache := NewNodeCache()
 	inSchema := &Schema{
