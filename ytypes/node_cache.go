@@ -123,7 +123,8 @@ func (c *NodeCache) set(path *gpb.Path, val interface{}, opts ...SetNodeOpt) (se
 	}
 
 	// Set value in the config tree.
-	if (*schema).Parent != nil && (*schema).Parent.IsContainer() {
+	// Condition: the parent is a container or a list.
+	if (*schema).Parent.IsContainer() || (*schema).Parent.IsList() {
 		var encoding Encoding
 		var options []UnmarshalOpt
 		if hasSetNodePreferShadowPath(opts) {
