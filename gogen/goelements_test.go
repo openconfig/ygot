@@ -1912,17 +1912,17 @@ func TestYangDefaultValueToGo(t *testing.T) {
 		wantErr: true,
 	}, {
 		name:    "int8 (binary format -- disallowed)",
-		inType:  &yang.YangType{Kind: yang.Yuint8},
+		inType:  &yang.YangType{Kind: yang.Yint8},
 		inValue: "0b01",
 		wantErr: true,
 	}, {
 		name:    "int8 (binary format with a `+` sign prefix -- disallowed)",
-		inType:  &yang.YangType{Kind: yang.Yuint8},
+		inType:  &yang.YangType{Kind: yang.Yint8},
 		inValue: "+0b01",
 		wantErr: true,
 	}, {
 		name:    "int8 (binary format with a `-` sign prefix -- disallowed)",
-		inType:  &yang.YangType{Kind: yang.Yuint8},
+		inType:  &yang.YangType{Kind: yang.Yint8},
 		inValue: "-0b01",
 		wantErr: true,
 	}, {
