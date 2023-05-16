@@ -1048,6 +1048,17 @@ func TestTogNMINotifications(t *testing.T) {
 			}},
 		}},
 	}, {
+		name:        "simple empty value leaf example",
+		inTimestamp: 42,
+		inStruct:    &renderExample{Empty: true},
+		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"empty"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}},
+			}},
+		}},
+	}, {
 		name:        "struct with invalid GoStruct map",
 		inTimestamp: 42,
 		inStruct: &renderExample{
