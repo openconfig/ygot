@@ -644,7 +644,7 @@ func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, 
 		}
 
 		// Check if the value is an empty string.
-		signStripedValue := strings.TrimRight(strings.TrimLeft(value, "-"), "+")
+		signStripedValue := strings.TrimLeft(strings.TrimLeft(value, "-"), "+")
 		if len(signStripedValue) == 0 {
 			return "", yang.Ynone, fmt.Errorf("default value conversion: empty value")
 		}
