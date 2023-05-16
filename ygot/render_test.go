@@ -1179,6 +1179,17 @@ func TestTogNMINotifications(t *testing.T) {
 			}},
 		}},
 	}, {
+		name:        "struct with empty union",
+		inTimestamp: 42,
+		inStruct:    &renderExample{UnionValSimple: testutil.YANGEmpty(false)},
+		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"union-val-simple"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{false}},
+			}},
+		}},
+	}, {
 		name:        "string with leaf-list of union",
 		inTimestamp: 42,
 		inStruct: &renderExample{
@@ -1187,6 +1198,8 @@ func TestTogNMINotifications(t *testing.T) {
 				EnumTestVALTWO,
 				testutil.UnionInt64(42),
 				testutil.UnionFloat64(3.14),
+				testutil.YANGEmpty(true),
+				testutil.YANGEmpty(false),
 			},
 		},
 		want: []*gnmipb.Notification{{
@@ -1204,6 +1217,10 @@ func TestTogNMINotifications(t *testing.T) {
 								Value: &gnmipb.TypedValue_IntVal{42},
 							}, {
 								Value: &gnmipb.TypedValue_DoubleVal{3.14},
+							}, {
+								Value: &gnmipb.TypedValue_BoolVal{true},
+							}, {
+								Value: &gnmipb.TypedValue_BoolVal{false},
 							}},
 						},
 					},
