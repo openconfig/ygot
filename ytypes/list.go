@@ -342,7 +342,19 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 			if err != nil {
 				return err
 			}
-			err = util.InsertIntoMap(parent, newKey.Interface(), newVal.Interface())
+			// First try to get the existing element.
+			// If it doesn't exist, then use the new one in order
+			// to have update, and not replace semantics.
+			val := reflect.ValueOf(parent).MapIndex(newKey)
+			if !val.IsValid() || val.IsZero() {
+				val = newVal
+			} else {
+				if err := unmarshalStruct(schema, val.Interface(), jt, enc, opts...); err != nil {
+					return err
+				}
+			}
+
+			err = util.InsertIntoMap(parent, newKey.Interface(), val.Interface())
 		case util.IsTypeSlicePtr(t):
 			err = util.InsertIntoSlice(parent, newVal.Interface())
 		default:
