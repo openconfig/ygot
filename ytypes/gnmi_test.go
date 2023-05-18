@@ -103,6 +103,85 @@ func TestUnmarshalSetRequest(t *testing.T) {
 			},
 		},
 	}, {
+		desc: "updates to a struct containing a non-empty list",
+		inSchema: &Schema{
+			Root: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName:     ygot.Int32(43),
+								Int32LeafListName: []int32{100},
+								StringLeafName:    ygot.String("bear"),
+							},
+						},
+					},
+					"forty-three": {
+						Key1: ygot.String("forty-three"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName:     ygot.Int32(43),
+								Int32LeafListName: []int32{100},
+								StringLeafName:    ygot.String("bear"),
+							},
+						},
+					},
+				},
+			},
+			SchemaTree: map[string]*yang.Entry{
+				"ContainerStruct1": containerWithStringKey(),
+			},
+		},
+		inReq: &gpb.SetRequest{
+			Prefix: &gpb.Path{},
+			Update: []*gpb.Update{{
+				Path: mustPath("/"),
+				Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{
+					JsonIetfVal: []byte(`
+{
+	"config": {
+		"simple-key-list": [
+			{
+				"key1": "forty-two",
+				"outer": {
+					"inner": {
+						"int32-leaf-list": [42]
+					}
+				}
+			}
+		]
+	}
+}
+					`),
+				}},
+			}},
+		},
+		want: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"forty-two": {
+					Key1: ygot.String("forty-two"),
+					Outer: &OuterContainerType1{
+						Inner: &InnerContainerType1{
+							Int32LeafName:     ygot.Int32(43),
+							Int32LeafListName: []int32{42},
+							StringLeafName:    ygot.String("bear"),
+						},
+					},
+				},
+				"forty-three": {
+					Key1: ygot.String("forty-three"),
+					Outer: &OuterContainerType1{
+						Inner: &InnerContainerType1{
+							Int32LeafName:     ygot.Int32(43),
+							Int32LeafListName: []int32{100},
+							StringLeafName:    ygot.String("bear"),
+						},
+					},
+				},
+			},
+		},
+	}, {
 		desc: "updates of invalid paths to non-empty struct with IgnoreExtraFields",
 		inSchema: &Schema{
 			Root: &ListElemStruct1{
