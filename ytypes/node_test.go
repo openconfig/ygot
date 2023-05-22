@@ -3265,7 +3265,7 @@ func TestRetrieveNodeError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			_, err := retrieveNode(tt.inSchema, tt.inRoot, tt.inPath, nil, tt.inArgs)
+			_, err := retrieveNode(tt.inSchema, nil, tt.inRoot, tt.inPath, nil, tt.inArgs)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("did not get expected error, %s", diff)
 			}
@@ -3375,5 +3375,902 @@ func TestRetrieveContainerListError(t *testing.T) {
 				t.Fatalf("did not get expected error, %s", diff)
 			}
 		})
+	}
+}
+
+func TestSetNodeWithNodeCache(t *testing.T) {
+	schema := simpleSchema()
+	schema2 := &yang.Entry{
+		Name: "list-elem-struct4",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"key1": {
+				Name: "key1",
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{Kind: yang.Yuint32},
+			},
+		},
+	}
+
+	containerWithStringKeySchema := containerWithStringKey()
+
+	testParent := &ListElemStruct1{}
+	testParent2 := &ListElemStruct4{}
+
+	containerWithStringKeyTestParent := &ContainerStruct1{
+		StructKeyList: map[string]*ListElemStruct1{
+			"forty-two": {
+				Key1: ygot.String("forty-two"),
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName: ygot.Int32(42),
+					},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		inDesc           string
+		inSchema         *yang.Entry
+		inParentFn       func() interface{}
+		inPath           *gpb.Path
+		inVal            interface{}
+		inValJSON        interface{}
+		inOpts           []SetNodeOpt
+		wantErrSubstring string
+		wantLeaf         interface{}
+		wantParent       interface{}
+	}{
+		{
+			inDesc:           "failed to set annotation in uninitialized node without InitMissingElements in SetNodeOpt",
+			inSchema:         schema,
+			inParentFn:       func() interface{} { return testParent },
+			inPath:           mustPath("/outer/inner/@annotation"),
+			inVal:            &ExampleAnnotation{ConfigSource: "devicedemo"},
+			wantErrSubstring: "could not find children",
+			wantParent:       &ListElemStruct1{},
+		},
+		{
+			inDesc:     "success setting string field in top node",
+			inSchema:   schema,
+			inParentFn: func() interface{} { return testParent },
+			inPath:     mustPath("/key1"),
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
+			wantLeaf:   ygot.String("hello"),
+			wantParent: &ListElemStruct1{Key1: ygot.String("hello")},
+		},
+		{
+			inDesc:     "success setting string field in top node with preferShadowPath=true where shadow-path doesn't exist",
+			inSchema:   schema,
+			inParentFn: func() interface{} { return testParent },
+			inPath:     mustPath("/key1"),
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "world"}},
+			inOpts:     []SetNodeOpt{&PreferShadowPath{}},
+			wantLeaf:   ygot.String("world"),
+			wantParent: &ListElemStruct1{Key1: ygot.String("world")},
+		},
+		{
+			inDesc:           "fail setting value for node with non-leaf schema",
+			inSchema:         schema,
+			inParentFn:       func() interface{} { return testParent },
+			inPath:           mustPath("/outer"),
+			inVal:            &gpb.TypedValue{},
+			wantErrSubstring: `path ` + (&gpb.Path{Elem: []*gpb.PathElem{{Name: "outer"}}}).String() + ` points to a node with non-leaf schema`,
+			wantParent:       &ListElemStruct1{Key1: ygot.String("world")},
+		},
+		{
+			inDesc:     "success setting annotation in top node",
+			inSchema:   schema,
+			inParentFn: func() interface{} { return testParent },
+			inPath:     mustPath("/@annotation"),
+			inVal:      &ExampleAnnotation{ConfigSource: "devicedemo"},
+			wantLeaf:   []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+			wantParent: &ListElemStruct1{
+				Key1:       ygot.String("world"),
+				Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+			},
+		},
+		{
+			inDesc:     "success setting annotation in inner node",
+			inSchema:   schema,
+			inParentFn: func() interface{} { return testParent },
+			inPath:     mustPath("/outer/inner/@annotation"),
+			inVal:      &ExampleAnnotation{ConfigSource: "devicedemo"},
+			inOpts:     []SetNodeOpt{&InitMissingElements{}},
+			wantLeaf:   []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+			wantParent: &ListElemStruct1{
+				Key1:       ygot.String("world"),
+				Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting int32 field in inner node",
+			inSchema:   schema,
+			inParentFn: func() interface{} { return testParent },
+			inPath:     mustPath("/outer/inner/int32-leaf-field"),
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+			inOpts:     []SetNodeOpt{&InitMissingElements{}},
+			wantLeaf:   ygot.Int32(42),
+			wantParent: &ListElemStruct1{
+				Key1:       ygot.String("world"),
+				Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName: ygot.Int32(42),
+						Annotation:    []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting int32 leaf list field",
+			inSchema:   schema,
+			inParentFn: func() interface{} { return testParent },
+			inPath:     mustPath("/outer/inner/int32-leaf-list"),
+			inVal: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{
+						{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+						{Value: &gpb.TypedValue_IntVal{IntVal: 43}},
+					}},
+			}},
+			inOpts:   []SetNodeOpt{&InitMissingElements{}},
+			wantLeaf: []int32{42, 43},
+			wantParent: &ListElemStruct1{
+				Key1:       ygot.String("world"),
+				Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName:     ygot.Int32(42),
+						Annotation:        []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Int32LeafListName: []int32{42, 43},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting int32 leaf list field for an existing leaf list",
+			inSchema:   schema,
+			inParentFn: func() interface{} { return testParent },
+			inPath:     mustPath("/outer/inner/int32-leaf-list"),
+			inVal: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{
+						{Value: &gpb.TypedValue_IntVal{IntVal: 43}},
+						{Value: &gpb.TypedValue_IntVal{IntVal: 44}},
+						{Value: &gpb.TypedValue_IntVal{IntVal: 45}},
+					}},
+			}},
+			wantLeaf: []int32{43, 44, 45},
+			wantParent: &ListElemStruct1{
+				Key1:       ygot.String("world"),
+				Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName:     ygot.Int32(42),
+						Annotation:        []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Int32LeafListName: []int32{43, 44, 45},
+					},
+				},
+			},
+		},
+		{
+			inDesc:           "failed to set value on invalid node",
+			inSchema:         schema,
+			inParentFn:       func() interface{} { return testParent },
+			inPath:           mustPath("/invalidkey"),
+			inVal:            ygot.String("hello"),
+			wantErrSubstring: "no match found in *ytypes.ListElemStruct1",
+			wantParent: &ListElemStruct1{
+				Key1:       ygot.String("world"),
+				Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName:     ygot.Int32(42),
+						Annotation:        []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Int32LeafListName: []int32{43, 44, 45},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "set on invalid node OK when IgnoreExtraFields set",
+			inSchema:   schema,
+			inParentFn: func() interface{} { return testParent },
+			inPath:     mustPath("/invalidkey"),
+			inVal:      ygot.String("hello"),
+			inOpts:     []SetNodeOpt{&IgnoreExtraFields{}},
+			wantLeaf:   nil,
+			wantParent: &ListElemStruct1{
+				Key1:       ygot.String("world"),
+				Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName:     ygot.Int32(42),
+						Annotation:        []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Int32LeafListName: []int32{43, 44, 45},
+					},
+				},
+			},
+		},
+		{
+			inDesc:           "failed to set value with invalid type",
+			inSchema:         schema,
+			inParentFn:       func() interface{} { return testParent },
+			inPath:           mustPath("/@annotation"),
+			inVal:            struct{ field string }{"hello"},
+			wantErrSubstring: "failed to update struct field Annotation",
+			wantParent: &ListElemStruct1{
+				Key1:       ygot.String("world"),
+				Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName:     ygot.Int32(42),
+						Annotation:        []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Int32LeafListName: []int32{43, 44, 45},
+					},
+				},
+			},
+		},
+		{
+			inDesc:           "failure setting uint field in top node with int value",
+			inSchema:         schema2,
+			inParentFn:       func() interface{} { return testParent2 },
+			inPath:           mustPath("/key1"),
+			inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+			wantErrSubstring: "failed to unmarshal",
+			wantParent:       &ListElemStruct4{},
+		},
+		{
+			inDesc:           "failure setting uint field in top node with int value with InitMissingElements",
+			inSchema:         schema2,
+			inParentFn:       func() interface{} { return testParent2 },
+			inPath:           mustPath("/key1"),
+			inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+			inOpts:           []SetNodeOpt{&InitMissingElements{}},
+			wantErrSubstring: "failed to unmarshal",
+			wantParent:       &ListElemStruct4{},
+		},
+		{
+			inDesc:     "success setting uint field in uint node with positive int value with JSON tolerance is set",
+			inSchema:   schema2,
+			inParentFn: func() interface{} { return testParent2 },
+			inPath:     mustPath("/key1"),
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+			inOpts:     []SetNodeOpt{&TolerateJSONInconsistencies{}},
+			wantLeaf:   ygot.Uint32(42),
+			wantParent: &ListElemStruct4{Key1: ygot.Uint32(42)},
+		},
+		{
+			inDesc:     "success setting uint field in uint node with 0 int value with JSON tolerance is set",
+			inSchema:   schema2,
+			inParentFn: func() interface{} { return testParent2 },
+			inPath:     mustPath("/key1"),
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 0}},
+			inOpts:     []SetNodeOpt{&TolerateJSONInconsistencies{}},
+			wantLeaf:   ygot.Uint32(0),
+			wantParent: &ListElemStruct4{Key1: ygot.Uint32(0)},
+		},
+		{
+			inDesc:           "failure setting uint field in uint node with negative int value with JSON tolerance is set",
+			inSchema:         schema2,
+			inParentFn:       func() interface{} { return testParent2 },
+			inPath:           mustPath("/key1"),
+			inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: -42}},
+			inOpts:           []SetNodeOpt{&TolerateJSONInconsistencies{}},
+			wantErrSubstring: "failed to unmarshal",
+			wantParent:       &ListElemStruct4{Key1: ygot.Uint32(0)},
+		},
+		{
+			inDesc:     "success setting annotation in list element",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/@annotation"),
+			inVal:      &ExampleAnnotation{ConfigSource: "devicedemo"},
+			wantLeaf:   []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(42),
+							},
+						},
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting already-set dual non-shadow and shadow leaf",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/int32-leaf-field"),
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 41}},
+			wantLeaf:   ygot.Int32(41),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(41),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting already-set dual non-shadow and shadow leaf",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/int32-leaf-field"),
+			inValJSON:  &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte("43")}},
+			wantLeaf:   ygot.Int32(43),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(43),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:           "fail setting with Json (non-ietf) value",
+			inSchema:         containerWithStringKeySchema,
+			inParentFn:       func() interface{} { return containerWithStringKeyTestParent },
+			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/int32-leaf-field"),
+			inValJSON:        &gpb.TypedValue{Value: &gpb.TypedValue_JsonVal{JsonVal: []byte("43")}},
+			wantErrSubstring: "json_val format is deprecated, please use json_ietf_val",
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(43),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting already-set non-shadow leaf",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/config/int32-leaf-field"),
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 41}},
+			wantLeaf:   ygot.Int32(41),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(41),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting already-set non-shadow leaf",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/config/int32-leaf-field"),
+			inValJSON:  &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte("42")}},
+			wantLeaf:   ygot.Int32(42),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(42),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success ignoring already-set shadow leaf",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/int32-leaf-field"),
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 43}},
+			inValJSON:  &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte("43")}},
+			wantLeaf:   nil,
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(42),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting non-shadow leaf",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/string-leaf-field"),
+			inOpts:     []SetNodeOpt{&InitMissingElements{}},
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "world"}},
+			wantLeaf:   ygot.String("world"),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName:  ygot.Int32(42),
+								StringLeafName: ygot.String("world"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting non-shadow leaf",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/string-leaf-field"),
+			inOpts:     []SetNodeOpt{&InitMissingElements{}},
+			inValJSON:  &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`"hello"`)}},
+			wantLeaf:   ygot.String("hello"),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName:  ygot.Int32(42),
+								StringLeafName: ygot.String("hello"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success ignore setting shadow leaf",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/string-leaf-field"),
+			inOpts:     []SetNodeOpt{&InitMissingElements{}},
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "world"}},
+			inValJSON:  &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`"world"`)}},
+			wantLeaf:   nil,
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName:  ygot.Int32(42),
+								StringLeafName: ygot.String("hello"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting already-set shadow leaf when preferShadowPath=true",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/int32-leaf-field"),
+			inOpts:     []SetNodeOpt{&PreferShadowPath{}},
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 41}},
+			wantLeaf:   ygot.Int32(41),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName:  ygot.Int32(41),
+								StringLeafName: ygot.String("hello"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting already-set shadow leaf when preferShadowPath=true",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/int32-leaf-field"),
+			inOpts:     []SetNodeOpt{&PreferShadowPath{}},
+			inValJSON:  &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte("43")}},
+			wantLeaf:   ygot.Int32(43),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName:  ygot.Int32(43),
+								StringLeafName: ygot.String("hello"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success ignoring non-shadow leaf when preferShadowPath=true",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/config/int32-leaf-field"),
+			inOpts:     []SetNodeOpt{&InitMissingElements{}, &PreferShadowPath{}},
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+			wantLeaf:   ygot.Int32(43),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName:  ygot.Int32(43),
+								StringLeafName: ygot.String("hello"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success ignoring non-shadow leaf when preferShadowPath=true",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/config/int32-leaf-field"),
+			inOpts:     []SetNodeOpt{&InitMissingElements{}, &PreferShadowPath{}},
+			inValJSON:  &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte("42")}},
+			wantLeaf:   ygot.Int32(43),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName:  ygot.Int32(43),
+								StringLeafName: ygot.String("hello"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success writing shadow leaf when preferShadowPath=true",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/string-leaf-field"),
+			inOpts:     []SetNodeOpt{&InitMissingElements{}, &PreferShadowPath{}},
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "world1"}},
+			wantLeaf:   ygot.String("world1"),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName:  ygot.Int32(43),
+								StringLeafName: ygot.String("world1"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success writing shadow leaf when preferShadowPath=true",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/string-leaf-field"),
+			inOpts:     []SetNodeOpt{&InitMissingElements{}, &PreferShadowPath{}},
+			inValJSON:  &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`"world"`)}},
+			wantLeaf:   ygot.String("world"),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName:  ygot.Int32(43),
+								StringLeafName: ygot.String("world"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:           "fail setting leaf that doesn't exist when preferShadowPath=true",
+			inSchema:         containerWithStringKeySchema,
+			inParentFn:       func() interface{} { return containerWithStringKeyTestParent },
+			inOpts:           []SetNodeOpt{&InitMissingElements{}, &PreferShadowPath{}},
+			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/INVALID-LEAF"),
+			inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
+			inValJSON:        &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`"hello"`)}},
+			wantErrSubstring: "no match found in *ytypes.InnerContainerType1",
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName:  ygot.Int32(43),
+								StringLeafName: ygot.String("world"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting struct",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/outer"),
+			inOpts:     []SetNodeOpt{&InitMissingElements{}},
+			inValJSON:  &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`{ "config": { "inner": { "config": { "int32-leaf-field": 42 } } } }`)}},
+			wantLeaf: &OuterContainerType1{
+				Inner: &InnerContainerType1{
+					Int32LeafName:  ygot.Int32(42),
+					StringLeafName: ygot.String("world"),
+				},
+			},
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName:  ygot.Int32(42),
+								StringLeafName: ygot.String("world"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:           "failure setting JSON struct with unknown field",
+			inSchema:         containerWithStringKeySchema,
+			inParentFn:       func() interface{} { return containerWithStringKeyTestParent },
+			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer"),
+			inOpts:           []SetNodeOpt{&InitMissingElements{}},
+			inValJSON:        &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`{ "config": { "inner": { "config": { "int32-leaf-field": 41, "unknown-field": 41 } } } }`)}},
+			wantErrSubstring: "JSON contains unexpected field unknown-field",
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName:  ygot.Int32(41),
+								StringLeafName: ygot.String("world"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "OK setting JSON struct with unknown field with IgnoreExtraFields",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]/outer"),
+			inOpts:     []SetNodeOpt{&InitMissingElements{}, &IgnoreExtraFields{}},
+			inValJSON:  &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`{ "config": { "inner": { "config": { "int32-leaf-field": 42, "unknown-field": 42 } } } }`)}},
+			wantLeaf: &OuterContainerType1{
+				Inner: &InnerContainerType1{
+					Int32LeafName:  ygot.Int32(42),
+					StringLeafName: ygot.String("world"),
+				},
+			},
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName:  ygot.Int32(42),
+								StringLeafName: ygot.String("world"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting list element",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/config/simple-key-list[key1=forty-two]"),
+			inOpts:     []SetNodeOpt{&InitMissingElements{}},
+			inValJSON:  &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`{ "outer": { "config": { "inner": { "config": { "int32-leaf-field": 41 } } } } }`)}},
+			wantLeaf: &ListElemStruct1{
+				Key1:       ygot.String("forty-two"),
+				Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName:  ygot.Int32(41),
+						StringLeafName: ygot.String("world"),
+					},
+				},
+			},
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName:  ygot.Int32(41),
+								StringLeafName: ygot.String("world"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting struct with a list field ignoring shadow path",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/"),
+			inOpts:     []SetNodeOpt{&InitMissingElements{}},
+			inValJSON:  &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`{ "config": { "simple-key-list": [ { "key1": "forty-two", "outer": { "config": { "inner": { "config": { "int32-leaf-field": 42 }, "state": { "int32-leaf-field": 43 } } } } } ] } }`)}},
+			wantLeaf: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(42),
+							},
+						},
+					},
+				},
+			},
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(42),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting struct with a list field unmarshalling shadow path",
+			inSchema:   containerWithStringKeySchema,
+			inParentFn: func() interface{} { return containerWithStringKeyTestParent },
+			inPath:     mustPath("/"),
+			inOpts:     []SetNodeOpt{&InitMissingElements{}, &PreferShadowPath{}},
+			inValJSON:  &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`{ "config": { "simple-key-list": [ { "key1": "forty-two", "outer": { "config": { "inner": { "config": { "int32-leaf-field": 42 }, "state": { "int32-leaf-field": 43 } } } } } ] } }`)}},
+			wantLeaf: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(43),
+							},
+						},
+					},
+				},
+			},
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(43),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Instantiate node cache.
+	nodeCache := NewNodeCache()
+
+	for _, tt := range tests {
+		for typeDesc, inVal := range map[string]interface{}{"scalar": tt.inVal, "JSON": tt.inValJSON} {
+			if inVal == nil {
+				continue
+			}
+			t.Run(tt.inDesc+" "+typeDesc, func(t *testing.T) {
+				parent := tt.inParentFn()
+				err := SetNode(tt.inSchema, parent, tt.inPath, inVal, append(tt.inOpts, &NodeCacheOpt{NodeCache: nodeCache})...)
+				if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+					t.Fatalf("got %v\nwant %v", err, tt.wantErrSubstring)
+				}
+				if diff := cmp.Diff(tt.wantParent, parent); diff != "" {
+					t.Errorf("(-wantParent, +got):\n%s", diff)
+				}
+				if err != nil {
+					return
+				}
+				if tt.wantLeaf == nil && hasIgnoreExtraFieldsSetNode(tt.inOpts) {
+					return
+				}
+
+				var getNodeOpts []GetNodeOpt
+				if hasSetNodePreferShadowPath(tt.inOpts) {
+					getNodeOpts = append(getNodeOpts, &PreferShadowPath{})
+				}
+
+				treeNode, err := GetNode(tt.inSchema, parent, tt.inPath, append(getNodeOpts, &NodeCacheOpt{NodeCache: nodeCache})...)
+				if err != nil {
+					t.Fatalf("unexpected error returned from GetNode: %v", err)
+				}
+				switch {
+				case len(treeNode) == 1:
+					// Expected case for most tests.
+					break
+				case len(treeNode) == 0 && tt.wantLeaf == nil:
+					return
+				default:
+					t.Fatalf("did not get exactly one tree node: %v", treeNode)
+				}
+				got := treeNode[0].Data
+				if diff := cmp.Diff(tt.wantLeaf, got); diff != "" {
+					t.Errorf("(-wantLeaf, +got):\n%s", diff)
+				}
+			})
+		}
 	}
 }

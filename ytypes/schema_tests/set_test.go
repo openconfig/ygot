@@ -72,7 +72,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-2"},
 		},
 		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantNode: &ytypes.TreeNode{
@@ -114,7 +114,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-2"},
 		},
 		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantNode: &ytypes.TreeNode{
@@ -163,7 +163,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_UintVal{5},
+			Value: &gpb.TypedValue_UintVal{UintVal: 5},
 		},
 		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantNode: &ytypes.TreeNode{
@@ -212,7 +212,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-2"},
 		},
 		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantNode: &ytypes.TreeNode{
@@ -254,7 +254,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-2"},
 		},
 		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantNode: &ytypes.TreeNode{
@@ -297,7 +297,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-2"},
 		},
 		inOpts:           []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantErrSubstring: "no match found",
@@ -310,7 +310,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_IntVal{42},
+			Value: &gpb.TypedValue_IntVal{IntVal: 42},
 		},
 		wantErrSubstring: "no match found",
 	}, {
@@ -326,7 +326,7 @@ func TestSet(t *testing.T) {
 			}},
 		},
 		inValue: &gpb.TypedValue{
-			Value: &gpb.TypedValue_UintVal{42},
+			Value: &gpb.TypedValue_UintVal{UintVal: 42},
 		},
 		inOpts:           []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantErrSubstring: "failed to unmarshal",
@@ -391,6 +391,294 @@ func TestSet(t *testing.T) {
 			}
 
 			got, err := ytypes.GetNode(tt.inSchema.RootSchema(), tt.inSchema.Root, tt.wantNode.Path)
+			if err != nil {
+				t.Fatalf("cannot perform get, %v", err)
+			}
+			if len(got) != 1 {
+				t.Fatalf("unexpected number of nodes, want: 1, got: %d", len(got))
+			}
+
+			opts := []cmp.Option{
+				cmpopts.IgnoreFields(ytypes.TreeNode{}, "Schema"),
+				cmp.Comparer(proto.Equal),
+			}
+
+			if !cmp.Equal(got[0], tt.wantNode, opts...) {
+				diff := cmp.Diff(tt.wantNode, got[0], opts...)
+				t.Fatalf("did not get expected node, got: %v, want: %v, diff (-want, +got):\n%s", got[0], tt.wantNode, diff)
+			}
+		})
+	}
+}
+
+func TestSetWithNodeCache(t *testing.T) {
+	inSchema := mustSchema(exampleoc.Schema)
+
+	tests := []struct {
+		desc              string
+		inSchema          *ytypes.Schema
+		inPath            *gpb.Path
+		inValue           *gpb.TypedValue
+		inOpts            []ytypes.SetNodeOpt
+		wantNode          *ytypes.TreeNode
+		wantNodeCacheSize int
+	}{{
+		desc:     "set leafref",
+		inSchema: inSchema,
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "components",
+			}, {
+				Name: "component",
+				Key: map[string]string{
+					"name": "OCH-1-2",
+				},
+			}, {
+				Name: "optical-channel",
+			}, {
+				Name: "config",
+			}, {
+				Name: "line-port",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-2"},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "components",
+				}, {
+					Name: "component",
+					Key: map[string]string{
+						"name": "OCH-1-2",
+					},
+				}, {
+					Name: "optical-channel",
+				}, {
+					Name: "config",
+				}, {
+					Name: "line-port",
+				}},
+			},
+			Data: ygot.String("XCVR-1-2"),
+		},
+		wantNodeCacheSize: 1,
+	}, {
+		desc:     "set(modify) leafref",
+		inSchema: inSchema,
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "components",
+			}, {
+				Name: "component",
+				Key: map[string]string{
+					"name": "OCH-1-2",
+				},
+			}, {
+				Name: "optical-channel",
+			}, {
+				Name: "config",
+			}, {
+				Name: "line-port",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_StringVal{StringVal: "XCVR-1-1"},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "components",
+				}, {
+					Name: "component",
+					Key: map[string]string{
+						"name": "OCH-1-2",
+					},
+				}, {
+					Name: "optical-channel",
+				}, {
+					Name: "config",
+				}, {
+					Name: "line-port",
+				}},
+			},
+			Data: ygot.String("XCVR-1-1"),
+		},
+		wantNodeCacheSize: 1,
+	}, {
+		desc:     "set list with union type",
+		inSchema: inSchema,
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "network-instances",
+			}, {
+				Name: "network-instance",
+				Key: map[string]string{
+					"name": "OCH-1-2",
+				},
+			}, {
+				Name: "afts",
+			}, {
+				Name: "mpls",
+			}, {
+				Name: "label-entry",
+				Key: map[string]string{
+					"label": "483414",
+				},
+			}, {
+				Name: "state",
+			}, {
+				Name: "next-hop-group",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_UintVal{UintVal: 5},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "network-instances",
+				}, {
+					Name: "network-instance",
+					Key: map[string]string{
+						"name": "OCH-1-2",
+					},
+				}, {
+					Name: "afts",
+				}, {
+					Name: "mpls",
+				}, {
+					Name: "label-entry",
+					Key: map[string]string{
+						"label": "483414",
+					},
+				}, {
+					Name: "state",
+				}, {
+					Name: "next-hop-group",
+				}},
+			},
+			Data: ygot.Uint64(5),
+		},
+		wantNodeCacheSize: 2,
+	}, {
+		desc:     "set(modify) list with union type",
+		inSchema: inSchema,
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "network-instances",
+			}, {
+				Name: "network-instance",
+				Key: map[string]string{
+					"name": "OCH-1-2",
+				},
+			}, {
+				Name: "afts",
+			}, {
+				Name: "mpls",
+			}, {
+				Name: "label-entry",
+				Key: map[string]string{
+					"label": "483414",
+				},
+			}, {
+				Name: "state",
+			}, {
+				Name: "next-hop-group",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_UintVal{UintVal: 6},
+		},
+		inOpts: []ytypes.SetNodeOpt{},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "network-instances",
+				}, {
+					Name: "network-instance",
+					Key: map[string]string{
+						"name": "OCH-1-2",
+					},
+				}, {
+					Name: "afts",
+				}, {
+					Name: "mpls",
+				}, {
+					Name: "label-entry",
+					Key: map[string]string{
+						"label": "483414",
+					},
+				}, {
+					Name: "state",
+				}, {
+					Name: "next-hop-group",
+				}},
+			},
+			Data: ygot.Uint64(6),
+		},
+		wantNodeCacheSize: 2,
+	}, {
+		desc:     "bad path",
+		inSchema: inSchema,
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "doesnt-exist",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_IntVal{IntVal: 42},
+		},
+		wantNodeCacheSize: 2,
+	}, {
+		desc:     "wrong type",
+		inSchema: inSchema,
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "components",
+			}, {
+				Name: "component",
+				Key: map[string]string{
+					"name": "OCH-1-2",
+				},
+			}, {
+				Name: "optical-channel",
+			}, {
+				Name: "config",
+			}, {
+				Name: "line-port",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_IntVal{IntVal: 42},
+		},
+		inOpts:            []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNodeCacheSize: 2,
+	}}
+
+	// Instantiate node cache.
+	nodeCache := ytypes.NewNodeCache()
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := ytypes.SetNode(tt.inSchema.RootSchema(), tt.inSchema.Root, tt.inPath, tt.inValue, append(tt.inOpts, &ytypes.NodeCacheOpt{NodeCache: nodeCache})...)
+			if tt.wantNode != nil && err != nil {
+				t.Fatalf("failed to set node: %s", err)
+			}
+
+			if tt.wantNodeCacheSize != nodeCache.Size() {
+				t.Fatalf("did not get expected node cache size, got: %d, want: %d\n", nodeCache.Size(), tt.wantNodeCacheSize)
+			}
+
+			if tt.wantNode == nil {
+				return
+			}
+
+			got, err := ytypes.GetNode(tt.inSchema.RootSchema(), tt.inSchema.Root, tt.wantNode.Path, &ytypes.NodeCacheOpt{NodeCache: nodeCache})
 			if err != nil {
 				t.Fatalf("cannot perform get, %v", err)
 			}

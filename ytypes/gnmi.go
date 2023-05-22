@@ -44,25 +44,44 @@ func UnmarshalNotifications(schema *Schema, ns []*gpb.Notification, opts ...Unma
 // If an error occurs during unmarshalling, schema.Root may already be
 // modified. A rollback is not performed.
 func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, opts ...UnmarshalOpt) error {
-	preferShadowPath := hasPreferShadowPath(opts)
-	ignoreExtraFields := hasIgnoreExtraFields(opts)
 	if req == nil {
 		return nil
 	}
+
+	// Use option slices instead of flags to pass options down to the function calls.
+	var getOrCreateOpts []GetOrCreateNodeOpt
+	var deleteOpts []DelNodeOpt
+	var updateOpts []SetNodeOpt
+
+	for _, opt := range opts {
+		switch o := opt.(type) {
+		case *PreferShadowPath:
+			getOrCreateOpts = append(getOrCreateOpts, &PreferShadowPath{})
+			deleteOpts = append(deleteOpts, &PreferShadowPath{})
+			updateOpts = append(updateOpts, &PreferShadowPath{})
+		case *IgnoreExtraFields:
+			updateOpts = append(updateOpts, &IgnoreExtraFields{})
+		case *NodeCacheOpt:
+			getOrCreateOpts = append(getOrCreateOpts, o)
+			deleteOpts = append(deleteOpts, o)
+			updateOpts = append(updateOpts, o)
+		}
+	}
+
 	root := schema.Root
-	node, nodeName, err := getOrCreateNode(schema.RootSchema(), root, req.Prefix, preferShadowPath)
+	node, nodeName, err := getOrCreateNode(schema.RootSchema(), root, req.Prefix, getOrCreateOpts)
 	if err != nil {
 		return err
 	}
 
 	// Process deletes, then replace, then updates.
-	if err := deletePaths(schema.SchemaTree[nodeName], node, req.Delete, preferShadowPath); err != nil {
+	if err := deletePaths(schema.SchemaTree[nodeName], node, req.Delete, deleteOpts); err != nil {
 		return err
 	}
-	if err := replacePaths(schema.SchemaTree[nodeName], node, req.Replace, preferShadowPath, ignoreExtraFields); err != nil {
+	if err := replacePaths(schema.SchemaTree[nodeName], node, req.Replace, deleteOpts, updateOpts); err != nil {
 		return err
 	}
-	if err := updatePaths(schema.SchemaTree[nodeName], node, req.Update, preferShadowPath, ignoreExtraFields); err != nil {
+	if err := updatePaths(schema.SchemaTree[nodeName], node, req.Update, updateOpts); err != nil {
 		return err
 	}
 
@@ -71,11 +90,7 @@ func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, opts ...UnmarshalO
 
 // getOrCreateNode instantiates the node at the given path, and returns that
 // node along with its name.
-func getOrCreateNode(schema *yang.Entry, goStruct ygot.GoStruct, path *gpb.Path, preferShadowPath bool) (ygot.GoStruct, string, error) {
-	var gcopts []GetOrCreateNodeOpt
-	if preferShadowPath {
-		gcopts = append(gcopts, &PreferShadowPath{})
-	}
+func getOrCreateNode(schema *yang.Entry, goStruct ygot.GoStruct, path *gpb.Path, gcopts []GetOrCreateNodeOpt) (ygot.GoStruct, string, error) {
 	// Operate at the prefix level.
 	nodeI, _, err := GetOrCreateNode(schema, goStruct, path, gcopts...)
 	if err != nil {
@@ -90,12 +105,7 @@ func getOrCreateNode(schema *yang.Entry, goStruct ygot.GoStruct, path *gpb.Path,
 }
 
 // deletePaths deletes a slice of paths from the given GoStruct.
-func deletePaths(schema *yang.Entry, goStruct ygot.GoStruct, paths []*gpb.Path, preferShadowPath bool) error {
-	var dopts []DelNodeOpt
-	if preferShadowPath {
-		dopts = append(dopts, &PreferShadowPath{})
-	}
-
+func deletePaths(schema *yang.Entry, goStruct ygot.GoStruct, paths []*gpb.Path, dopts []DelNodeOpt) error {
 	for _, path := range paths {
 		if err := DeleteNode(schema, goStruct, path, dopts...); err != nil {
 			return err
@@ -107,17 +117,12 @@ func deletePaths(schema *yang.Entry, goStruct ygot.GoStruct, paths []*gpb.Path, 
 // replacePaths unmarshals a slice of updates into the given GoStruct. It
 // deletes the values at these paths before unmarshalling them. These updates
 // can either by JSON-encoded or gNMI-encoded values (scalars).
-func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, updates []*gpb.Update, preferShadowPath, ignoreExtraFields bool) error {
-	var dopts []DelNodeOpt
-	if preferShadowPath {
-		dopts = append(dopts, &PreferShadowPath{})
-	}
-
+func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, updates []*gpb.Update, dopts []DelNodeOpt, uopts []SetNodeOpt) error {
 	for _, update := range updates {
 		if err := DeleteNode(schema, goStruct, update.Path, dopts...); err != nil {
 			return err
 		}
-		if err := setNode(schema, goStruct, update, preferShadowPath, ignoreExtraFields); err != nil {
+		if err := setNode(schema, goStruct, update, uopts); err != nil {
 			return err
 		}
 	}
@@ -126,9 +131,9 @@ func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, updates []*gpb.Upd
 
 // updatePaths unmarshals a slice of updates into the given GoStruct. These
 // updates can either by JSON-encoded or gNMI-encoded values (scalars).
-func updatePaths(schema *yang.Entry, goStruct ygot.GoStruct, updates []*gpb.Update, preferShadowPath, ignoreExtraFields bool) error {
+func updatePaths(schema *yang.Entry, goStruct ygot.GoStruct, updates []*gpb.Update, uopts []SetNodeOpt) error {
 	for _, update := range updates {
-		if err := setNode(schema, goStruct, update, preferShadowPath, ignoreExtraFields); err != nil {
+		if err := setNode(schema, goStruct, update, uopts); err != nil {
 			return err
 		}
 	}
@@ -137,14 +142,6 @@ func updatePaths(schema *yang.Entry, goStruct ygot.GoStruct, updates []*gpb.Upda
 
 // setNode unmarshals either a JSON-encoded value or a gNMI-encoded (scalar)
 // value into the given GoStruct.
-func setNode(schema *yang.Entry, goStruct ygot.GoStruct, update *gpb.Update, preferShadowPath, ignoreExtraFields bool) error {
-	sopts := []SetNodeOpt{&InitMissingElements{}}
-	if preferShadowPath {
-		sopts = append(sopts, &PreferShadowPath{})
-	}
-	if ignoreExtraFields {
-		sopts = append(sopts, &IgnoreExtraFields{})
-	}
-
-	return SetNode(schema, goStruct, update.Path, update.Val, sopts...)
+func setNode(schema *yang.Entry, goStruct ygot.GoStruct, update *gpb.Update, uopts []SetNodeOpt) error {
+	return SetNode(schema, goStruct, update.Path, update.Val, append(uopts, &InitMissingElements{})...)
 }

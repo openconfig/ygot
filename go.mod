@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/derekparker/trie v0.0.0-20221221181808-1424fce0c981
+	github.com/goccy/go-json v0.10.0
 	github.com/golang/glog v1.0.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.9
