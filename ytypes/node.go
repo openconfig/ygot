@@ -341,6 +341,30 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 
 	listKeyT := rv.Type().Key()
 	listElemT := rv.Type().Elem()
+
+	listKeyFieldNameMap := map[int]string{}
+	schemaKeyMap := map[string]string{}
+
+	// Reduce FieldByName calls in the loop and reduce Field calls and tag lookup calls in the loop.
+	if util.IsTypeStruct(listKeyT) {
+		for i := 0; i < listKeyT.NumField(); i++ {
+			fieldName := listKeyT.Field(i).Name
+
+			elem, ok := listElemT.Elem().FieldByName(fieldName)
+			if !ok {
+				return nil, status.Errorf(codes.NotFound, "element struct type %v does not contain key field %s", listElemT, fieldName)
+			}
+
+			schemaKey, err := directDescendantSchema(elem)
+			if err != nil {
+				return nil, status.Errorf(codes.Unknown, "unable to get direct descendant schema name for %v: %v", schemaKey, err)
+			}
+
+			schemaKeyMap[fieldName] = schemaKey
+			listKeyFieldNameMap[i] = fieldName
+		}
+	}
+
 	for _, k := range rv.MapKeys() {
 		listElemV := rv.MapIndex(k)
 
@@ -397,7 +421,7 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 				// If the map element is empty after the
 				// deletion operation is executed, then remove
 				// the map element from the map.
-				if args.delete && rv.MapIndex(k).Elem().IsZero() {
+				if args.delete && listElemV.Elem().IsZero() {
 					rv.SetMapIndex(k, reflect.Value{})
 				}
 				return nodes, nil
@@ -407,20 +431,15 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 
 		match := true
 		for i := 0; i < k.NumField(); i++ {
-			fieldName := listKeyT.Field(i).Name
+			fieldName := listKeyFieldNameMap[i]
 			fieldValue := k.Field(i)
 			if !fieldValue.IsValid() {
 				return nil, status.Errorf(codes.InvalidArgument, "invalid field %s in %T", fieldName, k)
 			}
 
-			elemFieldT, ok := listElemT.Elem().FieldByName(fieldName)
+			schemaKey, ok := schemaKeyMap[fieldName]
 			if !ok {
-				return nil, status.Errorf(codes.NotFound, "element struct type %v does not contain key field %s", listElemT, fieldName)
-			}
-
-			schemaKey, err := directDescendantSchema(elemFieldT)
-			if err != nil {
-				return nil, status.Errorf(codes.Unknown, "unable to get direct descendant schema name for %v: %v", schemaKey, err)
+				return nil, status.Errorf(codes.Internal, "element struct type %v does not contain key field %s", listElemT, fieldName)
 			}
 
 			pathKey, ok := path.GetElem()[0].GetKey()[schemaKey]
@@ -469,7 +488,7 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 			// If the map element is empty after the
 			// deletion operation is executed, then remove
 			// the map element from the map.
-			if args.delete && rv.MapIndex(k).Elem().IsZero() {
+			if args.delete && listElemV.Elem().IsZero() {
 				rv.SetMapIndex(k, reflect.Value{})
 			}
 
