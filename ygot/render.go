@@ -700,8 +700,8 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding, opts ...EncodeTypedV
 	}
 
 	switch v := val.(type) {
-	case GoStruct:
-		return marshalStruct(v, enc, jc)
+	case GoStruct, GoOrderedList:
+		return marshalStructOrOrderedList(v, enc, jc)
 	case GoEnum:
 		en, err := EnumName(v)
 		if err != nil {
@@ -760,31 +760,31 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding, opts ...EncodeTypedV
 	return value.FromScalar(vv.Interface())
 }
 
-// marshalStruct encodes the struct s according to the encoding specified by enc. It
-// is returned as a TypedValue gNMI message.
-func marshalStruct(s GoStruct, enc gnmipb.Encoding, cfg *RFC7951JSONConfig) (*gnmipb.TypedValue, error) {
+// marshalStructOrOrderedList encodes the struct/ordered list s according to
+// the encoding specified by enc. It is returned as a TypedValue gNMI message.
+func marshalStructOrOrderedList(s interface{}, enc gnmipb.Encoding, cfg *RFC7951JSONConfig) (*gnmipb.TypedValue, error) {
 	if reflect.ValueOf(s).IsNil() {
 		return nil, nil
 	}
 
 	var (
-		j     map[string]interface{}
+		j     interface{}
 		err   error
 		encfn func(s string) *gnmipb.TypedValue
 	)
 
 	switch enc {
 	case gnmipb.Encoding_JSON:
-		j, err = ConstructInternalJSON(s)
+		j, err = jsonValue(reflect.ValueOf(s), "", jsonOutputConfig{jType: Internal})
 		encfn = func(s string) *gnmipb.TypedValue {
-			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonVal{[]byte(s)}}
+			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonVal{JsonVal: []byte(s)}}
 		}
 	case gnmipb.Encoding_JSON_IETF:
 		// We always prepend the module name when marshalling within a Notification.
 		cfg.AppendModuleName = true
-		j, err = ConstructIETFJSON(s, cfg)
+		j, err = jsonValue(reflect.ValueOf(s), "", jsonOutputConfig{jType: RFC7951, rfc7951Config: cfg})
 		encfn = func(s string) *gnmipb.TypedValue {
-			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(s)}}
+			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(s)}}
 		}
 	default:
 		return nil, fmt.Errorf("invalid encoding %v", gnmipb.Encoding_name[int32(enc)])
@@ -1422,6 +1422,23 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 			errs.Add(err)
 		}
 	case reflect.Ptr:
+		if _, ok := field.Interface().(GoOrderedList); ok {
+			// This is an ordered-map for YANG "ordered-by user" lists.
+			valuesMethod := field.MethodByName("Values")
+			if !valuesMethod.IsValid() || valuesMethod.IsZero() {
+				return nil, fmt.Errorf("did not find Values() method on type: %v", field.Type().Name())
+			}
+			ret := valuesMethod.Call(nil)
+			if got, wantReturnN := len(ret), 1; got != wantReturnN {
+				return nil, fmt.Errorf("method Values() doesn't have expected number of return values, got %v, want %v", got, wantReturnN)
+			}
+			values := ret[0]
+			if gotKind := values.Type().Kind(); gotKind != reflect.Slice {
+				return nil, fmt.Errorf("method Values() did not return a slice value, got %v", gotKind)
+			}
+			return jsonValue(values, parentMod, args)
+		}
+
 		switch field.Elem().Kind() {
 		case reflect.Struct:
 			goStruct, ok := field.Interface().(GoStruct)
