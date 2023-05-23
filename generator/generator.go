@@ -397,7 +397,9 @@ func main() {
 				defer genutil.SyncFile(outfh)
 			}
 
-			writeGoCodeSingleFile(outfh, generatedGoCode)
+			if err := writeGoCodeSingleFile(outfh, generatedGoCode); err != nil {
+				log.Exitf("ERROR writing GoStruct Code to single file: %v\n", err)
+			}
 		case generateGoStructsMultipleFiles:
 			// Write the Go code to a series of output files.
 			out, err := splitCodeByFileN(generatedGoCode, *structsFileN)
