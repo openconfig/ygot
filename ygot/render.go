@@ -467,7 +467,7 @@ func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath) error {
 				if withinAtomic {
 					// TODO: Support nested ordered lists/atomic elements -- they should marshal in
 					// the regular way without creating a second []*pathval.
-					return fmt.Errorf("detected nested `ordered-by user` list, this is not supported.")
+					return fmt.Errorf("detected nested `ordered-by user` list, this is not supported")
 				}
 				// First get the ordered keys, and then index into each of the values associated with it.
 				keysMethod := fval.MethodByName("Keys")

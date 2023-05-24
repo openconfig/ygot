@@ -531,8 +531,7 @@ func (o *OrderedMap) Get(key string) *OrderedList {
 	if o == nil {
 		return nil
 	}
-	val, _ := o.valueMap[key]
-	return val
+	return o.valueMap[key]
 }
 
 // init initializes any uninitialized values.
