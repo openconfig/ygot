@@ -39,7 +39,9 @@ func validateLeafList(schema *yang.Entry, value interface{}) util.Errors {
 		return util.NewErrs(err)
 	}
 
-	util.DbgPrint("validateLeafList with value %v, type %T, schema name %s", util.ValueStrDebug(value), value, schema.Name)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("validateLeafList with value %v, type %T, schema name %s", util.ValueStrDebug(value), value, schema.Name)
+	}
 
 	switch reflect.TypeOf(value).Kind() {
 	case reflect.Slice:
@@ -106,7 +108,9 @@ func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}
 		return err
 	}
 
-	util.DbgPrint("unmarshalLeafList value %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(value), value, parent, schema.Name)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("unmarshalLeafList value %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(value), value, parent, schema.Name)
+	}
 
 	// The leaf schema is just the leaf-list schema without the list attrs.
 	leafSchema := *schema
@@ -155,7 +159,9 @@ func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}
 // clearSliceField sets updates a field called fieldName (which must exist, but may be
 // nil) in parentStruct, with value nil.
 func clearSliceField(parentStruct interface{}, fieldName string) error {
-	util.DbgPrint("clearSliceField field %s of parent type %T with value %v", fieldName, parentStruct)
+	if util.DebugLibraryEnabled() {
+		util.DbgPrint("clearSliceField field %s of parent type %T with value %v", fieldName, parentStruct)
+	}
 
 	if util.IsValueNil(parentStruct) {
 		return fmt.Errorf("parent is nil in clearSliceField for field %s", fieldName)

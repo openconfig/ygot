@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/openconfig/gnmi/errlist"
@@ -598,12 +599,39 @@ func KeyValueAsString(v interface{}) (string, error) {
 		return name, nil
 	}
 
+	// Use `strconv` to handle integer to string conversion whenever possible.
+	switch val := v.(type) {
+	case int:
+		return strconv.Itoa(val), nil
+	case int8:
+		return strconv.Itoa(int(val)), nil
+	case int16:
+		return strconv.FormatInt(int64(val), 10), nil
+	case int32:
+		return strconv.FormatInt(int64(val), 10), nil
+	case uint:
+		return strconv.FormatUint(uint64(val), 10), nil
+	case uint8:
+		return strconv.FormatUint(uint64(val), 10), nil
+	case uint16:
+		return strconv.FormatUint(uint64(val), 10), nil
+	case uint32:
+		return strconv.FormatUint(uint64(val), 10), nil
+	case uint64:
+		return strconv.FormatUint(uint64(val), 10), nil
+	}
+
 	switch kv.Kind() {
+	// Handle int/uint type aliases (e.g.: UnionInt8).
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return fmt.Sprintf("%d", v), nil
 	case reflect.Float64:
 		return fmt.Sprintf("%g", v), nil
 	case reflect.String:
+		if val, ok := v.(string); ok {
+			return val, nil
+		}
+
 		return fmt.Sprintf("%s", v), nil
 	case reflect.Bool:
 		return fmt.Sprintf("%t", v), nil

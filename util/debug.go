@@ -40,6 +40,18 @@ var (
 	maxValueStrLen = 150
 )
 
+// DebugLibraryEnabled returns the value of debugLibrary.
+// This function is used to prevent unnecessary inline processing of the DbgPrint calls.
+func DebugLibraryEnabled() bool {
+	return debugLibrary
+}
+
+// DebugSchemaEnabled returns the value of debugSchema.
+// This function is used to prevent unnecessary inline processing of the DbgSchema calls.
+func DebugSchemaEnabled() bool {
+	return debugSchema
+}
+
 // DbgPrint prints v if the package global variable debugLibrary is set.
 // v has the same format as Printf. A trailing newline is added to the output.
 func DbgPrint(v ...interface{}) {
@@ -63,7 +75,10 @@ func DbgSchema(v ...interface{}) {
 
 // DbgErr DbgPrints err and returns it.
 func DbgErr(err error) error {
-	DbgPrint("ERR: " + err.Error())
+	if debugLibrary {
+		DbgPrint("ERR: " + err.Error())
+	}
+
 	return err
 }
 

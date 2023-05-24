@@ -327,13 +327,15 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 // with keys corresponding to the key supplied in path.
 // Function returns list of nodes, list of schemas and error.
 func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
-	rv := reflect.ValueOf(root)
 	switch {
 	case schema.Key == "":
 		return nil, status.Errorf(codes.InvalidArgument, "unkeyed list can't be traversed, type %T, path %v", root, path)
 	case len(path.GetElem()) == 0:
 		return nil, status.Errorf(codes.InvalidArgument, "path length is 0, schema %v, root %v", schema, root)
-	case !util.IsValueMap(rv):
+	}
+
+	rv := reflect.ValueOf(root)
+	if !util.IsValueMap(rv) {
 		return nil, status.Errorf(codes.InvalidArgument, "root has type %T, expect map", root)
 	}
 
