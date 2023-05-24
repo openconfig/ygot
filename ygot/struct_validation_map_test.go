@@ -490,8 +490,27 @@ type OrderedMap struct {
 // ygot.GoOrderedList interface.
 func (*OrderedMap) IsYANGOrderedList() {}
 
-func (OrderedMap) ΛValidate(...ValidationOption) error {
+func (*OrderedMap) ΛValidate(...ValidationOption) error {
 	return nil
+}
+
+// ΛListKeyMap ensures that OrderedList implements the KeyHelperGoStruct
+// helper.
+func (p *OrderedList) ΛListKeyMap() (map[string]interface{}, error) {
+	if p.Key == nil {
+		return nil, fmt.Errorf("invalid input, key Val was nil")
+	}
+	return map[string]interface{}{
+		"key": *p.Key,
+	}, nil
+}
+
+// Keys returns a copy of the list's keys.
+func (o *OrderedMap) Keys() []string {
+	if o == nil {
+		return nil
+	}
+	return append([]string{}, o.keys...)
 }
 
 // Values returns the current set of the list's values in order.
@@ -504,6 +523,16 @@ func (o *OrderedMap) Values() []*OrderedList {
 		values = append(values, o.valueMap[key])
 	}
 	return values
+}
+
+// Get returns the value corresponding to the key. If the key is not found, nil
+// is returned.
+func (o *OrderedMap) Get(key string) *OrderedList {
+	if o == nil {
+		return nil
+	}
+	val, _ := o.valueMap[key]
+	return val
 }
 
 // init initializes any uninitialized values.
@@ -538,8 +567,9 @@ func (o *OrderedMap) AppendNew(Key string) (*OrderedList, error) {
 
 // OrderedList represents the /ctestschema/ordered-lists/ordered-list YANG schema element.
 type OrderedList struct {
-	Key   *string `path:"config/key|key" module:"ctestschema/ctestschema|ctestschema"`
-	Value *string `path:"config/value" module:"ctestschema/ctestschema"`
+	Key         *string     `path:"config/key|key" module:"ctestschema/ctestschema|ctestschema"`
+	Value       *string     `path:"config/value" module:"ctestschema/ctestschema"`
+	OrderedList *OrderedMap `path:"ordered-lists/ordered-list" module:"ctestschema/ctestschema"`
 }
 
 // IsYANGGoStruct ensures that OrderedList implements the yang.GoStruct
@@ -550,11 +580,12 @@ func (*OrderedList) IsYANGGoStruct() {}
 // mapStructTestOne_Child is a child structure of the mapStructTestOne test
 // case.
 type mapStructTestOneChild struct {
-	FieldOne   *string  `path:"config/field-one" module:"test-one/test-one"`
-	FieldTwo   *uint32  `path:"config/field-two" module:"test-one/test-one"`
-	FieldThree Binary   `path:"config/field-three" module:"test-one/test-one"`
-	FieldFour  []Binary `path:"config/field-four" module:"test-one/test-one"`
-	FieldFive  *uint64  `path:"config/field-five" module:"test-five/test-five"`
+	FieldOne    *string     `path:"config/field-one" module:"test-one/test-one"`
+	FieldTwo    *uint32     `path:"config/field-two" module:"test-one/test-one"`
+	FieldThree  Binary      `path:"config/field-three" module:"test-one/test-one"`
+	FieldFour   []Binary    `path:"config/field-four" module:"test-one/test-one"`
+	FieldFive   *uint64     `path:"config/field-five" module:"test-five/test-five"`
+	OrderedList *OrderedMap `path:"ordered-lists/ordered-list" module:"ctestschema/ctestschema"`
 }
 
 // IsYANGGoStruct makes sure that we implement the GoStruct interface.

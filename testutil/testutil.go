@@ -171,6 +171,21 @@ func NotificationSetEqual(a, b []*gnmipb.Notification, opts ...ComparerOpt) bool
 	return true
 }
 
+// NotificationComparer returns a cmp.Option that can be used to compare two
+// gnmipb.Notification messages where the order of updates and deletes are not
+// significant.
+func NotificationComparer() cmp.Option {
+	return cmp.Comparer(func(a, b *gnmipb.Notification) bool {
+		n := &notificationMatch{
+			timestamp: a.GetTimestamp() == b.GetTimestamp(),
+			prefix:    cmp.Equal(a.GetPrefix(), b.GetPrefix(), protocmp.Transform()),
+			update:    cmp.Equal(a.GetUpdate(), b.GetUpdate(), cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty(), protocmp.Transform()),
+			delete:    cmp.Equal(a.GetDelete(), b.GetDelete(), cmpopts.SortSlices(PathLess), cmpopts.EquateEmpty(), protocmp.Transform()),
+		}
+		return n.matched()
+	})
+}
+
 // JSONIETFComparer compares the two provided JSON IETF TypedValues to
 // determine whether their contents are the same. If either value is
 // invalid JSON, the function returns false.

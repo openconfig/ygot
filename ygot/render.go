@@ -95,6 +95,12 @@ func (p *path) String() string {
 	return fmt.Sprintf("%v", p.p.pathElemPath)
 }
 
+// pathval combines path and the value for the relative or absolute path.
+type pathval struct {
+	path *path
+	val  interface{}
+}
+
 // gnmiPath provides a wrapper for gNMI path types, particularly
 // containing the Element-based paths which are used in gNMI pre-0.3.1 and
 // PathElem-based paths which are used in gNMI 0.4.0 and above.
@@ -312,18 +318,32 @@ type GNMINotificationsConfig struct {
 	// Prefix field of the gNMI Notification message expressed as a slice
 	// of strings as per the path definition in gNMI 0.3.1 and below.
 	// Used if UsePathElem is unset.
+	//
+	// If there is an ordered map, which will always be marshalled within
+	// its own Notification message, then the ordered map will be given a
+	// prefix that concatenates the given prefix with the relative path of
+	// the ordered map from the given node.
 	StringSlicePrefix []string
-	// PathElemPrefix stores the prefix that should be used withinthe
+	// PathElemPrefix stores the prefix that should be used within the
 	// Prefix field of the gNMI Notification message, expressed as a slice
 	// of PathElem messages. This path format is used by gNMI 0.4.0 and
 	// above. Used if PathElem is set.
+	//
+	// If there is an ordered map, which will always be marshalled within
+	// its own Notification message, then the ordered map will be given a
+	// prefix that concatenates the given prefix with the relative path of
+	// the ordered map from the given node.
 	PathElemPrefix []*gnmipb.PathElem
 }
 
 // TogNMINotifications takes an input GoStruct and renders it to slice of
 // Notification messages, marked with the specified timestamp. The configuration
 // provided determines the path format utilised, and the prefix to be included
-// in the message if relevant.
+// in the message if relevant. If there are any `ordered-by user` lists within
+// the input struct, then they will be treated as "telemetry-atomic", and put
+// into separate notifications at the beginning of the returned list where each
+// notification represents the entirety of the data of the ordered list, and
+// serialized in order of the list elements.
 //
 // Note: Within the generated notifications there could be data sharing for
 // space and compute optimization. Make a deep copy if one plans to modify the
@@ -363,7 +383,34 @@ func TogNMINotifications(s GoStruct, ts int64, cfg GNMINotificationsConfig) ([]*
 // is called recursively on them.
 //
 // Note: the returned paths use a shallow copy of the parentPath.
-func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPath) error {
+func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath) error {
+	// addLeaf is the function that must be used to add a single leaf or
+	// atomic update to the input cache of leaves. The reason this is
+	// different is because atomic values must be added in a different way
+	// than a regular leaf value: whereas the ordering of leaves doesn't
+	// matter, the ordering of leaves in an atomic subtree node may matter,
+	// for example in the case of YANG `ordered-by user` lists, where the
+	// leaves must be marshalled in the right key order.
+	var addLeaf func(path *path, value interface{})
+	var withinAtomic bool
+
+	switch leaves := leaves.(type) {
+	case map[*path]interface{}:
+		addLeaf = func(path *path, value interface{}) {
+			leaves[path] = value
+		}
+	case *[]*pathval:
+		withinAtomic = true
+		addLeaf = func(path *path, value interface{}) {
+			*leaves = append(*leaves, &pathval{
+				path: path,
+				val:  value,
+			})
+		}
+	default:
+		return fmt.Errorf("internal ygot error: leaves is not an expected type: %T", leaves)
+	}
+
 	var errs errlist.List
 
 	if !parent.isValid() {
@@ -415,18 +462,97 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPat
 				errs.Add(findUpdatedLeaves(leaves, goStruct, childPath))
 			}
 		case reflect.Ptr:
-			// Determine whether this is a pointer to a struct (another YANG container), or a leaf.
-			switch fval.Elem().Kind() {
-			case reflect.Struct:
-				goStruct, ok := fval.Interface().(GoStruct)
-				if !ok {
-					errs.Add(fmt.Errorf("%v: was not a valid GoStruct", mapPaths[0]))
+			if _, ok := fval.Interface().(GoOrderedList); ok {
+				// This is an ordered-map for YANG "ordered-by user" lists.
+				if withinAtomic {
+					// TODO: Support nested ordered lists/atomic elements -- they should marshal in
+					// the regular way without creating a second []*pathval.
+					return fmt.Errorf("detected nested `ordered-by user` list, this is not supported.")
+				}
+				// First get the ordered keys, and then index into each of the values associated with it.
+				keysMethod := fval.MethodByName("Keys")
+				if !keysMethod.IsValid() || keysMethod.IsZero() {
+					errs.Add(fmt.Errorf("did not find Keys() method on type: %v", fval.Type().Name()))
+				}
+				ret := keysMethod.Call(nil)
+				if got, wantReturnN := len(ret), 1; got != wantReturnN {
+					errs.Add(fmt.Errorf("method Keys() doesn't have expected number of return values, got %v, want %v", got, wantReturnN))
 					continue
 				}
-				errs.Add(findUpdatedLeaves(leaves, goStruct, mapPaths[0]))
-			default:
-				for _, p := range mapPaths {
-					leaves[&path{p}] = fval.Interface()
+				keys := ret[0]
+				if gotKind := keys.Type().Kind(); gotKind != reflect.Slice {
+					errs.Add(fmt.Errorf("method Keys() did not return a slice value, got %v", gotKind))
+					continue
+				}
+
+				getMethod := fval.MethodByName("Get")
+				if !getMethod.IsValid() || getMethod.IsZero() {
+					errs.Add(fmt.Errorf("did not find Get() method on type: %v", fval.Type().Name()))
+					continue
+				}
+
+				var atomicLeaves []*pathval
+				for i := 0; i != keys.Len(); i++ {
+					k := keys.Index(i)
+					ret := getMethod.Call([]reflect.Value{k})
+					if got, wantReturnN := len(ret), 1; got != wantReturnN {
+						errs.Add(fmt.Errorf("method Get() doesn't have expected number of return values, got %v, want %v", got, wantReturnN))
+						continue
+					}
+					v := ret[0]
+					if gotKind := v.Type().Kind(); gotKind != reflect.Ptr {
+						errs.Add(fmt.Errorf("method Keys() did not return a ptr value, got %v", gotKind))
+						continue
+					}
+
+					childPath, err := mapValuePath(k, v, mapPaths[0])
+					if err != nil {
+						errs.Add(err)
+						continue
+					}
+
+					goStruct, ok := v.Interface().(GoStruct)
+					if !ok {
+						errs.Add(fmt.Errorf("%v: was not a valid GoStruct", mapPaths[0]))
+						continue
+					}
+					errs.Add(findUpdatedLeaves(&atomicLeaves, goStruct, childPath))
+				}
+				if len(atomicLeaves) > 0 {
+					// TODO(wenbli): Make this more robust by potentially introducing another struct
+					// tag to indicate which element in the compressed path should the prefix cutoff
+					// be based on the placement of the atomic extension, although for ordered-maps
+					// it should always be at the container level. Need more discussion on this.
+					// The current use case is for BGP policy statements:
+					// https://github.com/openconfig/public/pull/867
+					// The reason for this parentPath hack is that compressed lists are represented
+					// using two elements, and only the first element should be in the prefix in the
+					// generated Notification rather the whole set of elements since the atomic is at
+					// the container level.
+					parentPath := mapPaths[0].Copy()
+					if parentPath.Len() > 1 {
+						if parentPath.isPathElemPath() {
+							parentPath.pathElemPath = parentPath.pathElemPath[:parentPath.Len()-1]
+						} else if parentPath.isStringSlicePath() {
+							parentPath.stringSlicePath = parentPath.stringSlicePath[:parentPath.Len()-1]
+						}
+					}
+					addLeaf(&path{parentPath}, atomicLeaves)
+				}
+			} else {
+				// Otherwise this is a pointer to a struct (another YANG container), or a leaf.
+				switch fval.Elem().Kind() {
+				case reflect.Struct:
+					goStruct, ok := fval.Interface().(GoStruct)
+					if !ok {
+						errs.Add(fmt.Errorf("%v: was not a valid GoStruct", mapPaths[0]))
+						continue
+					}
+					errs.Add(findUpdatedLeaves(leaves, goStruct, mapPaths[0]))
+				default:
+					for _, p := range mapPaths {
+						addLeaf(&path{p}, fval.Interface())
+					}
 				}
 			}
 		case reflect.Slice:
@@ -438,7 +564,7 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPat
 			}
 			// This is a leaf-list, so add it as though it were a leaf.
 			for _, p := range mapPaths {
-				leaves[&path{p}] = fval.Interface()
+				addLeaf(&path{p}, fval.Interface())
 			}
 		case reflect.Int64:
 			name, set, err := enumFieldToString(fval, false)
@@ -453,13 +579,13 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPat
 			}
 
 			for _, p := range mapPaths {
-				leaves[&path{p}] = name
+				addLeaf(&path{p}, name)
 			}
 			continue
 		case reflect.Interface:
 			// This is a union value.
 			for _, p := range mapPaths {
-				leaves[&path{p}] = fval.Interface()
+				addLeaf(&path{p}, fval.Interface())
 			}
 			continue
 		}
@@ -642,11 +768,38 @@ func sliceToScalarArray(v []interface{}) (*gnmipb.ScalarArray, error) {
 // leavesToNotifications takes an input map of leaves, and outputs a slice of
 // notifications that corresponds to the leaf update, the supplied timestamp is
 // used in the set of notifications. If an error is encountered it is returned.
-// TODO(robjs): Currently, we return only a single Notification, but this is
-// likely to be suboptimal since it results in very large Notifications for particular
-// structs. There should be some fragmentation of Updates across Notification messages
-// in a future implementation. We return a slice to keep the API stable.
+// TODO(robjs): Currently, we return only a single Notification for all but
+// ordered lists, but this is likely to be suboptimal since it results in very
+// large Notifications for particular structs. There should be some
+// fragmentation of Updates across Notification messages in a future
+// implementation. We return a slice to keep the API stable.
 func leavesToNotifications(leaves map[*path]interface{}, ts int64, pfx *gnmiPath) ([]*gnmipb.Notification, error) {
+	addToNotification := func(pk *path, value interface{}, n *gnmipb.Notification, pfx *gnmiPath) error {
+		path, err := pk.p.StripPrefix(pfx)
+		if err != nil {
+			return err
+		}
+
+		ppath, err := path.ToProto()
+		if err != nil {
+			return err
+		}
+
+		val, err := EncodeTypedValue(value, gnmipb.Encoding_JSON)
+		if err != nil {
+			return err
+		}
+
+		n.Update = append(n.Update, &gnmipb.Update{
+			Path: ppath,
+			Val:  val,
+		})
+		return nil
+	}
+
+	var notifs []*gnmipb.Notification
+
+	// Non-"telemetry-atomic" values.
 	n := &gnmipb.Notification{
 		Timestamp: ts,
 	}
@@ -658,28 +811,41 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, pfx *gnmiPath
 	n.Prefix = p
 
 	for pk, v := range leaves {
-		path, err := pk.p.StripPrefix(pfx)
-		if err != nil {
+		// This is for handling "telemetry-atomic" subtrees that have
+		// leaves bundled and possibly in a certain order.
+		if pvs, ok := v.([]*pathval); ok && len(pvs) > 0 {
+			// Check that the subtree path matches the prefix, and
+			// then provide the subtree path itself as the prefix.
+			subtreePfx := pk.p
+			if _, err := subtreePfx.StripPrefix(pfx); err != nil {
+				return nil, err
+			}
+
+			no := &gnmipb.Notification{
+				Timestamp: ts,
+				Atomic:    true,
+			}
+			p, err := subtreePfx.ToProto()
+			if err != nil {
+				return nil, err
+			}
+			no.Prefix = p
+
+			for _, pv := range pvs {
+				if err := addToNotification(pv.path, pv.val, no, subtreePfx); err != nil {
+					return nil, err
+				}
+			}
+			notifs = append(notifs, no)
+		} else if err := addToNotification(pk, v, n, pfx); err != nil {
 			return nil, err
 		}
-
-		ppath, err := path.ToProto()
-		if err != nil {
-			return nil, err
-		}
-
-		val, err := EncodeTypedValue(v, gnmipb.Encoding_JSON)
-		if err != nil {
-			return nil, err
-		}
-
-		n.Update = append(n.Update, &gnmipb.Update{
-			Path: ppath,
-			Val:  val,
-		})
+	}
+	if len(n.Update) > 0 {
+		notifs = append(notifs, n)
 	}
 
-	return []*gnmipb.Notification{n}, nil
+	return notifs, nil
 }
 
 // EncodeTypedValueOpt is an interface implemented by arguments to
