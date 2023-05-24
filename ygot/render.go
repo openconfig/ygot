@@ -375,6 +375,105 @@ func TogNMINotifications(s GoStruct, ts int64, cfg GNMINotificationsConfig) ([]*
 	return msgs, nil
 }
 
+// findUpdatedOrderedListLeaves appends the valid leaves that are within the supplied
+// GoOrderedLst (assumed to be rooted at parentPath) to the supplied leaves map.
+// If errors are encountered they are appended to the errlist.List supplied. If
+// the GoOrderedLst contains fields that are themselves structured objects (YANG
+// lists, or containers - represented as maps or struct pointers), then we
+// recursively update them.
+//
+// Note: the returned paths use a shallow copy of the parentPath.
+//
+// Limitation: nested ordered lists are not supported.
+func findUpdatedOrderedListLeaves(leaves any, s GoOrderedList, parent *gnmiPath) error {
+	var errs errlist.List
+
+	var leavesMap map[*path]interface{}
+	switch leaves := leaves.(type) {
+	case map[*path]interface{}:
+		leavesMap = leaves
+	case *[]*pathval:
+		// TODO: Support nested ordered lists/atomic elements -- they should marshal in
+		// the regular way without creating a second []*pathval.
+		return fmt.Errorf("detected nested `ordered-by user` list, this is not supported")
+	default:
+		return fmt.Errorf("internal ygot error: leaves is not an expected type: %T", leaves)
+	}
+
+	fval := reflect.ValueOf(s)
+	// First get the ordered keys, and then index into each of the values associated with it.
+	keysMethod := fval.MethodByName("Keys")
+	if !keysMethod.IsValid() || keysMethod.IsZero() {
+		errs.Add(fmt.Errorf("did not find Keys() method on type: %v", fval.Type().Name()))
+	}
+	ret := keysMethod.Call(nil)
+	if got, wantReturnN := len(ret), 1; got != wantReturnN {
+		errs.Add(fmt.Errorf("method Keys() doesn't have expected number of return values, got %v, want %v", got, wantReturnN))
+		return errs.Err()
+	}
+	keys := ret[0]
+	if gotKind := keys.Type().Kind(); gotKind != reflect.Slice {
+		errs.Add(fmt.Errorf("method Keys() did not return a slice value, got %v", gotKind))
+		return errs.Err()
+	}
+
+	getMethod := fval.MethodByName("Get")
+	if !getMethod.IsValid() || getMethod.IsZero() {
+		errs.Add(fmt.Errorf("did not find Get() method on type: %v", fval.Type().Name()))
+		return errs.Err()
+	}
+
+	var atomicLeaves []*pathval
+	for i := 0; i != keys.Len(); i++ {
+		k := keys.Index(i)
+		ret := getMethod.Call([]reflect.Value{k})
+		if got, wantReturnN := len(ret), 1; got != wantReturnN {
+			errs.Add(fmt.Errorf("method Get() doesn't have expected number of return values, got %v, want %v", got, wantReturnN))
+			continue
+		}
+		v := ret[0]
+		if gotKind := v.Type().Kind(); gotKind != reflect.Ptr {
+			errs.Add(fmt.Errorf("method Keys() did not return a ptr value, got %v", gotKind))
+			continue
+		}
+
+		childPath, err := mapValuePath(k, v, parent)
+		if err != nil {
+			errs.Add(err)
+			continue
+		}
+
+		goStruct, ok := v.Interface().(GoStruct)
+		if !ok {
+			errs.Add(fmt.Errorf("%v: was not a valid GoStruct", parent))
+			continue
+		}
+		errs.Add(findUpdatedLeaves(&atomicLeaves, goStruct, childPath))
+	}
+	if len(atomicLeaves) > 0 {
+		// TODO(wenbli): Make this more robust by potentially introducing another struct
+		// tag to indicate which element in the compressed path should the prefix cutoff
+		// be based on the placement of the atomic extension, although for ordered-maps
+		// it should always be at the container level. Need more discussion on this.
+		// The current use case is for BGP policy statements:
+		// https://github.com/openconfig/public/pull/867
+		// The reason for this parentPath hack is that compressed lists are represented
+		// using two elements, and only the first element should be in the prefix in the
+		// generated Notification rather than the whole set of elements since the atomic
+		// is at the container level.
+		parentPath := parent.Copy()
+		if parentPath.Len() > 1 {
+			if parentPath.isPathElemPath() {
+				parentPath.pathElemPath = parentPath.pathElemPath[:parentPath.Len()-1]
+			} else if parentPath.isStringSlicePath() {
+				parentPath.stringSlicePath = parentPath.stringSlicePath[:parentPath.Len()-1]
+			}
+		}
+		leavesMap[&path{parentPath}] = atomicLeaves
+	}
+	return errs.Err()
+}
+
 // findUpdatedLeaves appends the valid leaves that are within the supplied
 // GoStruct (assumed to the rooted at parentPath) to the supplied leaves map.
 // If errors are encountered they are appended to the errlist.List supplied. If
@@ -392,7 +491,6 @@ func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath) error {
 	// for example in the case of YANG `ordered-by user` lists, where the
 	// leaves must be marshalled in the right key order.
 	var addLeaf func(path *path, value interface{})
-	var withinAtomic bool
 
 	switch leaves := leaves.(type) {
 	case map[*path]interface{}:
@@ -400,7 +498,6 @@ func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath) error {
 			leaves[path] = value
 		}
 	case *[]*pathval:
-		withinAtomic = true
 		addLeaf = func(path *path, value interface{}) {
 			*leaves = append(*leaves, &pathval{
 				path: path,
@@ -462,83 +559,9 @@ func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath) error {
 				errs.Add(findUpdatedLeaves(leaves, goStruct, childPath))
 			}
 		case reflect.Ptr:
-			if _, ok := fval.Interface().(GoOrderedList); ok {
+			if ol, ok := fval.Interface().(GoOrderedList); ok {
 				// This is an ordered-map for YANG "ordered-by user" lists.
-				if withinAtomic {
-					// TODO: Support nested ordered lists/atomic elements -- they should marshal in
-					// the regular way without creating a second []*pathval.
-					return fmt.Errorf("detected nested `ordered-by user` list, this is not supported")
-				}
-				// First get the ordered keys, and then index into each of the values associated with it.
-				keysMethod := fval.MethodByName("Keys")
-				if !keysMethod.IsValid() || keysMethod.IsZero() {
-					errs.Add(fmt.Errorf("did not find Keys() method on type: %v", fval.Type().Name()))
-				}
-				ret := keysMethod.Call(nil)
-				if got, wantReturnN := len(ret), 1; got != wantReturnN {
-					errs.Add(fmt.Errorf("method Keys() doesn't have expected number of return values, got %v, want %v", got, wantReturnN))
-					continue
-				}
-				keys := ret[0]
-				if gotKind := keys.Type().Kind(); gotKind != reflect.Slice {
-					errs.Add(fmt.Errorf("method Keys() did not return a slice value, got %v", gotKind))
-					continue
-				}
-
-				getMethod := fval.MethodByName("Get")
-				if !getMethod.IsValid() || getMethod.IsZero() {
-					errs.Add(fmt.Errorf("did not find Get() method on type: %v", fval.Type().Name()))
-					continue
-				}
-
-				var atomicLeaves []*pathval
-				for i := 0; i != keys.Len(); i++ {
-					k := keys.Index(i)
-					ret := getMethod.Call([]reflect.Value{k})
-					if got, wantReturnN := len(ret), 1; got != wantReturnN {
-						errs.Add(fmt.Errorf("method Get() doesn't have expected number of return values, got %v, want %v", got, wantReturnN))
-						continue
-					}
-					v := ret[0]
-					if gotKind := v.Type().Kind(); gotKind != reflect.Ptr {
-						errs.Add(fmt.Errorf("method Keys() did not return a ptr value, got %v", gotKind))
-						continue
-					}
-
-					childPath, err := mapValuePath(k, v, mapPaths[0])
-					if err != nil {
-						errs.Add(err)
-						continue
-					}
-
-					goStruct, ok := v.Interface().(GoStruct)
-					if !ok {
-						errs.Add(fmt.Errorf("%v: was not a valid GoStruct", mapPaths[0]))
-						continue
-					}
-					errs.Add(findUpdatedLeaves(&atomicLeaves, goStruct, childPath))
-				}
-				if len(atomicLeaves) > 0 {
-					// TODO(wenbli): Make this more robust by potentially introducing another struct
-					// tag to indicate which element in the compressed path should the prefix cutoff
-					// be based on the placement of the atomic extension, although for ordered-maps
-					// it should always be at the container level. Need more discussion on this.
-					// The current use case is for BGP policy statements:
-					// https://github.com/openconfig/public/pull/867
-					// The reason for this parentPath hack is that compressed lists are represented
-					// using two elements, and only the first element should be in the prefix in the
-					// generated Notification rather the whole set of elements since the atomic is at
-					// the container level.
-					parentPath := mapPaths[0].Copy()
-					if parentPath.Len() > 1 {
-						if parentPath.isPathElemPath() {
-							parentPath.pathElemPath = parentPath.pathElemPath[:parentPath.Len()-1]
-						} else if parentPath.isStringSlicePath() {
-							parentPath.stringSlicePath = parentPath.stringSlicePath[:parentPath.Len()-1]
-						}
-					}
-					addLeaf(&path{parentPath}, atomicLeaves)
-				}
+				errs.Add(findUpdatedOrderedListLeaves(leaves, ol, mapPaths[0]))
 			} else {
 				// Otherwise this is a pointer to a struct (another YANG container), or a leaf.
 				switch fval.Elem().Kind() {
