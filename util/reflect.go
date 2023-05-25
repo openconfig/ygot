@@ -188,7 +188,11 @@ func InsertIntoSlice(parentSlice interface{}, value interface{}) error {
 	return nil
 }
 
-// InsertIntoMap inserts value with key into parent which must be a map.
+// InsertIntoMap inserts value with key into parent which must be a map or a
+// GoOrderedList interface.
+//
+// If the type is a GoOrderedList, then there must not exist an existing
+// element.
 func InsertIntoMap(parentMap interface{}, key interface{}, value interface{}) error {
 	DbgPrint("InsertIntoMap into parent type %T with key %v(%T) value \n%s\n (%T)",
 		parentMap, ValueStrDebug(key), key, pretty.Sprint(value), value)
@@ -198,11 +202,26 @@ func InsertIntoMap(parentMap interface{}, key interface{}, value interface{}) er
 	kv := reflect.ValueOf(key)
 	vv := reflect.ValueOf(value)
 
-	if t.Kind() != reflect.Map {
+	_, isOrderedList := parentMap.(goOrderedList)
+
+	switch {
+	case t.Kind() == reflect.Map:
+		v.SetMapIndex(kv, vv)
+	case isOrderedList:
+		appendMethod := v.MethodByName("Append")
+		if !appendMethod.IsValid() || appendMethod.IsZero() {
+			return fmt.Errorf("did not find Append() method on type: %v", t.Name())
+		}
+		ret := appendMethod.Call([]reflect.Value{vv})
+		if got, wantReturnN := len(ret), 1; got != wantReturnN {
+			return fmt.Errorf("method Append() doesn't have expected number of return values, got %v, want %v", got, wantReturnN)
+		}
+		if err := ret[0].Interface(); err != nil {
+			return fmt.Errorf("unable to append new ordered map element (it is expected that YANG `ordered-by user` lists are always unmarshalled as a whole instead of individually: %v", err)
+		}
+	default:
 		return fmt.Errorf("InsertIntoMap parent type is %s, must be map", t)
 	}
-
-	v.SetMapIndex(kv, vv)
 
 	return nil
 }
