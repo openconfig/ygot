@@ -21,6 +21,24 @@ module ctestschema {
         config false;
         uses list-config;
       }
+
+      container ordered-lists {
+        list ordered-list {
+          key "key";
+          ordered-by user;
+
+          leaf key { type leafref { path "../config/key"; } }
+
+          container config {
+            uses list-config;
+          }
+
+          container state {
+            config false;
+            uses list-config;
+          }
+        }
+      }
     }
   }
 

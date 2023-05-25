@@ -31,6 +31,10 @@ var (
 	//
 	// TODO: remove this flag when ygot supports all helpers for ordered
 	// maps.
+	//
+	// TODO: Once this flag is removed, add to Makefile the generation for
+	// integration_tests/schemaops/ctestschema so that tests will use the
+	// latest version of the generated code.
 	enableOrderedMap bool = false
 )
 
