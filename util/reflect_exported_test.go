@@ -25,9 +25,7 @@ import (
 )
 
 // to ptr conversion utility functions
-func toStringPtr(s string) *string { return &s }
-func toInt8Ptr(i int8) *int8       { return &i }
-func toInt32Ptr(i int32) *int32    { return &i }
+func toInt8Ptr(i int8) *int8 { return &i }
 
 func TestIsValueNil(t *testing.T) {
 	if !util.IsValueNil(nil) {
@@ -114,8 +112,6 @@ func TestInsertIntoMap(t *testing.T) {
 		newKey += "-repeat"
 	}
 	om2 := ctestschema.GetOrderedMap(t)
-	if om2.Get(newKey) != nil {
-	}
 	newOrderedListElement, err := om2.AppendNew(newKey)
 	if err != nil {
 		t.Fatalf("om2.AppendNew(newKey) failed, this is unexpected for testing: %v", err)
@@ -123,7 +119,6 @@ func TestInsertIntoMap(t *testing.T) {
 	var stringval = "val"
 	newOrderedListElement.Value = &stringval
 
-	badMapInput := struct{}{}
 	tests := []struct {
 		desc          string
 		inMap         interface{}
@@ -145,7 +140,7 @@ func TestInsertIntoMap(t *testing.T) {
 		wantMap: om2,
 	}, {
 		desc:          "bad map",
-		inMap:         &badMapInput,
+		inMap:         &struct{}{},
 		inKey:         44,
 		inValue:       "forty four",
 		wantErrSubstr: `InsertIntoMap parent type is *struct {}, must be map`,
