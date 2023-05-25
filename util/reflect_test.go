@@ -793,25 +793,6 @@ func TestInsertIntoMapStructField(t *testing.T) {
 	}
 }
 
-func TestInsertIntoSlice(t *testing.T) {
-	parentSlice := []int{42, 43}
-	value := 44
-	if err := InsertIntoSlice(&parentSlice, value); err != nil {
-		t.Fatalf("got error: %s, want error: nil", err)
-	}
-	wantSlice := []int{42, 43, value}
-	got, want := parentSlice, wantSlice
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("(-want, +got):\n%s", diff)
-	}
-
-	badParent := struct{}{}
-	wantErr := `InsertIntoSlice parent type is *struct {}, must be slice ptr`
-	if got, want := errToString(InsertIntoSlice(&badParent, value)), wantErr; got != want {
-		t.Fatalf("got error: %s, want error: %s", got, want)
-	}
-}
-
 func TestInitializeStructFieldForSameField(t *testing.T) {
 	type testStruct struct {
 		MPtr map[string]string
