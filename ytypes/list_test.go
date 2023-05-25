@@ -543,6 +543,11 @@ func TestUnmarshalKeyedList(t *testing.T) {
 					Name: "leaf-field",
 					Type: &yang.YangType{Kind: yang.Yint32},
 				},
+				"leaf-field2": {
+					Kind: yang.LeafEntry,
+					Name: "leaf-field2",
+					Type: &yang.YangType{Kind: yang.Yint32},
+				},
 			},
 		}
 	}
@@ -579,8 +584,9 @@ func TestUnmarshalKeyedList(t *testing.T) {
 	addParents(containerWithPreferConfigSchema)
 
 	type ListElemStruct struct {
-		Key       *string `path:"key"`
-		LeafField *int32  `path:"leaf-field"`
+		Key        *string `path:"key"`
+		LeafField  *int32  `path:"leaf-field"`
+		LeafField2 *int32  `path:"leaf-field2"`
 	}
 	type ContainerStruct struct {
 		KeyList map[string]*ListElemStruct `path:"key-list"`
@@ -609,6 +615,28 @@ func TestUnmarshalKeyedList(t *testing.T) {
 					"forty-two": {
 						Key:       ygot.String("forty-two"),
 						LeafField: ygot.Int32(42),
+					},
+				},
+			},
+		},
+		{
+			desc:   "success with already-instantiated list element",
+			json:   `{ "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] }`,
+			schema: containerWithLeafListSchema,
+			parent: &ContainerStruct{
+				KeyList: map[string]*ListElemStruct{
+					"forty-two": {
+						Key:        ygot.String("forty-two"),
+						LeafField2: ygot.Int32(43),
+					},
+				},
+			},
+			want: &ContainerStruct{
+				KeyList: map[string]*ListElemStruct{
+					"forty-two": {
+						Key:        ygot.String("forty-two"),
+						LeafField:  ygot.Int32(42),
+						LeafField2: ygot.Int32(43),
 					},
 				},
 			},
@@ -816,52 +844,61 @@ func TestUnmarshalSingleListElement(t *testing.T) {
 				Name: "enum-leaf-field",
 				Type: &yang.YangType{Kind: yang.Yenum},
 			},
+			"leaf2-field": {
+				Kind: yang.LeafEntry,
+				Name: "leaf2-field",
+				Type: &yang.YangType{Kind: yang.Yint64},
+			},
 		},
 	}
 
 	type ListElemStruct struct {
-		LeafName *int32   `path:"leaf-field"`
-		EnumLeaf EnumType `path:"enum-leaf-field"`
+		LeafName  *int32   `path:"leaf-field"`
+		EnumLeaf  EnumType `path:"enum-leaf-field"`
+		Leaf2Name *int64   `path:"leaf2-field"`
 	}
 
 	tests := []struct {
-		desc    string
-		json    string
-		want    ListElemStruct
-		wantErr string
+		desc     string
+		json     string
+		inParent any
+		want     any
+		wantErr  string
 	}{
 		{
 			desc: "success",
+			inParent: &ListElemStruct{
+				Leaf2Name: ygot.Int64(42),
+			},
 			json: `{ "leaf-field" : 42, "enum-leaf-field" : "E_VALUE_FORTY_TWO"}`,
-			want: ListElemStruct{
-				LeafName: ygot.Int32(42),
-				EnumLeaf: 42,
+			want: &ListElemStruct{
+				LeafName:  ygot.Int32(42),
+				Leaf2Name: ygot.Int64(42),
+				EnumLeaf:  42,
 			},
 		},
 		{
-			desc:    "bad field",
-			json:    `{ "leaf-field" : 42, "bad-field" : "E_VALUE_FORTY_TWO"}`,
-			wantErr: `parent container struct-list (type *ytypes.ListElemStruct): JSON contains unexpected field bad-field`,
+			desc:     "bad field",
+			inParent: &ListElemStruct{},
+			json:     `{ "leaf-field" : 42, "bad-field" : "E_VALUE_FORTY_TWO"}`,
+			wantErr:  `parent container struct-list (type *ytypes.ListElemStruct): JSON contains unexpected field bad-field`,
 		},
 	}
 
 	var jsonTree interface{}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			var parent ListElemStruct
-
 			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
 				t.Fatalf("%s : %s", tt.desc, err)
 			}
 
-			err := Unmarshal(listSchema, &parent, jsonTree)
+			err := Unmarshal(listSchema, tt.inParent, jsonTree)
 			if got, want := errToString(err), tt.wantErr; got != want {
 				t.Errorf("%s: Unmarshal got error: %v, want error: %v", tt.desc, got, want)
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				got, want := parent, tt.want
-				if diff := cmp.Diff(want, got); diff != "" {
+				if diff := cmp.Diff(tt.inParent, tt.want); diff != "" {
 					t.Errorf("%s: Unmarshal (-want, +got):\n%s", tt.desc, diff)
 				}
 			}
