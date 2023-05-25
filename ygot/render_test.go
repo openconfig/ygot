@@ -1018,6 +1018,42 @@ type pathElemExampleMultiKeyChildKey struct {
 }
 
 func TestTogNMINotifications(t *testing.T) {
+	getOrderedMap := func() *OrderedMap {
+		orderedMap := &OrderedMap{}
+		v, err := orderedMap.AppendNew("foo")
+		if err != nil {
+			t.Error(err)
+		}
+		v.Value = String("foo-val")
+		v, err = orderedMap.AppendNew("bar")
+		if err != nil {
+			t.Error(err)
+		}
+		v.Value = String("bar-val")
+		return orderedMap
+	}
+
+	getOrderedMap2 := func() *OrderedMap {
+		orderedMap := &OrderedMap{}
+		v, err := orderedMap.AppendNew("wee")
+		if err != nil {
+			t.Error(err)
+		}
+		v.Value = String("wee-val")
+		v, err = orderedMap.AppendNew("woo")
+		if err != nil {
+			t.Error(err)
+		}
+		v.Value = String("woo-val")
+		return orderedMap
+	}
+
+	getNestedOrderedMap := func() *OrderedMap {
+		om := getOrderedMap()
+		om.Get("foo").OrderedList = getOrderedMap()
+		return om
+	}
+
 	tests := []struct {
 		name        string
 		inTimestamp int64
@@ -1338,12 +1374,12 @@ func TestTogNMINotifications(t *testing.T) {
 	}, {
 		name:        "struct with two ordered lists",
 		inTimestamp: 42,
-		inStruct: &testutil.MapStructTestOne{
-			OrderedList: testutil.GetOrderedMap(t),
-			Child: &testutil.MapStructTestOneChild{
+		inStruct: &mapStructTestOne{
+			OrderedList: getOrderedMap(),
+			Child: &mapStructTestOneChild{
 				FieldOne:    String("abc -> def"),
 				FieldTwo:    Uint32(42),
-				OrderedList: testutil.GetOrderedMap2(t),
+				OrderedList: getOrderedMap2(),
 			},
 		},
 		inConfig: GNMINotificationsConfig{
@@ -1411,9 +1447,9 @@ func TestTogNMINotifications(t *testing.T) {
 	}, {
 		name:        "struct with ordered list string slice mode",
 		inTimestamp: 42,
-		inStruct: &testutil.MapStructTestOne{
-			OrderedList: testutil.GetOrderedMap(t),
-			Child: &testutil.MapStructTestOneChild{
+		inStruct: &mapStructTestOne{
+			OrderedList: getOrderedMap(),
+			Child: &mapStructTestOneChild{
 				FieldOne: String("abc -> def"),
 				FieldTwo: Uint32(42),
 			},
@@ -1459,9 +1495,9 @@ func TestTogNMINotifications(t *testing.T) {
 	}, {
 		name:        "struct with nested ordered list",
 		inTimestamp: 42,
-		inStruct: &testutil.MapStructTestOne{
-			OrderedList: testutil.GetNestedOrderedMap(t),
-			Child: &testutil.MapStructTestOneChild{
+		inStruct: &mapStructTestOne{
+			OrderedList: getNestedOrderedMap(),
+			Child: &mapStructTestOneChild{
 				FieldOne: String("abc -> def"),
 				FieldTwo: Uint32(42),
 			},
@@ -4088,6 +4124,21 @@ func TestKeyValueAsString(t *testing.T) {
 }
 
 func TestEncodeTypedValue(t *testing.T) {
+	getOrderedMap := func() *OrderedMap {
+		orderedMap := &OrderedMap{}
+		v, err := orderedMap.AppendNew("foo")
+		if err != nil {
+			t.Error(err)
+		}
+		v.Value = String("foo-val")
+		v, err = orderedMap.AppendNew("bar")
+		if err != nil {
+			t.Error(err)
+		}
+		v.Value = String("bar-val")
+		return orderedMap
+	}
+
 	tests := []struct {
 		name             string
 		inVal            interface{}
@@ -4197,7 +4248,7 @@ func TestEncodeTypedValue(t *testing.T) {
 		},
 	}, {
 		name:  "ordered list type",
-		inVal: testutil.GetOrderedMap(t),
+		inVal: getOrderedMap(),
 		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonVal{[]byte(`[
   {
     "config": {
@@ -4216,7 +4267,7 @@ func TestEncodeTypedValue(t *testing.T) {
 ]`)}},
 	}, {
 		name:  "ordered list type - ietf json",
-		inVal: testutil.GetOrderedMap(t),
+		inVal: getOrderedMap(),
 		inEnc: gnmipb.Encoding_JSON_IETF,
 		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(`[
   {
@@ -4457,6 +4508,21 @@ func TestFindUpdatedLeaves(t *testing.T) {
 }
 
 func TestMarshal7951(t *testing.T) {
+	getOrderedMap := func() *OrderedMap {
+		orderedMap := &OrderedMap{}
+		v, err := orderedMap.AppendNew("foo")
+		if err != nil {
+			t.Error(err)
+		}
+		v.Value = String("foo-val")
+		v, err = orderedMap.AppendNew("bar")
+		if err != nil {
+			t.Error(err)
+		}
+		v.Value = String("bar-val")
+		return orderedMap
+	}
+
 	tests := []struct {
 		desc             string
 		in               interface{}
@@ -4574,13 +4640,13 @@ func TestMarshal7951(t *testing.T) {
 		want: `{"floatval":"42.42"}`,
 	}, {
 		desc: "container with ordered list",
-		in: &testutil.MapStructTestOne{
-			OrderedList: testutil.GetOrderedMap(t),
+		in: &mapStructTestOne{
+			OrderedList: getOrderedMap(),
 		},
 		want: `{"ordered-lists":{"ordered-list":[{"config":{"key":"foo","value":"foo-val"},"key":"foo"},{"config":{"key":"bar","value":"bar-val"},"key":"bar"}]}}`,
 	}, {
 		desc: "ordered list",
-		in:   testutil.GetOrderedMap(t),
+		in:   getOrderedMap(),
 		want: `[{"config":{"key":"foo","value":"foo-val"},"key":"foo"},{"config":{"key":"bar","value":"bar-val"},"key":"bar"}]`,
 	}, {
 		desc: "indentation requested",
