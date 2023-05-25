@@ -222,3 +222,39 @@ func TestInitializeStructField(t *testing.T) {
 		}
 	}
 }
+
+func TestInsertIntoSlice(t *testing.T) {
+	tests := []struct {
+		desc          string
+		inSlice       any
+		inValue       any
+		wantSlice     any
+		wantErrSubstr string
+	}{{
+		desc:      "basic",
+		inSlice:   &[]int{42, 43},
+		inValue:   44,
+		wantSlice: &[]int{42, 43, 44},
+	}, {
+		desc:          "bad input slice",
+		inSlice:       &struct{}{},
+		inValue:       44,
+		wantErrSubstr: `InsertIntoSlice parent type is *struct {}, must be slice ptr`,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := util.InsertIntoSlice(tt.inSlice, tt.inValue)
+			if diff := errdiff.Substring(err, tt.wantErrSubstr); diff != "" {
+				t.Fatalf("InsertIntoMap: %s", diff)
+			}
+			if err != nil {
+				return
+			}
+
+			if diff := cmp.Diff(tt.wantSlice, tt.inSlice); diff != "" {
+				t.Errorf("(-want, +got):\n%s", diff)
+			}
+		})
+	}
+}
