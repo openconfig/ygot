@@ -353,7 +353,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 
 		switch {
 		case isOrderedMap:
-			err = util.InsertIntoOrderedMap(orderedMap, newVal.Interface())
+			err = util.AppendIntoOrderedMap(orderedMap, newVal.Interface())
 		case util.IsTypeMap(t):
 			var newKey reflect.Value
 			newKey, err = makeKeyForInsert(schema, parent, newVal)

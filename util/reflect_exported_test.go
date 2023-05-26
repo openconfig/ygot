@@ -152,7 +152,7 @@ type goOrderedList interface {
 	IsYANGOrderedList()
 }
 
-func TestInsertIntoOrderedMap(t *testing.T) {
+func TestAppendIntoOrderedMap(t *testing.T) {
 	om := ctestschema.GetOrderedMap(t)
 	newKey := "new"
 	for om.Get(newKey) != nil {
@@ -181,7 +181,7 @@ func TestInsertIntoOrderedMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			err := util.InsertIntoOrderedMap(tt.inMap, tt.inValue)
+			err := util.AppendIntoOrderedMap(tt.inMap, tt.inValue)
 			if diff := errdiff.Substring(err, tt.wantErrSubstr); diff != "" {
 				t.Fatalf("InsertIntoMap: %s", diff)
 			}

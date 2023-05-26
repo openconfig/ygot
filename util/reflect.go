@@ -217,12 +217,12 @@ func MethodByName(v reflect.Value, name string) (reflect.Value, error) {
 	return method, nil
 }
 
-// InsertIntoOrderedMap inserts value with key into parent which must be a
+// AppendIntoOrderedMap append value with key into parent which must be a
 // GoOrderedList interface.
 //
 // If the type is a GoOrderedList, then there must not exist an existing
-// element, and the key input will be unused.
-func InsertIntoOrderedMap(orderedMap goOrderedList, value interface{}) error {
+// element.
+func AppendIntoOrderedMap(orderedMap goOrderedList, value interface{}) error {
 	appendMethod, err := MethodByName(reflect.ValueOf(orderedMap), "Append")
 	if err != nil {
 		return err
