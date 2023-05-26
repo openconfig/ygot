@@ -620,9 +620,9 @@ func getUnionTypesNotEnums(schema *yang.Entry, yt *yang.YangType) ([]*yang.YangT
 // type) for a given schema, which must be for an enum type. t is the type of
 // the containing parent struct.
 func schemaToEnumTypes(schema *yang.Entry, t reflect.Type) ([]reflect.Type, error) {
-	enumTypesMethod := reflect.New(t).Elem().MethodByName("ΛEnumTypeMap")
-	if !enumTypesMethod.IsValid() {
-		return nil, fmt.Errorf("type %s does not have a ΛEnumTypesMap function", t)
+	enumTypesMethod, err := util.MethodByName(reflect.New(t).Elem(), "ΛEnumTypeMap")
+	if err != nil {
+		return nil, err
 	}
 
 	ec := enumTypesMethod.Call(nil)

@@ -125,9 +125,9 @@ func castToEnumValue(ft reflect.Type, value string) (interface{}, error) {
 	}
 
 	util.DbgPrint("checking for matching enum value for type %s", ft)
-	mapMethod := reflect.New(ft).MethodByName("ΛMap")
-	if !mapMethod.IsValid() {
-		return 0, fmt.Errorf("%s does not have a ΛMap function", ft)
+	mapMethod, err := util.MethodByName(reflect.New(ft), "ΛMap")
+	if err != nil {
+		return 0, err
 	}
 
 	ec := mapMethod.Call(nil)

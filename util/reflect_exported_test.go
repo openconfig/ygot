@@ -106,6 +106,53 @@ func TestIsValueNilOrDefault(t *testing.T) {
 }
 
 func TestInsertIntoMap(t *testing.T) {
+	tests := []struct {
+		desc          string
+		inMap         interface{}
+		inKey         interface{}
+		inValue       interface{}
+		wantMap       interface{}
+		wantErrSubstr string
+	}{{
+		desc:    "regular map",
+		inMap:   map[int]string{42: "forty two", 43: "forty three"},
+		inKey:   44,
+		inValue: "forty four",
+		wantMap: map[int]string{42: "forty two", 43: "forty three", 44: "forty four"},
+	}, {
+		desc:          "bad map",
+		inMap:         &struct{}{},
+		inKey:         44,
+		inValue:       "forty four",
+		wantErrSubstr: `InsertIntoMap parent type is *struct {}, must be map`,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := util.InsertIntoMap(tt.inMap, tt.inKey, tt.inValue)
+			if diff := errdiff.Substring(err, tt.wantErrSubstr); diff != "" {
+				t.Fatalf("InsertIntoMap: %s", diff)
+			}
+			if err != nil {
+				return
+			}
+
+			if diff := cmp.Diff(tt.wantMap, tt.inMap, cmp.AllowUnexported(ctestschema.OrderedList_OrderedMap{})); diff != "" {
+				t.Errorf("(-want, +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// goOrderedList is a convenience interface for ygot.GoOrderedList. It is here
+// to avoid a circular dependency.
+type goOrderedList interface {
+	// IsYANGOrderedList is a marker method that indicates that the struct
+	// implements the goOrderedList interface.
+	IsYANGOrderedList()
+}
+
+func TestAppendIntoOrderedMap(t *testing.T) {
 	om := ctestschema.GetOrderedMap(t)
 	newKey := "new"
 	for om.Get(newKey) != nil {
@@ -121,34 +168,20 @@ func TestInsertIntoMap(t *testing.T) {
 
 	tests := []struct {
 		desc          string
-		inMap         interface{}
-		inKey         interface{}
+		inMap         goOrderedList
 		inValue       interface{}
-		wantMap       interface{}
+		wantMap       goOrderedList
 		wantErrSubstr string
 	}{{
-		desc:    "regular map",
-		inMap:   map[int]string{42: "forty two", 43: "forty three"},
-		inKey:   44,
-		inValue: "forty four",
-		wantMap: map[int]string{42: "forty two", 43: "forty three", 44: "forty four"},
-	}, {
 		desc:    "ordered map",
 		inMap:   om,
-		inKey:   newKey,
 		inValue: newOrderedListElement,
 		wantMap: om2,
-	}, {
-		desc:          "bad map",
-		inMap:         &struct{}{},
-		inKey:         44,
-		inValue:       "forty four",
-		wantErrSubstr: `InsertIntoMap parent type is *struct {}, must be map`,
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			err := util.InsertIntoMap(tt.inMap, tt.inKey, tt.inValue)
+			err := util.AppendIntoOrderedMap(tt.inMap, tt.inValue)
 			if diff := errdiff.Substring(err, tt.wantErrSubstr); diff != "" {
 				t.Fatalf("InsertIntoMap: %s", diff)
 			}

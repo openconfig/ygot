@@ -22,6 +22,7 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
+	"github.com/openconfig/ygot/ygot"
 )
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-7.8.
@@ -293,10 +294,37 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 	// Parent must be a map, slice ptr, or struct ptr.
 	t := reflect.TypeOf(parent)
 
-	if util.IsTypeStructPtr(t) {
+	orderedMap, isOrderedMap := parent.(ygot.GoOrderedList)
+
+	var listElementType reflect.Type
+	switch {
+	case !isOrderedMap && util.IsTypeStructPtr(t):
 		// May be trying to unmarshal a single list element rather than the
 		// whole list.
 		return unmarshalContainerWithListSchema(schema, parent, jsonList, opts...)
+	case !isOrderedMap:
+		if !(util.IsTypeMap(t) || util.IsTypeSlicePtr(t)) {
+			return fmt.Errorf("unmarshalList for %s got parent type %s, expect map, slice ptr or struct ptr", schema.Name, t.Kind())
+		}
+
+		listElementType = t.Elem()
+		if util.IsTypeSlicePtr(t) {
+			listElementType = t.Elem().Elem()
+		}
+		if !util.IsTypeStructPtr(listElementType) {
+			return fmt.Errorf("unmarshalList for %s parent type %T, has bad field type %v", listElementType, parent, listElementType)
+		}
+	default:
+		appendMethod, ok := t.MethodByName("Append")
+		if !ok {
+			return fmt.Errorf("did not find Append() method on type: %s", t.Name())
+		}
+		methodSpec := appendMethod.Func.Type()
+		// The receiver is the first arg.
+		if gotIn, wantIn := methodSpec.NumIn(), 2; gotIn != wantIn {
+			return fmt.Errorf("method Append() doesn't have expected number of input parameters, got %v, want %v", gotIn, wantIn)
+		}
+		listElementType = methodSpec.In(1)
 	}
 
 	// jsonList represents a JSON array, which is a Go slice.
@@ -304,18 +332,6 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 	if !ok {
 		return fmt.Errorf("unmarshalList for schema %s: jsonList %v: got type %T, expect []interface{}",
 			schema.Name, util.ValueStr(jsonList), jsonList)
-	}
-
-	if !(util.IsTypeMap(t) || util.IsTypeSlicePtr(t)) {
-		return fmt.Errorf("unmarshalList for %s got parent type %s, expect map, slice ptr or struct ptr", schema.Name, t.Kind())
-	}
-
-	listElementType := t.Elem()
-	if util.IsTypeSlicePtr(t) {
-		listElementType = t.Elem().Elem()
-	}
-	if !util.IsTypeStructPtr(listElementType) {
-		return fmt.Errorf("unmarshalList for %s parent type %T, has bad field type %v", listElementType, parent, listElementType)
 	}
 
 	// Iterate over JSON list. Each JSON list element is a map with the field
@@ -336,6 +352,8 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 		}
 
 		switch {
+		case isOrderedMap:
+			err = util.AppendIntoOrderedMap(orderedMap, newVal.Interface())
 		case util.IsTypeMap(t):
 			var newKey reflect.Value
 			newKey, err = makeKeyForInsert(schema, parent, newVal)

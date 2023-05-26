@@ -402,9 +402,10 @@ func findUpdatedOrderedListLeaves(leaves any, s GoOrderedList, parent *gnmiPath)
 
 	fval := reflect.ValueOf(s)
 	// First get the ordered keys, and then index into each of the values associated with it.
-	keysMethod := fval.MethodByName("Keys")
-	if !keysMethod.IsValid() || keysMethod.IsZero() {
-		errs.Add(fmt.Errorf("did not find Keys() method on type: %v", fval.Type().Name()))
+	keysMethod, err := util.MethodByName(fval, "Keys")
+	if err != nil {
+		errs.Add(err)
+		return errs.Err()
 	}
 	ret := keysMethod.Call(nil)
 	if got, wantReturnN := len(ret), 1; got != wantReturnN {
@@ -417,9 +418,9 @@ func findUpdatedOrderedListLeaves(leaves any, s GoOrderedList, parent *gnmiPath)
 		return errs.Err()
 	}
 
-	getMethod := fval.MethodByName("Get")
-	if !getMethod.IsValid() || getMethod.IsZero() {
-		errs.Add(fmt.Errorf("did not find Get() method on type: %v", fval.Type().Name()))
+	getMethod, err := util.MethodByName(fval, "Get")
+	if err != nil {
+		errs.Add(err)
 		return errs.Err()
 	}
 
@@ -1613,9 +1614,9 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 	case reflect.Ptr:
 		if _, ok := field.Interface().(GoOrderedList); ok {
 			// This is an ordered-map for YANG "ordered-by user" lists.
-			valuesMethod := field.MethodByName("Values")
-			if !valuesMethod.IsValid() || valuesMethod.IsZero() {
-				return nil, fmt.Errorf("did not find Values() method on type: %v", field.Type().Name())
+			valuesMethod, err := util.MethodByName(field, "Values")
+			if err != nil {
+				return nil, err
 			}
 			ret := valuesMethod.Call(nil)
 			if got, wantReturnN := len(ret), 1; got != wantReturnN {
