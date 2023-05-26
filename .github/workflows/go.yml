@@ -151,9 +151,10 @@ jobs:
           # and testutil's code.
           go test -covermode count -coverprofile profile.coverprofile -outputdir gogen -coverpkg github.com/openconfig/ygot/gogen,github.com/openconfig/ygot/ygen,github.com/openconfig/ygot/testutil github.com/openconfig/ygot/gogen
           go test -covermode count -coverprofile profile.coverprofile -outputdir protogen -coverpkg github.com/openconfig/ygot/protogen,github.com/openconfig/ygot/ygen,github.com/openconfig/ygot/testutil github.com/openconfig/ygot/protogen
-          # Also cover testutil from ytypes and ygot packages
-          go test -covermode count -coverprofile profile.coverprofile -outputdir ygot -coverpkg github.com/openconfig/ygot/ygot,github.com/openconfig/ygot/testutil github.com/openconfig/ygot/ygot
-          go test -covermode count -coverprofile profile.coverprofile -outputdir ytypes -coverpkg github.com/openconfig/ygot/ytypes,github.com/openconfig/ygot/testutil github.com/openconfig/ygot/ytypes
+          # Also cover testutil,yreflect from util, ytypes and ygot packages
+          go test -covermode count -coverprofile profile.coverprofile -outputdir util -coverpkg github.com/openconfig/ygot/util,github.com/openconfig/ygot/testutil,github.com/openconfig/ygot/internal/yreflect github.com/openconfig/ygot/util
+          go test -covermode count -coverprofile profile.coverprofile -outputdir ygot -coverpkg github.com/openconfig/ygot/ygot,github.com/openconfig/ygot/testutil,github.com/openconfig/ygot/internal/yreflect github.com/openconfig/ygot/ygot
+          go test -covermode count -coverprofile profile.coverprofile -outputdir ytypes -coverpkg github.com/openconfig/ygot/ytypes,github.com/openconfig/ygot/testutil,github.com/openconfig/ygot/internal/yreflect github.com/openconfig/ygot/ytypes
 
           echo 'mode: count' > concatenated.coverprofile
           for p in $pkgs; do
