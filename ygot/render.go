@@ -24,6 +24,7 @@ import (
 
 	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/gnmi/value"
+	"github.com/openconfig/ygot/internal/yreflect"
 	"github.com/openconfig/ygot/util"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -400,57 +401,26 @@ func findUpdatedOrderedListLeaves(leaves any, s GoOrderedList, parent *gnmiPath)
 		return fmt.Errorf("internal ygot error: leaves is not an expected type: %T", leaves)
 	}
 
-	fval := reflect.ValueOf(s)
-	// First get the ordered keys, and then index into each of the values associated with it.
-	keysMethod, err := util.MethodByName(fval, "Keys")
-	if err != nil {
-		errs.Add(err)
-		return errs.Err()
-	}
-	ret := keysMethod.Call(nil)
-	if got, wantReturnN := len(ret), 1; got != wantReturnN {
-		errs.Add(fmt.Errorf("method Keys() doesn't have expected number of return values, got %v, want %v", got, wantReturnN))
-		return errs.Err()
-	}
-	keys := ret[0]
-	if gotKind := keys.Type().Kind(); gotKind != reflect.Slice {
-		errs.Add(fmt.Errorf("method Keys() did not return a slice value, got %v", gotKind))
-		return errs.Err()
-	}
-
-	getMethod, err := util.MethodByName(fval, "Get")
-	if err != nil {
-		errs.Add(err)
-		return errs.Err()
-	}
-
 	var atomicLeaves []*pathval
-	for i := 0; i != keys.Len(); i++ {
-		k := keys.Index(i)
-		ret := getMethod.Call([]reflect.Value{k})
-		if got, wantReturnN := len(ret), 1; got != wantReturnN {
-			errs.Add(fmt.Errorf("method Get() doesn't have expected number of return values, got %v, want %v", got, wantReturnN))
-			continue
-		}
-		v := ret[0]
-		if gotKind := v.Type().Kind(); gotKind != reflect.Ptr {
-			errs.Add(fmt.Errorf("method Keys() did not return a ptr value, got %v", gotKind))
-			continue
-		}
-
+	if err := yreflect.RangeOrderedMap(s, func(k reflect.Value, v reflect.Value) bool {
 		childPath, err := mapValuePath(k, v, parent)
 		if err != nil {
 			errs.Add(err)
-			continue
+			return true
 		}
 
 		goStruct, ok := v.Interface().(GoStruct)
 		if !ok {
 			errs.Add(fmt.Errorf("%v: was not a valid GoStruct", parent))
-			continue
+			return true
 		}
 		errs.Add(findUpdatedLeaves(&atomicLeaves, goStruct, childPath))
+		return true
+	}); err != nil {
+		errs.Add(err)
+		return errs.Err()
 	}
+
 	if len(atomicLeaves) > 0 {
 		// TODO(wenbli): Make this more robust by potentially introducing another struct
 		// tag to indicate which element in the compressed path should the prefix cutoff

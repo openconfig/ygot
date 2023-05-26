@@ -15,6 +15,7 @@ go run ../../../generator/generator.go -path="." -output_file=ctestschema.go \
   -compress_paths \
   -shorten_enum_leaf_names \
   -typedef_enum_with_defmod \
+  -ignore_shadow_schema_paths \
   -enum_suffix_for_simple_union_enums \
   -generate_rename \
   -generate_append \
