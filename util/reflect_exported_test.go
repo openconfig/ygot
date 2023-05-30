@@ -144,58 +144,6 @@ func TestInsertIntoMap(t *testing.T) {
 	}
 }
 
-// goOrderedList is a convenience interface for ygot.GoOrderedList. It is here
-// to avoid a circular dependency.
-type goOrderedList interface {
-	// IsYANGOrderedList is a marker method that indicates that the struct
-	// implements the goOrderedList interface.
-	IsYANGOrderedList()
-}
-
-func TestAppendIntoOrderedMap(t *testing.T) {
-	om := ctestschema.GetOrderedMap(t)
-	newKey := "new"
-	for om.Get(newKey) != nil {
-		newKey += "-repeat"
-	}
-	om2 := ctestschema.GetOrderedMap(t)
-	newOrderedListElement, err := om2.AppendNew(newKey)
-	if err != nil {
-		t.Fatalf("om2.AppendNew(newKey) failed, this is unexpected for testing: %v", err)
-	}
-	var stringval = "val"
-	newOrderedListElement.Value = &stringval
-
-	tests := []struct {
-		desc          string
-		inMap         goOrderedList
-		inValue       interface{}
-		wantMap       goOrderedList
-		wantErrSubstr string
-	}{{
-		desc:    "ordered map",
-		inMap:   om,
-		inValue: newOrderedListElement,
-		wantMap: om2,
-	}}
-
-	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
-			err := util.AppendIntoOrderedMap(tt.inMap, tt.inValue)
-			if diff := errdiff.Substring(err, tt.wantErrSubstr); diff != "" {
-				t.Fatalf("InsertIntoMap: %s", diff)
-			}
-			if err != nil {
-				return
-			}
-
-			if diff := cmp.Diff(tt.wantMap, tt.inMap, cmp.AllowUnexported(ctestschema.OrderedList_OrderedMap{})); diff != "" {
-				t.Errorf("(-want, +got):\n%s", diff)
-			}
-		})
-	}
-}
-
 func TestInitializeStructField(t *testing.T) {
 	type testStruct struct {
 		// Following two fields exist to exercise

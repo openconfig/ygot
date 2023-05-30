@@ -632,11 +632,11 @@ func (*Device) ΛBelongingModule() string {
 // OrderedList represents the /ctestschema/ordered-lists/ordered-list YANG schema element.
 type OrderedList struct {
 	ΛMetadata    []ygot.Annotation                   `path:"@" ygotAnnotation:"true"`
-	Key          *string                             `path:"config/key|key" module:"ctestschema/ctestschema|ctestschema"`
+	Key          *string                             `path:"config/key|key" module:"ctestschema/ctestschema|ctestschema" shadow-path:"state/key|key" shadow-module:"ctestschema/ctestschema|ctestschema"`
 	ΛKey         []ygot.Annotation                   `path:"config/@key|@key" ygotAnnotation:"true"`
 	OrderedList  *OrderedList_OrderedList_OrderedMap `path:"ordered-lists/ordered-list" module:"ctestschema/ctestschema"`
 	ΛOrderedList []ygot.Annotation                   `path:"ordered-lists/@ordered-list" ygotAnnotation:"true"`
-	Value        *string                             `path:"config/value" module:"ctestschema/ctestschema"`
+	Value        *string                             `path:"config/value" module:"ctestschema/ctestschema" shadow-path:"state/value" shadow-module:"ctestschema/ctestschema"`
 	ΛValue       []ygot.Annotation                   `path:"config/@value" ygotAnnotation:"true"`
 }
 
@@ -873,9 +873,9 @@ func (*OrderedList) ΛBelongingModule() string {
 // OrderedList_OrderedList represents the /ctestschema/ordered-lists/ordered-list/ordered-lists/ordered-list YANG schema element.
 type OrderedList_OrderedList struct {
 	ΛMetadata []ygot.Annotation `path:"@" ygotAnnotation:"true"`
-	Key       *string           `path:"config/key|key" module:"ctestschema/ctestschema|ctestschema"`
+	Key       *string           `path:"config/key|key" module:"ctestschema/ctestschema|ctestschema" shadow-path:"state/key|key" shadow-module:"ctestschema/ctestschema|ctestschema"`
 	ΛKey      []ygot.Annotation `path:"config/@key|@key" ygotAnnotation:"true"`
-	Value     *string           `path:"config/value" module:"ctestschema/ctestschema"`
+	Value     *string           `path:"config/value" module:"ctestschema/ctestschema" shadow-path:"state/value" shadow-module:"ctestschema/ctestschema"`
 	ΛValue    []ygot.Annotation `path:"config/@value" ygotAnnotation:"true"`
 }
 
@@ -953,11 +953,11 @@ func (*OrderedList_OrderedList) ΛBelongingModule() string {
 // OrderedMultikeyedList represents the /ctestschema/ordered-multikeyed-lists/ordered-multikeyed-list YANG schema element.
 type OrderedMultikeyedList struct {
 	ΛMetadata []ygot.Annotation `path:"@" ygotAnnotation:"true"`
-	Key1      *string           `path:"config/key1|key1" module:"ctestschema/ctestschema|ctestschema"`
+	Key1      *string           `path:"config/key1|key1" module:"ctestschema/ctestschema|ctestschema" shadow-path:"state/key1|key1" shadow-module:"ctestschema/ctestschema|ctestschema"`
 	ΛKey1     []ygot.Annotation `path:"config/@key1|@key1" ygotAnnotation:"true"`
-	Key2      *uint64           `path:"config/key2|key2" module:"ctestschema/ctestschema|ctestschema"`
+	Key2      *uint64           `path:"config/key2|key2" module:"ctestschema/ctestschema|ctestschema" shadow-path:"state/key2|key2" shadow-module:"ctestschema/ctestschema|ctestschema"`
 	ΛKey2     []ygot.Annotation `path:"config/@key2|@key2" ygotAnnotation:"true"`
-	Value     *string           `path:"config/value" module:"ctestschema/ctestschema"`
+	Value     *string           `path:"config/value" module:"ctestschema/ctestschema" shadow-path:"state/value" shadow-module:"ctestschema/ctestschema"`
 	ΛValue    []ygot.Annotation `path:"config/@value" ygotAnnotation:"true"`
 }
 
@@ -1056,9 +1056,9 @@ func (*OrderedMultikeyedList) ΛBelongingModule() string {
 // UnorderedList represents the /ctestschema/unordered-lists/unordered-list YANG schema element.
 type UnorderedList struct {
 	ΛMetadata []ygot.Annotation `path:"@" ygotAnnotation:"true"`
-	Key       *string           `path:"config/key|key" module:"ctestschema/ctestschema|ctestschema"`
+	Key       *string           `path:"config/key|key" module:"ctestschema/ctestschema|ctestschema" shadow-path:"state/key|key" shadow-module:"ctestschema/ctestschema|ctestschema"`
 	ΛKey      []ygot.Annotation `path:"config/@key|@key" ygotAnnotation:"true"`
-	Value     *string           `path:"config/value" module:"ctestschema/ctestschema"`
+	Value     *string           `path:"config/value" module:"ctestschema/ctestschema" shadow-path:"state/value" shadow-module:"ctestschema/ctestschema"`
 	ΛValue    []ygot.Annotation `path:"config/@value" ygotAnnotation:"true"`
 }
 

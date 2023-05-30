@@ -16,9 +16,11 @@ package ytypes
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/internal/yreflect"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 	"google.golang.org/grpc/codes"
@@ -115,10 +117,14 @@ func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb
 		return nil, status.Errorf(codes.InvalidArgument, "schema is nil for type %T, path %v", root, path)
 	}
 
+	orderedMap, isOrderedMap := root.(ygot.GoOrderedList)
+
 	switch {
 	// Check if the schema is a container, or the schema is a list and the parent provided is a member of that list.
-	case schema.IsContainer() || (schema.IsList() && util.IsTypeStructPtr(reflect.TypeOf(root))):
+	case schema.IsContainer() || (schema.IsList() && !isOrderedMap && util.IsTypeStructPtr(reflect.TypeOf(root))):
 		return retrieveNodeContainer(schema, root, path, traversedPath, args)
+	case schema.IsList() && isOrderedMap:
+		return retrieveNodeOrderedList(schema, orderedMap, path, traversedPath, args)
 	case schema.IsList():
 		return retrieveNodeList(schema, root, path, traversedPath, args)
 	}
@@ -158,7 +164,9 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 
 		checkPath := func(p []string, args retrieveNodeArgs, shadowLeaf bool) ([]*TreeNode, error) {
 			to := len(p)
-			if util.IsTypeMap(ft.Type) {
+			if _, isOrderedMap := fv.Interface().(ygot.GoOrderedList); util.IsTypeMap(ft.Type) || isOrderedMap {
+				// We pause for a single step because it takes
+				// two steps to traverse a map.
 				to--
 			}
 			np := &gpb.Path{}
@@ -323,9 +331,173 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 	return nil, status.Errorf(codes.InvalidArgument, "no match found in %T, for path %v", root, path)
 }
 
+// getKeyFields retrieves the key field values of the input key-value list
+// element.
+//
+// - schemaKey is the .Key field from the goyang Entry struct of the list.
+func getKeyFields(k, v reflect.Value, schemaKey string) (map[string]string, error) {
+	if !util.IsTypeStruct(k.Type()) {
+		kv := k.Interface()
+		keyAsString, err := ygot.KeyValueAsString(kv)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "failed to convert %v of type %T to a string: %v", kv, v.Interface(), err)
+		}
+		return map[string]string{schemaKey: keyAsString}, nil
+	}
+
+	keys, err := ygot.PathKeyFromStruct(k)
+	if err != nil {
+		return nil, status.Errorf(codes.Unknown, "could not extract from key struct %T: %v", k.Interface(), err)
+	}
+	return keys, nil
+}
+
+// retrieveNodeOrderedList is an internal function and operates on a
+// GoOrderedList. It returns the nodes matching with keys corresponding to the
+// key supplied in path.
+// Function returns list of nodes, list of schemas and error.
+func retrieveNodeOrderedList(schema *yang.Entry, root ygot.GoOrderedList, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
+	switch {
+	case schema.Key == "":
+		return nil, status.Errorf(codes.InvalidArgument, "unkeyed list can't be traversed, type %T, path %v", root, path)
+	case len(path.GetElem()) == 0:
+		return nil, status.Errorf(codes.InvalidArgument, "path length is 0, schema %v, root %v", schema, root)
+	}
+
+	var matches []*TreeNode
+
+	keyType, err := yreflect.UnaryMethodArgType(reflect.TypeOf(root), "Get")
+	if err != nil {
+		return nil, err
+	}
+
+	// pathKeyVals is the set of all key values specified in the query
+	// keyed by the schema name of each key element.
+	pathKeyVals := map[string]string{}
+	var newKeyVals []reflect.Value
+
+	if util.IsTypeStruct(keyType) {
+		for i := 0; i != keyType.NumField(); i++ {
+			kft := keyType.Field(i)
+			schemaKey, err := directDescendantSchema(kft)
+			if err != nil {
+				return nil, status.Errorf(codes.Unknown, "unable to get direct descendant schema name for %v: %v", schemaKey, err)
+			}
+
+			if pathKey, ok := path.GetElem()[0].GetKey()[schemaKey]; ok {
+				pathKeyVals[schemaKey] = pathKey
+				kfv, err := StringToType(kft.Type, pathKey)
+				if err != nil {
+					return nil, err
+				}
+				newKeyVals = append(newKeyVals, kfv)
+			}
+		}
+	} else {
+		if pathKey, ok := path.GetElem()[0].GetKey()[schema.Key]; ok {
+			pathKeyVals[schema.Key] = pathKey
+		}
+	}
+
+	var outerErr error
+	if err := yreflect.RangeOrderedMap(root, func(k reflect.Value, v reflect.Value) bool {
+		keyMap, err := getKeyFields(k, v, schema.Key)
+		if err != nil {
+			outerErr = err
+			return false
+		}
+
+		match := true
+		for keyName, key := range keyMap {
+			pathKey, ok := pathKeyVals[keyName]
+			// If key isn't found in the path key, treat it as error if partialKeyMatch is set to false.
+			// Otherwise, continue searching other keys of key struct and count the value as match
+			// if other keys are also match.
+			switch {
+			case !ok && !args.partialKeyMatch:
+				outerErr = status.Errorf(codes.NotFound, "gNMI path %v does not contain a map entry for schema %v, root %T", path, keyName, root)
+				return false
+			case !ok && args.partialKeyMatch:
+				// If the key wasn't specified, then skip the comparison of value.
+				continue
+			}
+			if !(args.handleWildcards && pathKey == "*") && pathKey != key {
+				match = false
+				return true
+			}
+		}
+
+		if match {
+			remainingPath := util.PopGNMIPath(path)
+			if args.delete && len(remainingPath.GetElem()) == 0 {
+				deleteMethod, err := util.MethodByName(v, "Delete")
+				if err != nil {
+					outerErr = err
+					return false
+				}
+				deleteMethod.Call([]reflect.Value{k})
+				return true
+			}
+			nodes, err := retrieveNode(schema, v.Interface(), remainingPath, appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keyMap}), args)
+			if err != nil {
+				outerErr = err
+				return false
+			}
+			// If the map element is empty after the
+			// deletion operation is executed, then remove
+			// the map element from the map.
+			if args.delete && v.Elem().IsZero() {
+				deleteMethod, err := util.MethodByName(v, "Delete")
+				if err != nil {
+					outerErr = err
+					return false
+				}
+				deleteMethod.Call([]reflect.Value{k})
+			}
+
+			// TODO: Implement short-circuiting if there is an exact match.
+			if nodes != nil {
+				matches = append(matches, nodes...)
+			}
+		}
+
+		return true
+	}); err != nil {
+		return nil, err
+	}
+	if outerErr != nil {
+		return nil, outerErr
+	}
+
+	if len(matches) == 0 && args.modifyRoot {
+		appendNewMethod, err := util.MethodByName(reflect.ValueOf(root), "AppendNew")
+		if err != nil {
+			return nil, err
+		}
+
+		ret := appendNewMethod.Call(newKeyVals)
+		if got, wantReturnN := len(ret), 2; got != wantReturnN {
+			return nil, fmt.Errorf("method Append() doesn't have expected number of return values, got %v, want %v", got, wantReturnN)
+		}
+		if err := ret[1].Interface(); err != nil {
+			return nil, fmt.Errorf("unable to append new ordered map element (this is unexpected since this element should not already exist): %v", err)
+		}
+
+		nodes, err := retrieveNode(schema, ret[0].Interface(), util.PopGNMIPath(path), appendElem(traversedPath, path.GetElem()[0]), args)
+		if err != nil {
+			return nil, err
+		}
+		matches = append(matches, nodes...)
+	}
+
+	return matches, nil
+}
+
 // retrieveNodeList is an internal function and operates on a map. It returns the nodes matching
 // with keys corresponding to the key supplied in path.
 // Function returns list of nodes, list of schemas and error.
+//
+// TODO(wenbli): Refactor to reuse logic from retrieveNodeOrderedList.
 func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
 	rv := reflect.ValueOf(root)
 	switch {

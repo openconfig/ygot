@@ -126,3 +126,23 @@ func GetNestedOrderedMap(t *testing.T) *OrderedList_OrderedMap {
 	om.Get("foo").OrderedList = nestedOrderedMap
 	return om
 }
+
+func GetOrderedMapMultikeyed(t *testing.T) *OrderedMultikeyedList_OrderedMap {
+	orderedMap := &OrderedMultikeyedList_OrderedMap{}
+	v, err := orderedMap.AppendNew("foo", 42)
+	if err != nil {
+		t.Error(err)
+	}
+	v.Value = ygot.String("foo-val")
+	v, err = orderedMap.AppendNew("bar", 42)
+	if err != nil {
+		t.Error(err)
+	}
+	v.Value = ygot.String("bar-val")
+	v, err = orderedMap.AppendNew("baz", 84)
+	if err != nil {
+		t.Error(err)
+	}
+	v.Value = ygot.String("baz-val")
+	return orderedMap
+}

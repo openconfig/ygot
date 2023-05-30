@@ -217,27 +217,6 @@ func MethodByName(v reflect.Value, name string) (reflect.Value, error) {
 	return method, nil
 }
 
-// AppendIntoOrderedMap append value with key into parent which must be a
-// GoOrderedList interface.
-//
-// If the type is a GoOrderedList, then there must not exist an existing
-// element.
-func AppendIntoOrderedMap(orderedMap goOrderedList, value interface{}) error {
-	appendMethod, err := MethodByName(reflect.ValueOf(orderedMap), "Append")
-	if err != nil {
-		return err
-	}
-	ret := appendMethod.Call([]reflect.Value{reflect.ValueOf(value)})
-	if got, wantReturnN := len(ret), 1; got != wantReturnN {
-		return fmt.Errorf("method Append() doesn't have expected number of return values, got %v, want %v", got, wantReturnN)
-	}
-	if err := ret[0].Interface(); err != nil {
-		return fmt.Errorf("unable to append new ordered map element (it is expected that YANG `ordered-by user` lists are always unmarshalled as a whole instead of individually: %v", err)
-	}
-
-	return nil
-}
-
 // UpdateField updates a field called fieldName (which must exist, but may be
 // nil) in parentStruct, with value fieldValue. If the field is a slice,
 // fieldValue is appended.

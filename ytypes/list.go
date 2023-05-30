@@ -21,6 +21,7 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/internal/yreflect"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
@@ -315,16 +316,10 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 			return fmt.Errorf("unmarshalList for %s parent type %T, has bad field type %v", listElementType, parent, listElementType)
 		}
 	default:
-		appendMethod, ok := t.MethodByName("Append")
-		if !ok {
-			return fmt.Errorf("did not find Append() method on type: %s", t.Name())
+		var err error
+		if listElementType, err = yreflect.UnaryMethodArgType(t, "Append"); err != nil {
+			return err
 		}
-		methodSpec := appendMethod.Func.Type()
-		// The receiver is the first arg.
-		if gotIn, wantIn := methodSpec.NumIn(), 2; gotIn != wantIn {
-			return fmt.Errorf("method Append() doesn't have expected number of input parameters, got %v, want %v", gotIn, wantIn)
-		}
-		listElementType = methodSpec.In(1)
 	}
 
 	// jsonList represents a JSON array, which is a Go slice.
@@ -353,7 +348,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 
 		switch {
 		case isOrderedMap:
-			err = util.AppendIntoOrderedMap(orderedMap, newVal.Interface())
+			err = yreflect.AppendIntoOrderedMap(orderedMap, newVal.Interface())
 		case util.IsTypeMap(t):
 			var newKey reflect.Value
 			newKey, err = makeKeyForInsert(schema, parent, newVal)
