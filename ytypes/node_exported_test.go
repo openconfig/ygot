@@ -359,3 +359,40 @@ func TestGetNodeOrderedMap(t *testing.T) {
 		})
 	}
 }
+
+func TestGetOrCreateNodeOrderedMap(t *testing.T) {
+	tests := []struct {
+		inDesc           string
+		inSchema         *yang.Entry
+        inParent any
+		inPath           *gpb.Path
+		inOpts           []ytypes.GetOrCreateNodeOpt
+		want             any
+		wantErrSubstring string
+	}{{
+		desc:     "single-keyed ordered list",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inData: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		inPath: mustPath("/ordered-lists/ordered-list[key=foo]"),
+        want: &ctestschema.OrderedList{
+            Key:   ygot.String("foo"),
+        },
+    }}
+
+	for i, tt := range tests {
+		t.Run(tt.inDesc, func(t *testing.T) {
+			got, _, err := ytypes.GetOrCreateNode(tt.inSchema, tt.inParent, tt.inPath, tt.inOpts...)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("#%d: %s\ngot %v\nwant %v", i, tt.inDesc, err, tt.wantErrSubstring)
+			}
+			if err != nil {
+				return
+			}
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("%s:\n(-want, +got):\n%s", tt.inDesc, diff)
+			}
+		})
+	}
+}
