@@ -472,6 +472,12 @@ func TestGetOrCreateNodeOrderedMap(t *testing.T) {
 			}(),
 		},
 	}, {
+		desc:             "multi-keyed ordered list with bad key",
+		inSchema:         ctestschema.SchemaTree["Device"],
+		inParent:         &ctestschema.Device{},
+		inPath:           mustPath("/ordered-multikeyed-lists/ordered-multikeyed-list[key1=foo][key2=foo]"),
+		wantErrSubstring: `unable to convert "foo" to uint64`,
+	}, {
 		desc:     "multi-keyed ordered list leaf",
 		inSchema: ctestschema.SchemaTree["Device"],
 		inParent: &ctestschema.Device{},
