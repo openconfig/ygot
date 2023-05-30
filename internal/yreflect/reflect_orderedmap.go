@@ -29,11 +29,9 @@ type goOrderedList interface {
 	IsYANGOrderedList()
 }
 
-// AppendIntoOrderedMap append value with key into parent which must be a
-// GoOrderedList interface.
+// AppendIntoOrderedMap appends a populated value into the ordered map.
 //
-// If the type is a GoOrderedList, then there must not exist an existing
-// element.
+// There must not exist an existing element with the same key.
 func AppendIntoOrderedMap(orderedMap goOrderedList, value interface{}) error {
 	appendMethod, err := util.MethodByName(reflect.ValueOf(orderedMap), "Append")
 	if err != nil {
