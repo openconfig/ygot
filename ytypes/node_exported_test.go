@@ -591,7 +591,7 @@ func hasSetNodePreferShadowPath(opts []ytypes.SetNodeOpt) bool {
 	return false
 }
 
-func TestSetNode(t *testing.T) {
+func TestSetNodeOrderedMap(t *testing.T) {
 	tests := []struct {
 		desc     string
 		inSchema *yang.Entry
@@ -850,7 +850,7 @@ func TestSetNode(t *testing.T) {
 	}
 }
 
-func TestDeleteNode(t *testing.T) {
+func TestDeleteNodeOrderedMap(t *testing.T) {
 	tests := []struct {
 		desc             string
 		inSchema         *yang.Entry
