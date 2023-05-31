@@ -132,6 +132,90 @@ func TestPathMatchesPrefix(t *testing.T) {
 	}
 }
 
+func TestPathPartiallyMatchesPrefix(t *testing.T) {
+	tests := []struct {
+		desc   string
+		path   string
+		prefix string
+		want   bool
+	}{
+		{
+			desc:   "empty",
+			path:   "",
+			prefix: "",
+			want:   true,
+		},
+		{
+			desc:   "root",
+			path:   "/",
+			prefix: "/",
+			want:   true,
+		},
+		{
+			desc:   "absolute",
+			path:   "/a/b/c",
+			prefix: "/a/b",
+			want:   true,
+		},
+		{
+			desc:   "relative",
+			path:   "a/b/c/",
+			prefix: "a/b/",
+			want:   true,
+		},
+		{
+			desc:   "relative, different trailing slash 1",
+			path:   "a/b/c/",
+			prefix: "a/b",
+			want:   true,
+		},
+		{
+			desc:   "relative, different trailing slash 2",
+			path:   "a/b/c",
+			prefix: "a/b/",
+			want:   true,
+		},
+		{
+			desc:   "relative vs absolute 1",
+			path:   "/a/b/c/",
+			prefix: "a/b/",
+			want:   false,
+		},
+		{
+			desc:   "relative vs absolute 2",
+			path:   "a/b/c/",
+			prefix: "/a/b/",
+			want:   false,
+		},
+		{
+			desc:   "prefix longer",
+			path:   "a/b",
+			prefix: "a/b/c",
+			want:   true,
+		},
+		{
+			desc:   "prefix longer 2",
+			path:   "/a",
+			prefix: "/a/b/c",
+			want:   true,
+		},
+		{
+			desc:   "not equal",
+			path:   "a/b/c",
+			prefix: "a/d",
+			want:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got, want := util.PathPartiallyMatchesPrefix(pathNoKeysToGNMIPath(tt.path), strings.Split(tt.prefix, "/")), tt.want; got != want {
+				t.Errorf("%s: got: %v want: %v", tt.desc, got, want)
+			}
+		})
+	}
+}
+
 func TestTrimGNMIPathPrefix(t *testing.T) {
 	tests := []struct {
 		desc   string
