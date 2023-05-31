@@ -20,6 +20,8 @@ import (
 //
 // If an error occurs during unmarshalling, schema.Root may already be
 // modified. A rollback is not performed.
+//
+// TODO(wenbli): Handle atomic notifications by deleting prior to unmarshalling.
 func UnmarshalNotifications(schema *Schema, ns []*gpb.Notification, opts ...UnmarshalOpt) error {
 	for _, n := range ns {
 		err := UnmarshalSetRequest(schema, &gpb.SetRequest{
