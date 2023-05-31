@@ -904,6 +904,14 @@ func TestDeleteNodeOrderedMap(t *testing.T) {
 			}(),
 		},
 	}, {
+		desc:     "success deleting entire single-keyed ordered map at container level",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParent: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		inPath:     mustPath("/ordered-lists"),
+		wantParent: &ctestschema.Device{},
+	}, {
 		desc:     "success deleting an ordered map element's key field",
 		inSchema: ctestschema.SchemaTree["Device"],
 		inParent: &ctestschema.Device{
@@ -1009,6 +1017,14 @@ func TestDeleteNodeOrderedMap(t *testing.T) {
 				return orderedMap
 			}(),
 		},
+	}, {
+		desc:     "success deleting entire multi-keyed ordered map at container level",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParent: &ctestschema.Device{
+			OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t),
+		},
+		inPath:     mustPath("/ordered-multikeyed-lists"),
+		wantParent: &ctestschema.Device{},
 	}, {
 		desc:     "success deleting last key field in multi-keyed ordered map which triggers deletion of element",
 		inSchema: ctestschema.SchemaTree["Device"],

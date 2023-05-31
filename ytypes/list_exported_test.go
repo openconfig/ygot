@@ -226,6 +226,13 @@ func TestUnmarshalKeyedList(t *testing.T) {
 			},
 		},
 		{
+			desc:   "success at ordered map level",
+			json:   `[ { "key" : "foo", "config": { "value" : "foo-val" } }, { "key" : "bar", "config": { "value" : "bar-val" } } ]`,
+			schema: ctestschema.SchemaTree["OrderedList"],
+			parent: &ctestschema.OrderedList_OrderedMap{},
+			want:   ctestschema.GetOrderedMap(t),
+		},
+		{
 			desc:   "success with nested ordered map",
 			json:   `{ "ordered-lists": { "ordered-list" : [ { "key" : "foo", "config": { "value" : "foo-val" }, "ordered-lists": { "ordered-list" : [ { "key" : "foo", "config": { "value" : "foo-val" } }, { "key" : "bar", "config": { "value" : "bar-val" } } ] } }, { "key" : "bar", "config": { "value" : "bar-val" } } ] } }`,
 			schema: ctestschema.SchemaTree["Device"],

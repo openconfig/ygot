@@ -42,6 +42,29 @@ func PathMatchesPrefix(path *gpb.Path, prefix []string) bool {
 	return true
 }
 
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// PathPartiallyMatchesPrefix reports whether the path partially or wholly
+// matches the prefix.
+//
+// e.g. a/b partially matches a/b/c or a/b, but doesn't match a/c.
+func PathPartiallyMatchesPrefix(path *gpb.Path, prefix []string) bool {
+	for len(prefix) != 0 && prefix[len(prefix)-1] == "" {
+		prefix = prefix[:len(prefix)-1]
+	}
+	for i := 0; i != min(len(prefix), len(path.GetElem())); i++ {
+		if prefix[i] != path.GetElem()[i].GetName() {
+			return false
+		}
+	}
+	return true
+}
+
 // PathElemsEqual replaces the proto.Equal() check for PathElems.
 // If a.Key["foo"] == "*" and b.Key["foo"] == "bar" func returns false.
 // This significantly improves comparison speed.
