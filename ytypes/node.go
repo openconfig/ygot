@@ -376,7 +376,10 @@ func retrieveNodeOrderedList(schema *yang.Entry, root ygot.GoOrderedList, path, 
 	pathKeyVals := map[string]string{}
 	var newKeyVals []reflect.Value
 
+	// keyN is the number of keys for this list.
+	keyN := 1
 	if util.IsTypeStruct(keyType) {
+		keyN = keyType.NumField()
 		for i := 0; i != keyType.NumField(); i++ {
 			kft := keyType.Field(i)
 			schemaKey, err := directDescendantSchema(kft)
@@ -396,6 +399,11 @@ func retrieveNodeOrderedList(schema *yang.Entry, root ygot.GoOrderedList, path, 
 	} else {
 		if pathKey, ok := path.GetElem()[0].GetKey()[schema.Key]; ok {
 			pathKeyVals[schema.Key] = pathKey
+			kfv, err := StringToType(keyType, pathKey)
+			if err != nil {
+				return nil, err
+			}
+			newKeyVals = append(newKeyVals, kfv)
 		}
 	}
 
@@ -470,6 +478,9 @@ func retrieveNodeOrderedList(schema *yang.Entry, root ygot.GoOrderedList, path, 
 	}
 
 	if len(matches) == 0 && args.modifyRoot {
+		if keyN != len(newKeyVals) {
+			return nil, fmt.Errorf("cannot create new ordered map entry with keys %v (%s): got %d valid keys, expected %d", pathKeyVals, schema.Path(), len(newKeyVals), keyN)
+		}
 		appendNewMethod, err := util.MethodByName(reflect.ValueOf(root), "AppendNew")
 		if err != nil {
 			return nil, err
