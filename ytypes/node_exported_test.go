@@ -30,6 +30,16 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+var (
+	orderedMapCmpOptions = []cmp.Option{
+		cmp.AllowUnexported(
+			ctestschema.OrderedList_OrderedMap{},
+			ctestschema.OrderedList_OrderedList_OrderedMap{},
+			ctestschema.OrderedMultikeyedList_OrderedMap{},
+		),
+	}
+)
+
 func treeNodesEqual(got, want []*ytypes.TreeNode) error {
 	if len(got) != len(want) {
 		return fmt.Errorf("mismatched lengths of nodes, got: %d, want: %d", len(got), len(want))
@@ -547,12 +557,264 @@ func TestGetOrCreateNodeOrderedMap(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if diff := cmp.Diff(tt.want, got); diff != "" {
+			if diff := cmp.Diff(tt.want, got, orderedMapCmpOptions...); diff != "" {
 				t.Errorf("(-want, +got):\n%s", diff)
 			}
-			if diff := cmp.Diff(tt.wantParent, tt.inParent, cmp.AllowUnexported(ctestschema.OrderedList_OrderedMap{}, ctestschema.OrderedList_OrderedList_OrderedMap{}, ctestschema.OrderedMultikeyedList_OrderedMap{})); diff != "" {
+			if diff := cmp.Diff(tt.wantParent, tt.inParent, orderedMapCmpOptions...); diff != "" {
 				t.Errorf("parent (-want, +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+// hasIgnoreExtraFieldsSetNode determines whether the supplied slice of SetNodeOpts contains
+// the IgnoreExtraFields option.
+func hasIgnoreExtraFieldsSetNode(opts []ytypes.SetNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*ytypes.IgnoreExtraFields); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// hasSetNodePreferShadowPath determines whether there is an instance of
+// PreferShadowPath within the supplied GetOrCreateNodeOpt slice. It is used to
+// determine whether to use the "shadow-path" tags instead of the "path" tag
+// when both are present while processing a GoStruct.
+func hasSetNodePreferShadowPath(opts []ytypes.SetNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*ytypes.PreferShadowPath); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func TestSetNode(t *testing.T) {
+	tests := []struct {
+		desc     string
+		inSchema *yang.Entry
+		// inParentFn allows the same input to be tested more than once
+		// even if the first usage involved a modification.
+		inParentFn       func() any
+		inPath           *gpb.Path
+		inVal            interface{}
+		inValJSON        interface{}
+		inOpts           []ytypes.SetNodeOpt
+		wantErrSubstring string
+		want             any
+		wantParent       interface{}
+	}{{
+		desc:     "success setting string field in ordered map",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParentFn: func() any {
+			return &ctestschema.Device{
+				OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+					orderedMap := &ctestschema.OrderedList_OrderedMap{}
+					v, err := orderedMap.AppendNew("foo")
+					if err != nil {
+						t.Error(err)
+					}
+					v.Value = ygot.String("foo-value")
+					return orderedMap
+				}(),
+			}
+		},
+		inPath:    mustPath("/ordered-lists/ordered-list[key=foo]/config/value"),
+		inVal:     &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
+		inValJSON: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`"hello"`)}},
+		want:      ygot.String("hello"),
+		wantParent: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := &ctestschema.OrderedList_OrderedMap{}
+				v, err := orderedMap.AppendNew("foo")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("hello")
+				return orderedMap
+			}(),
+		},
+	}, {
+		desc:     "success setting string field in ordered map and initializing new list element",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParentFn: func() any {
+			return &ctestschema.Device{}
+		},
+		inOpts:    []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		inPath:    mustPath("/ordered-lists/ordered-list[key=foo]/config/value"),
+		inVal:     &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
+		inValJSON: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`"hello"`)}},
+		want:      ygot.String("hello"),
+		wantParent: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := &ctestschema.OrderedList_OrderedMap{}
+				v, err := orderedMap.AppendNew("foo")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("hello")
+				return orderedMap
+			}(),
+		},
+	}, {
+		desc:     "failure setting string field in ordered map when initialization option not provided",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParentFn: func() any {
+			return &ctestschema.Device{}
+		},
+		inPath:           mustPath("/ordered-lists/ordered-list[key=foo]/config/value"),
+		inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
+		inValJSON:        &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`"hello"`)}},
+		wantParent:       &ctestschema.Device{},
+		wantErrSubstring: "could not find children",
+	}, {
+		desc:     "success setting (appending) single-keyed ordered map element",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParentFn: func() any {
+			return &ctestschema.Device{
+				OrderedList: ctestschema.GetOrderedMap(t),
+			}
+		},
+		inOpts:    []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		inPath:    mustPath("/ordered-lists/ordered-list[key=new-key]"),
+		inValJSON: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`{ "key": "new-key", "config": { "key": "new-key", "value": "hello" } }`)}},
+		want: &ctestschema.OrderedList{
+			Key:   ygot.String("new-key"),
+			Value: ygot.String("hello"),
+		},
+		wantParent: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := ctestschema.GetOrderedMap(t)
+				v, err := orderedMap.AppendNew("new-key")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("hello")
+				return orderedMap
+			}(),
+		},
+	}, {
+		desc:     "success setting (appending) multi-keyed ordered map element",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParentFn: func() any {
+			return &ctestschema.Device{
+				OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t),
+			}
+		},
+		inOpts:    []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		inPath:    mustPath("/ordered-multikeyed-lists/ordered-multikeyed-list[key1=new-key][key2=1024]"),
+		inValJSON: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`{ "key1": "new-key", "key2": "1024", "config": { "key1": "new-key", "key2": "1024", "value": "hello" } }`)}},
+		want: &ctestschema.OrderedMultikeyedList{
+			Key1:  ygot.String("new-key"),
+			Key2:  ygot.Uint64(1024),
+			Value: ygot.String("hello"),
+		},
+		wantParent: &ctestschema.Device{
+			OrderedMultikeyedList: func() *ctestschema.OrderedMultikeyedList_OrderedMap {
+				orderedMap := ctestschema.GetOrderedMapMultikeyed(t)
+				v, err := orderedMap.AppendNew("new-key", 1024)
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("hello")
+				return orderedMap
+			}(),
+		},
+	}, {
+		desc:     "success appending by setting at parent level",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParentFn: func() any {
+			return &ctestschema.Device{
+				OrderedList: ctestschema.GetOrderedMap(t),
+			}
+		},
+		inOpts:    []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		inPath:    mustPath("/"),
+		inValJSON: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`{ "ordered-lists": { "ordered-list": [{"key": "new-key", "config": { "key": "new-key", "value": "hello" } }] } }`)}},
+		want: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := ctestschema.GetOrderedMap(t)
+				v, err := orderedMap.AppendNew("new-key")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("hello")
+				return orderedMap
+			}(),
+		},
+		wantParent: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := ctestschema.GetOrderedMap(t)
+				v, err := orderedMap.AppendNew("new-key")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("hello")
+				return orderedMap
+			}(),
+		},
+	}, {
+		desc:     "success setting entire ordered map",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParentFn: func() any {
+			return &ctestschema.Device{}
+		},
+		inOpts:    []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		inPath:    mustPath("/"),
+		inValJSON: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`{ "ordered-lists": { "ordered-list": [{"key": "foo", "config": { "key": "foo", "value": "foo-val" } }, {"key": "bar", "config": { "key": "bar", "value": "bar-val" } }] } }`)}},
+		want: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		wantParent: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+	}}
+
+	for _, tt := range tests {
+		for typeDesc, inVal := range map[string]interface{}{"scalar": tt.inVal, "JSON": tt.inValJSON} {
+			if inVal == nil {
+				continue
+			}
+			t.Run(tt.desc+" "+typeDesc, func(t *testing.T) {
+				parent := tt.inParentFn()
+				err := ytypes.SetNode(tt.inSchema, parent, tt.inPath, inVal, tt.inOpts...)
+				if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+					t.Fatalf("got %v\nwant %v", err, tt.wantErrSubstring)
+				}
+				if diff := cmp.Diff(tt.wantParent, parent, orderedMapCmpOptions...); diff != "" {
+					t.Errorf("(-wantParent, +got):\n%s", diff)
+				}
+				if err != nil {
+					return
+				}
+				if tt.want == nil && hasIgnoreExtraFieldsSetNode(tt.inOpts) {
+					return
+				}
+
+				var getNodeOpts []ytypes.GetNodeOpt
+				if hasSetNodePreferShadowPath(tt.inOpts) {
+					getNodeOpts = append(getNodeOpts, &ytypes.PreferShadowPath{})
+				}
+				treeNode, err := ytypes.GetNode(tt.inSchema, parent, tt.inPath, getNodeOpts...)
+				if err != nil {
+					t.Fatalf("unexpected error returned from GetNode: %v", err)
+				}
+				switch {
+				case len(treeNode) == 1:
+					// Expected case for most tests.
+					break
+				case len(treeNode) == 0 && tt.want == nil:
+					return
+				default:
+					t.Fatalf("did not get exactly one tree node: %v", treeNode)
+				}
+				got := treeNode[0].Data
+				if diff := cmp.Diff(tt.want, got, orderedMapCmpOptions...); diff != "" {
+					t.Errorf("(-wantLeaf, +got):\n%s", diff)
+				}
+			})
+		}
 	}
 }
