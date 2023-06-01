@@ -1026,6 +1026,15 @@ func TestDeleteNodeOrderedMap(t *testing.T) {
 		inPath:     mustPath("/ordered-multikeyed-lists"),
 		wantParent: &ctestschema.Device{},
 	}, {
+		desc:     "success deleting entire multi-keyed ordered map at container level when shadowpath option is turned on",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParent: &ctestschema.Device{
+			OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t),
+		},
+		inOpts:     []ytypes.DelNodeOpt{&ytypes.PreferShadowPath{}},
+		inPath:     mustPath("/ordered-multikeyed-lists"),
+		wantParent: &ctestschema.Device{},
+	}, {
 		desc:     "success deleting last key field in multi-keyed ordered map which triggers deletion of element",
 		inSchema: ctestschema.SchemaTree["Device"],
 		inParent: &ctestschema.Device{
