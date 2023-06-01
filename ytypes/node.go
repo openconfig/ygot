@@ -297,6 +297,14 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			for _, p := range schPaths {
 				if util.PathMatchesPrefix(path, p) {
 					return checkPath(p, args, false)
+				} else if util.PathPartiallyMatchesPrefix(path, p) {
+					// Handle ordered map deletion at the container level in compressed GoStructs.
+					if _, isOrderedMap := fv.Interface().(ygot.GoOrderedList); isOrderedMap {
+						if args.delete {
+							fv.Set(reflect.Zero(ft.Type))
+							return nil, nil
+						}
+					}
 				}
 			}
 
@@ -313,6 +321,14 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 		for _, p := range schPaths {
 			if util.PathMatchesPrefix(path, p) {
 				return checkPath(p, args, shadowLeaf)
+			} else if !shadowLeaf && util.PathPartiallyMatchesPrefix(path, p) {
+				// Handle ordered map deletion at the container level in compressed GoStructs.
+				if _, isOrderedMap := fv.Interface().(ygot.GoOrderedList); isOrderedMap {
+					if args.delete {
+						fv.Set(reflect.Zero(ft.Type))
+						return nil, nil
+					}
+				}
 			}
 		}
 		if !args.preferShadowPath {
