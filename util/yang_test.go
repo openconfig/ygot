@@ -1772,7 +1772,7 @@ func populateParentField(parent, schema *yang.Entry) {
 	}
 }
 
-func TestValidateLeafRefData(t *testing.T) {
+func TestResolveIfLeafRef(t *testing.T) {
 	containerWithLeafListSchema := &yang.Entry{
 		Name: "container",
 		Kind: yang.DirectoryEntry,

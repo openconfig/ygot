@@ -48,6 +48,10 @@ type retrieveNodeArgs struct {
 	// If modifyRoot is set to true, retrieveNode traverses the GoStruct
 	// and initialies nodes or inserting keys into maps if they do not exist.
 	modifyRoot bool
+	// If tolerateNil is set to true, then if a nil value is hit with
+	// remaining path elements, the traversal simply stops without
+	// returning an error.
+	tolerateNil bool
 	// initializeLeafs, if true, means that retrieveNode also initializes
 	// leafs when traversing the GoStruct.
 	initializeLeafs bool
@@ -108,8 +112,9 @@ func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb
 			Data:   root,
 		}}, nil
 	case util.IsValueNil(root):
-		if args.delete {
+		if args.delete || args.tolerateNil {
 			// No-op in case of a delete on a field whose value is not populated.
+			// or in the case that tolerateNil is specified.
 			return nil, nil
 		}
 		return nil, status.Errorf(codes.NotFound, "could not find children %v at path %v", path, traversedPath)
@@ -762,6 +767,7 @@ func GetNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...GetNo
 		modifyRoot:       false,
 		partialKeyMatch:  hasPartialKeyMatch(opts),
 		handleWildcards:  hasHandleWildcards(opts),
+		tolerateNil:      hasGetTolerateNil(opts),
 		preferShadowPath: hasGetNodePreferShadowPath(opts),
 	})
 }
@@ -802,6 +808,25 @@ func (*GetHandleWildcards) IsGetNodeOpt() {}
 func hasHandleWildcards(opts []GetNodeOpt) bool {
 	for _, o := range opts {
 		if _, ok := o.(*GetHandleWildcards); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// GetTolerateNil specifies that a match within GetNode should not return an
+// error if a nil object is hit during path traversal with remaining path
+// elements, and should instead simply return an empty set of nodes.
+type GetTolerateNil struct{}
+
+// IsGetNodeOpt implements the GetNodeOpt interface.
+func (*GetTolerateNil) IsGetNodeOpt() {}
+
+// hasGetTolerateNil determines whether there is an instance of GetTolerateNil within the supplied
+// GetNodeOpt slice.
+func hasGetTolerateNil(opts []GetNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*GetTolerateNil); ok {
 			return true
 		}
 	}
