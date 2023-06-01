@@ -438,7 +438,7 @@ func retrieveNodeOrderedList(schema *yang.Entry, root ygot.GoOrderedList, path, 
 		if match {
 			remainingPath := util.PopGNMIPath(path)
 			if args.delete && len(remainingPath.GetElem()) == 0 {
-				deleteMethod, err := util.MethodByName(v, "Delete")
+				deleteMethod, err := util.MethodByName(reflect.ValueOf(root), "Delete")
 				if err != nil {
 					outerErr = err
 					return false
@@ -455,7 +455,7 @@ func retrieveNodeOrderedList(schema *yang.Entry, root ygot.GoOrderedList, path, 
 			// deletion operation is executed, then remove
 			// the map element from the map.
 			if args.delete && v.Elem().IsZero() {
-				deleteMethod, err := util.MethodByName(v, "Delete")
+				deleteMethod, err := util.MethodByName(reflect.ValueOf(root), "Delete")
 				if err != nil {
 					outerErr = err
 					return false

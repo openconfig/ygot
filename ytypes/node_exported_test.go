@@ -591,7 +591,7 @@ func hasSetNodePreferShadowPath(opts []ytypes.SetNodeOpt) bool {
 	return false
 }
 
-func TestSetNode(t *testing.T) {
+func TestSetNodeOrderedMap(t *testing.T) {
 	tests := []struct {
 		desc     string
 		inSchema *yang.Entry
@@ -633,6 +633,37 @@ func TestSetNode(t *testing.T) {
 					t.Error(err)
 				}
 				v.Value = ygot.String("hello")
+				return orderedMap
+			}(),
+		},
+	}, {
+		desc:     "success not setting shadow string field in ordered map",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParentFn: func() any {
+			return &ctestschema.Device{
+				OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+					orderedMap := &ctestschema.OrderedList_OrderedMap{}
+					v, err := orderedMap.AppendNew("foo")
+					if err != nil {
+						t.Error(err)
+					}
+					v.Value = ygot.String("foo-value")
+					return orderedMap
+				}(),
+			}
+		},
+		inPath:    mustPath("/ordered-lists/ordered-list[key=foo]/state/value"),
+		inVal:     &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
+		inValJSON: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`"hello"`)}},
+		want:      nil,
+		wantParent: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := &ctestschema.OrderedList_OrderedMap{}
+				v, err := orderedMap.AppendNew("foo")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("foo-value")
 				return orderedMap
 			}(),
 		},
@@ -816,5 +847,232 @@ func TestSetNode(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestDeleteNodeOrderedMap(t *testing.T) {
+	tests := []struct {
+		desc             string
+		inSchema         *yang.Entry
+		inParent         any
+		inPath           *gpb.Path
+		inOpts           []ytypes.DelNodeOpt
+		wantParent       any
+		wantErrSubstring string
+	}{{
+		desc:     "success deleting string field in ordered map",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParent: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		inPath: mustPath("/ordered-lists/ordered-list[key=foo]/config/value"),
+		wantParent: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := ctestschema.GetOrderedMap(t)
+				v := orderedMap.Get("foo")
+				if v == nil {
+					t.Fatalf("key foo doesn't exist in ordered map")
+				}
+				v.Value = nil
+				return orderedMap
+			}(),
+		},
+	}, {
+		desc:     "success not deleting shadow string field in ordered map",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParent: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		inPath: mustPath("/ordered-lists/ordered-list[key=foo]/state/value"),
+		wantParent: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+	}, {
+		desc:     "success deleting an ordered map element",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParent: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		inPath: mustPath("/ordered-lists/ordered-list[key=foo]"),
+		wantParent: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := ctestschema.GetOrderedMap(t)
+				if deleted := orderedMap.Delete("foo"); !deleted {
+					t.Fatalf("key foo was not deleted")
+				}
+				return orderedMap
+			}(),
+		},
+	}, {
+		desc:     "success deleting an ordered map element's key field",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParent: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		inPath: mustPath("/ordered-lists/ordered-list[key=foo]/config/key"),
+		wantParent: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := ctestschema.GetOrderedMap(t)
+				v := orderedMap.Get("foo")
+				if v == nil {
+					t.Fatalf("key foo doesn't exist in ordered map")
+				}
+				v.Key = nil
+				return orderedMap
+			}(),
+		},
+	}, {
+		desc:     "deleting an ordered map element non-key field when the key field has been deleted -- this should trigger the entire list entry to be deleted since it's now empty",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParent: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := ctestschema.GetOrderedMap(t)
+				v := orderedMap.Get("foo")
+				if v == nil {
+					t.Fatalf("key foo doesn't exist in ordered map")
+				}
+				v.Key = nil
+				return orderedMap
+			}(),
+		},
+		inPath: mustPath("/ordered-lists/ordered-list[key=foo]/config/value"),
+		wantParent: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := ctestschema.GetOrderedMap(t)
+				if deleted := orderedMap.Delete("foo"); !deleted {
+					t.Fatalf("key foo was not deleted")
+				}
+				return orderedMap
+			}(),
+		},
+	}, {
+		desc:     "deleting an ordered map element key field when the non-key field has been deleted -- this should trigger the entire list entry to be deleted since it's now empty",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParent: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := ctestschema.GetOrderedMap(t)
+				v := orderedMap.Get("foo")
+				if v == nil {
+					t.Fatalf("key foo doesn't exist in ordered map")
+				}
+				v.Value = nil
+				return orderedMap
+			}(),
+		},
+		inPath: mustPath("/ordered-lists/ordered-list[key=foo]/config/key"),
+		wantParent: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := ctestschema.GetOrderedMap(t)
+				if deleted := orderedMap.Delete("foo"); !deleted {
+					t.Fatalf("key foo was not deleted")
+				}
+				return orderedMap
+			}(),
+		},
+	}, {
+		desc:     "success deleting string field in multi-keyed ordered map",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParent: &ctestschema.Device{
+			OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t),
+		},
+		inPath: mustPath("/ordered-multikeyed-lists/ordered-multikeyed-list[key1=foo][key2=42]/config/value"),
+		wantParent: &ctestschema.Device{
+			OrderedMultikeyedList: func() *ctestschema.OrderedMultikeyedList_OrderedMap {
+				orderedMap := ctestschema.GetOrderedMapMultikeyed(t)
+				v := orderedMap.Get(ctestschema.OrderedMultikeyedList_Key{
+					Key1: "foo",
+					Key2: 42,
+				})
+				if v == nil {
+					t.Fatalf("key doesn't exist in ordered map")
+				}
+				v.Value = nil
+				return orderedMap
+			}(),
+		},
+	}, {
+		desc:     "success deleting multi-keyed ordered map element",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParent: &ctestschema.Device{
+			OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t),
+		},
+		inPath: mustPath("/ordered-multikeyed-lists/ordered-multikeyed-list[key1=foo][key2=42]"),
+		wantParent: &ctestschema.Device{
+			OrderedMultikeyedList: func() *ctestschema.OrderedMultikeyedList_OrderedMap {
+				orderedMap := ctestschema.GetOrderedMapMultikeyed(t)
+				if deleted := orderedMap.Delete(ctestschema.OrderedMultikeyedList_Key{
+					Key1: "foo",
+					Key2: 42,
+				}); !deleted {
+					t.Fatalf("key was not deleted")
+				}
+				return orderedMap
+			}(),
+		},
+	}, {
+		desc:     "success deleting last key field in multi-keyed ordered map which triggers deletion of element",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParent: &ctestschema.Device{
+			OrderedMultikeyedList: func() *ctestschema.OrderedMultikeyedList_OrderedMap {
+				orderedMap := ctestschema.GetOrderedMapMultikeyed(t)
+				v := orderedMap.Get(ctestschema.OrderedMultikeyedList_Key{
+					Key1: "foo",
+					Key2: 42,
+				})
+				if v == nil {
+					t.Fatalf("key doesn't exist in ordered map")
+				}
+				v.Key1 = nil
+				v.Value = nil
+				return orderedMap
+			}(),
+		},
+		inPath: mustPath("/ordered-multikeyed-lists/ordered-multikeyed-list[key1=foo][key2=42]/key2"),
+		wantParent: &ctestschema.Device{
+			OrderedMultikeyedList: func() *ctestschema.OrderedMultikeyedList_OrderedMap {
+				orderedMap := ctestschema.GetOrderedMapMultikeyed(t)
+				if deleted := orderedMap.Delete(ctestschema.OrderedMultikeyedList_Key{
+					Key1: "foo",
+					Key2: 42,
+				}); !deleted {
+					t.Fatalf("key was not deleted")
+				}
+				return orderedMap
+			}(),
+		},
+	}, {
+		desc:     "success deleting non-existent multi-keyed ordered map element",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParent: &ctestschema.Device{
+			OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t),
+		},
+		inPath: mustPath("/ordered-multikeyed-lists/ordered-multikeyed-list[key1=dne][key2=999]"),
+		wantParent: &ctestschema.Device{
+			OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t),
+		},
+	}, {
+		desc:     "error deleting multi-keyed ordered map element path that doesn't exist",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParent: &ctestschema.Device{
+			OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t),
+		},
+		inPath:           mustPath("/ordered-multikeyed-lists/ordered-multikeyed-list[key1=foo][key2=42]/config/dne"),
+		wantErrSubstring: "no match found",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := ytypes.DeleteNode(tt.inSchema, tt.inParent, tt.inPath, tt.inOpts...)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("got error %v\nwant error substr: %s", err, tt.wantErrSubstring)
+			}
+			if err != nil {
+				return
+			}
+
+			if diff := cmp.Diff(tt.wantParent, tt.inParent, orderedMapCmpOptions...); diff != "" {
+				t.Errorf("TestDeleteNode (-want, +got):\n%s", diff)
+			}
+		})
 	}
 }
