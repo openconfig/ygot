@@ -20,7 +20,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
+	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/internal/ytestutil"
 	"github.com/openconfig/ygot/util"
 )
 
@@ -237,5 +239,56 @@ func TestInsertIntoSlice(t *testing.T) {
 				t.Errorf("(-want, +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestForEachFieldOrderedMap(t *testing.T) {
+	tests := []struct {
+		desc       string
+		inSchema   *yang.Entry
+		inParent   any
+		in         any
+		out        any
+		inIterFunc util.FieldIteratorFunc
+		wantOut    string
+		wantErr    string
+	}{{
+		desc:       "nil",
+		inSchema:   nil,
+		inParent:   nil,
+		in:         nil,
+		inIterFunc: ytestutil.PrintFieldsIterFunc,
+		wantOut:    ``,
+	}, {
+		desc:     "single-keyed list",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParent: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		in:         nil,
+		inIterFunc: ytestutil.PrintFieldsIterFunc,
+		wantOut:    `[config key]: &"foo", [key]: &"foo", [config value]: &"foo-val", [config key]: &"bar", [key]: &"bar", [config value]: &"bar-val", `,
+	}, {
+		desc:     "multi-keyed list",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParent: &ctestschema.Device{
+			OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t),
+		},
+		in:         nil,
+		inIterFunc: ytestutil.PrintFieldsIterFunc,
+		wantOut:    `[config key1]: &"foo", [key1]: &"foo", [config key2]: &uint64(0x2a), [key2]: &uint64(0x2a), [config value]: &"foo-val", [config key1]: &"bar", [key1]: &"bar", [config key2]: &uint64(0x2a), [key2]: &uint64(0x2a), [config value]: &"bar-val", [config key1]: &"baz", [key1]: &"baz", [config key2]: &uint64(0x54), [key2]: &uint64(0x54), [config value]: &"baz-val", `,
+	}}
+
+	for _, tt := range tests {
+		outStr := ""
+		var errs util.Errors = util.ForEachField(tt.inSchema, tt.inParent, tt.in, &outStr, tt.inIterFunc)
+		if diff := cmp.Diff(errs.String(), tt.wantErr); diff != "" {
+			t.Errorf("error (-got, +want):\n%s", diff)
+		}
+		if errs == nil {
+			if diff := cmp.Diff(outStr, tt.wantOut); diff != "" {
+				t.Errorf("%s:\n%s", tt.desc, diff)
+			}
+		}
 	}
 }

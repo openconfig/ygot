@@ -326,7 +326,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 		}
 	default:
 		var err error
-		if listElementType, err = yreflect.UnaryMethodArgType(t, "Append"); err != nil {
+		if listElementType, err = yreflect.OrderedMapElementType(orderedMap); err != nil {
 			return err
 		}
 	}
