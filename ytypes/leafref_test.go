@@ -421,7 +421,7 @@ func TestValidateLeafRefData(t *testing.T) {
 			in: &Container{
 				ListEnumKeyed: map[EnumType]*ListElementEnumKeyed{
 					EnumType(42): {Int32: Int32(1), Key: EnumType(42)},
-					EnumType(43): {Int32: Int32(2), Key: EnumType(43)},
+					EnumType(41): {Int32: Int32(2), Key: EnumType(41)},
 				},
 				Enum:       EnumType(42),
 				Container2: &Container2{LeafRefToListEnumKeyed: Int32(1)},
@@ -432,7 +432,7 @@ func TestValidateLeafRefData(t *testing.T) {
 			in: &Container{
 				ListEnumKeyed: map[EnumType]*ListElementEnumKeyed{
 					EnumType(42): {Int32: Int32(1), Key: EnumType(42)},
-					EnumType(43): {Int32: Int32(2), Key: EnumType(43)},
+					EnumType(41): {Int32: Int32(2), Key: EnumType(41)},
 				},
 				Enum:       EnumType(42),
 				Container2: &Container2{LeafRefToListEnumKeyed: Int32(2)},
@@ -443,7 +443,7 @@ func TestValidateLeafRefData(t *testing.T) {
 			desc: "enum keyed list bad key value",
 			in: &Container{
 				ListEnumKeyed: map[EnumType]*ListElementEnumKeyed{
-					EnumType(43): {Int32: Int32(2), Key: EnumType(43)},
+					EnumType(41): {Int32: Int32(2), Key: EnumType(41)},
 				},
 				Enum:       EnumType(42),
 				Container2: &Container2{LeafRefToListEnumKeyed: Int32(1)},

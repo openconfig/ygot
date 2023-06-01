@@ -229,7 +229,14 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.Path
 	if ok {
 		return qVal.Nodes, qVal.Err
 	}
-	nodes, _, err := util.GetNodes(root.Schema, root.FieldValue.Interface(), path)
+	// Get all non-nil values
+	var nodes []any
+	treeNodes, err := GetNode(root.Schema, root.FieldValue.Interface(), path, &GetPartialKeyMatch{}, &GetHandleWildcards{}, &GetTolerateNil{})
+	for _, treeNode := range treeNodes {
+		if !util.IsValueNil(treeNode.Data) {
+			nodes = append(nodes, treeNode.Data)
+		}
+	}
 	pathQueryRoot.Memo[strPath] = util.PathQueryResult{Nodes: nodes, Err: err}
 	return nodes, err
 }

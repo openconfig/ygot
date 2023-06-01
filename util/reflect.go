@@ -922,6 +922,9 @@ func forEachDataFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction Fi
 // If the root is the tree root, the path may be absolute.
 // GetNodes returns an error if the path is not found in the tree, or an element
 // along the path is nil.
+//
+// Deprecated: Use ytypes.GetNode with the option &ytypes.GetPartialKeyMatch{}
+// and &ytypes.GetTolerateNil{} instead.
 func GetNodes(schema *yang.Entry, root interface{}, path *gpb.Path) ([]interface{}, []*yang.Entry, error) {
 	return getNodesInternal(schema, root, path)
 }
