@@ -10,6 +10,9 @@ module ctestschema {
     list ordered-list {
       key "key";
       ordered-by user;
+      // These numbers are for testing the validation logic in ytypes/.
+      min-elements 0;
+      max-elements 5;
 
       leaf key { type leafref { path "../config/key"; } }
 

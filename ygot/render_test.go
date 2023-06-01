@@ -2049,6 +2049,14 @@ func (o *MultiKeyOrderedMap) Values() []*OrderedMultikeyedList {
 	return values
 }
 
+// Len returns a size of OrderedMultikeyedList_OrderedMap
+func (o *MultiKeyOrderedMap) Len() int {
+	if o == nil {
+		return 0
+	}
+	return len(o.keys)
+}
+
 // AppendNew creates and appends a new OrderedMultikeyedList, returning the
 // newly-initialized v. It returns an error if the v already exists.
 func (o *MultiKeyOrderedMap) AppendNew(Key1 string, Key2 uint64) (*OrderedMultikeyedList, error) {

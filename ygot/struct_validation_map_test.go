@@ -514,6 +514,14 @@ func (o *OrderedMap) Values() []*OrderedList {
 	return values
 }
 
+// Len returns a size of OrderedList_OrderedMap
+func (o *OrderedMap) Len() int {
+	if o == nil {
+		return 0
+	}
+	return len(o.keys)
+}
+
 // Get returns the value corresponding to the key. If the key is not found, nil
 // is returned.
 func (o *OrderedMap) Get(key string) *OrderedList {

@@ -70,6 +70,7 @@ func customValidation(val ygot.GoStruct) error {
 	}
 	return nil
 }
+
 func TestValidate(t *testing.T) {
 	leafSchema := &yang.Entry{Name: "leaf-schema", Kind: yang.LeafEntry, Type: &yang.YangType{Kind: yang.Ystring}}
 
