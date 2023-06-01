@@ -354,3 +354,86 @@ func TestUnmarshalSingleListElement(t *testing.T) {
 		})
 	}
 }
+
+func TestValidatedOrderedMap(t *testing.T) {
+	tests := []struct {
+		desc     string
+		inSchema *yang.Entry
+		inVal    any
+		wantErr  bool
+	}{{
+		desc:     "single-keyed list",
+		inSchema: ctestschema.SchemaTree["OrderedList"],
+		inVal:    ctestschema.GetOrderedMap(t),
+	}, {
+		desc:     "multi-keyed list",
+		inSchema: ctestschema.SchemaTree["OrderedMultikeyedList"],
+		inVal:    ctestschema.GetOrderedMapMultikeyed(t),
+	}, {
+		desc:     "single-keyed list with missing key",
+		inSchema: ctestschema.SchemaTree["OrderedList"],
+		inVal: func() *ctestschema.OrderedList_OrderedMap {
+			om := ctestschema.GetOrderedMap(t)
+			om.Get("foo").Key = nil
+			return om
+		}(),
+		wantErr: true,
+	}, {
+		desc:     "single-keyed list with mismatching key",
+		inSchema: ctestschema.SchemaTree["OrderedList"],
+		inVal: func() *ctestschema.OrderedList_OrderedMap {
+			om := ctestschema.GetOrderedMap(t)
+			om.Get("foo").Key = ygot.String("foosball")
+			return om
+		}(),
+		wantErr: true,
+	}, {
+		desc:     "single-keyed list with too many elements",
+		inSchema: ctestschema.SchemaTree["OrderedList"],
+		inVal: func() *ctestschema.OrderedList_OrderedMap {
+			om := &ctestschema.OrderedList_OrderedMap{}
+			om.AppendNew("alpha")
+			om.AppendNew("bravo")
+			om.AppendNew("charlie")
+			om.AppendNew("delta")
+			om.AppendNew("echo")
+			// One too many
+			om.AppendNew("foxtrot")
+			return om
+		}(),
+		wantErr: true,
+	}, {
+		desc:     "multi-keyed list with missing key",
+		inSchema: ctestschema.SchemaTree["OrderedMultikeyedList"],
+		inVal: func() *ctestschema.OrderedMultikeyedList_OrderedMap {
+			om := ctestschema.GetOrderedMapMultikeyed(t)
+			om.Get(ctestschema.OrderedMultikeyedList_Key{
+				Key1: "foo",
+				Key2: 42,
+			}).Key2 = nil
+			return om
+		},
+		wantErr: true,
+	}, {
+		desc:     "multi-keyed list with mismatching key",
+		inSchema: ctestschema.SchemaTree["OrderedMultikeyedList"],
+		inVal: func() *ctestschema.OrderedMultikeyedList_OrderedMap {
+			om := ctestschema.GetOrderedMapMultikeyed(t)
+			om.Get(ctestschema.OrderedMultikeyedList_Key{
+				Key1: "foo",
+				Key2: 42,
+			}).Key2 = ygot.Uint64(43)
+			return om
+		},
+		wantErr: true,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			errs := ytypes.Validate(tt.inSchema, tt.inVal)
+			if got, want := (errs != nil), tt.wantErr; got != want {
+				t.Errorf("%s: b.Validate(%v) got error: %v, want error? %v", tt.desc, tt.inVal, errs, tt.wantErr)
+			}
+		})
+	}
+}

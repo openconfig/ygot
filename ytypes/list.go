@@ -44,40 +44,49 @@ func validateList(schema *yang.Entry, value interface{}) util.Errors {
 	util.DbgPrint("validateList with value %v, type %T, schema name %s", value, value, schema.Name)
 
 	kind := reflect.TypeOf(value).Kind()
-	if kind == reflect.Slice || kind == reflect.Map {
+	orderedMap, isOrderedMap := value.(ygot.GoOrderedList)
+	if kind == reflect.Slice || kind == reflect.Map || isOrderedMap {
 		// Check list attributes: size constraints etc.
 		// Skip this check if not a list type - in this case value may be a list
 		// element which shares the list schema (excluding ListAttr).
 		errors = util.AppendErrs(errors, validateListAttr(schema, value))
 	}
 
-	switch kind {
-	case reflect.Slice:
+	checkMapElement := func(key, val reflect.Value) {
+		structElems := val.Elem()
+		// Check that keys are present and have correct values.
+		errors = util.AppendErrs(errors, checkKeys(schema, structElems, key))
+
+		// Verify each elements's fields.
+		errors = util.AppendErrs(errors, validateStructElems(schema, val.Interface()))
+	}
+
+	switch {
+	case isOrderedMap:
+		errors = util.AppendErr(errors, yreflect.RangeOrderedMap(orderedMap, func(k, v reflect.Value) bool {
+			checkMapElement(k, v)
+			return true
+		}))
+	case kind == reflect.Slice:
 		// List without key is a slice in the data tree.
 		sv := reflect.ValueOf(value)
 		for i := 0; i < sv.Len(); i++ {
 			errors = util.AppendErrs(errors, validateStructElems(schema, sv.Index(i).Interface()))
 		}
-	case reflect.Map:
+	case kind == reflect.Map:
 		// List with key is a map in the data tree, with the key being the value
 		// of the key field(s) in the elements.
 		for _, key := range reflect.ValueOf(value).MapKeys() {
-			cv := reflect.ValueOf(value).MapIndex(key).Interface()
-			structElems := reflect.ValueOf(cv).Elem()
-			// Check that keys are present and have correct values.
-			errors = util.AppendErrs(errors, checkKeys(schema, structElems, key))
-
-			// Verify each elements's fields.
-			errors = util.AppendErrs(errors, validateStructElems(schema, cv))
+			checkMapElement(key, reflect.ValueOf(value).MapIndex(key))
 		}
-	case reflect.Ptr:
+	case kind == reflect.Ptr:
 		// Validate was called on a list element rather than the whole list, or
 		// on a completely bogus struct. In either case, evaluate just the
 		// element against the list schema without considering list attributes.
 		errors = util.AppendErrs(errors, validateStructElems(schema, value))
 
 	default:
-		errors = util.AppendErr(errors, fmt.Errorf("validateList expected map/slice type for %s, got %T", schema.Name, value))
+		errors = util.AppendErr(errors, fmt.Errorf("validateList expected map/slice/GoOrderedList type for %s, got %T", schema.Name, value))
 	}
 
 	return errors

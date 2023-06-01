@@ -27,6 +27,8 @@ type goOrderedList interface {
 	// IsYANGOrderedList is a marker method that indicates that the struct
 	// implements the goOrderedList interface.
 	IsYANGOrderedList()
+	// Len returns the size of the ordered list.
+	Len() int
 }
 
 // AppendIntoOrderedMap appends a populated value into the ordered map.
@@ -50,8 +52,8 @@ func AppendIntoOrderedMap(orderedMap goOrderedList, value interface{}) error {
 
 // RangeOrderedMap calls a visitor function over each key-value pair in order.
 //
-// If the visit function returns false, the for loop breaks.
-// An erorr is returned if the ordered map is not well-formed.
+// The for loop break when either the visit function returns false or an error
+// is encountered due to the ordered map not being well-formed.
 func RangeOrderedMap(orderedMap goOrderedList, visit func(k reflect.Value, v reflect.Value) bool) error {
 	omv := reflect.ValueOf(orderedMap)
 	// First get the ordered keys, and then index into each of the values associated with it.

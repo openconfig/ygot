@@ -96,6 +96,8 @@ type GoOrderedList interface {
 	// IsYANGOrderedList is a marker method that indicates that the struct
 	// implements the GoOrderedList interface.
 	IsYANGOrderedList()
+	// Len returns the size of the ordered list.
+	Len() int
 }
 
 // KeyHelperGoStruct is an interface which can be implemented by Go structs
