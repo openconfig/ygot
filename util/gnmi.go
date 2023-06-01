@@ -50,7 +50,7 @@ func min(a, b int) int {
 }
 
 // PathPartiallyMatchesPrefix reports whether the path partially or wholly
-// matches the prefix.
+// matches the prefix. No keys from the path are compared.
 //
 // e.g. a/b partially matches a/b/c or a/b, but doesn't match a/c.
 func PathPartiallyMatchesPrefix(path *gpb.Path, prefix []string) bool {
