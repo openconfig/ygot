@@ -60,11 +60,11 @@ func TestValidateLeafRefDataOrderedMap(t *testing.T) {
 		in: &ctestschema.Device{
 			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
 				om := &ctestschema.OrderedList_OrderedMap{}
-				ome, err := om.AppendNew("bar")
+				_, err := om.AppendNew("bar")
 				if err != nil {
 					t.Fatal(err)
 				}
-				ome, err = om.AppendNew("foo")
+				ome, err := om.AppendNew("foo")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -82,11 +82,11 @@ func TestValidateLeafRefDataOrderedMap(t *testing.T) {
 		in: &ctestschema.Device{
 			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
 				om := &ctestschema.OrderedList_OrderedMap{}
-				ome, err := om.AppendNew("bar")
+				_, err := om.AppendNew("bar")
 				if err != nil {
 					t.Fatal(err)
 				}
-				ome, err = om.AppendNew("foo")
+				ome, err := om.AppendNew("foo")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -105,11 +105,11 @@ func TestValidateLeafRefDataOrderedMap(t *testing.T) {
 		in: &ctestschema.Device{
 			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
 				om := &ctestschema.OrderedList_OrderedMap{}
-				ome, err := om.AppendNew("bar")
+				_, err := om.AppendNew("bar")
 				if err != nil {
 					t.Fatal(err)
 				}
-				ome, err = om.AppendNew("foo")
+				ome, err := om.AppendNew("foo")
 				if err != nil {
 					t.Fatal(err)
 				}
