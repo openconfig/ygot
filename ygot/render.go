@@ -1584,7 +1584,7 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 	case reflect.Ptr:
 		if _, ok := field.Interface().(GoOrderedList); ok {
 			// This is an ordered-map for YANG "ordered-by user" lists.
-			valuesMethod, err := util.MethodByName(field, "Values")
+			valuesMethod, err := yreflect.MethodByName(field, "Values")
 			if err != nil {
 				return nil, err
 			}

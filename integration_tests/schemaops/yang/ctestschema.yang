@@ -23,6 +23,7 @@ module ctestschema {
       container state {
         config false;
         uses list-config;
+        uses list-state;
       }
 
       container ordered-lists {
@@ -39,6 +40,7 @@ module ctestschema {
           container state {
             config false;
             uses list-config;
+            uses nested-list-state;
           }
         }
       }
@@ -65,6 +67,15 @@ module ctestschema {
   grouping list-config {
     leaf key { type string; }
     leaf value { type string; }
+  }
+
+  grouping list-state {
+    leaf ro-value { type string; }
+    leaf parent-key { type leafref { path "../../../ordered-list/key";} }
+  }
+
+  grouping nested-list-state {
+    leaf parent-key { type leafref { path "../../../../config/key";} }
   }
 
   container ordered-multikeyed-lists {

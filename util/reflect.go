@@ -21,6 +21,7 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/internal/yreflect"
 
 	log "github.com/golang/glog"
 
@@ -205,16 +206,6 @@ func InsertIntoMap(parentMap interface{}, key interface{}, value interface{}) er
 	v.SetMapIndex(kv, vv)
 
 	return nil
-}
-
-// MethodByName returns a valid method for the given value, or an error if the
-// method is not valid for use.
-func MethodByName(v reflect.Value, name string) (reflect.Value, error) {
-	method := v.MethodByName(name)
-	if !method.IsValid() || method.IsZero() {
-		return method, fmt.Errorf("did not find %s() method on type: %s", name, v.Type().Name())
-	}
-	return method, nil
 }
 
 // UpdateField updates a field called fieldName (which must exist, but may be
@@ -679,7 +670,79 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 	v := ni.FieldValue
 	t := v.Type()
 
+	orderedMap, isOrderedMap := v.Interface().(goOrderedList)
+
 	switch {
+	case isOrderedMap, IsTypeSlice(t), IsTypeMap(t):
+		schema := *(ni.Schema)
+		schema.ListAttr = nil
+
+		var relPath []string
+		if !schema.IsLeafList() {
+			// Leaf-list elements share the parent schema with listattr unset.
+			relPath = []string{schema.Name}
+		}
+
+		var elemType reflect.Type
+		switch {
+		case isOrderedMap:
+			var err error
+			elemType, err = yreflect.OrderedMapElementType(orderedMap)
+			if err != nil {
+				errs = AppendErr(errs, err)
+				return errs
+			}
+		default:
+			elemType = t.Elem()
+		}
+
+		nn := *ni
+		// The schema for each element is the list schema minus the list
+		// attrs.
+		nn.Schema = &schema
+		nn.Parent = ni
+		nn.PathFromParent = relPath
+
+		visitListElement := func(k, v reflect.Value) {
+			nn := nn
+			nn.FieldValue = v
+			nn.FieldKey = k
+			switch in.(type) {
+			case *PathQueryNodeMemo: // Memoization of path queries requested.
+				errs = AppendErrs(errs, forEachFieldInternal(&nn, newPathQueryMemo(), out, iterFunction))
+			default:
+				errs = AppendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
+			}
+		}
+
+		switch {
+		case IsNilOrInvalidValue(v):
+			// Traverse the type tree only from this point.
+			visitListElement(reflect.Value{}, reflect.Zero(elemType))
+		case IsTypeSlice(t):
+			for i := 0; i < ni.FieldValue.Len(); i++ {
+				visitListElement(reflect.Value{}, ni.FieldValue.Index(i))
+			}
+		case isOrderedMap:
+			var err error
+			nn.FieldKeys, err = yreflect.OrderedMapKeys(orderedMap)
+			if err != nil {
+				errs = AppendErr(errs, err)
+				return errs
+			}
+			if err := yreflect.RangeOrderedMap(orderedMap, func(k, v reflect.Value) bool {
+				visitListElement(k, v)
+				return true
+			}); err != nil {
+				errs = AppendErr(errs, err)
+			}
+		case IsTypeMap(t):
+			nn.FieldKeys = ni.FieldValue.MapKeys()
+			for _, key := range ni.FieldValue.MapKeys() {
+				visitListElement(key, ni.FieldValue.MapIndex(key))
+			}
+		}
+
 	case IsTypeStructPtr(t):
 		t = t.Elem()
 		if !IsNilOrInvalidValue(v) {
@@ -722,80 +785,6 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 					errs = AppendErrs(errs, forEachFieldInternal(nn, newPathQueryMemo(), out, iterFunction))
 				default:
 					errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
-				}
-			}
-		}
-
-	case IsTypeSlice(t):
-		// Leaf-list elements share the parent schema with listattr unset.
-		schema := *(ni.Schema)
-		schema.ListAttr = nil
-		var pp []string
-		if !schema.IsLeafList() {
-			pp = []string{schema.Name}
-		}
-		if IsNilOrInvalidValue(v) {
-			// Traverse the type tree only from this point.
-			nn := &NodeInfo{
-				Parent:         ni,
-				PathFromParent: pp,
-				Schema:         &schema,
-				FieldValue:     reflect.Zero(t.Elem()),
-			}
-			switch in.(type) {
-			case *PathQueryNodeMemo: // Memoization of path queries requested.
-				errs = AppendErrs(errs, forEachFieldInternal(nn, newPathQueryMemo(), out, iterFunction))
-			default:
-				errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
-			}
-		} else {
-			for i := 0; i < ni.FieldValue.Len(); i++ {
-				nn := *ni
-				// The schema for each element is the list schema minus the list
-				// attrs.
-				nn.Schema = &schema
-				nn.Parent = ni
-				nn.PathFromParent = pp
-				nn.FieldValue = ni.FieldValue.Index(i)
-				switch in.(type) {
-				case *PathQueryNodeMemo: // Memoization of path queries requested.
-					errs = AppendErrs(errs, forEachFieldInternal(&nn, newPathQueryMemo(), out, iterFunction))
-				default:
-					errs = AppendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
-				}
-			}
-		}
-
-	case IsTypeMap(t):
-		schema := *(ni.Schema)
-		schema.ListAttr = nil
-		if IsNilOrInvalidValue(v) {
-			nn := &NodeInfo{
-				Parent:         ni,
-				PathFromParent: []string{schema.Name},
-				Schema:         &schema,
-				FieldValue:     reflect.Zero(t.Elem()),
-			}
-			switch in.(type) {
-			case *PathQueryNodeMemo: // Memoization of path queries requested.
-				errs = AppendErrs(errs, forEachFieldInternal(nn, newPathQueryMemo(), out, iterFunction))
-			default:
-				errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
-			}
-		} else {
-			for _, key := range ni.FieldValue.MapKeys() {
-				nn := *ni
-				nn.Schema = &schema
-				nn.Parent = ni
-				nn.PathFromParent = []string{schema.Name}
-				nn.FieldValue = ni.FieldValue.MapIndex(key)
-				nn.FieldKey = key
-				nn.FieldKeys = ni.FieldValue.MapKeys()
-				switch in.(type) {
-				case *PathQueryNodeMemo: // Memoization of path queries requested.
-					errs = AppendErrs(errs, forEachFieldInternal(&nn, newPathQueryMemo(), out, iterFunction))
-				default:
-					errs = AppendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
 				}
 			}
 		}

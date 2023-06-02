@@ -17,8 +17,6 @@ package yreflect
 import (
 	"fmt"
 	"reflect"
-
-	"github.com/openconfig/ygot/util"
 )
 
 // goOrderedList is a convenience interface for ygot.GoOrderedList. It is here
@@ -31,11 +29,21 @@ type goOrderedList interface {
 	Len() int
 }
 
+// MethodByName returns a valid method for the given value, or an error if the
+// method is not valid for use.
+func MethodByName(v reflect.Value, name string) (reflect.Value, error) {
+	method := v.MethodByName(name)
+	if !method.IsValid() || method.IsZero() {
+		return method, fmt.Errorf("did not find %s() method on type: %s", name, v.Type().Name())
+	}
+	return method, nil
+}
+
 // AppendIntoOrderedMap appends a populated value into the ordered map.
 //
 // There must not exist an existing element with the same key.
 func AppendIntoOrderedMap(orderedMap goOrderedList, value interface{}) error {
-	appendMethod, err := util.MethodByName(reflect.ValueOf(orderedMap), "Append")
+	appendMethod, err := MethodByName(reflect.ValueOf(orderedMap), "Append")
 	if err != nil {
 		return err
 	}
@@ -55,28 +63,17 @@ func AppendIntoOrderedMap(orderedMap goOrderedList, value interface{}) error {
 // The for loop break when either the visit function returns false or an error
 // is encountered due to the ordered map not being well-formed.
 func RangeOrderedMap(orderedMap goOrderedList, visit func(k reflect.Value, v reflect.Value) bool) error {
-	omv := reflect.ValueOf(orderedMap)
-	// First get the ordered keys, and then index into each of the values associated with it.
-	keysMethod, err := util.MethodByName(omv, "Keys")
-	if err != nil {
-		return err
-	}
-	ret := keysMethod.Call(nil)
-	if got, wantReturnN := len(ret), 1; got != wantReturnN {
-		return fmt.Errorf("method Keys() doesn't have expected number of return values, got %v, want %v", got, wantReturnN)
-	}
-	keys := ret[0]
-	if gotKind := keys.Type().Kind(); gotKind != reflect.Slice {
-		return fmt.Errorf("method Keys() did not return a slice value, got %v", gotKind)
-	}
-
-	getMethod, err := util.MethodByName(omv, "Get")
+	getMethod, err := MethodByName(reflect.ValueOf(orderedMap), "Get")
 	if err != nil {
 		return err
 	}
 
-	for i := 0; i != keys.Len(); i++ {
-		k := keys.Index(i)
+	keys, err := OrderedMapKeys(orderedMap)
+	if err != nil {
+		return err
+	}
+
+	for _, k := range keys {
 		ret := getMethod.Call([]reflect.Value{k})
 		if got, wantReturnN := len(ret), 1; got != wantReturnN {
 			return fmt.Errorf("method Get() doesn't have expected number of return values, got %v, want %v", got, wantReturnN)
@@ -107,4 +104,40 @@ func UnaryMethodArgType(t reflect.Type, methodName string) (reflect.Type, error)
 		return nil, fmt.Errorf("method %s() doesn't have expected number of input parameters, got %v, want %v", methodName, gotIn, wantIn)
 	}
 	return methodSpec.In(1), nil
+}
+
+// OrderedMapElementType returns the list element type of the ordered map.
+func OrderedMapElementType(om goOrderedList) (reflect.Type, error) {
+	return UnaryMethodArgType(reflect.TypeOf(om), "Append")
+}
+
+// OrderedMapKeyType returns the key type of the ordered map, which will be a
+// struct type for a multi-keyed list.
+func OrderedMapKeyType(om goOrderedList) (reflect.Type, error) {
+	return UnaryMethodArgType(reflect.TypeOf(om), "Get")
+}
+
+// OrderedMapKeys returns the keys of the ordered map in a slice analogous to
+// reflect's Value.MapKeys() method although it returns an error.
+func OrderedMapKeys(om goOrderedList) ([]reflect.Value, error) {
+	// First get the ordered keys, and then index into each of the values associated with it.
+	keysMethod, err := MethodByName(reflect.ValueOf(om), "Keys")
+	if err != nil {
+		return nil, err
+	}
+	ret := keysMethod.Call(nil)
+	if got, wantReturnN := len(ret), 1; got != wantReturnN {
+		return nil, fmt.Errorf("method Keys() doesn't have expected number of return values, got %v, want %v", got, wantReturnN)
+	}
+	keys := ret[0]
+	if gotKind := keys.Type().Kind(); gotKind != reflect.Slice {
+		return nil, fmt.Errorf("method Keys() did not return a slice value, got %v", gotKind)
+	}
+
+	var keySlice []reflect.Value
+	for i := 0; i != keys.Len(); i++ {
+		keySlice = append(keySlice, keys.Index(i))
+	}
+
+	return keySlice, nil
 }
