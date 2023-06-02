@@ -1400,6 +1400,11 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			if prependmods != nil && prependmods[i][j] != "" {
 				k = fmt.Sprintf("%s:%s", prependmods[i][j], k)
 			}
+			value, err = normalizeJSONValue(value)
+			if err != nil {
+				errs.Add(err)
+				continue
+			}
 			parent[k] = value
 		}
 	}
@@ -1694,6 +1699,22 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 		return nil, errs.Err()
 	}
 	return value, nil
+}
+
+// normalizeJSONValue returns the Go-type-normalized version of the JSON
+// object.
+//
+// e.g. it converts ints to float64
+func normalizeJSONValue(v any) (any, error) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return nil, fmt.Errorf("cannot marshal JSON value: %v", err)
+	}
+	var nv any
+	if err = json.Unmarshal(b, &nv); err != nil {
+		return nil, fmt.Errorf("cannot unmarshal JSON value: %v", err)
+	}
+	return nv, nil
 }
 
 // jsonSlice takes an input reflect.Value containing a slice, and

@@ -23,7 +23,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/ygot/testutil"
 	"google.golang.org/protobuf/encoding/prototext"
@@ -2747,10 +2746,10 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantInternal: map[string]any{
 			"str":        "hello",
-			"leaf-list":  []string{"hello", "world"},
-			"int-val":    42,
+			"leaf-list":  []any{"hello", "world"},
+			"int-val":    float64(42),
 			"enum":       "VAL_TWO",
-			"mixed-list": []any{42},
+			"mixed-list": []any{float64(42)},
 			"keyless-list": []any{
 				map[string]any{
 					"val": "21st Amendment",
@@ -2916,7 +2915,7 @@ func TestConstructJSON(t *testing.T) {
 					"val": "eighty four",
 				},
 			},
-			"mixed-list": []any{"foo:VAL_ONE", "test", uint32(42)},
+			"mixed-list": []any{"foo:VAL_ONE", "test", float64(42)},
 		},
 		wantInternal: map[string]any{
 			"ch": map[string]any{"val": float64(42)},
@@ -3164,7 +3163,7 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantInternal: map[string]any{
 			"state": map[string]any{
-				"transport-address": 42,
+				"transport-address": float64(42),
 			},
 		},
 	}, {
@@ -3194,7 +3193,7 @@ func TestConstructJSON(t *testing.T) {
 		wantIETF: map[string]any{
 			"state": map[string]any{
 				"message-dump": "AQIDBA==",
-				"updates":      []string{"AQID", "AQIDBA=="},
+				"updates":      []any{"AQID", "AQIDBA=="},
 			},
 		},
 		wantSame: true,
@@ -3680,7 +3679,7 @@ func TestConstructJSON(t *testing.T) {
 				return
 			}
 
-			if diff := pretty.Compare(gotietf, tt.wantIETF); diff != "" {
+			if diff := cmp.Diff(gotietf, tt.wantIETF); diff != "" {
 				t.Errorf("ConstructIETFJSON(%v): did not get expected output, diff(-got,+want):\n%v", tt.in, diff)
 			}
 		})
@@ -3707,7 +3706,7 @@ func TestConstructJSON(t *testing.T) {
 				if tt.wantSame == true {
 					wantInternal = tt.wantIETF
 				}
-				if diff := pretty.Compare(gotjson, wantInternal); diff != "" {
+				if diff := cmp.Diff(gotjson, wantInternal); diff != "" {
 					t.Errorf("ConstructJSON(%v): did not get expected output, diff(-got,+want):\n%v", tt.in, diff)
 				}
 			})
