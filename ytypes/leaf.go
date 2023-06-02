@@ -23,6 +23,7 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/internal/yreflect"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 
@@ -620,7 +621,7 @@ func getUnionTypesNotEnums(schema *yang.Entry, yt *yang.YangType) ([]*yang.YangT
 // type) for a given schema, which must be for an enum type. t is the type of
 // the containing parent struct.
 func schemaToEnumTypes(schema *yang.Entry, t reflect.Type) ([]reflect.Type, error) {
-	enumTypesMethod, err := util.MethodByName(reflect.New(t).Elem(), "ΛEnumTypeMap")
+	enumTypesMethod, err := yreflect.MethodByName(reflect.New(t).Elem(), "ΛEnumTypeMap")
 	if err != nil {
 		return nil, err
 	}

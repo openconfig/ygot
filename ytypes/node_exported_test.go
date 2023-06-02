@@ -24,20 +24,11 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/internal/ytestutil"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
-)
-
-var (
-	orderedMapCmpOptions = []cmp.Option{
-		cmp.AllowUnexported(
-			ctestschema.OrderedList_OrderedMap{},
-			ctestschema.OrderedList_OrderedList_OrderedMap{},
-			ctestschema.OrderedMultikeyedList_OrderedMap{},
-		),
-	}
 )
 
 func treeNodesEqual(got, want []*ytypes.TreeNode) error {
@@ -557,10 +548,10 @@ func TestGetOrCreateNodeOrderedMap(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if diff := cmp.Diff(tt.want, got, orderedMapCmpOptions...); diff != "" {
+			if diff := cmp.Diff(tt.want, got, ytestutil.OrderedMapCmpOptions...); diff != "" {
 				t.Errorf("(-want, +got):\n%s", diff)
 			}
-			if diff := cmp.Diff(tt.wantParent, tt.inParent, orderedMapCmpOptions...); diff != "" {
+			if diff := cmp.Diff(tt.wantParent, tt.inParent, ytestutil.OrderedMapCmpOptions...); diff != "" {
 				t.Errorf("parent (-want, +got):\n%s", diff)
 			}
 		})
@@ -814,7 +805,7 @@ func TestSetNodeOrderedMap(t *testing.T) {
 				if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 					t.Fatalf("got %v\nwant %v", err, tt.wantErrSubstring)
 				}
-				if diff := cmp.Diff(tt.wantParent, parent, orderedMapCmpOptions...); diff != "" {
+				if diff := cmp.Diff(tt.wantParent, parent, ytestutil.OrderedMapCmpOptions...); diff != "" {
 					t.Errorf("(-wantParent, +got):\n%s", diff)
 				}
 				if err != nil {
@@ -842,7 +833,7 @@ func TestSetNodeOrderedMap(t *testing.T) {
 					t.Fatalf("did not get exactly one tree node: %v", treeNode)
 				}
 				got := treeNode[0].Data
-				if diff := cmp.Diff(tt.want, got, orderedMapCmpOptions...); diff != "" {
+				if diff := cmp.Diff(tt.want, got, ytestutil.OrderedMapCmpOptions...); diff != "" {
 					t.Errorf("(-wantLeaf, +got):\n%s", diff)
 				}
 			})
@@ -1095,7 +1086,7 @@ func TestDeleteNodeOrderedMap(t *testing.T) {
 				return
 			}
 
-			if diff := cmp.Diff(tt.wantParent, tt.inParent, orderedMapCmpOptions...); diff != "" {
+			if diff := cmp.Diff(tt.wantParent, tt.inParent, ytestutil.OrderedMapCmpOptions...); diff != "" {
 				t.Errorf("TestDeleteNode (-want, +got):\n%s", diff)
 			}
 		})

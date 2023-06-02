@@ -387,7 +387,7 @@ func retrieveNodeOrderedList(schema *yang.Entry, root ygot.GoOrderedList, path, 
 
 	var matches []*TreeNode
 
-	keyType, err := yreflect.UnaryMethodArgType(reflect.TypeOf(root), "Get")
+	keyType, err := yreflect.OrderedMapKeyType(root)
 	if err != nil {
 		return nil, err
 	}
@@ -459,7 +459,7 @@ func retrieveNodeOrderedList(schema *yang.Entry, root ygot.GoOrderedList, path, 
 		if match {
 			remainingPath := util.PopGNMIPath(path)
 			if args.delete && len(remainingPath.GetElem()) == 0 {
-				deleteMethod, err := util.MethodByName(reflect.ValueOf(root), "Delete")
+				deleteMethod, err := yreflect.MethodByName(reflect.ValueOf(root), "Delete")
 				if err != nil {
 					outerErr = err
 					return false
@@ -476,7 +476,7 @@ func retrieveNodeOrderedList(schema *yang.Entry, root ygot.GoOrderedList, path, 
 			// deletion operation is executed, then remove
 			// the map element from the map.
 			if args.delete && v.Elem().IsZero() {
-				deleteMethod, err := util.MethodByName(reflect.ValueOf(root), "Delete")
+				deleteMethod, err := yreflect.MethodByName(reflect.ValueOf(root), "Delete")
 				if err != nil {
 					outerErr = err
 					return false
@@ -502,7 +502,7 @@ func retrieveNodeOrderedList(schema *yang.Entry, root ygot.GoOrderedList, path, 
 		if keyN != len(newKeyVals) {
 			return nil, fmt.Errorf("cannot create new ordered map entry with keys %v (%s): got %d valid keys, expected %d", pathKeyVals, schema.Path(), len(newKeyVals), keyN)
 		}
-		appendNewMethod, err := util.MethodByName(reflect.ValueOf(root), "AppendNew")
+		appendNewMethod, err := yreflect.MethodByName(reflect.ValueOf(root), "AppendNew")
 		if err != nil {
 			return nil, err
 		}

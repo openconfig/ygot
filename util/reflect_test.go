@@ -1176,13 +1176,11 @@ func TestForEachField(t *testing.T) {
 	for _, tt := range tests {
 		outStr := ""
 		var errs Errors = ForEachField(tt.schema, tt.parentStruct, tt.in, &outStr, tt.iterFunc)
-		if got, want := errs.String(), tt.wantErr; got != want {
-			diff, _ := testutil.GenerateUnifiedDiff(want, got)
-			t.Errorf("%s:\n%s", tt.desc, diff)
+		if diff := cmp.Diff(errs.String(), tt.wantErr); diff != "" {
+			t.Errorf("error (-got, +want):\n%s", diff)
 		}
 		if errs == nil {
-			if got, want := outStr, tt.wantOut; got != want {
-				diff, _ := testutil.GenerateUnifiedDiff(want, got)
+			if diff := cmp.Diff(outStr, tt.wantOut); diff != "" {
 				t.Errorf("%s:\n%s", tt.desc, diff)
 			}
 		}

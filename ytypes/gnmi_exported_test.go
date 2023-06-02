@@ -20,6 +20,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/internal/ytestutil"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
 )
@@ -90,7 +91,7 @@ func TestUnmarshalNotificationsOrderedMap(t *testing.T) {
 				t.Fatalf("got error: %v, want: %v", err, tt.wantErr)
 			}
 			if !tt.wantErr {
-				if diff := cmp.Diff(tt.inSchema.Root, tt.want, orderedMapCmpOptions...); diff != "" {
+				if diff := cmp.Diff(tt.inSchema.Root, tt.want, ytestutil.OrderedMapCmpOptions...); diff != "" {
 					t.Errorf("(-got, +want):\n%s", diff)
 				}
 			}

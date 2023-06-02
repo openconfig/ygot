@@ -21,6 +21,7 @@ import (
 	"strconv"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/internal/yreflect"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 
@@ -125,7 +126,7 @@ func castToEnumValue(ft reflect.Type, value string) (interface{}, error) {
 	}
 
 	util.DbgPrint("checking for matching enum value for type %s", ft)
-	mapMethod, err := util.MethodByName(reflect.New(ft), "ΛMap")
+	mapMethod, err := yreflect.MethodByName(reflect.New(ft), "ΛMap")
 	if err != nil {
 		return 0, err
 	}
