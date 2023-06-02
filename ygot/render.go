@@ -99,7 +99,7 @@ func (p *path) String() string {
 // pathval combines path and the value for the relative or absolute path.
 type pathval struct {
 	path *path
-	val  interface{}
+	val  any
 }
 
 // gnmiPath provides a wrapper for gNMI path types, particularly
@@ -235,7 +235,7 @@ func (g *gnmiPath) StringElemAt(i int) (string, error) {
 }
 
 // SetIndex sets the element at index i to the value v.
-func (g *gnmiPath) SetIndex(i int, v interface{}) error {
+func (g *gnmiPath) SetIndex(i int, v any) error {
 	if i > g.Len() {
 		return fmt.Errorf("invalid index, out of range, got: %d, length: %d", i, g.Len())
 	}
@@ -363,7 +363,7 @@ func TogNMINotifications(s GoStruct, ts int64, cfg GNMINotificationsConfig) ([]*
 		pfx = newStringSliceGNMIPath(cfg.StringSlicePrefix)
 	}
 
-	leaves := map[*path]interface{}{}
+	leaves := map[*path]any{}
 	if err := findUpdatedLeaves(leaves, s, pfx); err != nil {
 		return nil, err
 	}
@@ -389,9 +389,9 @@ func TogNMINotifications(s GoStruct, ts int64, cfg GNMINotificationsConfig) ([]*
 func findUpdatedOrderedListLeaves(leaves any, s GoOrderedList, parent *gnmiPath) error {
 	var errs errlist.List
 
-	var leavesMap map[*path]interface{}
+	var leavesMap map[*path]any
 	switch leaves := leaves.(type) {
-	case map[*path]interface{}:
+	case map[*path]any:
 		leavesMap = leaves
 	case *[]*pathval:
 		// TODO: Support nested ordered lists/atomic elements -- they should marshal in
@@ -461,15 +461,15 @@ func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath) error {
 	// matter, the ordering of leaves in an atomic subtree node may matter,
 	// for example in the case of YANG `ordered-by user` lists, where the
 	// leaves must be marshalled in the right key order.
-	var addLeaf func(path *path, value interface{})
+	var addLeaf func(path *path, value any)
 
 	switch leaves := leaves.(type) {
-	case map[*path]interface{}:
-		addLeaf = func(path *path, value interface{}) {
+	case map[*path]any:
+		addLeaf = func(path *path, value any) {
 			leaves[path] = value
 		}
 	case *[]*pathval:
-		addLeaf = func(path *path, value interface{}) {
+		addLeaf = func(path *path, value any) {
 			*leaves = append(*leaves, &pathval{
 				path: path,
 				val:  value,
@@ -664,7 +664,7 @@ func appendgNMIPathElemKey(v reflect.Value, p *gnmiPath) (*gnmiPath, error) {
 type keyHelperGoKeyStruct interface {
 	// ΛListKeyMap defines a helper method that returns a map of the
 	// keys of a list element.
-	ΛListKeyMap() (map[string]interface{}, error)
+	ΛListKeyMap() (map[string]any, error)
 }
 
 // PathKeyFromStruct returns a map[string]string which represents the keys for a YANG
@@ -688,12 +688,12 @@ func PathKeyFromStruct(v reflect.Value) (map[string]string, error) {
 	return k, nil
 }
 
-// keyMapAsStrings takes an input map[string]interface{}, keyed by the name of
+// keyMapAsStrings takes an input map[string]any, keyed by the name of
 // a leaf, and with a value of the leaf's value, and returns it as a map[string]string
 // as is required in the gNMI PathElem message. The ΛListKeyMap helper function on
-// a generated KeyHelperGoStruct returns a map[string]interface{} of the form of
+// a generated KeyHelperGoStruct returns a map[string]any of the form of
 // the input keys argument to this function.
-func keyMapAsStrings(keys map[string]interface{}) (map[string]string, error) {
+func keyMapAsStrings(keys map[string]any) (map[string]string, error) {
 	nk := map[string]string{}
 	for kn, k := range keys {
 		v, err := KeyValueAsString(k)
@@ -705,10 +705,10 @@ func keyMapAsStrings(keys map[string]interface{}) (map[string]string, error) {
 	return nk, nil
 }
 
-// KeyValueAsString returns a string representation of the interface{} supplied. If the
+// KeyValueAsString returns a string representation of the any supplied. If the
 // type provided cannot be represented as a string for use in a gNMI path, an error is
 // returned.
-func KeyValueAsString(v interface{}) (string, error) {
+func KeyValueAsString(v any) (string, error) {
 	kv := reflect.ValueOf(v)
 	if _, isEnum := v.(GoEnum); isEnum {
 		name, _, err := enumFieldToString(kv, false)
@@ -747,7 +747,7 @@ func KeyValueAsString(v interface{}) (string, error) {
 // a gNMI ScalarArray that can be populated as the leaflist_val field within a Notification
 // message. Returns an error if the slice contains a type that cannot be mapped to
 // a TypedValue message.
-func sliceToScalarArray(v []interface{}) (*gnmipb.ScalarArray, error) {
+func sliceToScalarArray(v []any) (*gnmipb.ScalarArray, error) {
 	arr := &gnmipb.ScalarArray{}
 	for _, e := range v {
 		tv, err := value.FromScalar(e)
@@ -767,8 +767,8 @@ func sliceToScalarArray(v []interface{}) (*gnmipb.ScalarArray, error) {
 // large Notifications for particular structs. There should be some
 // fragmentation of Updates across Notification messages in a future
 // implementation. We return a slice to keep the API stable.
-func leavesToNotifications(leaves map[*path]interface{}, ts int64, pfx *gnmiPath) ([]*gnmipb.Notification, error) {
-	addToNotification := func(pk *path, value interface{}, n *gnmipb.Notification, pfx *gnmiPath) error {
+func leavesToNotifications(leaves map[*path]any, ts int64, pfx *gnmiPath) ([]*gnmipb.Notification, error) {
+	addToNotification := func(pk *path, value any, n *gnmipb.Notification, pfx *gnmiPath) error {
 		path, err := pk.p.StripPrefix(pfx)
 		if err != nil {
 			return err
@@ -851,7 +851,7 @@ type EncodeTypedValueOpt interface {
 
 // EncodeTypedValue encodes val into a gNMI TypedValue message, using the specified encoding
 // type if the value is a struct.
-func EncodeTypedValue(val interface{}, enc gnmipb.Encoding, opts ...EncodeTypedValueOpt) (*gnmipb.TypedValue, error) {
+func EncodeTypedValue(val any, enc gnmipb.Encoding, opts ...EncodeTypedValueOpt) (*gnmipb.TypedValue, error) {
 	jc := &RFC7951JSONConfig{}
 	for _, opt := range opts {
 		if cfg, ok := opt.(*RFC7951JSONConfig); ok {
@@ -922,13 +922,13 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding, opts ...EncodeTypedV
 
 // marshalStructOrOrderedList encodes the struct/ordered list s according to
 // the encoding specified by enc. It is returned as a TypedValue gNMI message.
-func marshalStructOrOrderedList(s interface{}, enc gnmipb.Encoding, cfg *RFC7951JSONConfig) (*gnmipb.TypedValue, error) {
+func marshalStructOrOrderedList(s any, enc gnmipb.Encoding, cfg *RFC7951JSONConfig) (*gnmipb.TypedValue, error) {
 	if reflect.ValueOf(s).IsNil() {
 		return nil, nil
 	}
 
 	var (
-		j     interface{}
+		j     any
 		err   error
 		encfn func(s string) *gnmipb.TypedValue
 	)
@@ -963,11 +963,11 @@ func marshalStructOrOrderedList(s interface{}, enc gnmipb.Encoding, cfg *RFC7951
 }
 
 // leaflistToSlice takes a reflect.Value that represents a leaf list in the YANG schema
-// (GoStruct) and outputs a slice of interface{} that corresponds to its contents that
+// (GoStruct) and outputs a slice of any that corresponds to its contents that
 // should be used within a Notification. If prependModuleNameIref is set to true, then
 // identity names are prepended with the name of the module that defines them.
-func leaflistToSlice(val reflect.Value, prependModuleNameIref bool) ([]interface{}, error) {
-	sval := []interface{}{}
+func leaflistToSlice(val reflect.Value, prependModuleNameIref bool) ([]any, error) {
+	sval := []any{}
 	for i := 0; i < val.Len(); i++ {
 		e := val.Index(i)
 
@@ -976,7 +976,7 @@ func leaflistToSlice(val reflect.Value, prependModuleNameIref bool) ([]interface
 		// a single typed leaf-list - so mapping can be done solely based
 		// on the type of the elements of the slice. The second case is
 		// a leaf-list of union values, which means that there may be
-		// multiple types. This is represented as []interface{}
+		// multiple types. This is represented as []any
 		switch e.Kind() {
 		case reflect.String:
 			sval = append(sval, e.String())
@@ -1056,7 +1056,7 @@ func leaflistToSlice(val reflect.Value, prependModuleNameIref bool) ([]interface
 // be appended the supplied slice of empty interfaces. If prependModuleNameIref
 // is set to true, the module name is prepended to the string value of
 // any identity encountered when appending.
-func appendTypedValue(l []interface{}, v reflect.Value, prependModuleNameIref bool) ([]interface{}, error) {
+func appendTypedValue(l []any, v reflect.Value, prependModuleNameIref bool) ([]any, error) {
 	ival := v.Interface()
 	switch reflect.TypeOf(ival).Kind() {
 	case reflect.String:
@@ -1146,7 +1146,7 @@ func (*RFC7951JSONConfig) IsEncodeTypedValueOpt() {}
 // handing to json.Marshal. It complies with the convention for marshalling
 // to JSON described by RFC7951. The supplied args control options corresponding
 // to the method by which JSON is marshalled.
-func ConstructIETFJSON(s GoStruct, args *RFC7951JSONConfig) (map[string]interface{}, error) {
+func ConstructIETFJSON(s GoStruct, args *RFC7951JSONConfig) (map[string]any, error) {
 	return structJSON(s, "", jsonOutputConfig{
 		jType:         RFC7951,
 		rfc7951Config: args,
@@ -1156,7 +1156,7 @@ func ConstructIETFJSON(s GoStruct, args *RFC7951JSONConfig) (map[string]interfac
 // ConstructInternalJSON marshals a supplied GoStruct to a map, suitable for handing
 // to json.Marshal. It uses the loosely specified JSON format document in
 // go/yang-internal-json.
-func ConstructInternalJSON(s GoStruct) (map[string]interface{}, error) {
+func ConstructInternalJSON(s GoStruct) (map[string]any, error) {
 	return structJSON(s, "", jsonOutputConfig{
 		jType: Internal,
 	})
@@ -1183,7 +1183,7 @@ func (JSONIndent) IsMarshal7951Arg() {}
 // base JSON Marshal (e.g., indentation), as well as RFC7951 specific options such as
 // YANG module names being prepended.
 // The rendered JSON is returned as a byte slice - in common with json.Marshal.
-func Marshal7951(d interface{}, args ...Marshal7951Arg) ([]byte, error) {
+func Marshal7951(d any, args ...Marshal7951Arg) ([]byte, error) {
 	var (
 		rfcCfg *RFC7951JSONConfig
 		indent string
@@ -1293,22 +1293,22 @@ func prependmodsJSON(fType reflect.StructField, parentMod string, args jsonOutpu
 	return prependmods, chMod, nil
 }
 
-// structJSON marshals a GoStruct to a map[string]interface{} which can be
+// structJSON marshals a GoStruct to a map[string]any which can be
 // handed to JSON marshal. parentMod specifies the module that the supplied
 // GoStruct is defined within such that RFC7951 format JSON is able to consider
 // whether to prepend the name of the module to an element. The format of JSON to
 // be produced and whether such module names are prepended is controlled through the
 // supplied jsonOutputConfig. Returns an error if the GoStruct cannot be rendered
 // to JSON.
-func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string]interface{}, error) {
+func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string]any, error) {
 	var errs errlist.List
 
 	sval := reflect.ValueOf(s).Elem()
 	stype := sval.Type()
 
-	// Marshal into a map[string]interface{} which can be handed to
+	// Marshal into a map[string]any which can be handed to
 	// json.Marshal(Text)?
-	jsonout := map[string]interface{}{}
+	jsonout := map[string]any{}
 
 	for i := 0; i < sval.NumField(); i++ {
 		field := sval.Field(i)
@@ -1348,12 +1348,12 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			continue
 		}
 
-		if mp, ok := value.(map[string]interface{}); ok && len(mp) == 0 && !util.IsYangPresence(fType) {
+		if mp, ok := value.(map[string]any); ok && len(mp) == 0 && !util.IsYangPresence(fType) {
 			continue
 		}
 
 		if isFakeRoot {
-			if v, ok := value.(map[string]interface{}); ok {
+			if v, ok := value.(map[string]any); ok {
 				for mk, mv := range v {
 					jsonout[mk] = mv
 				}
@@ -1388,9 +1388,9 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 				}
 
 				if _, ok := parent[k]; !ok {
-					parent[k] = map[string]interface{}{}
+					parent[k] = map[string]any{}
 				}
-				parent = parent[k].(map[string]interface{})
+				parent = parent[k].(map[string]any)
 			}
 			k, err := p.LastStringElem()
 			if err != nil {
@@ -1414,7 +1414,7 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 // writeIETFScalarJSON takes an input scalar value, and returns it in the format
 // that is expected in IETF RFC7951 JSON. Per this specification, uint64, int64
 // and float64 values are represented as strings.
-func writeIETFScalarJSON(i interface{}) interface{} {
+func writeIETFScalarJSON(i any) any {
 	switch reflect.ValueOf(i).Kind() {
 	case reflect.Uint64, reflect.Int64, reflect.Float64:
 		return fmt.Sprintf("%v", i)
@@ -1424,10 +1424,10 @@ func writeIETFScalarJSON(i interface{}) interface{} {
 
 // keyValue takes an input reflect.Value and returns its representation when used
 // in a key for a YANG list. If the value is an enumerated type then its string
-// representation is returned, otherwise the value is returned as an interface{}.
+// representation is returned, otherwise the value is returned as an any.
 // If prependModuleNameIref is set to true keys that are identity values in the YANG
 // schema are prepended with the module that defines them.
-func keyValue(v reflect.Value, prependModuleNameIref bool) (interface{}, error) {
+func keyValue(v reflect.Value, prependModuleNameIref bool) (any, error) {
 	if _, isEnum := v.Interface().(GoEnum); !isEnum {
 		return v.Interface(), nil
 	}
@@ -1447,7 +1447,7 @@ func keyValue(v reflect.Value, prependModuleNameIref bool) (interface{}, error) 
 // constructs the representation for JSON marshalling that corresponds to it.
 // The module within which the map is defined is specified by the parentMod
 // argument.
-func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (interface{}, error) {
+func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (any, error) {
 	var errs errlist.List
 	mapKeyMap := map[string]reflect.Value{}
 	// Order of elements determines the order in which keys will be processed.
@@ -1506,22 +1506,22 @@ func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (inte
 	if len(mapKeys) == 0 {
 		// empty list should be encoded as empty list
 		if args.jType == RFC7951 {
-			return []interface{}{}, nil
+			return []any{}, nil
 		}
 		return nil, nil
 	}
 
 	// Build the output that we expect. Since there is a difference between the IETF
-	// and non-IETF forms, we simply choose vals to be interface{}, and then type assert
+	// and non-IETF forms, we simply choose vals to be any, and then type assert
 	// it later on. Since t cannot mutuate through this function we can guarantee that
 	// the type assertions below will not cause panic, since we ensure that we know
 	// what type of serialisation we're doing when we set the type.
-	var vals interface{}
+	var vals any
 	switch args.jType {
 	case RFC7951:
-		vals = []interface{}{}
+		vals = []any{}
 	case Internal:
-		vals = map[string]interface{}{}
+		vals = map[string]any{}
 	default:
 		return nil, fmt.Errorf("invalid JSON format specified: %v", args.jType)
 	}
@@ -1541,9 +1541,9 @@ func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (inte
 
 		switch args.jType {
 		case RFC7951:
-			vals = append(vals.([]interface{}), val)
+			vals = append(vals.([]any), val)
 		case Internal:
-			vals.(map[string]interface{})[kn] = val
+			vals.(map[string]any)[kn] = val
 		default:
 			errs.Add(fmt.Errorf("invalid JSON type: %v", args.jType))
 			continue
@@ -1561,8 +1561,8 @@ func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (inte
 // The module within which the value is defined is specified by the parentMod string,
 // and the type of JSON to be rendered controlled by the value of the jsonOutputConfig
 // provided. Returns an error if one occurs during the mapping process.
-func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (interface{}, error) {
-	var value interface{}
+func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (any, error) {
+	var value any
 	var errs errlist.List
 
 	switch field.Kind() {
@@ -1682,7 +1682,7 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 		// JSON if the leaf is present and set, it is rendered as 'true', or as nil otherwise.
 		switch {
 		case args.jType == RFC7951 && field.Type().Name() == EmptyTypeName && field.Bool():
-			value = []interface{}{nil}
+			value = []any{nil}
 		case field.Bool():
 			value = true
 		}
@@ -1701,7 +1701,7 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 // GoStruct, a slice may be a binary field, leaf-list or an unkeyed list. The
 // parentMod is used to track the name of the parent module in the case that
 // module names should be prepended.
-func jsonSlice(field reflect.Value, parentMod string, args jsonOutputConfig) (interface{}, error) {
+func jsonSlice(field reflect.Value, parentMod string, args jsonOutputConfig) (any, error) {
 	if field.Type().Name() == BinaryTypeName {
 		// Handle the case that that we have a Binary ([]byte) value,
 		// which must be returned as a JSON string.
@@ -1711,7 +1711,7 @@ func jsonSlice(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 	// In the case that the field is a slice of struct pointers then this
 	// was an unkeyed YANG list.
 	if c := field.Type().Elem(); util.IsTypeStructPtr(c) {
-		vals := []interface{}{}
+		vals := []any{}
 		for i := 0; i < field.Len(); i++ {
 			gs, ok := field.Index(i).Interface().(GoStruct)
 			if !ok {
@@ -1748,12 +1748,12 @@ func jsonSlice(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 // jsonAnnotationSlice takes a reflect.Value which must represent a
 // ygot Annotation field ([]ygot.Annotation), and marshals it to JSON to be
 // included in the output JSON.
-func jsonAnnotationSlice(v reflect.Value) (interface{}, error) {
+func jsonAnnotationSlice(v reflect.Value) (any, error) {
 	if v.Len() == 0 {
 		return nil, nil
 	}
 
-	vals := []interface{}{}
+	vals := []any{}
 	for i := 0; i < v.Len(); i++ {
 		fv := v.Index(i).Interface().(Annotation)
 		jv, err := fv.MarshalJSON()
@@ -1762,9 +1762,9 @@ func jsonAnnotationSlice(v reflect.Value) (interface{}, error) {
 		}
 
 		// MarshalJSON returns []byte, but we really want to have this as the unmarshalled
-		// value, since constructJSON returns a series of map[string]interface{} Which
-		// are later marshalled, we therefore unmarshal the []byte into an interface{}
-		var nv interface{}
+		// value, since constructJSON returns a series of map[string]any Which
+		// are later marshalled, we therefore unmarshal the []byte into an any
+		var nv any
 		if err := json.Unmarshal(jv, &nv); err != nil {
 			return nil, fmt.Errorf("annotation %v, type %T could not be unmarshalled from JSON: %v", fv, fv, err)
 		}
@@ -1812,7 +1812,7 @@ func jsonAnnotationSlice(v reflect.Value) (interface{}, error) {
 //
 // This function extracts field index 0 of the struct within the interface and returns
 // the value.
-func unwrapUnionInterfaceValue(v reflect.Value, prependModuleNameIref bool) (interface{}, error) {
+func unwrapUnionInterfaceValue(v reflect.Value, prependModuleNameIref bool) (any, error) {
 	var s reflect.Value
 	switch {
 	case util.IsValueInterfaceToStructPtr(v):
@@ -1833,7 +1833,7 @@ func unwrapUnionInterfaceValue(v reflect.Value, prependModuleNameIref bool) (int
 // unionPtrValue returns the value of a union when it is stored as a pointer. The
 // type of the union field is as per the description in unwrapUnionInterfaceValue. Union
 // pointer values are used when a list is keyed by a union.
-func unionPtrValue(v reflect.Value, prependModuleNameIref bool) (interface{}, error) {
+func unionPtrValue(v reflect.Value, prependModuleNameIref bool) (any, error) {
 	if !util.IsValueStructPtr(v) {
 		return nil, fmt.Errorf("received a union pointer that didn't contain a struct, got: %v", v.Kind())
 	}
@@ -1847,7 +1847,7 @@ func unionPtrValue(v reflect.Value, prependModuleNameIref bool) (interface{}, er
 
 // resolveUnionVal returns the value of a field in a union, resolving it to its
 // the relevant type where required.
-func resolveUnionVal(v interface{}, prependModuleNameIref bool) (interface{}, error) {
+func resolveUnionVal(v any, prependModuleNameIref bool) (any, error) {
 	if _, isEnum := v.(GoEnum); isEnum {
 		val, set, err := enumFieldToString(reflect.ValueOf(v), prependModuleNameIref)
 		if err != nil {
