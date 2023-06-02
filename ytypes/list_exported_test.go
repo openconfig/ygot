@@ -264,36 +264,7 @@ func TestUnmarshalKeyedList(t *testing.T) {
 	}
 }
 
-func TestUnmarshalSingleListElement(t *testing.T) {
-	listSchema := &yang.Entry{
-		Name:     "struct-list",
-		Kind:     yang.DirectoryEntry,
-		ListAttr: yang.NewDefaultListAttr(),
-		Dir: map[string]*yang.Entry{
-			"leaf-field": {
-				Kind: yang.LeafEntry,
-				Name: "leaf-field",
-				Type: &yang.YangType{Kind: yang.Yint32},
-			},
-			"enum-leaf-field": {
-				Kind: yang.LeafEntry,
-				Name: "enum-leaf-field",
-				Type: &yang.YangType{Kind: yang.Yenum},
-			},
-			"leaf2-field": {
-				Kind: yang.LeafEntry,
-				Name: "leaf2-field",
-				Type: &yang.YangType{Kind: yang.Yint64},
-			},
-		},
-	}
-
-	type ListElemStruct struct {
-		LeafName  *int32          `path:"leaf-field"`
-		EnumLeaf  ytypes.EnumType `path:"enum-leaf-field"`
-		Leaf2Name *int64          `path:"leaf2-field"`
-	}
-
+func TestUnmarshalSingleListElementOrderedMap(t *testing.T) {
 	tests := []struct {
 		desc    string
 		schema  *yang.Entry
@@ -302,26 +273,6 @@ func TestUnmarshalSingleListElement(t *testing.T) {
 		want    any
 		wantErr string
 	}{
-		{
-			desc:   "success",
-			schema: listSchema,
-			json:   `{ "leaf-field" : 42, "enum-leaf-field" : "E_VALUE_FORTY_TWO"}`,
-			parent: &ListElemStruct{
-				Leaf2Name: ygot.Int64(42),
-			},
-			want: &ListElemStruct{
-				LeafName:  ygot.Int32(42),
-				Leaf2Name: ygot.Int64(42),
-				EnumLeaf:  42,
-			},
-		},
-		{
-			desc:    "bad field",
-			schema:  listSchema,
-			json:    `{ "leaf-field" : 42, "bad-field" : "E_VALUE_FORTY_TWO"}`,
-			parent:  &ListElemStruct{},
-			wantErr: `parent container struct-list (type *ytypes_test.ListElemStruct): JSON contains unexpected field bad-field`,
-		},
 		{
 			desc:   "success with ordered map -- this should be the same as a regular map object",
 			json:   `{ "key" : "foo", "config": { "value" : "foo-val"} }`,

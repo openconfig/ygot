@@ -29,12 +29,6 @@ import (
 	"github.com/openconfig/ygot/testutil"
 )
 
-const (
-	// TestRoot is the path to the directory within which the test runs, appended
-	// to any filename that is to be loaded.
-	TestRoot string = ""
-)
-
 var (
 	testBinary1 = testutil.Binary("abc")
 	testBinary2 = testutil.Binary("def")
