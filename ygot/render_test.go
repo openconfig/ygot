@@ -189,7 +189,7 @@ func TestGNMIPathOps(t *testing.T) {
 		name                string
 		inPath              *gnmiPath
 		inIndex             int
-		inValue             interface{}
+		inValue             any
 		wantLastPathElem    *gnmipb.PathElem
 		wantLastPathElemErr bool
 		wantPath            *gnmiPath
@@ -469,11 +469,11 @@ func (*pathElemMultiKey) ΛValidate(...ValidationOption) error     { return nil 
 func (*pathElemMultiKey) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*pathElemMultiKey) ΛBelongingModule() string                { return "" }
 
-func (e *pathElemMultiKey) ΛListKeyMap() (map[string]interface{}, error) {
+func (e *pathElemMultiKey) ΛListKeyMap() (map[string]any, error) {
 	if e.I == nil || e.J == nil || e.S == nil || e.E == (EnumTest)(0) || e.X == nil || e.Y == nil {
 		return nil, fmt.Errorf("unset keys")
 	}
-	return map[string]interface{}{
+	return map[string]any{
 		"i": *e.I,
 		"j": *e.J,
 		"s": *e.S,
@@ -716,12 +716,12 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 func TestSliceToScalarArray(t *testing.T) {
 	tests := []struct {
 		name    string
-		in      []interface{}
+		in      []any
 		want    *gnmipb.ScalarArray
 		wantErr bool
 	}{{
 		name: "simple scalar array with only strings",
-		in:   []interface{}{"forty", "two"},
+		in:   []any{"forty", "two"},
 		want: &gnmipb.ScalarArray{
 			Element: []*gnmipb.TypedValue{
 				{Value: &gnmipb.TypedValue_StringVal{"forty"}},
@@ -730,7 +730,7 @@ func TestSliceToScalarArray(t *testing.T) {
 		},
 	}, {
 		name: "mixed scalar array with strings and integers",
-		in:   []interface{}{uint8(42), uint16(1642), uint32(3242), "towel"},
+		in:   []any{uint8(42), uint16(1642), uint32(3242), "towel"},
 		want: &gnmipb.ScalarArray{
 			Element: []*gnmipb.TypedValue{
 				{Value: &gnmipb.TypedValue_UintVal{42}},
@@ -741,7 +741,7 @@ func TestSliceToScalarArray(t *testing.T) {
 		},
 	}, {
 		name:    "scalar array with an unmappable type",
-		in:      []interface{}{uint8(1), struct{ val string }{"hello"}},
+		in:      []any{uint8(1), struct{ val string }{"hello"}},
 		wantErr: true,
 	}}
 
@@ -776,7 +776,7 @@ type renderExample struct {
 	EnumField           EnumTest                            `path:"enum"`
 	Ch                  *renderExampleChild                 `path:"ch"`
 	LeafList            []string                            `path:"leaf-list"`
-	MixedList           []interface{}                       `path:"mixed-list"`
+	MixedList           []any                               `path:"mixed-list"`
 	List                map[uint32]*renderExampleList       `path:"list"`
 	EnumList            map[EnumTest]*renderExampleEnumList `path:"enum-list"`
 	UnionVal            renderExampleUnion                  `path:"union-val"`
@@ -866,8 +866,8 @@ func (*renderExampleList) ΛValidate(...ValidationOption) error     { return nil
 func (*renderExampleList) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*renderExampleList) ΛBelongingModule() string                { return "" }
 
-func (r *renderExampleList) ΛListKeyMap() (map[string]interface{}, error) {
-	return map[string]interface{}{"val": *r.Val}, nil
+func (r *renderExampleList) ΛListKeyMap() (map[string]any, error) {
+	return map[string]any{"val": *r.Val}, nil
 }
 
 // renderExampleEnumList is a list entry that is keyed on an enum
@@ -949,11 +949,11 @@ func (*pathElemExampleChild) ΛBelongingModule() string                { return 
 
 // ΛListKeyMap ensures that pathElemExampleChild implements the KeyHelperGoStruct
 // helper.
-func (p *pathElemExampleChild) ΛListKeyMap() (map[string]interface{}, error) {
+func (p *pathElemExampleChild) ΛListKeyMap() (map[string]any, error) {
 	if p.Val == nil {
 		return nil, fmt.Errorf("invalid input, key Val was nil")
 	}
-	return map[string]interface{}{
+	return map[string]any{
 		"val": *p.Val,
 	}, nil
 }
@@ -971,11 +971,11 @@ func (*pathElemUnserialisable) ΛBelongingModule() string                { retur
 
 // ΛListKeyMap ensures that pathElemUnserialisable implements the KeyHelperGoStruct
 // helper.
-func (p *pathElemUnserialisable) ΛListKeyMap() (map[string]interface{}, error) {
+func (p *pathElemUnserialisable) ΛListKeyMap() (map[string]any, error) {
 	if p.Complex == nil {
 		return nil, fmt.Errorf("invalid input, key Val was nil")
 	}
-	return map[string]interface{}{
+	return map[string]any{
 		"complex": *p.Complex,
 	}, nil
 }
@@ -997,7 +997,7 @@ func (*pathElemExampleMultiKeyChild) ΛBelongingModule() string                {
 
 // ΛListKeyMap ensurs that pathElemExampleMultiKeyChild implements the KeyHelperGoStruct
 // interface.
-func (p *pathElemExampleMultiKeyChild) ΛListKeyMap() (map[string]interface{}, error) {
+func (p *pathElemExampleMultiKeyChild) ΛListKeyMap() (map[string]any, error) {
 	if p.Foo == nil {
 		return nil, fmt.Errorf("invalid input, key Foo was nil")
 	}
@@ -1005,7 +1005,7 @@ func (p *pathElemExampleMultiKeyChild) ΛListKeyMap() (map[string]interface{}, e
 	if p.Bar == nil {
 		return nil, fmt.Errorf("invalid input, key Bar was nil")
 	}
-	return map[string]interface{}{
+	return map[string]any{
 		"foo": *p.Foo,
 		"bar": *p.Bar,
 	}, nil
@@ -1302,7 +1302,7 @@ func TestTogNMINotifications(t *testing.T) {
 	}, {
 		name:        "struct with mixed leaflist",
 		inTimestamp: 720,
-		inStruct: &renderExample{MixedList: []interface{}{
+		inStruct: &renderExample{MixedList: []any{
 			42.42, int8(-42), int16(-84), int32(-168), int64(-336),
 			uint8(12), uint16(144), uint32(20736), uint64(429981696),
 			true, EnumTestVALTWO, float32(42.0),
@@ -1569,14 +1569,14 @@ func TestTogNMINotifications(t *testing.T) {
 		name:        "invalid element in leaf-list",
 		inTimestamp: 42,
 		inStruct: &renderExample{
-			MixedList: []interface{}{struct{ Foo string }{"bar"}},
+			MixedList: []any{struct{ Foo string }{"bar"}},
 		},
 		wantErr: true,
 	}, {
 		name:        "invalid slice within a slice",
 		inTimestamp: 42,
 		inStruct: &renderExample{
-			MixedList: []interface{}{[]string{"foo"}},
+			MixedList: []any{[]string{"foo"}},
 		},
 		wantErr: true,
 	}, {
@@ -2159,7 +2159,7 @@ type ietfRenderExample struct {
 	F3        *ietfRenderExampleChild                 `path:"f3" module:"f1mod"`
 	F6        *string                                 `path:"config/f6" module:"f1mod/f2mod"`
 	F7        *string                                 `path:"config/f7" module:"f2mod/f3mod"`
-	MixedList []interface{}                           `path:"mixed-list" module:"f1mod"`
+	MixedList []any                                   `path:"mixed-list" module:"f1mod"`
 	EnumList  map[EnumTest]*ietfRenderExampleEnumList `path:"enum-list" module:"f1mod"`
 }
 
@@ -2333,8 +2333,8 @@ func TestConstructJSON(t *testing.T) {
 		inPrependModIref         bool
 		inRewriteModuleNameRules map[string]string
 		inPreferShadowPath       bool
-		wantIETF                 map[string]interface{}
-		wantInternal             map[string]interface{}
+		wantIETF                 map[string]any
+		wantInternal             map[string]any
 		wantSame                 bool
 		wantErr                  bool
 		wantJSONErr              bool
@@ -2385,26 +2385,26 @@ func TestConstructJSON(t *testing.T) {
 			},
 		},
 		inAppendMod: true,
-		wantIETF: map[string]interface{}{
-			"m1:foo": map[string]interface{}{
+		wantIETF: map[string]any{
+			"m1:foo": map[string]any{
 				"m2:value-one": "one",
 				"m3:value-two": "two",
 				"value-three":  "three",
 			},
-			"m1:baz": map[string]interface{}{
-				"c": map[string]interface{}{
+			"m1:baz": map[string]any{
+				"c": map[string]any{
 					"name": "baz",
 				},
 			},
 		},
-		wantInternal: map[string]interface{}{
-			"foo": map[string]interface{}{
+		wantInternal: map[string]any{
+			"foo": map[string]any{
 				"value-one":   "one",
 				"value-two":   "two",
 				"value-three": "three",
 			},
-			"baz": map[string]interface{}{
-				"c": map[string]interface{}{
+			"baz": map[string]any{
+				"c": map[string]any{
 					"name": "baz",
 				},
 			},
@@ -2428,14 +2428,14 @@ func TestConstructJSON(t *testing.T) {
 			// rewrite m1 to m2
 			"m1": "m2",
 		},
-		wantIETF: map[string]interface{}{
-			"m2:foo": map[string]interface{}{
+		wantIETF: map[string]any{
+			"m2:foo": map[string]any{
 				"value-one":    "one",
 				"m3:value-two": "two",
 				"value-three":  "three",
 			},
-			"m2:baz": map[string]interface{}{
-				"c": map[string]interface{}{
+			"m2:baz": map[string]any{
+				"c": map[string]any{
 					"name": "baz",
 				},
 			},
@@ -2458,14 +2458,14 @@ func TestConstructJSON(t *testing.T) {
 		inRewriteModuleNameRules: map[string]string{
 			"m3": "fish",
 		},
-		wantIETF: map[string]interface{}{
-			"m1:foo": map[string]interface{}{
+		wantIETF: map[string]any{
+			"m1:foo": map[string]any{
 				"m2:value-one":   "one",
 				"fish:value-two": "two",
 				"value-three":    "three",
 			},
-			"m1:baz": map[string]interface{}{
-				"c": map[string]interface{}{
+			"m1:baz": map[string]any{
+				"c": map[string]any{
 					"name": "baz",
 				},
 			},
@@ -2475,7 +2475,7 @@ func TestConstructJSON(t *testing.T) {
 		in: &renderExample{
 			Str: String("hello"),
 		},
-		wantIETF: map[string]interface{}{
+		wantIETF: map[string]any{
 			"str": "hello",
 		},
 		wantSame: true,
@@ -2484,10 +2484,10 @@ func TestConstructJSON(t *testing.T) {
 		in: &renderExample{
 			Empty: true,
 		},
-		wantIETF: map[string]interface{}{
-			"empty": []interface{}{nil},
+		wantIETF: map[string]any{
+			"empty": []any{nil},
 		},
-		wantInternal: map[string]interface{}{
+		wantInternal: map[string]any{
 			"empty": true,
 		},
 	}, {
@@ -2497,24 +2497,24 @@ func TestConstructJSON(t *testing.T) {
 				{F1: "one", F2: "two"}: {F1: String("one"), F2: String("two")},
 			},
 		},
-		wantIETF: map[string]interface{}{
-			"foo": []interface{}{
-				map[string]interface{}{
+		wantIETF: map[string]any{
+			"foo": []any{
+				map[string]any{
 					"fOne": "one",
 					"fTwo": "two",
-					"config": map[string]interface{}{
+					"config": map[string]any{
 						"fOne": "one",
 						"fTwo": "two",
 					},
 				},
 			},
 		},
-		wantInternal: map[string]interface{}{
-			"foo": map[string]interface{}{
-				"one two": map[string]interface{}{
+		wantInternal: map[string]any{
+			"foo": map[string]any{
+				"one two": map[string]any{
 					"fOne": "one",
 					"fTwo": "two",
-					"config": map[string]interface{}{
+					"config": map[string]any{
 						"fOne": "one",
 						"fTwo": "two",
 					},
@@ -2529,26 +2529,26 @@ func TestConstructJSON(t *testing.T) {
 			},
 		},
 		inPreferShadowPath: true,
-		wantIETF: map[string]interface{}{
-			"foo": []interface{}{
-				map[string]interface{}{
+		wantIETF: map[string]any{
+			"foo": []any{
+				map[string]any{
 					"fOne": "one",
 					"fTwo": "two",
-					"state": map[string]interface{}{
+					"state": map[string]any{
 						"fOne": "one",
 						"fTwo": "two",
 					},
 				},
 			},
 		},
-		wantInternal: map[string]interface{}{
-			"foo": map[string]interface{}{
-				"one two": map[string]interface{}{
+		wantInternal: map[string]any{
+			"foo": map[string]any{
+				"one two": map[string]any{
 					"fOne": "one",
 					"fTwo": "two",
 					// NOTE: internal JSON generation doesn't have the
 					// preferShadowPath option, so its results are unchanged.
-					"config": map[string]interface{}{
+					"config": map[string]any{
 						"fOne": "one",
 						"fTwo": "two",
 					},
@@ -2564,26 +2564,26 @@ func TestConstructJSON(t *testing.T) {
 		},
 		inPreferShadowPath: true,
 		inAppendMod:        true,
-		wantIETF: map[string]interface{}{
-			"rootmod:foo": []interface{}{
-				map[string]interface{}{
+		wantIETF: map[string]any{
+			"rootmod:foo": []any{
+				map[string]any{
 					"f1mod:fOne":        "one",
 					"f2mod-shadow:fTwo": "two",
-					"fmod:state": map[string]interface{}{
+					"fmod:state": map[string]any{
 						"f1mod:fOne":        "one",
 						"f2mod-shadow:fTwo": "two",
 					},
 				},
 			},
 		},
-		wantInternal: map[string]interface{}{
-			"foo": map[string]interface{}{
-				"one two": map[string]interface{}{
+		wantInternal: map[string]any{
+			"foo": map[string]any{
+				"one two": map[string]any{
 					"fOne": "one",
 					"fTwo": "two",
 					// NOTE: internal JSON generation doesn't have the
 					// preferShadowPath option, so its results are unchanged.
-					"config": map[string]interface{}{
+					"config": map[string]any{
 						"fOne": "one",
 						"fTwo": "two",
 					},
@@ -2595,69 +2595,69 @@ func TestConstructJSON(t *testing.T) {
 		in: &structWithMultiKey{
 			OrderedMap: getMultiKeyOrderedMap(),
 		},
-		wantIETF: map[string]interface{}{
-			"rootmod:foo-ordered": []interface{}{
-				map[string]interface{}{
+		wantIETF: map[string]any{
+			"rootmod:foo-ordered": []any{
+				map[string]any{
 					"ctestschema:key1": "foo",
 					"ctestschema:key2": "42",
-					"ctestschema:config": map[string]interface{}{
+					"ctestschema:config": map[string]any{
 						"key2":  "42",
 						"value": "foo-val",
 					},
-					"ctestschema:state": map[string]interface{}{
+					"ctestschema:state": map[string]any{
 						"key1": "foo",
 					},
 				},
-				map[string]interface{}{
+				map[string]any{
 					"ctestschema:key1": "bar",
 					"ctestschema:key2": "43",
-					"ctestschema:config": map[string]interface{}{
+					"ctestschema:config": map[string]any{
 						"key2":  "43",
 						"value": "bar-val",
 					},
-					"ctestschema:state": map[string]interface{}{
+					"ctestschema:state": map[string]any{
 						"key1": "bar",
 					},
 				},
-				map[string]interface{}{
+				map[string]any{
 					"ctestschema:key1": "baz",
 					"ctestschema:key2": "44",
-					"ctestschema:config": map[string]interface{}{
+					"ctestschema:config": map[string]any{
 						"key2":  "44",
 						"value": "baz-val",
 					},
-					"ctestschema:state": map[string]interface{}{
+					"ctestschema:state": map[string]any{
 						"key1": "baz",
 					},
 				},
 			},
 		},
-		wantInternal: map[string]interface{}{
-			"foo-ordered": []interface{}{
-				map[string]interface{}{
+		wantInternal: map[string]any{
+			"foo-ordered": []any{
+				map[string]any{
 					"key1": "foo",
-					"key2": 42,
-					"config": map[string]interface{}{
+					"key2": float64(42),
+					"config": map[string]any{
 						"key1":  "foo",
-						"key2":  42,
+						"key2":  float64(42),
 						"value": "foo-val",
 					},
 				},
-				map[string]interface{}{
+				map[string]any{
 					"key1": "bar",
-					"key2": 43,
-					"config": map[string]interface{}{
+					"key2": float64(43),
+					"config": map[string]any{
 						"key1":  "bar",
-						"key2":  43,
+						"key2":  float64(43),
 						"value": "bar-val",
 					},
 				},
-				map[string]interface{}{
+				map[string]any{
 					"key1": "baz",
-					"key2": 44,
-					"config": map[string]interface{}{
+					"key2": float64(44),
+					"config": map[string]any{
 						"key1":  "baz",
-						"key2":  44,
+						"key2":  float64(44),
 						"value": "baz-val",
 					},
 				},
@@ -2717,50 +2717,50 @@ func TestConstructJSON(t *testing.T) {
 			IntVal:    Int32(42),
 			EnumField: EnumTestVALTWO,
 			LeafList:  []string{"hello", "world"},
-			MixedList: []interface{}{uint64(42)},
+			MixedList: []any{uint64(42)},
 			KeylessList: []*renderExampleList{
 				{Val: String("21st Amendment")},
 				{Val: String("Anchor")},
 			},
 		},
 		inAppendMod: true,
-		wantIETF: map[string]interface{}{
+		wantIETF: map[string]any{
 			"str":        "hello",
-			"leaf-list":  []string{"hello", "world"},
-			"int-val":    42,
+			"leaf-list":  []any{"hello", "world"},
+			"int-val":    float64(42),
 			"enum":       "bar:VAL_TWO",
-			"mixed-list": []interface{}{"42"},
-			"keyless-list": []interface{}{
-				map[string]interface{}{
+			"mixed-list": []any{"42"},
+			"keyless-list": []any{
+				map[string]any{
 					"val": "21st Amendment",
-					"state": map[string]interface{}{
+					"state": map[string]any{
 						"val": "21st Amendment",
 					},
 				},
-				map[string]interface{}{
+				map[string]any{
 					"val": "Anchor",
-					"state": map[string]interface{}{
+					"state": map[string]any{
 						"val": "Anchor",
 					},
 				},
 			},
 		},
-		wantInternal: map[string]interface{}{
+		wantInternal: map[string]any{
 			"str":        "hello",
 			"leaf-list":  []string{"hello", "world"},
 			"int-val":    42,
 			"enum":       "VAL_TWO",
-			"mixed-list": []interface{}{42},
-			"keyless-list": []interface{}{
-				map[string]interface{}{
+			"mixed-list": []any{42},
+			"keyless-list": []any{
+				map[string]any{
 					"val": "21st Amendment",
-					"state": map[string]interface{}{
+					"state": map[string]any{
 						"val": "21st Amendment",
 					},
 				},
-				map[string]interface{}{
+				map[string]any{
 					"val": "Anchor",
-					"state": map[string]interface{}{
+					"state": map[string]any{
 						"val": "Anchor",
 					},
 				},
@@ -2774,13 +2774,13 @@ func TestConstructJSON(t *testing.T) {
 			},
 			List: map[uint32]*renderExampleList{},
 		},
-		wantIETF: map[string]interface{}{
-			"ch": map[string]interface{}{"val": "42"},
+		wantIETF: map[string]any{
+			"ch": map[string]any{"val": "42"},
 			/// RFC7951 Section 5.4 defines a YANG list as an JSON array. Per RFC 8259 Section 5 an empty array should be [] rather than 'null'.
-			"list": []interface{}{},
+			"list": []any{},
 		},
-		wantInternal: map[string]interface{}{
-			"ch": map[string]interface{}{"val": 42},
+		wantInternal: map[string]any{
+			"ch": map[string]any{"val": float64(42)},
 		},
 	}, {
 		name: "empty map nil",
@@ -2790,16 +2790,16 @@ func TestConstructJSON(t *testing.T) {
 			},
 			List: nil,
 		},
-		wantIETF: map[string]interface{}{
-			"ch": map[string]interface{}{"val": "42"},
+		wantIETF: map[string]any{
+			"ch": map[string]any{"val": "42"},
 		},
-		wantInternal: map[string]interface{}{
-			"ch": map[string]interface{}{"val": 42},
+		wantInternal: map[string]any{
+			"ch": map[string]any{"val": float64(42)},
 		},
 	}, {
 		name:     "empty child",
 		in:       &renderExample{Ch: &renderExampleChild{}},
-		wantIETF: map[string]interface{}{},
+		wantIETF: map[string]any{},
 	}, {
 		name:    "child with invalid map contents",
 		in:      &invalidGoStructMap{Map: map[string]*invalidGoStructMapChild{"foobar": {InvalidField: "foobar"}}},
@@ -2814,7 +2814,7 @@ func TestConstructJSON(t *testing.T) {
 			Ch: &renderExampleChild{
 				Val: Uint64(42),
 			},
-			MixedList: []interface{}{EnumTestVALONE, "test", 42},
+			MixedList: []any{EnumTestVALONE, "test", 42},
 			List: map[uint32]*renderExampleList{
 				42: {Val: String("forty two")},
 				84: {Val: String("eighty four")},
@@ -2824,57 +2824,57 @@ func TestConstructJSON(t *testing.T) {
 			},
 		},
 		inAppendMod: true,
-		wantIETF: map[string]interface{}{
-			"ch": map[string]interface{}{"val": "42"},
-			"enum-list": []interface{}{
-				map[string]interface{}{
-					"config": map[string]interface{}{
+		wantIETF: map[string]any{
+			"ch": map[string]any{"val": "42"},
+			"enum-list": []any{
+				map[string]any{
+					"config": map[string]any{
 						"key": "foo:VAL_ONE",
 					},
 					"key": "foo:VAL_ONE",
 				},
 			},
-			"list": []interface{}{
-				map[string]interface{}{
-					"state": map[string]interface{}{
+			"list": []any{
+				map[string]any{
+					"state": map[string]any{
 						"val": "forty two",
 					},
 					"val": "forty two",
 				},
-				map[string]interface{}{
-					"state": map[string]interface{}{
+				map[string]any{
+					"state": map[string]any{
 						"val": "eighty four",
 					},
 					"val": "eighty four",
 				},
 			},
-			"mixed-list": []interface{}{"foo:VAL_ONE", "test", uint32(42)},
+			"mixed-list": []any{"foo:VAL_ONE", "test", float64(42)},
 		},
-		wantInternal: map[string]interface{}{
-			"ch": map[string]interface{}{"val": 42},
-			"enum-list": map[string]interface{}{
-				"VAL_ONE": map[string]interface{}{
-					"config": map[string]interface{}{
+		wantInternal: map[string]any{
+			"ch": map[string]any{"val": float64(42)},
+			"enum-list": map[string]any{
+				"VAL_ONE": map[string]any{
+					"config": map[string]any{
 						"key": "VAL_ONE",
 					},
 					"key": "VAL_ONE",
 				},
 			},
-			"list": map[string]interface{}{
-				"42": map[string]interface{}{
-					"state": map[string]interface{}{
+			"list": map[string]any{
+				"42": map[string]any{
+					"state": map[string]any{
 						"val": "forty two",
 					},
 					"val": "forty two",
 				},
-				"84": map[string]interface{}{
-					"state": map[string]interface{}{
+				"84": map[string]any{
+					"state": map[string]any{
 						"val": "eighty four",
 					},
 					"val": "eighty four",
 				},
 			},
-			"mixed-list": []interface{}{"VAL_ONE", "test", uint32(42)},
+			"mixed-list": []any{"VAL_ONE", "test", float64(42)},
 		},
 	}, {
 		name: "json test with complex children with PrependModuleNameIdentityref=true",
@@ -2882,7 +2882,7 @@ func TestConstructJSON(t *testing.T) {
 			Ch: &renderExampleChild{
 				Val: Uint64(42),
 			},
-			MixedList: []interface{}{EnumTestVALONE, "test", 42},
+			MixedList: []any{EnumTestVALONE, "test", 42},
 			List: map[uint32]*renderExampleList{
 				42: {Val: String("forty two")},
 				84: {Val: String("eighty four")},
@@ -2892,57 +2892,57 @@ func TestConstructJSON(t *testing.T) {
 			},
 		},
 		inPrependModIref: true,
-		wantIETF: map[string]interface{}{
-			"ch": map[string]interface{}{"val": "42"},
-			"enum-list": []interface{}{
-				map[string]interface{}{
-					"config": map[string]interface{}{
+		wantIETF: map[string]any{
+			"ch": map[string]any{"val": "42"},
+			"enum-list": []any{
+				map[string]any{
+					"config": map[string]any{
 						"key": "foo:VAL_ONE",
 					},
 					"key": "foo:VAL_ONE",
 				},
 			},
-			"list": []interface{}{
-				map[string]interface{}{
-					"state": map[string]interface{}{
+			"list": []any{
+				map[string]any{
+					"state": map[string]any{
 						"val": "forty two",
 					},
 					"val": "forty two",
 				},
-				map[string]interface{}{
-					"state": map[string]interface{}{
+				map[string]any{
+					"state": map[string]any{
 						"val": "eighty four",
 					},
 					"val": "eighty four",
 				},
 			},
-			"mixed-list": []interface{}{"foo:VAL_ONE", "test", uint32(42)},
+			"mixed-list": []any{"foo:VAL_ONE", "test", uint32(42)},
 		},
-		wantInternal: map[string]interface{}{
-			"ch": map[string]interface{}{"val": 42},
-			"enum-list": map[string]interface{}{
-				"VAL_ONE": map[string]interface{}{
-					"config": map[string]interface{}{
+		wantInternal: map[string]any{
+			"ch": map[string]any{"val": float64(42)},
+			"enum-list": map[string]any{
+				"VAL_ONE": map[string]any{
+					"config": map[string]any{
 						"key": "VAL_ONE",
 					},
 					"key": "VAL_ONE",
 				},
 			},
-			"list": map[string]interface{}{
-				"42": map[string]interface{}{
-					"state": map[string]interface{}{
+			"list": map[string]any{
+				"42": map[string]any{
+					"state": map[string]any{
 						"val": "forty two",
 					},
 					"val": "forty two",
 				},
-				"84": map[string]interface{}{
-					"state": map[string]interface{}{
+				"84": map[string]any{
+					"state": map[string]any{
 						"val": "eighty four",
 					},
 					"val": "eighty four",
 				},
 			},
-			"mixed-list": []interface{}{"VAL_ONE", "test", uint32(42)},
+			"mixed-list": []any{"VAL_ONE", "test", float64(42)},
 		},
 	}, {
 		name: "device example #1",
@@ -2954,11 +2954,11 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
-		wantIETF: map[string]interface{}{
-			"bgp": map[string]interface{}{
-				"global": map[string]interface{}{
-					"config": map[string]interface{}{
-						"as":        15169,
+		wantIETF: map[string]any{
+			"bgp": map[string]any{
+				"global": map[string]any{
+					"config": map[string]any{
+						"as":        float64(15169),
 						"router-id": "192.0.2.1",
 					},
 				},
@@ -2985,25 +2985,25 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
-		wantIETF: map[string]interface{}{
-			"bgp": map[string]interface{}{
-				"neighbors": map[string]interface{}{
-					"neighbor": []interface{}{
-						map[string]interface{}{
-							"config": map[string]interface{}{
+		wantIETF: map[string]any{
+			"bgp": map[string]any{
+				"neighbors": map[string]any{
+					"neighbor": []any{
+						map[string]any{
+							"config": map[string]any{
 								"description":      "a second neighbor",
 								"enabled":          false,
 								"neighbor-address": "100.64.32.96",
-								"peer-as":          5413,
+								"peer-as":          float64(5413),
 							},
 							"neighbor-address": "100.64.32.96",
 						},
-						map[string]interface{}{
-							"config": map[string]interface{}{
+						map[string]any{
+							"config": map[string]any{
 								"description":      "a neighbor",
 								"enabled":          true,
 								"neighbor-address": "192.0.2.1",
-								"peer-as":          29636,
+								"peer-as":          float64(29636),
 							},
 							"neighbor-address": "192.0.2.1",
 						},
@@ -3011,25 +3011,25 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
-		wantInternal: map[string]interface{}{
-			"bgp": map[string]interface{}{
-				"neighbors": map[string]interface{}{
-					"neighbor": map[string]interface{}{
-						"192.0.2.1": map[string]interface{}{
-							"config": map[string]interface{}{
+		wantInternal: map[string]any{
+			"bgp": map[string]any{
+				"neighbors": map[string]any{
+					"neighbor": map[string]any{
+						"192.0.2.1": map[string]any{
+							"config": map[string]any{
 								"description":      "a neighbor",
 								"enabled":          true,
 								"neighbor-address": "192.0.2.1",
-								"peer-as":          29636,
+								"peer-as":          float64(29636),
 							},
 							"neighbor-address": "192.0.2.1",
 						},
-						"100.64.32.96": map[string]interface{}{
-							"config": map[string]interface{}{
+						"100.64.32.96": map[string]any{
+							"config": map[string]any{
 								"description":      "a second neighbor",
 								"enabled":          false,
 								"neighbor-address": "100.64.32.96",
-								"peer-as":          5413,
+								"peer-as":          float64(5413),
 							},
 							"neighbor-address": "100.64.32.96",
 						},
@@ -3047,14 +3047,14 @@ func TestConstructJSON(t *testing.T) {
 				EnumTestVALONE,
 			},
 		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
-				"enabled-address-families-simple": []interface{}{"3.14", "42", base64testStringEncoded, "VAL_ONE"},
+		wantIETF: map[string]any{
+			"state": map[string]any{
+				"enabled-address-families-simple": []any{"3.14", "42", base64testStringEncoded, "VAL_ONE"},
 			},
 		},
-		wantInternal: map[string]interface{}{
-			"state": map[string]interface{}{
-				"enabled-address-families-simple": []interface{}{3.14, 42, base64testStringEncoded, "VAL_ONE"},
+		wantInternal: map[string]any{
+			"state": map[string]any{
+				"enabled-address-families-simple": []any{float64(3.14), float64(42), base64testStringEncoded, "VAL_ONE"},
 			},
 		},
 	}, {
@@ -3062,8 +3062,8 @@ func TestConstructJSON(t *testing.T) {
 		in: &exampleBgpNeighbor{
 			TransportAddressSimple: testutil.UnionString("42.42.42.42"),
 		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
+		wantIETF: map[string]any{
+			"state": map[string]any{
 				"transport-address-simple": "42.42.42.42",
 			},
 		},
@@ -3073,8 +3073,8 @@ func TestConstructJSON(t *testing.T) {
 		in: &exampleBgpNeighbor{
 			TransportAddressSimple: EnumTestVALONE,
 		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
+		wantIETF: map[string]any{
+			"state": map[string]any{
 				"transport-address-simple": "VAL_ONE",
 			},
 		},
@@ -3084,8 +3084,8 @@ func TestConstructJSON(t *testing.T) {
 		in: &exampleBgpNeighbor{
 			TransportAddressSimple: testBinary,
 		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
+		wantIETF: map[string]any{
+			"state": map[string]any{
 				"transport-address-simple": base64testStringEncoded,
 			},
 		},
@@ -3095,14 +3095,14 @@ func TestConstructJSON(t *testing.T) {
 		in: &exampleBgpNeighbor{
 			TransportAddressSimple: testutil.UnionFloat64(3.14),
 		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
+		wantIETF: map[string]any{
+			"state": map[string]any{
 				"transport-address-simple": "3.14",
 			},
 		},
-		wantInternal: map[string]interface{}{
-			"state": map[string]interface{}{
-				"transport-address-simple": 3.14,
+		wantInternal: map[string]any{
+			"state": map[string]any{
+				"transport-address-simple": float64(3.14),
 			},
 		},
 	}, {
@@ -3113,9 +3113,9 @@ func TestConstructJSON(t *testing.T) {
 				&exampleBgpNeighborEnabledAddressFamiliesUnionBinary{[]byte{42}},
 			},
 		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
-				"enabled-address-families": []interface{}{"IPV4", "Kg=="},
+		wantIETF: map[string]any{
+			"state": map[string]any{
+				"enabled-address-families": []any{"IPV4", "Kg=="},
 			},
 		},
 		wantSame: true,
@@ -3124,8 +3124,8 @@ func TestConstructJSON(t *testing.T) {
 		in: &exampleBgpNeighbor{
 			TransportAddress: &exampleTransportAddressString{"42.42.42.42"},
 		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
+		wantIETF: map[string]any{
+			"state": map[string]any{
 				"transport-address": "42.42.42.42",
 			},
 		},
@@ -3135,8 +3135,8 @@ func TestConstructJSON(t *testing.T) {
 		in: &exampleBgpNeighbor{
 			TransportAddress: &exampleTransportAddressEnum{EnumTestVALONE},
 		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
+		wantIETF: map[string]any{
+			"state": map[string]any{
 				"transport-address": "VAL_ONE",
 			},
 		},
@@ -3146,8 +3146,8 @@ func TestConstructJSON(t *testing.T) {
 		in: &exampleBgpNeighbor{
 			TransportAddress: &exampleTransportAddressBinary{Binary(base64testString)},
 		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
+		wantIETF: map[string]any{
+			"state": map[string]any{
 				"transport-address": base64testStringEncoded,
 			},
 		},
@@ -3157,13 +3157,13 @@ func TestConstructJSON(t *testing.T) {
 		in: &exampleBgpNeighbor{
 			TransportAddress: &exampleTransportAddressUint64{42},
 		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
+		wantIETF: map[string]any{
+			"state": map[string]any{
 				"transport-address": "42",
 			},
 		},
-		wantInternal: map[string]interface{}{
-			"state": map[string]interface{}{
+		wantInternal: map[string]any{
+			"state": map[string]any{
 				"transport-address": 42,
 			},
 		},
@@ -3175,14 +3175,14 @@ func TestConstructJSON(t *testing.T) {
 				&exampleBgpNeighborEnabledAddressFamiliesUnionUint64{42},
 			},
 		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
-				"enabled-address-families": []interface{}{"IPV6", "42"},
+		wantIETF: map[string]any{
+			"state": map[string]any{
+				"enabled-address-families": []any{"IPV6", "42"},
 			},
 		},
-		wantInternal: map[string]interface{}{
-			"state": map[string]interface{}{
-				"enabled-address-families": []interface{}{"IPV6", 42},
+		wantInternal: map[string]any{
+			"state": map[string]any{
+				"enabled-address-families": []any{"IPV6", float64(42)},
 			},
 		},
 	}, {
@@ -3191,8 +3191,8 @@ func TestConstructJSON(t *testing.T) {
 			MessageDump: []byte{1, 2, 3, 4},
 			Updates:     []Binary{[]byte{1, 2, 3}, {1, 2, 3, 4}},
 		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
+		wantIETF: map[string]any{
+			"state": map[string]any{
 				"message-dump": "AQIDBA==",
 				"updates":      []string{"AQID", "AQIDBA=="},
 			},
@@ -3203,8 +3203,8 @@ func TestConstructJSON(t *testing.T) {
 		in: &exampleBgpNeighbor{
 			MessageDump: Binary(base64testString),
 		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
+		wantIETF: map[string]any{
+			"state": map[string]any{
 				"message-dump": base64testStringEncoded,
 			},
 		},
@@ -3222,31 +3222,31 @@ func TestConstructJSON(t *testing.T) {
 			F7: String("bat"),
 		},
 		inAppendMod: true,
-		wantIETF: map[string]interface{}{
+		wantIETF: map[string]any{
 			"f1mod:f1": "foo",
-			"f1mod:config": map[string]interface{}{
+			"f1mod:config": map[string]any{
 				"f2mod:f6": "mat",
 			},
-			"f2mod:config": map[string]interface{}{
+			"f2mod:config": map[string]any{
 				"f2":       "bar",
 				"f3mod:f7": "bat",
 			},
-			"f1mod:f3": map[string]interface{}{
-				"f42mod:config": map[string]interface{}{
+			"f1mod:f3": map[string]any{
+				"f42mod:config": map[string]any{
 					"f4": "baz",
 				},
 				"f5": "hat",
 			},
 		},
-		wantInternal: map[string]interface{}{
+		wantInternal: map[string]any{
 			"f1": "foo",
-			"config": map[string]interface{}{
+			"config": map[string]any{
 				"f2": "bar",
 				"f6": "mat",
 				"f7": "bat",
 			},
-			"f3": map[string]interface{}{
-				"config": map[string]interface{}{
+			"f3": map[string]any{
+				"config": map[string]any{
 					"f4": "baz",
 				},
 				"f5": "hat",
@@ -3264,18 +3264,18 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
-		wantIETF: map[string]interface{}{
-			"foo": []interface{}{
-				map[string]interface{}{"bar": "bar"},
-				map[string]interface{}{"bar": "baz"},
+		wantIETF: map[string]any{
+			"foo": []any{
+				map[string]any{"bar": "bar"},
+				map[string]any{"bar": "baz"},
 			},
 		},
-		wantInternal: map[string]interface{}{
-			"foo": map[string]interface{}{
-				"bar": map[string]interface{}{
+		wantInternal: map[string]any{
+			"foo": map[string]any{
+				"bar": map[string]any{
 					"bar": "bar",
 				},
-				"baz": map[string]interface{}{
+				"baz": map[string]any{
 					"bar": "baz",
 				},
 			},
@@ -3292,18 +3292,18 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
-		wantIETF: map[string]interface{}{
-			"foo": []interface{}{
-				map[string]interface{}{"bar": "VAL_ONE"},
-				map[string]interface{}{"bar": "VAL_TWO"},
+		wantIETF: map[string]any{
+			"foo": []any{
+				map[string]any{"bar": "VAL_ONE"},
+				map[string]any{"bar": "VAL_TWO"},
 			},
 		},
-		wantInternal: map[string]interface{}{
-			"foo": map[string]interface{}{
-				"VAL_ONE": map[string]interface{}{
+		wantInternal: map[string]any{
+			"foo": map[string]any{
+				"VAL_ONE": map[string]any{
 					"bar": "VAL_ONE",
 				},
-				"VAL_TWO": map[string]interface{}{
+				"VAL_TWO": map[string]any{
 					"bar": "VAL_TWO",
 				},
 			},
@@ -3341,13 +3341,13 @@ func TestConstructJSON(t *testing.T) {
 				&testAnnotation{AnnotationFieldOne: "alexander-valley"},
 			},
 		},
-		wantIETF: map[string]interface{}{
-			"@one": []interface{}{
-				map[string]interface{}{"field": "alexander-valley"},
+		wantIETF: map[string]any{
+			"@one": []any{
+				map[string]any{"field": "alexander-valley"},
 			},
-			"config": map[string]interface{}{
-				"@two": []interface{}{
-					map[string]interface{}{"field": "alexander-valley"},
+			"config": map[string]any{
+				"@two": []any{
+					map[string]any{"field": "alexander-valley"},
 				},
 			},
 		},
@@ -3360,10 +3360,10 @@ func TestConstructJSON(t *testing.T) {
 				&testAnnotation{AnnotationFieldOne: "alexander-valley"},
 			},
 		},
-		wantIETF: map[string]interface{}{
+		wantIETF: map[string]any{
 			"field": "russian-river",
-			"@field": []interface{}{
-				map[string]interface{}{"field": "alexander-valley"},
+			"@field": []any{
+				map[string]any{"field": "alexander-valley"},
 			},
 		},
 		wantSame: true,
@@ -3392,14 +3392,14 @@ func TestConstructJSON(t *testing.T) {
 		in: &ucExampleDevice{
 			Bgp: &ucExampleBgp{},
 		},
-		wantIETF: map[string]interface{}{"bgp": map[string]interface{}{}},
+		wantIETF: map[string]any{"bgp": map[string]any{}},
 		wantSame: true,
 	}, {
 		name: "uncompressed device example with presence containers with nil value",
 		in: &ucExampleDevice{
 			Bgp: nil,
 		},
-		wantIETF: map[string]interface{}{},
+		wantIETF: map[string]any{},
 		wantSame: true,
 	}, {
 		name: "uncompressed device example with presence containers with data in tree",
@@ -3421,38 +3421,38 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
-		wantIETF: map[string]interface{}{
-			"bgp": map[string]interface{}{
-				"neighbor": []interface{}{
-					map[string]interface{}{
+		wantIETF: map[string]any{
+			"bgp": map[string]any{
+				"neighbor": []any{
+					map[string]any{
 						"description":      "a second neighbor",
 						"enabled":          false,
 						"neighbor-address": "100.64.32.96",
-						"peer-as":          5413,
+						"peer-as":          float64(5413),
 					},
-					map[string]interface{}{
+					map[string]any{
 						"description":      "a neighbor",
 						"enabled":          true,
 						"neighbor-address": "192.0.2.1",
-						"peer-as":          29636,
+						"peer-as":          float64(29636),
 					},
 				},
 			},
 		},
-		wantInternal: map[string]interface{}{
-			"bgp": map[string]interface{}{
-				"neighbor": map[string]interface{}{
-					"192.0.2.1": map[string]interface{}{
+		wantInternal: map[string]any{
+			"bgp": map[string]any{
+				"neighbor": map[string]any{
+					"192.0.2.1": map[string]any{
 						"description":      "a neighbor",
 						"enabled":          true,
 						"neighbor-address": "192.0.2.1",
-						"peer-as":          29636,
+						"peer-as":          float64(29636),
 					},
-					"100.64.32.96": map[string]interface{}{
+					"100.64.32.96": map[string]any{
 						"description":      "a second neighbor",
 						"enabled":          false,
 						"neighbor-address": "100.64.32.96",
-						"peer-as":          5413,
+						"peer-as":          float64(5413),
 					},
 				},
 			},
@@ -3475,30 +3475,30 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
-		wantIETF: map[string]interface{}{
-			"isis": map[string]interface{}{
-				"instance": []interface{}{
-					map[string]interface{}{
+		wantIETF: map[string]any{
+			"isis": map[string]any{
+				"instance": []any{
+					map[string]any{
 						"name":     "default",
 						"enabled":  true,
-						"overload": map[string]interface{}{},
+						"overload": map[string]any{},
 					},
-					map[string]interface{}{
+					map[string]any{
 						"name":    "instance1",
 						"enabled": false,
 					},
 				},
 			},
 		},
-		wantInternal: map[string]interface{}{
-			"isis": map[string]interface{}{
-				"instance": map[string]interface{}{
-					"default": map[string]interface{}{
+		wantInternal: map[string]any{
+			"isis": map[string]any{
+				"instance": map[string]any{
+					"default": map[string]any{
 						"name":     "default",
 						"enabled":  true,
-						"overload": map[string]interface{}{},
+						"overload": map[string]any{},
 					},
-					"instance1": map[string]interface{}{
+					"instance1": map[string]any{
 						"name":    "instance1",
 						"enabled": false,
 					},
@@ -3523,18 +3523,18 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
-		wantIETF: map[string]interface{}{
-			"isis": map[string]interface{}{
-				"instance": []interface{}{
-					map[string]interface{}{
+		wantIETF: map[string]any{
+			"isis": map[string]any{
+				"instance": []any{
+					map[string]any{
 						"name":     "default",
 						"enabled":  true,
-						"overload": map[string]interface{}{},
+						"overload": map[string]any{},
 					},
-					map[string]interface{}{
+					map[string]any{
 						"name":    "instance1",
 						"enabled": false,
-						"overload": map[string]interface{}{
+						"overload": map[string]any{
 							"advertise-external": true,
 							"advertise-internal": false,
 						},
@@ -3542,18 +3542,18 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
-		wantInternal: map[string]interface{}{
-			"isis": map[string]interface{}{
-				"instance": map[string]interface{}{
-					"default": map[string]interface{}{
+		wantInternal: map[string]any{
+			"isis": map[string]any{
+				"instance": map[string]any{
+					"default": map[string]any{
 						"name":     "default",
 						"enabled":  true,
-						"overload": map[string]interface{}{},
+						"overload": map[string]any{},
 					},
-					"instance1": map[string]interface{}{
+					"instance1": map[string]any{
 						"name":    "instance1",
 						"enabled": false,
-						"overload": map[string]interface{}{
+						"overload": map[string]any{
 							"advertise-external": true,
 							"advertise-internal": false,
 						},
@@ -3569,8 +3569,8 @@ func TestConstructJSON(t *testing.T) {
 				SshServer: nil,
 			},
 		},
-		wantIETF: map[string]interface{}{
-			"bgp": map[string]interface{}{},
+		wantIETF: map[string]any{
+			"bgp": map[string]any{},
 		},
 		wantSame: true,
 	}, {
@@ -3581,10 +3581,10 @@ func TestConstructJSON(t *testing.T) {
 				SshServer: &ucExampleSystemSshServer{},
 			},
 		},
-		wantIETF: map[string]interface{}{
-			"bgp": map[string]interface{}{},
-			"system": map[string]interface{}{
-				"ssh-server": map[string]interface{}{},
+		wantIETF: map[string]any{
+			"bgp": map[string]any{},
+			"system": map[string]any{
+				"ssh-server": map[string]any{},
 			},
 		},
 		wantSame: true,
@@ -3602,24 +3602,24 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
-		wantIETF: map[string]interface{}{
-			"bgp": map[string]interface{}{},
-			"system": map[string]interface{}{
-				"ssh-server": map[string]interface{}{
-					"instance": []interface{}{
-						map[string]interface{}{
+		wantIETF: map[string]any{
+			"bgp": map[string]any{},
+			"system": map[string]any{
+				"ssh-server": map[string]any{
+					"instance": []any{
+						map[string]any{
 							"name": "system",
 						},
 					},
 				},
 			},
 		},
-		wantInternal: map[string]interface{}{
-			"bgp": map[string]interface{}{},
-			"system": map[string]interface{}{
-				"ssh-server": map[string]interface{}{
-					"instance": map[string]interface{}{
-						"mgmt": map[string]interface{}{
+		wantInternal: map[string]any{
+			"bgp": map[string]any{},
+			"system": map[string]any{
+				"ssh-server": map[string]any{
+					"instance": map[string]any{
+						"mgmt": map[string]any{
 							"name": "system",
 						},
 					},
@@ -3629,31 +3629,31 @@ func TestConstructJSON(t *testing.T) {
 	}, {
 		name:     "unset enum",
 		in:       &renderExample{EnumField: EnumTestUNSET},
-		wantIETF: map[string]interface{}{},
+		wantIETF: map[string]any{},
 		wantSame: true,
 	}, {
 		name: "set enum in union",
 		in:   &renderExample{UnionValSimple: EnumTestVALONE},
-		wantIETF: map[string]interface{}{
+		wantIETF: map[string]any{
 			"union-val-simple": "VAL_ONE",
 		},
 		wantSame: true,
 	}, {
 		name:     "unset enum in union",
 		in:       &renderExample{UnionValSimple: EnumTestUNSET},
-		wantIETF: map[string]interface{}{},
+		wantIETF: map[string]any{},
 		wantSame: true,
 	}, {
 		name: "set enum in union (wrapper union)",
 		in:   &renderExample{UnionVal: &renderExampleUnionEnum{EnumTestVALONE}},
-		wantIETF: map[string]interface{}{
+		wantIETF: map[string]any{
 			"union-val": "VAL_ONE",
 		},
 		wantSame: true,
 	}, {
 		name:     "unset enum in union (wrapper union)",
 		in:       &renderExample{UnionVal: &renderExampleUnionEnum{EnumTestUNSET}},
-		wantIETF: map[string]interface{}{},
+		wantIETF: map[string]any{},
 		wantSame: true,
 	}}
 
@@ -3799,7 +3799,7 @@ func TestUnwrapUnionInterfaceValue(t *testing.T) {
 		name        string
 		in          reflect.Value
 		inAppendMod bool
-		want        interface{}
+		want        any
 		wantErr     bool
 	}{{
 		name: "simple valid unsupported type",
@@ -3875,7 +3875,7 @@ func TestUnionPtrValue(t *testing.T) {
 		name            string
 		inValue         reflect.Value
 		inAppendModName bool
-		want            interface{}
+		want            any
 		wantErr         bool
 	}{{
 		// This is the only test that is used by the simple union API.
@@ -3923,81 +3923,81 @@ func TestLeaflistToSlice(t *testing.T) {
 		name               string
 		inVal              reflect.Value
 		inAppendModuleName bool
-		wantSlice          []interface{}
+		wantSlice          []any
 		wantErr            bool
 	}{{
 		name:      "string",
 		inVal:     reflect.ValueOf([]string{"one", "two"}),
-		wantSlice: []interface{}{"one", "two"},
+		wantSlice: []any{"one", "two"},
 	}, {
 		name:      "uint8",
 		inVal:     reflect.ValueOf([]uint8{1, 2}),
-		wantSlice: []interface{}{uint8(1), uint8(2)},
+		wantSlice: []any{uint8(1), uint8(2)},
 	}, {
 		name:      "uint16",
 		inVal:     reflect.ValueOf([]uint16{3, 4}),
-		wantSlice: []interface{}{uint16(3), uint16(4)},
+		wantSlice: []any{uint16(3), uint16(4)},
 	}, {
 		name:      "uint32",
 		inVal:     reflect.ValueOf([]uint32{5, 6}),
-		wantSlice: []interface{}{uint32(5), uint32(6)},
+		wantSlice: []any{uint32(5), uint32(6)},
 	}, {
 		name:      "uint64",
 		inVal:     reflect.ValueOf([]uint64{7, 8}),
-		wantSlice: []interface{}{uint64(7), uint64(8)},
+		wantSlice: []any{uint64(7), uint64(8)},
 	}, {
 		name:      "int8",
 		inVal:     reflect.ValueOf([]int8{1, 2}),
-		wantSlice: []interface{}{int8(1), int8(2)},
+		wantSlice: []any{int8(1), int8(2)},
 	}, {
 		name:      "int16",
 		inVal:     reflect.ValueOf([]int16{3, 4}),
-		wantSlice: []interface{}{int16(3), int16(4)},
+		wantSlice: []any{int16(3), int16(4)},
 	}, {
 		name:      "int32",
 		inVal:     reflect.ValueOf([]int32{5, 6}),
-		wantSlice: []interface{}{int32(5), int32(6)},
+		wantSlice: []any{int32(5), int32(6)},
 	}, {
 		name:      "int64",
 		inVal:     reflect.ValueOf([]int64{7, 8}),
-		wantSlice: []interface{}{int64(7), int64(8)},
+		wantSlice: []any{int64(7), int64(8)},
 	}, {
 		name:      "enumerated int64",
 		inVal:     reflect.ValueOf([]EnumTest{EnumTestVALONE, EnumTestVALTWO}),
-		wantSlice: []interface{}{"VAL_ONE", "VAL_TWO"},
+		wantSlice: []any{"VAL_ONE", "VAL_TWO"},
 	}, {
 		name:               "enumerated int64 with append",
 		inVal:              reflect.ValueOf([]EnumTest{EnumTestVALTWO, EnumTestVALONE}),
 		inAppendModuleName: true,
-		wantSlice:          []interface{}{"bar:VAL_TWO", "foo:VAL_ONE"},
+		wantSlice:          []any{"bar:VAL_TWO", "foo:VAL_ONE"},
 	}, {
 		name:      "float32",
 		inVal:     reflect.ValueOf([]float32{float32(42)}),
-		wantSlice: []interface{}{float64(42)},
+		wantSlice: []any{float64(42)},
 	}, {
 		name:      "float64",
 		inVal:     reflect.ValueOf([]float64{64.84}),
-		wantSlice: []interface{}{float64(64.84)},
+		wantSlice: []any{float64(64.84)},
 	}, {
 		name:      "boolean",
 		inVal:     reflect.ValueOf([]bool{true, false}),
-		wantSlice: []interface{}{true, false},
+		wantSlice: []any{true, false},
 	}, {
 		name:      "union",
 		inVal:     reflect.ValueOf([]exampleUnion{testutil.UnionString("hello"), testutil.UnionFloat64(3.14), testutil.UnionInt64(42), EnumTestVALTWO, testBinary, &unsupported}),
-		wantSlice: []interface{}{"hello", float64(3.14), int64(42), "VAL_TWO", []byte(base64testString), "Foo"},
+		wantSlice: []any{"hello", float64(3.14), int64(42), "VAL_TWO", []byte(base64testString), "Foo"},
 	}, {
 		name:      "union (wrapped union)",
 		inVal:     reflect.ValueOf([]uFieldInterface{&uFieldString{"hello"}}),
-		wantSlice: []interface{}{"hello"},
+		wantSlice: []any{"hello"},
 	}, {
 		name:      "int",
 		inVal:     reflect.ValueOf([]int{1}),
-		wantSlice: []interface{}{int64(1)},
+		wantSlice: []any{int64(1)},
 	}, {
 		name:      "binary",
 		inVal:     reflect.ValueOf([]Binary{Binary([]byte{1, 2, 3})}),
-		wantSlice: []interface{}{[]byte{1, 2, 3}},
+		wantSlice: []any{[]byte{1, 2, 3}},
 	}, {
 		name:    "invalid type",
 		inVal:   reflect.ValueOf([]complex128{complex(42.42, 84.84)}),
@@ -4023,7 +4023,7 @@ func TestKeyValueAsString(t *testing.T) {
 	unsupported := testutil.UnionUnsupported{"Foo"}
 
 	tests := []struct {
-		i                interface{}
+		i                any
 		want             string
 		wantErrSubstring string
 	}{
@@ -4076,7 +4076,7 @@ func TestKeyValueAsString(t *testing.T) {
 			wantErrSubstring: "cannot map enumerated value as type EnumTest has unknown value 42",
 		},
 		{
-			i:                interface{}(nil),
+			i:                any(nil),
 			wantErrSubstring: "cannot convert type invalid to a string for use in a key",
 		},
 		{
@@ -4149,7 +4149,7 @@ func TestEncodeTypedValue(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		inVal            interface{}
+		inVal            any
 		inEnc            gnmipb.Encoding
 		inArgs           []EncodeTypedValueOpt
 		want             *gnmipb.TypedValue
@@ -4393,7 +4393,7 @@ func TestFindUpdatedLeaves(t *testing.T) {
 		name             string
 		in               GoStruct
 		inParent         *gnmiPath
-		wantLeaves       map[*path]interface{}
+		wantLeaves       map[*path]any
 		wantErrSubstring string
 	}{{
 		name: "simple struct, single field",
@@ -4401,7 +4401,7 @@ func TestFindUpdatedLeaves(t *testing.T) {
 			Str: String("test"),
 		},
 		inParent: &gnmiPath{pathElemPath: []*gnmipb.PathElem{}},
-		wantLeaves: map[*path]interface{}{
+		wantLeaves: map[*path]any{
 			{p: &gnmiPath{
 				pathElemPath: mustPathElem("str"),
 			}}: String("test"),
@@ -4416,7 +4416,7 @@ func TestFindUpdatedLeaves(t *testing.T) {
 			LeafList:  []string{"one"},
 		},
 		inParent: &gnmiPath{pathElemPath: []*gnmipb.PathElem{}},
-		wantLeaves: map[*path]interface{}{
+		wantLeaves: map[*path]any{
 			{p: &gnmiPath{
 				pathElemPath: mustPathElem("str"),
 			}}: String("test"),
@@ -4441,7 +4441,7 @@ func TestFindUpdatedLeaves(t *testing.T) {
 			},
 		},
 		inParent: &gnmiPath{pathElemPath: []*gnmipb.PathElem{}},
-		wantLeaves: map[*path]interface{}{
+		wantLeaves: map[*path]any{
 			{p: &gnmiPath{
 				pathElemPath: mustPathElem("list[val=field]/state/val"),
 			}}: String("field"),
@@ -4464,7 +4464,7 @@ func TestFindUpdatedLeaves(t *testing.T) {
 			UnionValSimple: testutil.UnionInt64(42),
 		},
 		inParent: &gnmiPath{pathElemPath: []*gnmipb.PathElem{}},
-		wantLeaves: map[*path]interface{}{
+		wantLeaves: map[*path]any{
 			{p: &gnmiPath{
 				pathElemPath: mustPathElem("union-val-simple"),
 			}}: testutil.UnionInt64(42),
@@ -4475,14 +4475,14 @@ func TestFindUpdatedLeaves(t *testing.T) {
 			UnionVal: &renderExampleUnionInt64{42},
 		},
 		inParent: &gnmiPath{pathElemPath: []*gnmipb.PathElem{}},
-		wantLeaves: map[*path]interface{}{
+		wantLeaves: map[*path]any{
 			{p: &gnmiPath{
 				pathElemPath: mustPathElem("union-val"),
 			}}: &renderExampleUnionInt64{42},
 		},
 	}}
 
-	// cmpopts helper for us to be able to handle comparisons of map[*path]interface{}
+	// cmpopts helper for us to be able to handle comparisons of map[*path]any
 	// by sorting their keys.
 	pathLess := func(a, b *path) bool {
 		ap := a.p.isPathElemPath()
@@ -4501,7 +4501,7 @@ func TestFindUpdatedLeaves(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotLeaves := map[*path]interface{}{}
+			gotLeaves := map[*path]any{}
 			if err := findUpdatedLeaves(gotLeaves, tt.in, tt.inParent); err != nil {
 				if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 					t.Fatalf("did not get expected error, %v", err)
@@ -4533,9 +4533,9 @@ func TestMarshal7951(t *testing.T) {
 
 	tests := []struct {
 		desc             string
-		in               interface{}
+		in               any
 		inArgs           []Marshal7951Arg
-		want             interface{}
+		want             any
 		wantErrSubstring string
 	}{{
 		desc: "simple string ptr field",
@@ -4680,7 +4680,7 @@ func TestMarshal7951(t *testing.T) {
 		desc: "complex children with module name prepend request",
 		in: &ietfRenderExample{
 			F2:        String("bar"),
-			MixedList: []interface{}{EnumTestVALONE, "test", 42},
+			MixedList: []any{EnumTestVALONE, "test", 42},
 			EnumList: map[EnumTest]*ietfRenderExampleEnumList{
 				EnumTestVALONE: {Key: EnumTestVALONE},
 			},
@@ -4711,7 +4711,7 @@ func TestMarshal7951(t *testing.T) {
 		desc: "complex children with PrependModuleNameIdentityref=true",
 		in: &ietfRenderExample{
 			F2:        String("bar"),
-			MixedList: []interface{}{EnumTestVALONE, "test", 42},
+			MixedList: []any{EnumTestVALONE, "test", 42},
 			EnumList: map[EnumTest]*ietfRenderExampleEnumList{
 				EnumTestVALONE: {Key: EnumTestVALONE},
 			},
@@ -4742,7 +4742,7 @@ func TestMarshal7951(t *testing.T) {
 		desc: "complex children with AppendModuleName=true and PrependModuleNameIdentityref=true",
 		in: &ietfRenderExample{
 			F2:        String("bar"),
-			MixedList: []interface{}{EnumTestVALONE, "test", 42},
+			MixedList: []any{EnumTestVALONE, "test", 42},
 			EnumList: map[EnumTest]*ietfRenderExampleEnumList{
 				EnumTestVALONE: {Key: EnumTestVALONE},
 			},
