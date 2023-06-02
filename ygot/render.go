@@ -1400,6 +1400,11 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			if prependmods != nil && prependmods[i][j] != "" {
 				k = fmt.Sprintf("%s:%s", prependmods[i][j], k)
 			}
+			value, err = normalizeJSONValue(value)
+			if err != nil {
+				errs.Add(err)
+				continue
+			}
 			parent[k] = value
 		}
 	}
@@ -1561,13 +1566,8 @@ func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (any,
 // The module within which the value is defined is specified by the parentMod string,
 // and the type of JSON to be rendered controlled by the value of the jsonOutputConfig
 // provided. Returns an error if one occurs during the mapping process.
-func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (value any, err error) {
-	var alreadyNormalized bool
-	defer func() {
-		if !alreadyNormalized && value != nil {
-			value, err = normalizeJSONValue(value)
-		}
-	}()
+func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (any, error) {
+	var value any
 	var errs errlist.List
 
 	switch field.Kind() {
@@ -1586,7 +1586,6 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (va
 		if err != nil {
 			errs.Add(err)
 		}
-		alreadyNormalized = true
 	case reflect.Ptr:
 		if _, ok := field.Interface().(GoOrderedList); ok {
 			// This is an ordered-map for YANG "ordered-by user" lists.
@@ -1602,7 +1601,6 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (va
 			if gotKind := values.Type().Kind(); gotKind != reflect.Slice {
 				return nil, fmt.Errorf("method Values() did not return a slice value, got %v", gotKind)
 			}
-			alreadyNormalized = true
 			return jsonValue(values, parentMod, args)
 		}
 
@@ -1618,7 +1616,6 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (va
 			if err != nil {
 				errs.Add(err)
 			}
-			alreadyNormalized = true
 		default:
 			value = field.Elem().Interface()
 			if args.jType == RFC7951 {
