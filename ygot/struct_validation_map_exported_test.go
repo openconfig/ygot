@@ -28,6 +28,12 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
+const (
+	// TestRoot is the path to the directory within which the test runs, appended
+	// to any filename that is to be loaded.
+	TestRoot string = ""
+)
+
 // errToString returns an error as a string.
 func errToString(err error) string {
 	if err == nil {
@@ -180,7 +186,7 @@ func TestEmitJSON(t *testing.T) {
 				FieldTwo: ygot.Uint32(42),
 			},
 		},
-		wantJSONPath: filepath.Join(ygot.TestRoot, "testdata/emitjson_1.json-txt"),
+		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson_1.json-txt"),
 	}, {
 		name: "simple schema JSON output with safe HTML",
 		inStruct: &ctestschema.MapStructTestOne{
@@ -192,7 +198,7 @@ func TestEmitJSON(t *testing.T) {
 		inConfig: &ygot.EmitJSONConfig{
 			EscapeHTML: true,
 		},
-		wantJSONPath: filepath.Join(ygot.TestRoot, "testdata/emitjson_1_html_safe.json-txt"),
+		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson_1_html_safe.json-txt"),
 	}, {
 		name: "schema with a list JSON output",
 		inStruct: &mapStructTestFour{
@@ -202,7 +208,7 @@ func TestEmitJSON(t *testing.T) {
 				},
 			},
 		},
-		wantJSONPath: filepath.Join(ygot.TestRoot, "testdata/emitjson_2.json-txt"),
+		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson_2.json-txt"),
 	}, {
 		name: "simple schema IETF JSON output",
 		inStruct: &ctestschema.MapStructTestOne{
@@ -219,7 +225,7 @@ func TestEmitJSON(t *testing.T) {
 			},
 			Indent: "  ",
 		},
-		wantJSONPath: filepath.Join(ygot.TestRoot, "testdata/emitjson1_ietf.json-txt"),
+		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson1_ietf.json-txt"),
 	}, {
 		name: "schema with list and enum IETF JSON",
 		inStruct: &mapStructTestFour{
@@ -240,13 +246,13 @@ func TestEmitJSON(t *testing.T) {
 			},
 			Indent: "  ",
 		},
-		wantJSONPath: filepath.Join(ygot.TestRoot, "testdata/emitjson2_ietf.json-txt"),
+		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson2_ietf.json-txt"),
 	}, {
 		name: "schema with container around a ordered list JSON output",
 		inStruct: &ctestschema.MapStructTestOne{
 			OrderedList: ctestschema.GetOrderedMapLonger(t),
 		},
-		wantJSONPath: filepath.Join(ygot.TestRoot, "testdata/emitjson_orderedmap_container_internal.json-txt"),
+		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson_orderedmap_container_internal.json-txt"),
 	}, {
 		name:     "invalid struct contents",
 		inStruct: &mapStructInvalid{Name: ygot.String("aardvark")},
@@ -257,7 +263,7 @@ func TestEmitJSON(t *testing.T) {
 		inConfig: &ygot.EmitJSONConfig{
 			SkipValidation: true,
 		},
-		wantJSONPath: filepath.Join(ygot.TestRoot, "testdata", "invalid-struct.json-txt"),
+		wantJSONPath: filepath.Join(TestRoot, "testdata", "invalid-struct.json-txt"),
 	}, {
 		name:     "invalid internal JSON",
 		inStruct: &mapStructNoPaths{Name: ygot.String("honey badger")},
