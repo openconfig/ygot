@@ -1561,8 +1561,12 @@ func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (any,
 // The module within which the value is defined is specified by the parentMod string,
 // and the type of JSON to be rendered controlled by the value of the jsonOutputConfig
 // provided. Returns an error if one occurs during the mapping process.
-func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (any, error) {
-	var value any
+func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (value any, err error) {
+	defer func() {
+		if value != nil {
+			value, err = normalizeJSONValue(value)
+		}
+	}()
 	var errs errlist.List
 
 	switch field.Kind() {
@@ -1694,6 +1698,22 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 		return nil, errs.Err()
 	}
 	return value, nil
+}
+
+// normalizeJSONValue returns the Go-type-normalized version of the JSON
+// object.
+//
+// e.g. it converts ints to float64
+func normalizeJSONValue(v any) (any, error) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return nil, fmt.Errorf("cannot marshal JSON value: %v", err)
+	}
+	var nv any
+	if err = json.Unmarshal(b, &nv); err != nil {
+		return nil, fmt.Errorf("cannot unmarshal JSON value: %v", err)
+	}
+	return nv, nil
 }
 
 // jsonSlice takes an input reflect.Value containing a slice, and
