@@ -30,6 +30,7 @@ import (
 	"strings"
 
 	"github.com/openconfig/gnmi/errlist"
+	"github.com/openconfig/ygot/internal/yreflect"
 	"github.com/openconfig/ygot/util"
 )
 
@@ -680,9 +681,14 @@ func copyStruct(dstVal, srcVal reflect.Value, accessPath string, opts ...MergeOp
 		dstField := dstVal.Field(i)
 		accessPath := accessPath + "." + srcVal.Type().Field(i).Name
 
+		orderedMap, isOrderedMap := srcField.Interface().(GoOrderedList)
 		switch srcField.Kind() {
 		case reflect.Ptr:
-			errs.Add(copyPtrField(dstField, srcField, accessPath, opts...))
+			if isOrderedMap {
+				errs.Add(copyOrderedMap(dstField, orderedMap, accessPath, opts...))
+			} else {
+				errs.Add(copyPtrField(dstField, srcField, accessPath, opts...))
+			}
 		case reflect.Interface:
 			errs.Add(copyInterfaceField(dstField, srcField, accessPath, opts...))
 		case reflect.Map:
@@ -904,6 +910,74 @@ func validateMap(srcField, dstField reflect.Value) (*mapType, error) {
 	}
 
 	return &mapType{key: st.Key(), value: st.Elem()}, nil
+}
+
+// copyOrderedMap copies srcOrderedMap into dstField. Both srcOrderedMap and
+// dstField (this is a reflect.Value for convenience) are ordered list values.
+// If both srcOrderedMap and dstField are populated, and have non-overlapping
+// keys, then the keys in the src are appended to the dst. If there are
+// overlapping values, then an ereror is returned since the behaviour is not
+// well-defined.
+func copyOrderedMap(dstField reflect.Value, srcOrderedMap GoOrderedList, accessPath string, opts ...MergeOpt) error {
+	dstOrderedMap, dstIsOrderedMap := dstField.Interface().(GoOrderedList)
+	srcField := reflect.ValueOf(srcOrderedMap)
+	if dstType, srcType := srcField.Type(), dstField.Type(); dstType != srcType || !dstIsOrderedMap {
+		return fmt.Errorf("source and destination ordered map types not matching: src: %s, dst: %s", dstType.Name(), srcType.Name())
+	}
+
+	// Skip cases where there are empty maps in both src and dst.
+	// Exception: user wants an empty map to be merged as well.
+	if srcOrderedMap.Len() == 0 && dstOrderedMap.Len() == 0 {
+		if !mergeEmptyMapsEnabled(opts) || srcField.IsNil() {
+			return nil
+		}
+	}
+
+	if dstOrderedMap.Len() == 0 {
+		dstField.Set(reflect.New(dstField.Type().Elem()))
+		dstOrderedMap = dstField.Interface().(GoOrderedList)
+	}
+
+	srcKeys := map[any]struct{}{}
+	keys, err := yreflect.OrderedMapKeys(srcOrderedMap)
+	if err != nil {
+		return err
+	}
+	for _, k := range keys {
+		srcKeys[k.Interface()] = struct{}{}
+	}
+	keys, err = yreflect.OrderedMapKeys(dstOrderedMap)
+	if err != nil {
+		return err
+	}
+	for _, k := range keys {
+		if _, ok := srcKeys[k.Interface()]; ok {
+			return fmt.Errorf("ordered map keys overlap at %v -- merge behaviour is not well defined", k)
+		}
+	}
+
+	elemType, err := yreflect.OrderedMapElementType(dstOrderedMap)
+	if err != nil {
+		return err
+	}
+
+	errs := &errlist.Error{}
+	errs.Separator = "\n"
+	if err := yreflect.RangeOrderedMap(srcOrderedMap, func(k, v reflect.Value) bool {
+		d := reflect.New(elemType.Elem())
+		if err := copyStruct(d.Elem(), v.Elem(), fmt.Sprintf("%s[%#v]", accessPath, k.Interface()), opts...); err != nil {
+			errs.Add(err)
+			return true
+		}
+		if err := yreflect.AppendIntoOrderedMap(dstOrderedMap, d.Interface()); err != nil {
+			errs.Add(err)
+		}
+		return true
+	}); err != nil {
+		errs.Add(err)
+	}
+
+	return errs.Err()
 }
 
 // copySliceField copies srcField into dstField. Both srcField and dstField

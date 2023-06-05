@@ -42,7 +42,7 @@ func MethodByName(v reflect.Value, name string) (reflect.Value, error) {
 // AppendIntoOrderedMap appends a populated value into the ordered map.
 //
 // There must not exist an existing element with the same key.
-func AppendIntoOrderedMap(orderedMap goOrderedList, value interface{}) error {
+func AppendIntoOrderedMap(orderedMap goOrderedList, value any) error {
 	appendMethod, err := MethodByName(reflect.ValueOf(orderedMap), "Append")
 	if err != nil {
 		return err

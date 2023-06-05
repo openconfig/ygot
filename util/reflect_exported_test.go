@@ -292,3 +292,87 @@ func TestForEachFieldOrderedMap(t *testing.T) {
 		}
 	}
 }
+
+func TestForEachDataField(t *testing.T) {
+	tests := []struct {
+		desc       string
+		inParent   any
+		in         any
+		out        any
+		inIterFunc util.FieldIteratorFunc
+		wantOut    string
+		wantErr    string
+	}{{
+		desc: "single-keyed list",
+		inParent: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		in:         nil,
+		inIterFunc: util.PrintMapKeysSchemaAnnotationFunc,
+		wantOut: `foo (string)/ordered-lists : 
+{ΛMetadata:    [],
+ Key:           "foo",
+ ΛKey:         [],
+ OrderedList:   nil,
+ ΛOrderedList: [],
+ ParentKey:     nil,
+ ΛParentKey:   [],
+ RoVa...
+, bar (string)/ordered-lists : 
+{ΛMetadata:    [],
+ Key:           "bar",
+ ΛKey:         [],
+ OrderedList:   nil,
+ ΛOrderedList: [],
+ ParentKey:     nil,
+ ΛParentKey:   [],
+ RoVa...
+, `,
+	}, {
+		desc: "multi-keyed list",
+		inParent: &ctestschema.Device{
+			OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t),
+		},
+		in:         nil,
+		inIterFunc: util.PrintMapKeysSchemaAnnotationFunc,
+		wantOut: `{ foo (string), 42 (uint64) }/ordered-multikeyed-lists : 
+{ΛMetadata: [],
+ Key1:       "foo",
+ ΛKey1:     [],
+ Key2:       42,
+ ΛKey2:     [],
+ Value:      "foo-val",
+ ΛValue:    []} (string)
+, { bar (string), 42 (uint64) }/ordered-multikeyed-lists : 
+{ΛMetadata: [],
+ Key1:       "bar",
+ ΛKey1:     [],
+ Key2:       42,
+ ΛKey2:     [],
+ Value:      "bar-val",
+ ΛValue:    []} (string)
+, { baz (string), 84 (uint64) }/ordered-multikeyed-lists : 
+{ΛMetadata: [],
+ Key1:       "baz",
+ ΛKey1:     [],
+ Key2:       84,
+ ΛKey2:     [],
+ Value:      "baz-val",
+ ΛValue:    []} (string)
+, `,
+	}}
+
+	for _, tt := range tests {
+		outStr := ""
+		var errs util.Errors = util.ForEachDataField(tt.inParent, tt.in, &outStr, tt.inIterFunc)
+		if diff := cmp.Diff(errs.String(), tt.wantErr); diff != "" {
+			t.Errorf("error (-got, +want):\n%s", diff)
+		}
+		if len(errs) > 0 {
+			continue
+		}
+		if diff := cmp.Diff(outStr, tt.wantOut); diff != "" {
+			t.Errorf("%s (-got, +want):\n%s", tt.desc, diff)
+		}
+	}
+}

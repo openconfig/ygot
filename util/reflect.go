@@ -824,10 +824,34 @@ func forEachDataFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction Fi
 	v := ni.FieldValue
 	t := v.Type()
 
+	orderedMap, isOrderedMap := v.Interface().(goOrderedList)
+
 	// Determine whether we need to recurse into the field, or whether it is
 	// a leaf or leaf-list, which are not recursed into when traversing the
 	// data tree.
 	switch {
+	case isOrderedMap:
+		// Handle the case of a keyed map, which is a YANG list.
+		if IsNilOrInvalidValue(v) {
+			return errs
+		}
+		nn := *ni
+		nn.Parent = ni
+		var err error
+		nn.FieldKeys, err = yreflect.OrderedMapKeys(orderedMap)
+		if err != nil {
+			errs = AppendErr(errs, err)
+			return errs
+		}
+		if err := yreflect.RangeOrderedMap(orderedMap, func(k, v reflect.Value) bool {
+			nn := nn
+			nn.FieldValue = v
+			nn.FieldKey = k
+			errs = AppendErrs(errs, forEachDataFieldInternal(&nn, in, out, iterFunction))
+			return true
+		}); err != nil {
+			errs = AppendErr(errs, err)
+		}
 	case IsTypeStructPtr(t):
 		// A struct pointer in a GoStruct is a pointer to another container within
 		// the YANG, therefore we dereference the pointer and then recurse. If the

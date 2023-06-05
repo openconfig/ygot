@@ -938,7 +938,7 @@ var (
 		return
 	}
 
-	printMapKeysSchemaAnnotationFunc = func(ni *NodeInfo, in, out interface{}) (errs Errors) {
+	PrintMapKeysSchemaAnnotationFunc = func(ni *NodeInfo, in, out interface{}) (errs Errors) {
 		if IsNilOrInvalidValue(ni.FieldKey) {
 			return
 		}
@@ -1255,7 +1255,7 @@ func TestForEachDataField(t *testing.T) {
 			desc:         "map keys with no struct schema",
 			in:           nil,
 			parentStruct: &StructOfMapOfStructs{BasicStructMapField: map[string]BasicStruct{"basicStruct1": basicStruct1}, BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2}},
-			iterFunc:     printMapKeysSchemaAnnotationFunc,
+			iterFunc:     PrintMapKeysSchemaAnnotationFunc,
 			wantOut: `basicStruct1 (string)/basic-struct : 
 {Int32Field:     42,
  StringField:    "forty two",
