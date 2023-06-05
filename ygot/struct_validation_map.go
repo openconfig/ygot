@@ -912,11 +912,12 @@ func validateMap(srcField, dstField reflect.Value) (*mapType, error) {
 	return &mapType{key: st.Key(), value: st.Elem()}, nil
 }
 
-// copyOrderedMap copies srcField into dstField. Both srcField and dstField are
-// ordered list values. If both srcField and dstField are populated, and have
-// non-overlapping keys, then the keys in the src are appended to the dst. If
-// there are overlapping values, then an ereror is returned since the behaviour
-// is not well-defined.
+// copyOrderedMap copies srcOrderedMap into dstField. Both srcOrderedMap and
+// dstField (this is a reflect.Value for convenience) are ordered list values.
+// If both srcOrderedMap and dstField are populated, and have non-overlapping
+// keys, then the keys in the src are appended to the dst. If there are
+// overlapping values, then an ereror is returned since the behaviour is not
+// well-defined.
 func copyOrderedMap(dstField reflect.Value, srcOrderedMap GoOrderedList, accessPath string, opts ...MergeOpt) error {
 	dstOrderedMap, dstIsOrderedMap := dstField.Interface().(GoOrderedList)
 	srcField := reflect.ValueOf(srcOrderedMap)
