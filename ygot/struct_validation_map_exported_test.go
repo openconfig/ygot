@@ -409,3 +409,74 @@ func TestDeepCopyOrderedMap(t *testing.T) {
 		}
 	}
 }
+
+func TestMergeStructsOrderedMap(t *testing.T) {
+	tests := []struct {
+		name          string
+		inA           *ctestschema.Device
+		inB           *ctestschema.Device
+		inOpts        []ygot.MergeOpt
+		want          *ctestschema.Device
+		wantErrSubstr string
+	}{{
+		name: "non-overlapping ordered lists",
+		inA: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		inB: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap2(t),
+		},
+		want: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				list := ctestschema.GetOrderedMap(t)
+				for _, v := range ctestschema.GetOrderedMap2(t).Values() {
+					list.Append(v)
+				}
+				return list
+			}(),
+		},
+	}, {
+		name: "merge from non-empty to empty",
+		inA:  &ctestschema.Device{},
+		inB: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap2(t),
+		},
+		want: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap2(t),
+		},
+	}, {
+		name: "merge from empty to non-empty",
+		inA: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap2(t),
+		},
+		inB: &ctestschema.Device{},
+		want: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap2(t),
+		},
+	}, {
+		name: "overlapping ordered lists",
+		inA: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		inB: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		wantErrSubstr: "ordered map keys overlap at foo -- merge behaviour is not well defined",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ygot.MergeStructs(tt.inA, tt.inB, tt.inOpts...)
+			if diff := errdiff.Substring(err, tt.wantErrSubstr); diff != "" {
+				t.Errorf("%s: MergeStructs(%v, %v): did not get expected error status, %s", tt.name, tt.inA, tt.inB, diff)
+			}
+			if err != nil {
+				return
+			}
+
+			if diff := cmp.Diff(got, tt.want, ytestutil.OrderedMapCmpOptions...); diff != "" {
+				t.Errorf("%s: MergeStructs(%v, %v): did not get expected returned struct, diff(-got,+want):\n%s", tt.name, tt.inA, tt.inB, diff)
+			}
+		})
+	}
+}

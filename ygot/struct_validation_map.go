@@ -950,7 +950,7 @@ func copyOrderedMap(dstField reflect.Value, srcOrderedMap GoOrderedList, accessP
 		return err
 	}
 	for _, k := range keys {
-		if _, ok := srcKeys[k]; ok {
+		if _, ok := srcKeys[k.Interface()]; ok {
 			return fmt.Errorf("ordered map keys overlap at %v -- merge behaviour is not well defined", k)
 		}
 	}
