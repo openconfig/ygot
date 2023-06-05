@@ -454,6 +454,9 @@ func TestMergeStructsOrderedMap(t *testing.T) {
 			OrderedList: ctestschema.GetOrderedMap2(t),
 		},
 	}, {
+		// NOTE: For overlaps where the second ordered list is a subset
+		// of the first, then this may be a valid merge and we may want
+		// to implement this if there is a use case.
 		name: "overlapping ordered lists",
 		inA: &ctestschema.Device{
 			OrderedList: ctestschema.GetOrderedMap(t),
