@@ -22,8 +22,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/internal/ytestutil"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
 )
@@ -301,5 +304,108 @@ func TestEmitJSON(t *testing.T) {
 				t.Errorf("%s: EmitJSON(%v, nil): got invalid JSON, diff(-want, +got):\n%s", tt.name, tt.inStruct, diff)
 			}
 		})
+	}
+}
+
+func TestDeepCopyOrderedMap(t *testing.T) {
+	tests := []struct {
+		name             string
+		in               func() *ctestschema.Device
+		inKey            string
+		wantErrSubstring string
+	}{{
+		name: "single-keyed",
+		in:   func() *ctestschema.Device { return &ctestschema.Device{OrderedList: ctestschema.GetOrderedMap(t)} },
+	}, {
+		name: "multi-keyed",
+		in: func() *ctestschema.Device {
+			return &ctestschema.Device{OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t)}
+		},
+	}, {
+		name: "nested",
+		in: func() *ctestschema.Device {
+			return &ctestschema.Device{OrderedList: ctestschema.GetNestedOrderedMap(t)}
+		},
+	}}
+
+	for _, tt := range tests {
+		got, err := ygot.DeepCopy(tt.in())
+		gotRoot, ok := got.(*ctestschema.Device)
+		if !ok {
+			t.Fatalf("Got object that's not root device: %T", got)
+		}
+
+		in := tt.in()
+		if err != nil {
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Errorf("%s: DeepCopy(%#v): did not get expected error, %s", tt.name, in, diff)
+			}
+			continue
+		}
+
+		if diff := cmp.Diff(got, in, ytestutil.OrderedMapCmpOptions...); diff != "" {
+			t.Errorf("did not get identical copy, diff(-got,+want):\n%s", diff)
+		}
+
+		gotValues := gotRoot.OrderedList.Values()
+		for i, inV := range in.OrderedList.Values() {
+			gotV := gotValues[i]
+			if inV == gotV {
+				t.Errorf("%s: DeepCopy: after copy, input and copy have same memory address: %v", tt.name, inV)
+			}
+			if gotV == nil {
+				continue
+			}
+			if inV.Key != nil && inV.Key == gotV.Key {
+				t.Errorf("%s: DeepCopy: key have same address", tt.name)
+			}
+			if inV.ParentKey != nil && inV.ParentKey == gotV.ParentKey {
+				t.Errorf("%s: DeepCopy: ParentKey have same address", tt.name)
+			}
+			if inV.RoValue != nil && inV.RoValue == gotV.RoValue {
+				t.Errorf("%s: DeepCopy: RoValue have same address", tt.name)
+			}
+			if inV.Value != nil && inV.Value == gotV.Value {
+				t.Errorf("%s: DeepCopy: Value have same address", tt.name)
+			}
+			for j, inV := range inV.OrderedList.Values() {
+				gotV := gotValues[i].OrderedList.Values()[j]
+				if inV == gotV {
+					t.Errorf("%s: DeepCopy: after copy, input and copy have same memory address: %v", tt.name, inV)
+				}
+				if gotV == nil {
+					continue
+				}
+				if inV.Key != nil && inV.Key == gotV.Key {
+					t.Errorf("%s: DeepCopy: key have same address", tt.name)
+				}
+				if inV.ParentKey != nil && inV.ParentKey == gotV.ParentKey {
+					t.Errorf("%s: DeepCopy: ParentKey have same address", tt.name)
+				}
+				if inV.Value != nil && inV.Value == gotV.Value {
+					t.Errorf("%s: DeepCopy: Value have same address", tt.name)
+				}
+			}
+		}
+
+		gotMultikeyedValues := gotRoot.OrderedMultikeyedList.Values()
+		for i, inV := range in.OrderedMultikeyedList.Values() {
+			gotV := gotMultikeyedValues[i]
+			if inV == gotV {
+				t.Errorf("%s: DeepCopy: after copy, input and copy have same memory address: %v", tt.name, inV)
+			}
+			if gotV == nil {
+				continue
+			}
+			if inV.Key1 != nil && inV.Key1 == gotV.Key1 {
+				t.Errorf("%s: DeepCopy: key have same address", tt.name)
+			}
+			if inV.Key2 != nil && inV.Key2 == gotV.Key2 {
+				t.Errorf("%s: DeepCopy: RoValue have same address", tt.name)
+			}
+			if inV.Value != nil && inV.Value == gotV.Value {
+				t.Errorf("%s: DeepCopy: Value have same address", tt.name)
+			}
+		}
 	}
 }
