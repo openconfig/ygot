@@ -621,7 +621,7 @@ type FieldIteratorFunc func(ni *NodeInfo, in, out interface{}) Errors
 type IterationAction uint
 
 const (
-	// ContinueIteration means to continue the in-order traversal.
+	// ContinueIteration means to continue the preorder traversal.
 	ContinueIteration = IterationAction(iota)
 	// DoNotIterateSubtree means to continue traversal but skip this
 	// subtree.
