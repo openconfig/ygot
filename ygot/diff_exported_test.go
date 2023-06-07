@@ -407,6 +407,50 @@ func TestDiffOrderedMap(t *testing.T) {
 			}},
 		}},
 	}, {
+		name: "disjoint-ordered-lists-with-ignore-additions",
+		inOrig: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap2(t),
+		},
+		inMod: &ctestschema.Device{
+			OrderedList:           ctestschema.GetOrderedMap(t),
+			OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t),
+		},
+		inOpts: []ygot.DiffOpt{&ygot.IgnoreAdditions{}},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{
+				mustPath(`/ordered-lists/ordered-list[key=wee]/config/key`),
+				mustPath(`/ordered-lists/ordered-list[key=wee]/key`),
+				mustPath(`/ordered-lists/ordered-list[key=wee]/config/value`),
+				mustPath(`/ordered-lists/ordered-list[key=woo]/config/key`),
+				mustPath(`/ordered-lists/ordered-list[key=woo]/key`),
+				mustPath(`/ordered-lists/ordered-list[key=woo]/config/value`),
+			},
+		},
+		wantAtomic: []*gnmipb.Notification{{
+			Prefix: mustPath(`ordered-lists`),
+			Atomic: true,
+			Update: []*gnmipb.Update{{
+				Path: mustPath(`ordered-list[key=foo]/config/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
+			}, {
+				Path: mustPath(`ordered-list[key=foo]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
+			}, {
+				Path: mustPath(`ordered-list[key=foo]/config/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo-val"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/config/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/config/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar-val"}},
+			}},
+		}},
+		skipTestUnmarshal: true,
+	}, {
 		name: "modified-is-subset-of-original",
 		inOrig: &ctestschema.Device{
 			OrderedList: ctestschema.GetOrderedMap2(t),

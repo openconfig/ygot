@@ -679,15 +679,15 @@ func diff(original, modified GoStruct, withAtomic bool, opts ...DiffOpt) ([]*gnm
 			n.Delete = append(n.Delete, origVal.path)
 		}
 	}
-	if hasIgnoreAdditions(opts) != nil {
-		return []*gnmipb.Notification{n}, nil
-	}
-	// Check that all paths that are in the modified struct have been examined, if
-	// not they are updates.
-	for modPath, modVal := range modLeavesStr {
-		if _, ok := origLeavesStr[modPath]; !ok {
-			if err := processUpdate(modPath, modVal); err != nil {
-				return nil, err
+
+	if hasIgnoreAdditions(opts) == nil {
+		// Check that all paths that are in the modified struct have been examined, if
+		// not they are updates.
+		for modPath, modVal := range modLeavesStr {
+			if _, ok := origLeavesStr[modPath]; !ok {
+				if err := processUpdate(modPath, modVal); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
