@@ -29,6 +29,14 @@ type UnmarshalOpt interface {
 	IsUnmarshalOpt()
 }
 
+// BestEffortUnmarshal is an unmarshal option that 'ignores' errors while unmarshalling,
+// and continues the unmarshaling process. A failing unmarshal will still fail, but it will
+// fail as a series of error reports.
+type BestEffortUnmarshal struct{}
+
+// IsUnmarshalOpt marks BestEffortUnmarshal as a valid UnmarshalOpt.
+func (*BestEffortUnmarshal) IsUnmarshalOpt() {}
+
 // IgnoreExtraFields is an unmarshal option that controls the
 // behaviour of the Unmarshal function when additional fields are
 // found in the input JSON. By default, an error will be returned,
@@ -121,5 +129,17 @@ func hasPreferShadowPath(opts []UnmarshalOpt) bool {
 			return true
 		}
 	}
+	return false
+}
+
+// hasBestEffortUnmarshal determines whether the supplied slice of UnmarshalOpts
+// contains the BestEffortUnmarshal option.
+func hasBestEffortUnmarshal(opts []UnmarshalOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*BestEffortUnmarshal); ok {
+			return true
+		}
+	}
+
 	return false
 }

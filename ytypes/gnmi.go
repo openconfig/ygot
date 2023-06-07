@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
@@ -65,6 +66,7 @@ func UnmarshalNotifications(schema *Schema, ns []*gpb.Notification, opts ...Unma
 func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, opts ...UnmarshalOpt) error {
 	preferShadowPath := hasPreferShadowPath(opts)
 	ignoreExtraFields := hasIgnoreExtraFields(opts)
+	bestEffortUnmarshal := hasBestEffortUnmarshal(opts)
 	if req == nil {
 		return nil
 	}
@@ -87,10 +89,10 @@ func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, opts ...UnmarshalO
 	if err := deletePaths(schema.SchemaTree[nodeName], node, prefix, req.Delete, preferShadowPath); err != nil {
 		return err
 	}
-	if err := replacePaths(schema.SchemaTree[nodeName], node, prefix, req.Replace, preferShadowPath, ignoreExtraFields); err != nil {
+	if err := replacePaths(schema.SchemaTree[nodeName], node, prefix, req.Replace, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal); err != nil {
 		return err
 	}
-	if err := updatePaths(schema.SchemaTree[nodeName], node, prefix, req.Update, preferShadowPath, ignoreExtraFields); err != nil {
+	if err := updatePaths(schema.SchemaTree[nodeName], node, prefix, req.Update, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal); err != nil {
 		return err
 	}
 
@@ -162,7 +164,7 @@ func joinPrefixToUpdate(prefix *gpb.Path, update *gpb.Update) (*gpb.Update, erro
 // replacePaths unmarshals a slice of updates into the given GoStruct. It
 // deletes the values at these paths before unmarshalling them. These updates
 // can either by JSON-encoded or gNMI-encoded values (scalars).
-func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, updates []*gpb.Update, preferShadowPath, ignoreExtraFields bool) error {
+func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, updates []*gpb.Update, preferShadowPath, ignoreExtraField, bestEffortUnmarshal bool) error {
 	var dopts []DelNodeOpt
 	if preferShadowPath {
 		dopts = append(dopts, &PreferShadowPath{})
@@ -177,6 +179,10 @@ func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, 
 			return err
 		}
 		if err := setNode(schema, goStruct, update, preferShadowPath, ignoreExtraFields); err != nil {
+			if bestEffortUnmarshal {
+				glog.Infof("error while unmarshalling: %v", err)
+				continue
+			}
 			return err
 		}
 	}
@@ -185,13 +191,17 @@ func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, 
 
 // updatePaths unmarshals a slice of updates into the given GoStruct. These
 // updates can either by JSON-encoded or gNMI-encoded values (scalars).
-func updatePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, updates []*gpb.Update, preferShadowPath, ignoreExtraFields bool) error {
+func updatePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, updates []*gpb.Update, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal bool) error {
 	for _, update := range updates {
 		var err error
 		if update, err = joinPrefixToUpdate(prefix, update); err != nil {
 			return err
 		}
 		if err := setNode(schema, goStruct, update, preferShadowPath, ignoreExtraFields); err != nil {
+			if bestEffortUnmarshal {
+				log.Infof("error while unmarshalling: %v", err)
+				continue
+			}
 			return err
 		}
 	}
