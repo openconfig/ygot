@@ -960,6 +960,32 @@ var (
 		return
 	}
 
+	PrintMapKeysSchemaAnnotationFuncSkipBasicStruct2 = func(ni *NodeInfo, in, out interface{}) (action IterationAction, errs Errors) {
+		if IsNilOrInvalidValue(ni.FieldKey) {
+			return
+		}
+		if key := ni.FieldKey.Interface(); key == "basicStruct2" {
+			action = DoNotIterateSubtree
+			return
+		}
+		outs := out.(*string)
+		s := "nil"
+		if !IsNilOrInvalidValue(ni.FieldValue) {
+			s = pretty.Sprint(ni.FieldValue.Interface())
+		}
+
+		fn, err := SchemaPaths(ni.StructField)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		if l := len(fn); l != 1 {
+			errs = append(errs, fmt.Errorf("invalid schema path length %d for %v", l, ni.StructField.Name))
+		}
+
+		*outs += fmt.Sprintf("%s/%s : \n%s\n, ", ValueStr(ni.FieldKey.Interface()), fn[0][0], ValueStr(s))
+		return
+	}
+
 	basicStruct1 = BasicStruct{
 		Int32Field:     int32(42),
 		StringField:    "forty two",
@@ -1194,9 +1220,11 @@ func TestForEachDataField(t *testing.T) {
 		parentStruct interface{}
 		in           interface{}
 		out          interface{}
-		iterFunc     FieldIteratorFunc
-		wantOut      string
-		wantErr      string
+		// Only one of the below iterFunc must be specified.
+		iterFunc  FieldIteratorFunc
+		iterFunc2 FieldIteratorFunc2
+		wantOut   string
+		wantErr   string
 	}{
 		{
 			desc:         "nil",
@@ -1269,6 +1297,18 @@ func TestForEachDataField(t *testing.T) {
 , `,
 		},
 		{
+			desc:         "map keys with no struct schema, skipping basicStruct2",
+			in:           nil,
+			parentStruct: &StructOfMapOfStructs{BasicStructMapField: map[string]BasicStruct{"basicStruct1": basicStruct1}, BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2}},
+			iterFunc2:    PrintMapKeysSchemaAnnotationFuncSkipBasicStruct2,
+			wantOut: `basicStruct1 (string)/basic-struct : 
+{Int32Field:     42,
+ StringField:    "forty two",
+ Int32PtrField:  4242,
+ StringPtrField: "forty two ptr"} (string)
+, `,
+		},
+		{
 			desc: "annotated struct",
 			in:   nil,
 			parentStruct: &annotatedStruct{
@@ -1281,20 +1321,34 @@ func TestForEachDataField(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		outStr := ""
-		var errs Errors = ForEachDataField(tt.parentStruct, tt.in, &outStr, tt.iterFunc)
-		if got, want := errs.String(), tt.wantErr; got != want {
-			diff, _ := testutil.GenerateUnifiedDiff(want, got)
-			t.Errorf("%s: ForEachDataField(%v, %#v, ...): \n%s", tt.desc, tt.parentStruct, tt.in, diff)
-		}
-		testErrLog(t, tt.desc, errs)
-		if len(errs) > 0 {
-			continue
-		}
-		if got, want := outStr, tt.wantOut; got != want {
-			diff, _ := testutil.GenerateUnifiedDiff(want, got)
-			t.Errorf("%s: ForEachDataField(%v, %#v, ...): \n%s", tt.desc, tt.parentStruct, tt.in, diff)
-		}
+		t.Run(tt.desc, func(t *testing.T) {
+			outStr := ""
+			test := func(funcName string, errs Errors) {
+				if got, want := errs.String(), tt.wantErr; got != want {
+					diff, _ := testutil.GenerateUnifiedDiff(want, got)
+					t.Errorf("%s: %s(%v, %#v, ...): \n%s", tt.desc, funcName, tt.parentStruct, tt.in, diff)
+				}
+				testErrLog(t, tt.desc, errs)
+				if len(errs) > 0 {
+					return
+				}
+				if got, want := outStr, tt.wantOut; got != want {
+					diff, _ := testutil.GenerateUnifiedDiff(want, got)
+					t.Errorf("%s: %s(%v, %#v, ...): \n%s", tt.desc, funcName, tt.parentStruct, tt.in, diff)
+				}
+				outStr = ""
+			}
+
+			switch {
+			case tt.iterFunc != nil && tt.iterFunc2 != nil:
+				t.Fatalf("Only one of iterFunc and iterFunc2 must be specified")
+			case tt.iterFunc2 != nil:
+				test("ForEachDataField2", ForEachDataField2(tt.parentStruct, tt.in, &outStr, tt.iterFunc2))
+			default:
+				test("ForEachDataField", ForEachDataField(tt.parentStruct, tt.in, &outStr, tt.iterFunc))
+				test("ForEachDataField2", ForEachDataField2(tt.parentStruct, tt.in, &outStr, iterFuncToIterFunc2(tt.iterFunc)))
+			}
+		})
 	}
 }
 

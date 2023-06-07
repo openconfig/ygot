@@ -615,6 +615,23 @@ func (node *PathQueryNodeMemo) GetRoot() *PathQueryNodeMemo {
 // It returns a slice of errors encountered while processing the field.
 type FieldIteratorFunc func(ni *NodeInfo, in, out interface{}) Errors
 
+// IterationAction is an enumeration representing different iteration actions.
+type IterationAction uint
+
+const (
+	// ContinueIteration means to continue the in-order traversal.
+	ContinueIteration = IterationAction(iota)
+	// DoNotIterateSubtree means to continue traversal but skip this
+	// subtree.
+	DoNotIterateSubtree
+)
+
+// FieldIteratorFunc2 is an iteration function for arbitrary field traversals.
+// in, out are passed through from the caller to the iteration vistior function
+// and can be used to pass state in and out. They are not otherwise touched.
+// It returns what next iteration action to take as well as an error.
+type FieldIteratorFunc2 func(ni *NodeInfo, in, out interface{}) (IterationAction, Errors)
+
 // ForEachField recursively iterates through the fields of value (which may be
 // any Go type) and executes iterFunction on each field. Any nil fields
 // (including value) are traversed in the schema tree only. This is done to
@@ -793,6 +810,13 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 	return errs
 }
 
+// iterFuncToIterFunc2 converts a FieldIteratorFunc to FieldIteratorFunc2.
+func iterFuncToIterFunc2(iterFunction FieldIteratorFunc) FieldIteratorFunc2 {
+	return func(ni *NodeInfo, in, out interface{}) (IterationAction, Errors) {
+		return ContinueIteration, iterFunction(ni, in, out)
+	}
+}
+
 // ForEachDataField iterates the value supplied and calls the iterFunction for
 // each data tree node found in the supplied value. No schema information is required
 // to perform the iteration. The in and out arguments are passed to the iterFunction
@@ -803,10 +827,26 @@ func ForEachDataField(value, in, out interface{}, iterFunction FieldIteratorFunc
 		return nil
 	}
 
+	return forEachDataFieldInternal(&NodeInfo{FieldValue: reflect.ValueOf(value)}, in, out, iterFuncToIterFunc2(iterFunction))
+}
+
+// ForEachDataField2 iterates the value supplied and calls the iterFunction for
+// each data tree node found in the supplied value. No schema information is required
+// to perform the iteration. The in and out arguments are passed to the iterFunction
+// without inspection by this function, and can be used by the caller to store
+// input and output during the iteration through the data tree.
+//
+// It is different from ForEachDataField via having a FieldIteratorFunc2 that
+// can customize iteration behaviour.
+func ForEachDataField2(value, in, out interface{}, iterFunction FieldIteratorFunc2) Errors {
+	if IsValueNil(value) {
+		return nil
+	}
+
 	return forEachDataFieldInternal(&NodeInfo{FieldValue: reflect.ValueOf(value)}, in, out, iterFunction)
 }
 
-func forEachDataFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldIteratorFunc) Errors {
+func forEachDataFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldIteratorFunc2) Errors {
 	if IsValueNil(ni) {
 		return nil
 	}
@@ -819,7 +859,16 @@ func forEachDataFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction Fi
 
 	var errs Errors
 	// Run the iterator function for this field.
-	errs = AppendErrs(errs, iterFunction(ni, in, out))
+	iterAction, err := iterFunction(ni, in, out)
+	errs = AppendErrs(errs, err)
+	switch iterAction {
+	case DoNotIterateSubtree:
+		return errs
+	case ContinueIteration:
+	default:
+		errs = AppendErr(errs, fmt.Errorf("unhandled IterationAction type: %v", iterAction))
+		return errs
+	}
 
 	v := ni.FieldValue
 	t := v.Type()

@@ -293,7 +293,7 @@ func TestForEachFieldOrderedMap(t *testing.T) {
 	}
 }
 
-func TestForEachDataField(t *testing.T) {
+func TestForEachDataFieldOrderedMap(t *testing.T) {
 	tests := []struct {
 		desc       string
 		inParent   any
