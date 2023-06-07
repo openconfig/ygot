@@ -164,7 +164,7 @@ func joinPrefixToUpdate(prefix *gpb.Path, update *gpb.Update) (*gpb.Update, erro
 // replacePaths unmarshals a slice of updates into the given GoStruct. It
 // deletes the values at these paths before unmarshalling them. These updates
 // can either by JSON-encoded or gNMI-encoded values (scalars).
-func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, updates []*gpb.Update, preferShadowPath, ignoreExtraField, bestEffortUnmarshal bool) error {
+func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, updates []*gpb.Update, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal bool) error {
 	var dopts []DelNodeOpt
 	if preferShadowPath {
 		dopts = append(dopts, &PreferShadowPath{})
@@ -199,7 +199,7 @@ func updatePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, u
 		}
 		if err := setNode(schema, goStruct, update, preferShadowPath, ignoreExtraFields); err != nil {
 			if bestEffortUnmarshal {
-				log.Infof("error while unmarshalling: %v", err)
+				glog.Infof("error while unmarshalling: %v", err)
 				continue
 			}
 			return err
