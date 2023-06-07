@@ -616,6 +616,8 @@ func (node *PathQueryNodeMemo) GetRoot() *PathQueryNodeMemo {
 type FieldIteratorFunc func(ni *NodeInfo, in, out interface{}) Errors
 
 // IterationAction is an enumeration representing different iteration actions.
+//
+//go:generate stringer -type=IterationAction
 type IterationAction uint
 
 const (
