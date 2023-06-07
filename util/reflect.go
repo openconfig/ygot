@@ -623,9 +623,9 @@ type IterationAction uint
 const (
 	// ContinueIteration means to continue the preorder traversal.
 	ContinueIteration = IterationAction(iota)
-	// DoNotIterateSubtree means to continue traversal but skip this
-	// subtree.
-	DoNotIterateSubtree
+	// DoNotIterateDescendants means to continue traversal but skip the
+	// descendant elements of this subtree node.
+	DoNotIterateDescendants
 )
 
 // FieldIteratorFunc2 is an iteration function for arbitrary field traversals.
@@ -864,7 +864,7 @@ func forEachDataFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction Fi
 	iterAction, err := iterFunction(ni, in, out)
 	errs = AppendErrs(errs, err)
 	switch iterAction {
-	case DoNotIterateSubtree:
+	case DoNotIterateDescendants:
 		return errs
 	case ContinueIteration:
 	default:

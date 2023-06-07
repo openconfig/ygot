@@ -9,12 +9,12 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[ContinueIteration-0]
-	_ = x[DoNotIterateSubtree-1]
+	_ = x[DoNotIterateDescendants-1]
 }
 
-const _IterationAction_name = "ContinueIterationDoNotIterateSubtree"
+const _IterationAction_name = "ContinueIterationDoNotIterateDescendants"
 
-var _IterationAction_index = [...]uint8{0, 17, 36}
+var _IterationAction_index = [...]uint8{0, 17, 40}
 
 func (i IterationAction) String() string {
 	if i >= IterationAction(len(_IterationAction_index)-1) {

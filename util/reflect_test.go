@@ -965,7 +965,7 @@ var (
 			return
 		}
 		if key := ni.FieldKey.Interface(); key == "basicStruct2" {
-			action = DoNotIterateSubtree
+			action = DoNotIterateDescendants
 			return
 		}
 		outs := out.(*string)
