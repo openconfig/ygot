@@ -6,6 +6,21 @@ module ctestschema {
     "ctestschema contains elements that are compatible for compressed (and
     therefore also uncompressed) generation options.";
 
+  container other-data {
+    container config {
+      uses other-data-config;
+    }
+
+    container state {
+      config false;
+      uses other-data-config;
+    }
+  }
+
+  grouping other-data-config {
+    leaf motd { type string; }
+  }
+
   container ordered-lists {
     list ordered-list {
       key "key";

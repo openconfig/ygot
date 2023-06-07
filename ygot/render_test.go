@@ -1054,15 +1054,13 @@ func TestTogNMINotifications(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		inTimestamp int64
-		inStruct    GoStruct
-		inConfig    GNMINotificationsConfig
-		// wantAtomicCutoff represents the index one-past the one at
-		// which atomic notifications end.
-		wantAtomicCutoff uint
-		want             []*gnmipb.Notification
-		wantErr          bool
+		name           string
+		inTimestamp    int64
+		inStruct       GoStruct
+		inConfig       GNMINotificationsConfig
+		wantAtomicMsgs int
+		want           []*gnmipb.Notification
+		wantErr        bool
 	}{{
 		name:        "simple single leaf example",
 		inTimestamp: 42,
@@ -1385,8 +1383,18 @@ func TestTogNMINotifications(t *testing.T) {
 			UsePathElem:    true,
 			PathElemPrefix: mustPathElem("heart/of/gold"),
 		},
-		wantAtomicCutoff: 2,
+		wantAtomicMsgs: 2,
 		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Prefix:    mustPath("heart/of/gold"),
+			Update: []*gnmipb.Update{{
+				Path: mustPath(`child/config/field-one`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "abc -> def"}},
+			}, {
+				Path: mustPath(`child/config/field-two`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{UintVal: 42}},
+			}},
+		}, {
 			Timestamp: 42,
 			Atomic:    true,
 			Prefix:    mustPath("heart/of/gold/ordered-lists"),
@@ -1432,15 +1440,40 @@ func TestTogNMINotifications(t *testing.T) {
 				Path: mustPath(`ordered-list[key=woo]/config/value`),
 				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "woo-val"}},
 			}},
-		}, {
+		}},
+	}, {
+		name:        "struct with only an ordered list difference",
+		inTimestamp: 42,
+		inStruct: &mapStructTestOne{
+			OrderedList: getOrderedMap(),
+		},
+		inConfig: GNMINotificationsConfig{
+			UsePathElem:    true,
+			PathElemPrefix: mustPathElem("heart/of/gold"),
+		},
+		wantAtomicMsgs: 1,
+		want: []*gnmipb.Notification{{
 			Timestamp: 42,
-			Prefix:    mustPath("heart/of/gold"),
+			Atomic:    true,
+			Prefix:    mustPath("heart/of/gold/ordered-lists"),
 			Update: []*gnmipb.Update{{
-				Path: mustPath(`child/config/field-one`),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "abc -> def"}},
+				Path: mustPath(`ordered-list[key=foo]/config/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
 			}, {
-				Path: mustPath(`child/config/field-two`),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{UintVal: 42}},
+				Path: mustPath(`ordered-list[key=foo]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
+			}, {
+				Path: mustPath(`ordered-list[key=foo]/config/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo-val"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/config/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/config/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar-val"}},
 			}},
 		}},
 	}, {
@@ -1456,8 +1489,18 @@ func TestTogNMINotifications(t *testing.T) {
 		inConfig: GNMINotificationsConfig{
 			StringSlicePrefix: []string{"heart", "of", "gold"},
 		},
-		wantAtomicCutoff: 1,
+		wantAtomicMsgs: 1,
 		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Prefix:    &gnmipb.Path{Element: []string{"heart", "of", "gold"}},
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"child", "config", "field-one"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "abc -> def"}},
+			}, {
+				Path: &gnmipb.Path{Element: []string{"child", "config", "field-two"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{UintVal: 42}},
+			}},
+		}, {
 			Timestamp: 42,
 			Atomic:    true,
 			Prefix:    &gnmipb.Path{Element: []string{"heart", "of", "gold", "ordered-lists"}},
@@ -1480,16 +1523,6 @@ func TestTogNMINotifications(t *testing.T) {
 				Path: &gnmipb.Path{Element: []string{"ordered-list", "bar", "config", "value"}},
 				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar-val"}},
 			}},
-		}, {
-			Timestamp: 42,
-			Prefix:    &gnmipb.Path{Element: []string{"heart", "of", "gold"}},
-			Update: []*gnmipb.Update{{
-				Path: &gnmipb.Path{Element: []string{"child", "config", "field-one"}},
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "abc -> def"}},
-			}, {
-				Path: &gnmipb.Path{Element: []string{"child", "config", "field-two"}},
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{UintVal: 42}},
-			}},
 		}},
 	}, {
 		name:        "struct with nested ordered list",
@@ -1505,8 +1538,8 @@ func TestTogNMINotifications(t *testing.T) {
 			UsePathElem:    true,
 			PathElemPrefix: mustPathElem("heart/of/gold"),
 		},
-		wantAtomicCutoff: 1,
-		wantErr:          true,
+		wantAtomicMsgs: 1,
+		wantErr:        true,
 	}, {
 		name:        "struct with list",
 		inTimestamp: 42,
@@ -1708,23 +1741,30 @@ func TestTogNMINotifications(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := TogNMINotifications(tt.inStruct, tt.inTimestamp, tt.inConfig)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("%s: TogNMINotifications(%v, %v, %v): got unexpected error: %v", tt.name, tt.inStruct, tt.inTimestamp, tt.inConfig, err)
+			}
 			if err != nil {
-				if !tt.wantErr {
-					t.Errorf("%s: TogNMINotifications(%v, %v, %v): got unexpected error: %v", tt.name, tt.inStruct, tt.inTimestamp, tt.inConfig, err)
-				}
 				return
 			}
 
-			if diff := cmp.Diff(got[:tt.wantAtomicCutoff], tt.want[:tt.wantAtomicCutoff], cmpopts.SortSlices(testutil.NotificationLess), protocmp.Transform()); diff != "" {
-				t.Errorf("%s: telemetry-atomic values of TogNMINotifications(%v, %v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, tt.inTimestamp, diff)
+			if gotLen, wantLen := len(got), len(tt.want); gotLen != wantLen {
+				t.Errorf("gotLen: %d, wantLen: %d", gotLen, wantLen)
+				if diff := cmp.Diff(got, tt.want, cmpopts.SortSlices(testutil.NotificationLess), testutil.NotificationComparer()); diff != "" {
+					t.Errorf("%s: telemetry-atomic values of TogNMINotifications(%v, %v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, tt.inTimestamp, diff)
+				}
+				return
 			}
 
 			// Avoid test flakiness by ignoring the update ordering. Required because
 			// there is no order to the map of fields that are returned by the struct
 			// output.
-
-			if diff := cmp.Diff(got[tt.wantAtomicCutoff:], tt.want[tt.wantAtomicCutoff:], testutil.NotificationComparer(), cmpopts.SortSlices(testutil.NotificationLess)); diff != "" {
+			if diff := cmp.Diff(got[:len(got)-tt.wantAtomicMsgs], tt.want[:len(got)-tt.wantAtomicMsgs], cmpopts.SortSlices(testutil.NotificationLess), testutil.NotificationComparer()); diff != "" {
 				t.Errorf("%s: non-telemetry-atomic values of TogNMINotifications(%v, %v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, tt.inTimestamp, diff)
+			}
+
+			if diff := cmp.Diff(got[len(got)-tt.wantAtomicMsgs:], tt.want[len(got)-tt.wantAtomicMsgs:], cmpopts.SortSlices(testutil.NotificationLess), protocmp.Transform()); diff != "" {
+				t.Errorf("%s: telemetry-atomic values of TogNMINotifications(%v, %v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, tt.inTimestamp, diff)
 			}
 		})
 	}
