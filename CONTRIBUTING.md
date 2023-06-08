@@ -17,7 +17,7 @@ again.
 
 ## Code reviews
 
-All submissions, including submissions by project members, require review. We
-accept GitHub pull requests, however all commits are made internally and
-mirrored out. This is done so that our internal verification steps run before
-any code is submitted.
+All submissions, including submissions by project members, require review.
+GitHub pull requests is the accepted method of code submission and will be
+merged in the primary (master) branch directly. New releases will be made
+regularly per https://semver.org/ guidelines.
