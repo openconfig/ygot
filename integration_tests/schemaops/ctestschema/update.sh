@@ -22,6 +22,7 @@ go run ../../../generator/generator.go -path="." -output_file=ctestschema.go \
   -generate_getters \
   -generate_leaf_getters \
   -generate_simple_unions \
+  -generate_populate_defaults \
   -annotations \
   ../yang/ctestschema.yang
 gofmt -w -s ctestschema.go
