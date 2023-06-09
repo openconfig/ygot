@@ -448,41 +448,6 @@ func TestEnumLogString(t *testing.T) {
 	}
 }
 
-// mapStructTestOne is the base struct used for the simple-schema test.
-type mapStructTestOne struct {
-	Child *mapStructTestOneChild `path:"child" module:"test-one"`
-}
-
-// IsYANGGoStruct makes sure that we implement the GoStruct interface.
-func (*mapStructTestOne) IsYANGGoStruct() {}
-
-func (*mapStructTestOne) ΛValidate(...ValidationOption) error {
-	return nil
-}
-
-func (*mapStructTestOne) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
-func (*mapStructTestOne) ΛBelongingModule() string                { return "" }
-
-// mapStructTestOne_Child is a child structure of the mapStructTestOne test
-// case.
-type mapStructTestOneChild struct {
-	FieldOne   *string  `path:"config/field-one" module:"test-one/test-one"`
-	FieldTwo   *uint32  `path:"config/field-two" module:"test-one/test-one"`
-	FieldThree Binary   `path:"config/field-three" module:"test-one/test-one"`
-	FieldFour  []Binary `path:"config/field-four" module:"test-one/test-one"`
-	FieldFive  *uint64  `path:"config/field-five" module:"test-five/test-five"`
-}
-
-// IsYANGGoStruct makes sure that we implement the GoStruct interface.
-func (*mapStructTestOneChild) IsYANGGoStruct() {}
-
-func (*mapStructTestOneChild) ΛValidate(...ValidationOption) error {
-	return nil
-}
-
-func (*mapStructTestOneChild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
-func (*mapStructTestOneChild) ΛBelongingModule() string                { return "test-one" }
-
 // emptyTreeTestOne is a test case for TestBuildEmptyTree.
 type emptyTreeTestOne struct {
 	ValOne   *string
