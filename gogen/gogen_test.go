@@ -36,11 +36,6 @@ type wantGoStructOut struct {
 // TestGoCodeStructGeneration tests the code generation from a known schema generates
 // the correct structures, key types and methods for a YANG container.
 func TestGoCodeStructGeneration(t *testing.T) {
-	enableOrderedMap = true
-	defer func() {
-		enableOrderedMap = false
-	}()
-
 	tests := []struct {
 		name          string
 		inStructToMap *ygen.ParsedDirectory
