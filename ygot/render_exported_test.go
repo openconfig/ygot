@@ -15,6 +15,7 @@
 package ygot_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -262,5 +263,175 @@ func TestTogNMINotificationsOrderedMap(t *testing.T) {
 				t.Errorf("%s: telemetry-atomic values of TogNMINotifications(%v, %v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, tt.inTimestamp, diff)
 			}
 		})
+	}
+}
+
+func TestConstructJSONOrderedMap(t *testing.T) {
+	tests := []struct {
+		name                     string
+		in                       ygot.GoStruct
+		inAppendMod              bool
+		inPrependModIref         bool
+		inRewriteModuleNameRules map[string]string
+		inPreferShadowPath       bool
+		wantIETF                 map[string]any
+		wantInternal             map[string]any
+		wantSame                 bool
+		wantErr                  bool
+		wantJSONErr              bool
+	}{{
+		name: "multi-keyed ordered list",
+		in: &ctestschema.Device{
+			OrderedMultikeyedList: func() *ctestschema.OrderedMultikeyedList_OrderedMap {
+				om := ctestschema.GetOrderedMapMultikeyed(t)
+				om.Get(ctestschema.OrderedMultikeyedList_Key{Key1: "foo", Key2: 42}).RoValue = ygot.String("foo-state-val")
+				om.Get(ctestschema.OrderedMultikeyedList_Key{Key1: "bar", Key2: 42}).RoValue = ygot.String("bar-state-val")
+				om.Get(ctestschema.OrderedMultikeyedList_Key{Key1: "baz", Key2: 84}).RoValue = ygot.String("baz-state-val")
+				return om
+			}(),
+		},
+		wantIETF: map[string]any{
+			"ctestschema-rootmod:ordered-multikeyed-lists": map[string]any{
+				"ctestschema:ordered-multikeyed-list": []any{
+					map[string]any{
+						"key1": "foo",
+						"key2": "42",
+						"config": map[string]any{
+							"key1":  "foo",
+							"key2":  "42",
+							"value": "foo-val",
+						},
+						"state": map[string]any{
+							"ro-value": "foo-state-val",
+						},
+					},
+					map[string]any{
+						"key1": "bar",
+						"key2": "42",
+						"config": map[string]any{
+							"key1":  "bar",
+							"key2":  "42",
+							"value": "bar-val",
+						},
+						"state": map[string]any{
+							"ro-value": "bar-state-val",
+						},
+					},
+					map[string]any{
+						"key1": "baz",
+						"key2": "84",
+						"config": map[string]any{
+							"key1":  "baz",
+							"key2":  "84",
+							"value": "baz-val",
+						},
+						"state": map[string]any{
+							"ro-value": "baz-state-val",
+						},
+					},
+				},
+			},
+		},
+		wantInternal: map[string]any{
+			"ordered-multikeyed-lists": map[string]any{
+				"ordered-multikeyed-list": []any{
+					map[string]any{
+						"key1": "foo",
+						"key2": float64(42),
+						"config": map[string]any{
+							"key1":  "foo",
+							"key2":  float64(42),
+							"value": "foo-val",
+						},
+						"state": map[string]any{
+							"ro-value": "foo-state-val",
+						},
+					},
+					map[string]any{
+						"key1": "bar",
+						"key2": float64(42),
+						"config": map[string]any{
+							"key1":  "bar",
+							"key2":  float64(42),
+							"value": "bar-val",
+						},
+						"state": map[string]any{
+							"ro-value": "bar-state-val",
+						},
+					},
+					map[string]any{
+						"key1": "baz",
+						"key2": float64(84),
+						"config": map[string]any{
+							"key1":  "baz",
+							"key2":  float64(84),
+							"value": "baz-val",
+						},
+						"state": map[string]any{
+							"ro-value": "baz-state-val",
+						},
+					},
+				},
+			},
+		},
+		inPreferShadowPath: false,
+		inAppendMod:        true,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name+" ConstructIETFJSON", func(t *testing.T) {
+			gotietf, err := ygot.ConstructIETFJSON(tt.in, &ygot.RFC7951JSONConfig{
+				AppendModuleName:             tt.inAppendMod,
+				PrependModuleNameIdentityref: tt.inPrependModIref,
+				RewriteModuleNames:           tt.inRewriteModuleNameRules,
+				PreferShadowPath:             tt.inPreferShadowPath,
+			})
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ConstructIETFJSON(%v): got unexpected error: %v, want error %v", tt.in, err, tt.wantErr)
+			}
+			if err != nil {
+				return
+			}
+
+			_, err = json.Marshal(gotietf)
+			if (err != nil) != tt.wantJSONErr {
+				t.Fatalf("json.Marshal(%v): got unexpected error: %v, want error: %v", gotietf, err, tt.wantJSONErr)
+			}
+			if err != nil {
+				return
+			}
+
+			if diff := cmp.Diff(gotietf, tt.wantIETF); diff != "" {
+				t.Errorf("ConstructIETFJSON(%v): did not get expected output, diff(-got,+want):\n%v", tt.in, diff)
+			}
+		})
+
+		if tt.wantSame || tt.wantInternal != nil {
+			t.Run(tt.name+" ConstructInternalJSON", func(t *testing.T) {
+				gotjson, err := ygot.ConstructInternalJSON(tt.in)
+				if (err != nil) != tt.wantErr {
+					t.Fatalf("ConstructJSON(%v): got unexpected error: %v", tt.in, err)
+				}
+				if err != nil {
+					return
+				}
+
+				_, err = json.Marshal(gotjson)
+				if (err != nil) != tt.wantJSONErr {
+					t.Fatalf("json.Marshal(%v): got unexpected error: %v, want error: %v", gotjson, err, tt.wantJSONErr)
+				}
+				if err != nil {
+					return
+				}
+
+				wantInternal := tt.wantInternal
+				if tt.wantSame == true {
+					wantInternal = tt.wantIETF
+				}
+				if diff := cmp.Diff(gotjson, wantInternal); diff != "" {
+					t.Errorf("ConstructJSON(%v): did not get expected output, diff(-got,+want):\n%v", tt.in, diff)
+				}
+			})
+		}
 	}
 }

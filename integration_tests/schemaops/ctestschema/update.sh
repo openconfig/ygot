@@ -24,5 +24,5 @@ go run ../../../generator/generator.go -path="." -output_file=ctestschema.go \
   -generate_simple_unions \
   -generate_populate_defaults \
   -annotations \
-  ../yang/ctestschema.yang
+  ../yang/ctestschema.yang ../yang/ctestschema-rootmod.yang
 gofmt -w -s ctestschema.go

@@ -341,24 +341,30 @@ func TestForEachDataFieldOrderedMap(t *testing.T) {
  ΛKey1:     [],
  Key2:       42,
  ΛKey2:     [],
+ RoValue:    nil,
+ ΛRoValue:  [],
  Value:      "foo-val",
- ΛValue:    []} (string)
+ Λ...
 , { bar (string), 42 (uint64) }/ordered-multikeyed-lists : 
 {ΛMetadata: [],
  Key1:       "bar",
  ΛKey1:     [],
  Key2:       42,
  ΛKey2:     [],
+ RoValue:    nil,
+ ΛRoValue:  [],
  Value:      "bar-val",
- ΛValue:    []} (string)
+ Λ...
 , { baz (string), 84 (uint64) }/ordered-multikeyed-lists : 
 {ΛMetadata: [],
  Key1:       "baz",
  ΛKey1:     [],
  Key2:       84,
  ΛKey2:     [],
+ RoValue:    nil,
+ ΛRoValue:  [],
  Value:      "baz-val",
- ΛValue:    []} (string)
+ Λ...
 , `,
 	}}
 
