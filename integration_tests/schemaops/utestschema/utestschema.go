@@ -339,6 +339,19 @@ func (o *CtestschemaRootmod_OrderedMultikeyedLists_OrderedMultikeyedList_Ordered
 	return newElement, nil
 }
 
+// PopulateDefaults recursively populates unset leaf fields in the CtestschemaRootmod_OrderedMultikeyedLists
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *CtestschemaRootmod_OrderedMultikeyedLists) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	for _, e := range t.OrderedMultikeyedList.Values() {
+		e.PopulateDefaults()
+	}
+}
+
 // Validate validates s against the YANG schema corresponding to its type.
 func (t *CtestschemaRootmod_OrderedMultikeyedLists) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["CtestschemaRootmod_OrderedMultikeyedLists"], t, opts...); err != nil {
@@ -454,6 +467,18 @@ func (t *CtestschemaRootmod_OrderedMultikeyedLists_OrderedMultikeyedList) GetKey
 	return *t.Key2
 }
 
+// PopulateDefaults recursively populates unset leaf fields in the CtestschemaRootmod_OrderedMultikeyedLists_OrderedMultikeyedList
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *CtestschemaRootmod_OrderedMultikeyedLists_OrderedMultikeyedList) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	t.Config.PopulateDefaults()
+	t.State.PopulateDefaults()
+}
+
 // ΛListKeyMap returns the keys of the CtestschemaRootmod_OrderedMultikeyedLists_OrderedMultikeyedList struct, which is a YANG list entry.
 func (t *CtestschemaRootmod_OrderedMultikeyedLists_OrderedMultikeyedList) ΛListKeyMap() (map[string]interface{}, error) {
 	if t.Key1 == nil {
@@ -557,6 +582,20 @@ func (t *CtestschemaRootmod_OrderedMultikeyedLists_OrderedMultikeyedList_Config)
 		return "default-multikeyed-value"
 	}
 	return *t.Value
+}
+
+// PopulateDefaults recursively populates unset leaf fields in the CtestschemaRootmod_OrderedMultikeyedLists_OrderedMultikeyedList_Config
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *CtestschemaRootmod_OrderedMultikeyedLists_OrderedMultikeyedList_Config) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	if t.Value == nil {
+		var v string = "default-multikeyed-value"
+		t.Value = &v
+	}
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
@@ -664,6 +703,20 @@ func (t *CtestschemaRootmod_OrderedMultikeyedLists_OrderedMultikeyedList_State) 
 		return "default-multikeyed-value"
 	}
 	return *t.Value
+}
+
+// PopulateDefaults recursively populates unset leaf fields in the CtestschemaRootmod_OrderedMultikeyedLists_OrderedMultikeyedList_State
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *CtestschemaRootmod_OrderedMultikeyedLists_OrderedMultikeyedList_State) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	if t.Value == nil {
+		var v string = "default-multikeyed-value"
+		t.Value = &v
+	}
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
@@ -862,6 +915,19 @@ func (o *Ctestschema_OrderedLists_OrderedList_OrderedMap) AppendNew(Key string) 
 	return newElement, nil
 }
 
+// PopulateDefaults recursively populates unset leaf fields in the Ctestschema_OrderedLists
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Ctestschema_OrderedLists) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	for _, e := range t.OrderedList.Values() {
+		e.PopulateDefaults()
+	}
+}
+
 // Validate validates s against the YANG schema corresponding to its type.
 func (t *Ctestschema_OrderedLists) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Ctestschema_OrderedLists"], t, opts...); err != nil {
@@ -979,6 +1045,19 @@ func (t *Ctestschema_OrderedLists_OrderedList) GetKey() string {
 	return *t.Key
 }
 
+// PopulateDefaults recursively populates unset leaf fields in the Ctestschema_OrderedLists_OrderedList
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Ctestschema_OrderedLists_OrderedList) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	t.Config.PopulateDefaults()
+	t.OrderedLists.PopulateDefaults()
+	t.State.PopulateDefaults()
+}
+
 // ΛListKeyMap returns the keys of the Ctestschema_OrderedLists_OrderedList struct, which is a YANG list entry.
 func (t *Ctestschema_OrderedLists_OrderedList) ΛListKeyMap() (map[string]interface{}, error) {
 	if t.Key == nil {
@@ -1059,6 +1138,20 @@ func (t *Ctestschema_OrderedLists_OrderedList_Config) GetValue() string {
 		return "default-value"
 	}
 	return *t.Value
+}
+
+// PopulateDefaults recursively populates unset leaf fields in the Ctestschema_OrderedLists_OrderedList_Config
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Ctestschema_OrderedLists_OrderedList_Config) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	if t.Value == nil {
+		var v string = "default-value"
+		t.Value = &v
+	}
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
@@ -1258,6 +1351,19 @@ func (o *Ctestschema_OrderedLists_OrderedList_OrderedLists_OrderedList_OrderedMa
 	return newElement, nil
 }
 
+// PopulateDefaults recursively populates unset leaf fields in the Ctestschema_OrderedLists_OrderedList_OrderedLists
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Ctestschema_OrderedLists_OrderedList_OrderedLists) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	for _, e := range t.OrderedList.Values() {
+		e.PopulateDefaults()
+	}
+}
+
 // Validate validates s against the YANG schema corresponding to its type.
 func (t *Ctestschema_OrderedLists_OrderedList_OrderedLists) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Ctestschema_OrderedLists_OrderedList_OrderedLists"], t, opts...); err != nil {
@@ -1355,6 +1461,18 @@ func (t *Ctestschema_OrderedLists_OrderedList_OrderedLists_OrderedList) GetKey()
 	return *t.Key
 }
 
+// PopulateDefaults recursively populates unset leaf fields in the Ctestschema_OrderedLists_OrderedList_OrderedLists_OrderedList
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Ctestschema_OrderedLists_OrderedList_OrderedLists_OrderedList) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	t.Config.PopulateDefaults()
+	t.State.PopulateDefaults()
+}
+
 // ΛListKeyMap returns the keys of the Ctestschema_OrderedLists_OrderedList_OrderedLists_OrderedList struct, which is a YANG list entry.
 func (t *Ctestschema_OrderedLists_OrderedList_OrderedLists_OrderedList) ΛListKeyMap() (map[string]interface{}, error) {
 	if t.Key == nil {
@@ -1435,6 +1553,20 @@ func (t *Ctestschema_OrderedLists_OrderedList_OrderedLists_OrderedList_Config) G
 		return "default-value"
 	}
 	return *t.Value
+}
+
+// PopulateDefaults recursively populates unset leaf fields in the Ctestschema_OrderedLists_OrderedList_OrderedLists_OrderedList_Config
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Ctestschema_OrderedLists_OrderedList_OrderedLists_OrderedList_Config) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	if t.Value == nil {
+		var v string = "default-value"
+		t.Value = &v
+	}
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
@@ -1524,6 +1656,20 @@ func (t *Ctestschema_OrderedLists_OrderedList_OrderedLists_OrderedList_State) Ge
 		return "default-value"
 	}
 	return *t.Value
+}
+
+// PopulateDefaults recursively populates unset leaf fields in the Ctestschema_OrderedLists_OrderedList_OrderedLists_OrderedList_State
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Ctestschema_OrderedLists_OrderedList_OrderedLists_OrderedList_State) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	if t.Value == nil {
+		var v string = "default-value"
+		t.Value = &v
+	}
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
@@ -1633,6 +1779,20 @@ func (t *Ctestschema_OrderedLists_OrderedList_State) GetValue() string {
 	return *t.Value
 }
 
+// PopulateDefaults recursively populates unset leaf fields in the Ctestschema_OrderedLists_OrderedList_State
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Ctestschema_OrderedLists_OrderedList_State) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	if t.Value == nil {
+		var v string = "default-value"
+		t.Value = &v
+	}
+}
+
 // Validate validates s against the YANG schema corresponding to its type.
 func (t *Ctestschema_OrderedLists_OrderedList_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Ctestschema_OrderedLists_OrderedList_State"], t, opts...); err != nil {
@@ -1712,6 +1872,18 @@ func (t *Ctestschema_OtherData) GetState() *Ctestschema_OtherData_State {
 	return nil
 }
 
+// PopulateDefaults recursively populates unset leaf fields in the Ctestschema_OtherData
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Ctestschema_OtherData) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	t.Config.PopulateDefaults()
+	t.State.PopulateDefaults()
+}
+
 // Validate validates s against the YANG schema corresponding to its type.
 func (t *Ctestschema_OtherData) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Ctestschema_OtherData"], t, opts...); err != nil {
@@ -1763,6 +1935,16 @@ func (t *Ctestschema_OtherData_Config) GetMotd() string {
 	return *t.Motd
 }
 
+// PopulateDefaults recursively populates unset leaf fields in the Ctestschema_OtherData_Config
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Ctestschema_OtherData_Config) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+}
+
 // Validate validates s against the YANG schema corresponding to its type.
 func (t *Ctestschema_OtherData_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Ctestschema_OtherData_Config"], t, opts...); err != nil {
@@ -1812,6 +1994,16 @@ func (t *Ctestschema_OtherData_State) GetMotd() string {
 		return ""
 	}
 	return *t.Motd
+}
+
+// PopulateDefaults recursively populates unset leaf fields in the Ctestschema_OtherData_State
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Ctestschema_OtherData_State) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
@@ -1957,6 +2149,19 @@ func (t *Ctestschema_UnorderedLists) AppendUnorderedList(v *Ctestschema_Unordere
 	return nil
 }
 
+// PopulateDefaults recursively populates unset leaf fields in the Ctestschema_UnorderedLists
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Ctestschema_UnorderedLists) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	for _, e := range t.UnorderedList {
+		e.PopulateDefaults()
+	}
+}
+
 // Validate validates s against the YANG schema corresponding to its type.
 func (t *Ctestschema_UnorderedLists) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Ctestschema_UnorderedLists"], t, opts...); err != nil {
@@ -2052,6 +2257,18 @@ func (t *Ctestschema_UnorderedLists_UnorderedList) GetKey() string {
 	return *t.Key
 }
 
+// PopulateDefaults recursively populates unset leaf fields in the Ctestschema_UnorderedLists_UnorderedList
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Ctestschema_UnorderedLists_UnorderedList) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	t.Config.PopulateDefaults()
+	t.State.PopulateDefaults()
+}
+
 // ΛListKeyMap returns the keys of the Ctestschema_UnorderedLists_UnorderedList struct, which is a YANG list entry.
 func (t *Ctestschema_UnorderedLists_UnorderedList) ΛListKeyMap() (map[string]interface{}, error) {
 	if t.Key == nil {
@@ -2134,6 +2351,20 @@ func (t *Ctestschema_UnorderedLists_UnorderedList_Config) GetValue() string {
 	return *t.Value
 }
 
+// PopulateDefaults recursively populates unset leaf fields in the Ctestschema_UnorderedLists_UnorderedList_Config
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Ctestschema_UnorderedLists_UnorderedList_Config) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	if t.Value == nil {
+		var v string = "default-value"
+		t.Value = &v
+	}
+}
+
 // Validate validates s against the YANG schema corresponding to its type.
 func (t *Ctestschema_UnorderedLists_UnorderedList_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Ctestschema_UnorderedLists_UnorderedList_Config"], t, opts...); err != nil {
@@ -2203,6 +2434,20 @@ func (t *Ctestschema_UnorderedLists_UnorderedList_State) GetValue() string {
 		return "default-value"
 	}
 	return *t.Value
+}
+
+// PopulateDefaults recursively populates unset leaf fields in the Ctestschema_UnorderedLists_UnorderedList_State
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Ctestschema_UnorderedLists_UnorderedList_State) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	if t.Value == nil {
+		var v string = "default-value"
+		t.Value = &v
+	}
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
@@ -2372,6 +2617,22 @@ func (t *Device) GetUnorderedLists() *Ctestschema_UnorderedLists {
 	return nil
 }
 
+// PopulateDefaults recursively populates unset leaf fields in the Device
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Device) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	t.OrderedLists.PopulateDefaults()
+	t.OrderedMultikeyedLists.PopulateDefaults()
+	t.OtherData.PopulateDefaults()
+	t.Ref.PopulateDefaults()
+	t.Target.PopulateDefaults()
+	t.UnorderedLists.PopulateDefaults()
+}
+
 // Validate validates s against the YANG schema corresponding to its type.
 func (t *Device) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Device"], t, opts...); err != nil {
@@ -2515,6 +2776,19 @@ func (t *Refschema_Ref) AppendReference(v *Refschema_Ref_Reference) error {
 	return nil
 }
 
+// PopulateDefaults recursively populates unset leaf fields in the Refschema_Ref
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Refschema_Ref) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	for _, e := range t.Reference {
+		e.PopulateDefaults()
+	}
+}
+
 // Validate validates s against the YANG schema corresponding to its type.
 func (t *Refschema_Ref) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Refschema_Ref"], t, opts...); err != nil {
@@ -2564,6 +2838,16 @@ func (t *Refschema_Ref_Reference) GetName() string {
 		return ""
 	}
 	return *t.Name
+}
+
+// PopulateDefaults recursively populates unset leaf fields in the Refschema_Ref_Reference
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Refschema_Ref_Reference) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
 }
 
 // ΛListKeyMap returns the keys of the Refschema_Ref_Reference struct, which is a YANG list entry.
@@ -2720,6 +3004,19 @@ func (t *Utestschema_Target) AppendEntity(v *Utestschema_Target_Entity) error {
 	return nil
 }
 
+// PopulateDefaults recursively populates unset leaf fields in the Utestschema_Target
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Utestschema_Target) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	for _, e := range t.Entity {
+		e.PopulateDefaults()
+	}
+}
+
 // Validate validates s against the YANG schema corresponding to its type.
 func (t *Utestschema_Target) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Utestschema_Target"], t, opts...); err != nil {
@@ -2769,6 +3066,16 @@ func (t *Utestschema_Target_Entity) GetName() string {
 		return ""
 	}
 	return *t.Name
+}
+
+// PopulateDefaults recursively populates unset leaf fields in the Utestschema_Target_Entity
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Utestschema_Target_Entity) PopulateDefaults() {
+	if t == nil {
+		return
+	}
+	ygot.BuildEmptyTree(t)
 }
 
 // ΛListKeyMap returns the keys of the Utestschema_Target_Entity struct, which is a YANG list entry.
