@@ -69,52 +69,20 @@ func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, opts ...UnmarshalO
 		return nil
 	}
 	root := schema.Root
-	var prefix *gpb.Path
-	node, nodeName, err := getOrCreateNode(schema.RootSchema(), root, req.Prefix, preferShadowPath)
-	if err != nil {
-		// Fallback to prepending the prefix if getOrCreateNode failed.
-		// This can happen if the prefix points to a compressed-out
-		// node in compressed generated code. In particular this will
-		// always happen for `telemetry-atomic` where the extension
-		// marks such compressed out elements (i.e. surrounding
-		// containers for lists and config/state containers).
-		node = root
-		nodeName = reflect.TypeOf(root).Elem().Name()
-		prefix = req.Prefix
-	}
+	rootName := reflect.TypeOf(root).Elem().Name()
 
 	// Process deletes, then replace, then updates.
-	if err := deletePaths(schema.SchemaTree[nodeName], node, prefix, req.Delete, preferShadowPath); err != nil {
+	if err := deletePaths(schema.SchemaTree[rootName], root, req.Prefix, req.Delete, preferShadowPath); err != nil {
 		return err
 	}
-	if err := replacePaths(schema.SchemaTree[nodeName], node, prefix, req.Replace, preferShadowPath, ignoreExtraFields); err != nil {
+	if err := replacePaths(schema.SchemaTree[rootName], root, req.Prefix, req.Replace, preferShadowPath, ignoreExtraFields); err != nil {
 		return err
 	}
-	if err := updatePaths(schema.SchemaTree[nodeName], node, prefix, req.Update, preferShadowPath, ignoreExtraFields); err != nil {
+	if err := updatePaths(schema.SchemaTree[rootName], root, req.Prefix, req.Update, preferShadowPath, ignoreExtraFields); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-// getOrCreateNode instantiates the node at the given path, and returns that
-// node along with its name.
-func getOrCreateNode(schema *yang.Entry, goStruct ygot.GoStruct, path *gpb.Path, preferShadowPath bool) (ygot.GoStruct, string, error) {
-	var gcopts []GetOrCreateNodeOpt
-	if preferShadowPath {
-		gcopts = append(gcopts, &PreferShadowPath{})
-	}
-	// Operate at the prefix level.
-	nodeI, _, err := GetOrCreateNode(schema, goStruct, path, gcopts...)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to GetOrCreate the prefix node: %v", err)
-	}
-	node, ok := nodeI.(ygot.GoStruct)
-	if !ok {
-		return nil, "", fmt.Errorf("prefix path points to a non-GoStruct, this is not allowed: %T, %v", nodeI, nodeI)
-	}
-
-	return node, reflect.TypeOf(nodeI).Elem().Name(), nil
 }
 
 // deletePaths deletes a slice of paths from the given GoStruct.

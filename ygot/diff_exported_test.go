@@ -21,6 +21,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/integration_tests/schemaops/utestschema"
 	"github.com/openconfig/ygot/internal/ytestutil"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
@@ -44,7 +45,7 @@ func TestDiffOrderedMap(t *testing.T) {
 	// TODO: Test for uncompressed structs.
 	tests := []struct {
 		name          string
-		inOrig, inMod *ctestschema.Device
+		inOrig, inMod ygot.GoStruct
 		inOpts        []ygot.DiffOpt
 		// skipTestUnmarshal determines whether the unmarshal test is skipped.
 		skipTestUnmarshal bool
@@ -287,6 +288,65 @@ func TestDiffOrderedMap(t *testing.T) {
 				mustPath(`/ordered-lists`),
 			},
 		},
+	}, {
+		name:   "empty-modified-uncompressed",
+		inOrig: utestschema.GetDeviceWithOrderedMap(t),
+		inMod:  &utestschema.Device{},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{
+				mustPath(`/ordered-lists/ordered-list[key=foo]/key`),
+				mustPath(`/ordered-lists/ordered-list[key=foo]/config/value`),
+				mustPath(`/ordered-lists/ordered-list[key=bar]/key`),
+				mustPath(`/ordered-lists/ordered-list[key=bar]/state/value`),
+			},
+		},
+		wantNonAtomic: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{
+				mustPath(`/ordered-lists`),
+			},
+		},
+	}, {
+		name:   "empty-disjoint-uncompressed",
+		inOrig: utestschema.GetDeviceWithOrderedMap2(t),
+		inMod:  utestschema.GetDeviceWithOrderedMap(t),
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: mustPath(`/ordered-lists/ordered-list[key=foo]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
+			}, {
+				Path: mustPath(`/ordered-lists/ordered-list[key=foo]/config/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo-val"}},
+			}, {
+				Path: mustPath(`/ordered-lists/ordered-list[key=bar]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
+			}, {
+				Path: mustPath(`/ordered-lists/ordered-list[key=bar]/state/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar-val"}},
+			}},
+			Delete: []*gnmipb.Path{
+				mustPath(`/ordered-lists/ordered-list[key=wee]/key`),
+				mustPath(`/ordered-lists/ordered-list[key=wee]/config/value`),
+				mustPath(`/ordered-lists/ordered-list[key=woo]/key`),
+				mustPath(`/ordered-lists/ordered-list[key=woo]/state/value`),
+			},
+		},
+		wantAtomic: []*gnmipb.Notification{{
+			Prefix: mustPath(`ordered-lists`),
+			Atomic: true,
+			Update: []*gnmipb.Update{{
+				Path: mustPath(`ordered-list[key=foo]/config/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo-val"}},
+			}, {
+				Path: mustPath(`ordered-list[key=foo]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/state/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar-val"}},
+			}},
+		}},
 	}, {
 		name: "empty-modified-with-other-data-in-orig",
 		inOrig: &ctestschema.Device{
@@ -642,9 +702,18 @@ func TestDiffOrderedMap(t *testing.T) {
 				return
 			}
 			// Test that unmarshalling into original gets back to modified.
-			schema, err := ctestschema.Schema()
-			if err != nil {
-				t.Fatal(err)
+			var schema *ytypes.Schema
+			switch tt.inOrig.(type) {
+			case *ctestschema.Device:
+				if schema, err = ctestschema.Schema(); err != nil {
+					t.Fatal(err)
+				}
+			case *utestschema.Device:
+				if schema, err = utestschema.Schema(); err != nil {
+					t.Fatal(err)
+				}
+			default:
+				t.Fatalf("Unexpected type: %T", tt.inOrig)
 			}
 			schema.Root = tt.inOrig
 			if err := ytypes.UnmarshalNotifications(schema, got); err != nil {

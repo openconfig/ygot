@@ -22,6 +22,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/integration_tests/schemaops/utestschema"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -178,6 +179,33 @@ func TestTogNMINotificationsOrderedMap(t *testing.T) {
 			}},
 		}},
 	}, {
+		name:        "uncompressed struct with only an ordered list",
+		inTimestamp: 42,
+		inStruct:    utestschema.GetDeviceWithOrderedMap(t),
+		inConfig: ygot.GNMINotificationsConfig{
+			UsePathElem:    true,
+			PathElemPrefix: mustPathElem("heart/of/gold"),
+		},
+		wantAtomicMsgs: 1,
+		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Atomic:    true,
+			Prefix:    mustPath("heart/of/gold/ordered-lists"),
+			Update: []*gnmipb.Update{{
+				Path: mustPath(`ordered-list[key=foo]/config/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo-val"}},
+			}, {
+				Path: mustPath(`ordered-list[key=foo]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/state/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar-val"}},
+			}},
+		}},
+	}, {
 		name:        "ordered list string slice mode",
 		inTimestamp: 42,
 		inStruct: &ctestschema.Device{
@@ -281,7 +309,7 @@ func TestConstructJSONOrderedMap(t *testing.T) {
 		wantErr                  bool
 		wantJSONErr              bool
 	}{{
-		name: "multi-keyed ordered list",
+		name: "multi-keyed-ordered-list",
 		in: &ctestschema.Device{
 			OrderedMultikeyedList: func() *ctestschema.OrderedMultikeyedList_OrderedMap {
 				om := ctestschema.GetOrderedMapMultikeyed(t)
@@ -369,6 +397,90 @@ func TestConstructJSONOrderedMap(t *testing.T) {
 							"value": "baz-val",
 						},
 						"state": map[string]any{
+							"ro-value": "baz-state-val",
+						},
+					},
+				},
+			},
+		},
+		inPreferShadowPath: false,
+		inAppendMod:        true,
+	}, {
+		name: "multi-keyed-uncompressed-ordered-list",
+		in: &utestschema.Device{
+			OrderedMultikeyedLists: func() *utestschema.CtestschemaRootmod_OrderedMultikeyedLists {
+				mkl := &utestschema.CtestschemaRootmod_OrderedMultikeyedLists{}
+				mkl.OrderedMultikeyedList = utestschema.GetOrderedMultikeyedMap(t)
+				mkl.GetOrderedMultikeyedList("foo", 42).GetOrCreateState().RoValue = ygot.String("foo-state-val")
+				mkl.GetOrderedMultikeyedList("bar", 42).GetOrCreateState().RoValue = ygot.String("bar-state-val")
+				mkl.GetOrderedMultikeyedList("baz", 84).GetOrCreateState().RoValue = ygot.String("baz-state-val")
+				return mkl
+			}(),
+		},
+		wantIETF: map[string]any{
+			"ctestschema-rootmod:ordered-multikeyed-lists": map[string]any{
+				"ctestschema:ordered-multikeyed-list": []any{
+					map[string]any{
+						"key1": "foo",
+						"key2": "42",
+						"config": map[string]any{
+							"value": "foo-val",
+						},
+						"state": map[string]any{
+							"ro-value": "foo-state-val",
+						},
+					},
+					map[string]any{
+						"key1": "bar",
+						"key2": "42",
+						"state": map[string]any{
+							"value":    "bar-val",
+							"ro-value": "bar-state-val",
+						},
+					},
+					map[string]any{
+						"key1": "baz",
+						"key2": "84",
+						"config": map[string]any{
+							"value": "baz-val",
+						},
+						"state": map[string]any{
+							"value":    "baz-val",
+							"ro-value": "baz-state-val",
+						},
+					},
+				},
+			},
+		},
+		wantInternal: map[string]any{
+			"ordered-multikeyed-lists": map[string]any{
+				"ordered-multikeyed-list": []any{
+					map[string]any{
+						"key1": "foo",
+						"key2": float64(42),
+						"config": map[string]any{
+							"value": "foo-val",
+						},
+						"state": map[string]any{
+							"ro-value": "foo-state-val",
+						},
+					},
+					map[string]any{
+						"key1": "bar",
+						"key2": float64(42),
+						"state": map[string]any{
+							"value":    "bar-val",
+							"ro-value": "bar-state-val",
+						},
+					},
+					map[string]any{
+						"key1": "baz",
+						"key2": float64(84),
+						"config": map[string]any{
+							"value": "baz-val",
+						},
+						"state": map[string]any{
+							"value":    "baz-val",
 							"ro-value": "baz-state-val",
 						},
 					},
@@ -482,6 +594,24 @@ func TestEncodeTypedValueOrderedMap(t *testing.T) {
       "value": "bar-val"
     },
     "ctestschema:key": "bar"
+  }
+]`)}},
+	}, {
+		name:  "uncompressed ordered list type - ietf json",
+		inVal: utestschema.GetOrderedMap(t),
+		inEnc: gnmipb.Encoding_JSON_IETF,
+		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`[
+  {
+    "ctestschema:config": {
+      "value": "foo-val"
+    },
+    "ctestschema:key": "foo"
+  },
+  {
+    "ctestschema:key": "bar",
+    "ctestschema:state": {
+      "value": "bar-val"
+    }
   }
 ]`)}},
 	}}
