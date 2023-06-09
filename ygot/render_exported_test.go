@@ -20,6 +20,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
@@ -433,5 +434,104 @@ func TestConstructJSONOrderedMap(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestEncodeTypedValueOrderedMap(t *testing.T) {
+	tests := []struct {
+		name             string
+		inVal            any
+		inEnc            gnmipb.Encoding
+		inArgs           []ygot.EncodeTypedValueOpt
+		want             *gnmipb.TypedValue
+		wantErrSubstring string
+	}{{
+		name:  "ordered list type",
+		inVal: ctestschema.GetOrderedMap(t),
+		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonVal{JsonVal: []byte(`[
+  {
+    "config": {
+      "key": "foo",
+      "value": "foo-val"
+    },
+    "key": "foo"
+  },
+  {
+    "config": {
+      "key": "bar",
+      "value": "bar-val"
+    },
+    "key": "bar"
+  }
+]`)}},
+	}, {
+		name:  "ordered list type - ietf json",
+		inVal: ctestschema.GetOrderedMap(t),
+		inEnc: gnmipb.Encoding_JSON_IETF,
+		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`[
+  {
+    "ctestschema:config": {
+      "key": "foo",
+      "value": "foo-val"
+    },
+    "ctestschema:key": "foo"
+  },
+  {
+    "ctestschema:config": {
+      "key": "bar",
+      "value": "bar-val"
+    },
+    "ctestschema:key": "bar"
+  }
+]`)}},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ygot.EncodeTypedValue(tt.inVal, tt.inEnc, tt.inArgs...)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("did not get expected error, %s", diff)
+			}
+
+			if diff := cmp.Diff(tt.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("(-want, +got)\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestMarshal7951OrderedMap(t *testing.T) {
+	tests := []struct {
+		desc             string
+		in               any
+		inArgs           []ygot.Marshal7951Arg
+		want             any
+		wantErrSubstring string
+	}{{
+		desc: "container with ordered list",
+		in: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		want: `{"ordered-lists":{"ordered-list":[{"config":{"key":"foo","value":"foo-val"},"key":"foo"},{"config":{"key":"bar","value":"bar-val"},"key":"bar"}]}}`,
+	}, {
+		desc: "ordered list",
+		in:   ctestschema.GetOrderedMap(t),
+		want: `[{"config":{"key":"foo","value":"foo-val"},"key":"foo"},{"config":{"key":"bar","value":"bar-val"},"key":"bar"}]`,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := ygot.Marshal7951(tt.in, tt.inArgs...)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("did not get expected error, %s", diff)
+			}
+			if err != nil {
+				return
+			}
+
+			if diff := cmp.Diff(string(got), tt.want); diff != "" {
+				t.Fatalf("did not get expected return value, diff(-got,+want):\n%s", diff)
+			}
+		})
 	}
 }

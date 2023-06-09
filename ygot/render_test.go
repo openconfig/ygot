@@ -1828,89 +1828,13 @@ func (*invalidGoStructMap) ΛEnumTypeMap() map[string][]reflect.Type { return ni
 func (*invalidGoStructMap) ΛBelongingModule() string                { return "" }
 
 type structWithMultiKey struct {
-	Map        map[mapKey]*structMultiKeyChild `path:"foo" module:"rootmod"`
-	OrderedMap *MultiKeyOrderedMap             `path:"foo-ordered" module:"rootmod"`
+	Map map[mapKey]*structMultiKeyChild `path:"foo" module:"rootmod"`
 }
 
 func (*structWithMultiKey) IsYANGGoStruct()                         {}
 func (*structWithMultiKey) ΛValidate(...ValidationOption) error     { return nil }
 func (*structWithMultiKey) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*structWithMultiKey) ΛBelongingModule() string                { return "" }
-
-type OrderedMultikeyedListKey struct {
-	Key1 string `path:"key1"`
-	Key2 uint64 `path:"key2"`
-}
-
-// OrderedMultikeyedList represents the /ctestschema/ordered-multikeyed-lists/ordered-multikeyed-list YANG schema element.
-type OrderedMultikeyedList struct {
-	Key1  *string `path:"config/key1|key1" module:"ctestschema/ctestschema|ctestschema" shadow-path:"state/key1|key1" shadow-module:"ctestschema/ctestschema|ctestschema"`
-	Key2  *uint64 `path:"config/key2|key2" module:"ctestschema/ctestschema|ctestschema"`
-	Value *string `path:"config/value" module:"ctestschema/ctestschema"`
-}
-
-func (*OrderedMultikeyedList) IsYANGGoStruct() {}
-
-type MultiKeyOrderedMap struct {
-	keys     []OrderedMultikeyedListKey
-	valueMap map[OrderedMultikeyedListKey]*OrderedMultikeyedList
-}
-
-func (*MultiKeyOrderedMap) IsYANGOrderedList() {}
-
-// init initializes any uninitialized values.
-func (o *MultiKeyOrderedMap) init() {
-	if o == nil {
-		return
-	}
-	if o.valueMap == nil {
-		o.valueMap = map[OrderedMultikeyedListKey]*OrderedMultikeyedList{}
-	}
-}
-
-// Values returns the current set of the list's values in order.
-func (o *MultiKeyOrderedMap) Values() []*OrderedMultikeyedList {
-	if o == nil {
-		return nil
-	}
-	var values []*OrderedMultikeyedList
-	for _, key := range o.keys {
-		values = append(values, o.valueMap[key])
-	}
-	return values
-}
-
-// Len returns a size of OrderedMultikeyedList_OrderedMap
-func (o *MultiKeyOrderedMap) Len() int {
-	if o == nil {
-		return 0
-	}
-	return len(o.keys)
-}
-
-// AppendNew creates and appends a new OrderedMultikeyedList, returning the
-// newly-initialized v. It returns an error if the v already exists.
-func (o *MultiKeyOrderedMap) AppendNew(Key1 string, Key2 uint64) (*OrderedMultikeyedList, error) {
-	if o == nil {
-		return nil, fmt.Errorf("nil ordered map, cannot append OrderedMultikeyedList")
-	}
-	key := OrderedMultikeyedListKey{
-		Key1: Key1,
-		Key2: Key2,
-	}
-
-	if _, ok := o.valueMap[key]; ok {
-		return nil, fmt.Errorf("duplicate key for list Statement %v", key)
-	}
-	o.keys = append(o.keys, key)
-	newElement := &OrderedMultikeyedList{
-		Key1: &Key1,
-		Key2: &Key2,
-	}
-	o.init()
-	o.valueMap[key] = newElement
-	return newElement, nil
-}
 
 type structWithMultiKeyInvalidModuleTag struct {
 	Map map[mapKey]*structMultiKeyChild `path:"foo/bar" module:"rootmod"`
@@ -3868,21 +3792,6 @@ func TestKeyValueAsString(t *testing.T) {
 }
 
 func TestEncodeTypedValue(t *testing.T) {
-	getOrderedMap := func() *OrderedMap {
-		orderedMap := &OrderedMap{}
-		v, err := orderedMap.AppendNew("foo")
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("foo-val")
-		v, err = orderedMap.AppendNew("bar")
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("bar-val")
-		return orderedMap
-	}
-
 	tests := []struct {
 		name             string
 		inVal            any
@@ -3990,45 +3899,6 @@ func TestEncodeTypedValue(t *testing.T) {
 					{Value: &gnmipb.TypedValue_BoolVal{false}}},
 			}},
 		},
-	}, {
-		name:  "ordered list type",
-		inVal: getOrderedMap(),
-		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonVal{[]byte(`[
-  {
-    "config": {
-      "key": "foo",
-      "value": "foo-val"
-    },
-    "key": "foo"
-  },
-  {
-    "config": {
-      "key": "bar",
-      "value": "bar-val"
-    },
-    "key": "bar"
-  }
-]`)}},
-	}, {
-		name:  "ordered list type - ietf json",
-		inVal: getOrderedMap(),
-		inEnc: gnmipb.Encoding_JSON_IETF,
-		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(`[
-  {
-    "ctestschema:config": {
-      "key": "foo",
-      "value": "foo-val"
-    },
-    "ctestschema:key": "foo"
-  },
-  {
-    "ctestschema:config": {
-      "key": "bar",
-      "value": "bar-val"
-    },
-    "ctestschema:key": "bar"
-  }
-]`)}},
 	}, {
 		name: "struct val - ietf json",
 		inVal: &ietfRenderExample{
@@ -4252,21 +4122,6 @@ func TestFindUpdatedLeaves(t *testing.T) {
 }
 
 func TestMarshal7951(t *testing.T) {
-	getOrderedMap := func() *OrderedMap {
-		orderedMap := &OrderedMap{}
-		v, err := orderedMap.AppendNew("foo")
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("foo-val")
-		v, err = orderedMap.AppendNew("bar")
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("bar-val")
-		return orderedMap
-	}
-
 	tests := []struct {
 		desc             string
 		in               any
@@ -4382,16 +4237,6 @@ func TestMarshal7951(t *testing.T) {
 		desc: "float type",
 		in:   &renderExample{FloatVal: Float64(42.42)},
 		want: `{"floatval":"42.42"}`,
-	}, {
-		desc: "container with ordered list",
-		in: &mapStructTestOne{
-			OrderedList: getOrderedMap(),
-		},
-		want: `{"ordered-lists":{"ordered-list":[{"config":{"key":"foo","value":"foo-val"},"key":"foo"},{"config":{"key":"bar","value":"bar-val"},"key":"bar"}]}}`,
-	}, {
-		desc: "ordered list",
-		in:   getOrderedMap(),
-		want: `[{"config":{"key":"foo","value":"foo-val"},"key":"foo"},{"config":{"key":"bar","value":"bar-val"},"key":"bar"}]`,
 	}, {
 		desc: "indentation requested",
 		in: &renderExample{
