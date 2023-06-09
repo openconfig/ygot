@@ -3984,16 +3984,6 @@ func mustPathElem(s string) []*gnmipb.PathElem {
 	return p.Elem
 }
 
-// mustPath returns a string as a gNMI path, causing a panic if the string
-// is invalid.
-func mustPath(s string) *gnmipb.Path {
-	p, err := StringToStructuredPath(s)
-	if err != nil {
-		panic(err)
-	}
-	return p
-}
-
 func TestFindUpdatedLeaves(t *testing.T) {
 	tests := []struct {
 		name             string
