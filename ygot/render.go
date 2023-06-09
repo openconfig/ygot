@@ -404,7 +404,7 @@ func TogNMINotifications(s GoStruct, ts int64, cfg GNMINotificationsConfig) ([]*
 // Note: the returned paths use a shallow copy of the parentPath.
 //
 // Limitation: nested ordered lists are not supported.
-func findUpdatedOrderedListLeaves(leaves any, s GoOrderedList, parent *gnmiPath) error {
+func findUpdatedOrderedListLeaves(leaves any, s GoOrderedMap, parent *gnmiPath) error {
 	var errs errlist.List
 
 	var leavesMap map[*path]any
@@ -516,7 +516,7 @@ func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath) error {
 				errs.Add(findUpdatedLeaves(leaves, goStruct, childPath))
 			}
 		case reflect.Ptr:
-			if ol, ok := fval.Interface().(GoOrderedList); ok {
+			if ol, ok := fval.Interface().(GoOrderedMap); ok {
 				// This is an ordered-map for YANG "ordered-by user" lists.
 				errs.Add(findUpdatedOrderedListLeaves(leaves, ol, mapPaths[0]))
 			} else {
@@ -839,7 +839,7 @@ func EncodeTypedValue(val any, enc gnmipb.Encoding, opts ...EncodeTypedValueOpt)
 	}
 
 	switch v := val.(type) {
-	case GoStruct, GoOrderedList:
+	case GoStruct, GoOrderedMap:
 		return marshalStructOrOrderedList(v, enc, jc)
 	case GoEnum:
 		en, err := EnumName(v)
@@ -1566,7 +1566,7 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 			errs.Add(err)
 		}
 	case reflect.Ptr:
-		if _, ok := field.Interface().(GoOrderedList); ok {
+		if _, ok := field.Interface().(GoOrderedMap); ok {
 			// This is an ordered-map for YANG "ordered-by user" lists.
 			valuesMethod, err := yreflect.MethodByName(field, "Values")
 			if err != nil {

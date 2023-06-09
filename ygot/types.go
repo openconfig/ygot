@@ -86,15 +86,15 @@ type ValidationOption interface {
 	IsValidationOption()
 }
 
-// GoOrderedList is an interface which can be implemented by Go structs that are
+// GoOrderedMap is an interface which can be implemented by Go structs that are
 // generated to represent a YANG "ordered-by user" list. It simply allows
 // handling code to ensure that it is interacting with a struct that will meet
 // the expectations of the interface - such as the existence of a Values()
 // method that allows the retrieval of the list elements within the ordered
 // list.
-type GoOrderedList interface {
+type GoOrderedMap interface {
 	// IsYANGOrderedList is a marker method that indicates that the struct
-	// implements the GoOrderedList interface.
+	// implements the GoOrderedMap interface.
 	IsYANGOrderedList()
 	// Len returns the size of the ordered list.
 	Len() int

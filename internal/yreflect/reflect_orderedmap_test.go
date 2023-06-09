@@ -40,9 +40,9 @@ func TestAppendIntoOrderedMap(t *testing.T) {
 
 	tests := []struct {
 		desc          string
-		inMap         ygot.GoOrderedList
+		inMap         ygot.GoOrderedMap
 		inValue       interface{}
-		wantMap       ygot.GoOrderedList
+		wantMap       ygot.GoOrderedMap
 		wantErrSubstr string
 	}{{
 		desc:    "ordered map",

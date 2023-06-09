@@ -122,7 +122,7 @@ func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb
 		return nil, status.Errorf(codes.InvalidArgument, "schema is nil for type %T, path %v", root, path)
 	}
 
-	orderedMap, isOrderedMap := root.(ygot.GoOrderedList)
+	orderedMap, isOrderedMap := root.(ygot.GoOrderedMap)
 
 	switch {
 	// Check if the schema is a container, or the schema is a list and the parent provided is a member of that list.
@@ -169,7 +169,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 
 		checkPath := func(p []string, args retrieveNodeArgs, shadowLeaf bool) ([]*TreeNode, error) {
 			to := len(p)
-			if _, isOrderedMap := fv.Interface().(ygot.GoOrderedList); util.IsTypeMap(ft.Type) || isOrderedMap {
+			if _, isOrderedMap := fv.Interface().(ygot.GoOrderedMap); util.IsTypeMap(ft.Type) || isOrderedMap {
 				// We pause for a single step because it takes
 				// two steps to traverse a map.
 				to--
@@ -304,7 +304,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 					return checkPath(p, args, false)
 				} else if util.PathPartiallyMatchesPrefix(path, p) {
 					// Handle ordered map deletion at the container level in compressed GoStructs.
-					if _, isOrderedMap := fv.Interface().(ygot.GoOrderedList); isOrderedMap {
+					if _, isOrderedMap := fv.Interface().(ygot.GoOrderedMap); isOrderedMap {
 						if args.delete {
 							fv.Set(reflect.Zero(ft.Type))
 							return nil, nil
@@ -328,7 +328,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 				return checkPath(p, args, shadowLeaf)
 			} else if !shadowLeaf && util.PathPartiallyMatchesPrefix(path, p) {
 				// Handle ordered map deletion at the container level in compressed GoStructs.
-				if _, isOrderedMap := fv.Interface().(ygot.GoOrderedList); isOrderedMap {
+				if _, isOrderedMap := fv.Interface().(ygot.GoOrderedMap); isOrderedMap {
 					if args.delete {
 						fv.Set(reflect.Zero(ft.Type))
 						return nil, nil
@@ -374,10 +374,10 @@ func getKeyFields(k, v reflect.Value, schemaKey string) (map[string]string, erro
 }
 
 // retrieveNodeOrderedList is an internal function and operates on a
-// GoOrderedList. It returns the nodes matching with keys corresponding to the
+// GoOrderedMap. It returns the nodes matching with keys corresponding to the
 // key supplied in path.
 // Function returns list of nodes, list of schemas and error.
-func retrieveNodeOrderedList(schema *yang.Entry, root ygot.GoOrderedList, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
+func retrieveNodeOrderedList(schema *yang.Entry, root ygot.GoOrderedMap, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
 	switch {
 	case schema.Key == "":
 		return nil, status.Errorf(codes.InvalidArgument, "unkeyed list can't be traversed, type %T, path %v", root, path)

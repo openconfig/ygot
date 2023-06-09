@@ -190,7 +190,7 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.Path
 			if root.Parent == nil {
 				return nil, fmt.Errorf("no parent for leafref path at %v, with remaining path %s", ni.Schema.Path(), path)
 			}
-			_, isOrderedMap := root.Parent.FieldValue.Interface().(ygot.GoOrderedList)
+			_, isOrderedMap := root.Parent.FieldValue.Interface().(ygot.GoOrderedMap)
 			if (root.Parent.Schema.IsList() && (util.IsValueMap(root.Parent.FieldValue) || isOrderedMap)) || (root.Parent.Schema.IsLeafList() && util.IsValueSlice(root.Parent.FieldValue)) {
 				// YANG lists and YANG leaf-lists are represented as Go maps and slices respectively.
 				// Despite these being a single level in the YANG hierarchy, util.ForEachField actually

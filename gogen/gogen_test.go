@@ -883,7 +883,7 @@ type Tstruct_ListWithKey_OrderedMap struct {
 }
 
 // IsYANGOrderedList ensures that Tstruct_ListWithKey_OrderedMap implements the
-// ygot.GoOrderedList interface.
+// ygot.GoOrderedMap interface.
 func (*Tstruct_ListWithKey_OrderedMap) IsYANGOrderedList() {}
 
 // init initializes any uninitialized values.

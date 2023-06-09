@@ -135,7 +135,7 @@ type {{ .StructName }} struct {
 }
 
 // IsYANGOrderedList ensures that {{ .StructName }} implements the
-// ygot.GoOrderedList interface.
+// ygot.GoOrderedMap interface.
 func (*{{ .StructName }}) IsYANGOrderedList() {}
 
 // init initializes any uninitialized values.
