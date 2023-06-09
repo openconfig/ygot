@@ -23,5 +23,6 @@ go run ../../../generator/generator.go -path="." -output_file=utestschema.go \
   -annotations \
   ../yang/utestschema.yang \
   ../yang/refschema.yang \
-  ../yang/ctestschema.yang
+  ../yang/ctestschema.yang \
+  ../yang/ctestschema-rootmod.yang
 gofmt -w -s utestschema.go
