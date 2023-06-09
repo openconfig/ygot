@@ -24,6 +24,7 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/integration_tests/schemaops/utestschema"
 	"github.com/openconfig/ygot/internal/ytestutil"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
@@ -86,6 +87,21 @@ func TestGetNodeOrderedMap(t *testing.T) {
 				Value: ygot.String("foo-val"),
 			},
 			Schema: ctestschema.SchemaTree["OrderedList"],
+			Path:   mustPath("/ordered-lists/ordered-list[key=foo]"),
+		}},
+	}, {
+		desc:     "single-keyed ordered list uncompressed",
+		inSchema: utestschema.SchemaTree["Device"],
+		inParent: utestschema.GetDeviceWithOrderedMap(t),
+		inPath:   mustPath("/ordered-lists/ordered-list[key=foo]"),
+		wantTreeNodes: []*ytypes.TreeNode{{
+			Data: &utestschema.Ctestschema_OrderedLists_OrderedList{
+				Key: ygot.String("foo"),
+				Config: &utestschema.Ctestschema_OrderedLists_OrderedList_Config{
+					Value: ygot.String("foo-val"),
+				},
+			},
+			Schema: utestschema.SchemaTree["Ctestschema_OrderedLists_OrderedList"],
 			Path:   mustPath("/ordered-lists/ordered-list[key=foo]"),
 		}},
 	}, {
@@ -395,10 +411,30 @@ func TestGetOrCreateNodeOrderedMap(t *testing.T) {
 				orderedMap := &ctestschema.OrderedList_OrderedMap{}
 				_, err := orderedMap.AppendNew("foo")
 				if err != nil {
-					t.Error(err)
+					t.Fatal(err)
 				}
 				return orderedMap
 			}(),
+		},
+	}, {
+		desc:     "single-keyed ordered list",
+		inSchema: utestschema.SchemaTree["Device"],
+		inParent: &utestschema.Device{},
+		inPath:   mustPath("/ordered-lists/ordered-list[key=foo]"),
+		want: &utestschema.Ctestschema_OrderedLists_OrderedList{
+			Key: ygot.String("foo"),
+		},
+		wantParent: &utestschema.Device{
+			OrderedLists: &utestschema.Ctestschema_OrderedLists{
+				OrderedList: func() *utestschema.Ctestschema_OrderedLists_OrderedList_OrderedMap {
+					orderedMap := &utestschema.Ctestschema_OrderedLists_OrderedList_OrderedMap{}
+					_, err := orderedMap.AppendNew("foo")
+					if err != nil {
+						t.Fatal(err)
+					}
+					return orderedMap
+				}(),
+			},
 		},
 	}, {
 		desc:     "single-keyed ordered list leaf",
@@ -411,7 +447,7 @@ func TestGetOrCreateNodeOrderedMap(t *testing.T) {
 				orderedMap := &ctestschema.OrderedList_OrderedMap{}
 				v, err := orderedMap.AppendNew("foo")
 				if err != nil {
-					t.Error(err)
+					t.Fatal(err)
 				}
 				v.Value = ygot.String("")
 				return orderedMap
@@ -448,7 +484,7 @@ func TestGetOrCreateNodeOrderedMap(t *testing.T) {
 				orderedMap := &ctestschema.OrderedList_OrderedMap{}
 				_, err := orderedMap.AppendNew("foo")
 				if err != nil {
-					t.Error(err)
+					t.Fatal(err)
 				}
 				return orderedMap
 			}(),
@@ -467,7 +503,7 @@ func TestGetOrCreateNodeOrderedMap(t *testing.T) {
 				orderedMap := &ctestschema.OrderedMultikeyedList_OrderedMap{}
 				_, err := orderedMap.AppendNew("foo", 42)
 				if err != nil {
-					t.Error(err)
+					t.Fatal(err)
 				}
 				return orderedMap
 			}(),
@@ -489,7 +525,7 @@ func TestGetOrCreateNodeOrderedMap(t *testing.T) {
 				orderedMap := &ctestschema.OrderedMultikeyedList_OrderedMap{}
 				v, err := orderedMap.AppendNew("foo", 42)
 				if err != nil {
-					t.Error(err)
+					t.Fatal(err)
 				}
 				v.Value = ygot.String("")
 				return orderedMap
@@ -525,7 +561,7 @@ func TestGetOrCreateNodeOrderedMap(t *testing.T) {
 				orderedMap := &ctestschema.OrderedList_OrderedMap{}
 				v, err := orderedMap.AppendNew("foo")
 				if err != nil {
-					t.Error(err)
+					t.Fatal(err)
 				}
 				v.AppendNewOrderedList("bar")
 				return orderedMap
@@ -605,7 +641,7 @@ func TestSetNodeOrderedMap(t *testing.T) {
 					orderedMap := &ctestschema.OrderedList_OrderedMap{}
 					v, err := orderedMap.AppendNew("foo")
 					if err != nil {
-						t.Error(err)
+						t.Fatal(err)
 					}
 					v.Value = ygot.String("foo-value")
 					return orderedMap
@@ -621,7 +657,38 @@ func TestSetNodeOrderedMap(t *testing.T) {
 				orderedMap := &ctestschema.OrderedList_OrderedMap{}
 				v, err := orderedMap.AppendNew("foo")
 				if err != nil {
-					t.Error(err)
+					t.Fatal(err)
+				}
+				v.Value = ygot.String("hello")
+				return orderedMap
+			}(),
+		},
+	}, {
+		desc:     "success setting string field in ordered map",
+		inSchema: ctestschema.SchemaTree["Device"],
+		inParentFn: func() any {
+			return &ctestschema.Device{
+				OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+					orderedMap := &ctestschema.OrderedList_OrderedMap{}
+					v, err := orderedMap.AppendNew("foo")
+					if err != nil {
+						t.Fatal(err)
+					}
+					v.Value = ygot.String("foo-value")
+					return orderedMap
+				}(),
+			}
+		},
+		inPath:    mustPath("/ordered-lists/ordered-list[key=foo]/config/value"),
+		inVal:     &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
+		inValJSON: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`"hello"`)}},
+		want:      ygot.String("hello"),
+		wantParent: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := &ctestschema.OrderedList_OrderedMap{}
+				v, err := orderedMap.AppendNew("foo")
+				if err != nil {
+					t.Fatal(err)
 				}
 				v.Value = ygot.String("hello")
 				return orderedMap
@@ -636,7 +703,7 @@ func TestSetNodeOrderedMap(t *testing.T) {
 					orderedMap := &ctestschema.OrderedList_OrderedMap{}
 					v, err := orderedMap.AppendNew("foo")
 					if err != nil {
-						t.Error(err)
+						t.Fatal(err)
 					}
 					v.Value = ygot.String("foo-value")
 					return orderedMap
@@ -652,7 +719,7 @@ func TestSetNodeOrderedMap(t *testing.T) {
 				orderedMap := &ctestschema.OrderedList_OrderedMap{}
 				v, err := orderedMap.AppendNew("foo")
 				if err != nil {
-					t.Error(err)
+					t.Fatal(err)
 				}
 				v.Value = ygot.String("foo-value")
 				return orderedMap
@@ -674,7 +741,7 @@ func TestSetNodeOrderedMap(t *testing.T) {
 				orderedMap := &ctestschema.OrderedList_OrderedMap{}
 				v, err := orderedMap.AppendNew("foo")
 				if err != nil {
-					t.Error(err)
+					t.Fatal(err)
 				}
 				v.Value = ygot.String("hello")
 				return orderedMap
@@ -711,7 +778,7 @@ func TestSetNodeOrderedMap(t *testing.T) {
 				orderedMap := ctestschema.GetOrderedMap(t)
 				v, err := orderedMap.AppendNew("new-key")
 				if err != nil {
-					t.Error(err)
+					t.Fatal(err)
 				}
 				v.Value = ygot.String("hello")
 				return orderedMap
@@ -738,7 +805,7 @@ func TestSetNodeOrderedMap(t *testing.T) {
 				orderedMap := ctestschema.GetOrderedMapMultikeyed(t)
 				v, err := orderedMap.AppendNew("new-key", 1024)
 				if err != nil {
-					t.Error(err)
+					t.Fatal(err)
 				}
 				v.Value = ygot.String("hello")
 				return orderedMap
@@ -760,7 +827,7 @@ func TestSetNodeOrderedMap(t *testing.T) {
 				orderedMap := ctestschema.GetOrderedMap(t)
 				v, err := orderedMap.AppendNew("new-key")
 				if err != nil {
-					t.Error(err)
+					t.Fatal(err)
 				}
 				v.Value = ygot.String("hello")
 				return orderedMap
@@ -771,12 +838,41 @@ func TestSetNodeOrderedMap(t *testing.T) {
 				orderedMap := ctestschema.GetOrderedMap(t)
 				v, err := orderedMap.AppendNew("new-key")
 				if err != nil {
-					t.Error(err)
+					t.Fatal(err)
 				}
 				v.Value = ygot.String("hello")
 				return orderedMap
 			}(),
 		},
+	}, {
+		desc:     "success appending by setting at parent level uncompressed",
+		inSchema: utestschema.SchemaTree["Device"],
+		inParentFn: func() any {
+			return utestschema.GetDeviceWithOrderedMap(t)
+		},
+		inOpts:    []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		inPath:    mustPath("/"),
+		inValJSON: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{JsonIetfVal: []byte(`{ "ordered-lists": { "ordered-list": [{"key": "new-key", "config": { "key": "new-key", "value": "hello" } }] } }`)}},
+		want: func() *utestschema.Device {
+			d := utestschema.GetDeviceWithOrderedMap(t)
+			v, err := d.GetOrderedLists().AppendNewOrderedList("new-key")
+			if err != nil {
+				t.Fatal(err)
+			}
+			v.GetOrCreateConfig().Key = ygot.String("new-key")
+			v.GetOrCreateConfig().Value = ygot.String("hello")
+			return d
+		}(),
+		wantParent: func() *utestschema.Device {
+			d := utestschema.GetDeviceWithOrderedMap(t)
+			v, err := d.GetOrderedLists().AppendNewOrderedList("new-key")
+			if err != nil {
+				t.Fatal(err)
+			}
+			v.GetOrCreateConfig().Key = ygot.String("new-key")
+			v.GetOrCreateConfig().Value = ygot.String("hello")
+			return d
+		}(),
 	}, {
 		desc:     "success setting entire ordered map",
 		inSchema: ctestschema.SchemaTree["Device"],
