@@ -814,11 +814,14 @@ func leavesToNotifications(leaves map[*path]any, ts int64, pfx *gnmiPath) ([]*gn
 			return nil, err
 		}
 	}
-	if len(n.Update) > 0 {
-		notifs = append([]*gnmipb.Notification{n}, notifs...)
+	switch {
+	case len(n.Update) == 0 && len(notifs) == 0:
+		return []*gnmipb.Notification{n}, nil
+	case len(n.Update) == 0:
+		return notifs, nil
+	default:
+		return append([]*gnmipb.Notification{n}, notifs...), nil
 	}
-
-	return notifs, nil
 }
 
 // EncodeTypedValueOpt is an interface implemented by arguments to
@@ -1379,7 +1382,9 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			if prependmods != nil && prependmods[i][j] != "" {
 				k = fmt.Sprintf("%s:%s", prependmods[i][j], k)
 			}
-			value, err = normalizeJSONValue(value)
+			if args.jType != Internal {
+				value, err = normalizeJSONValue(value)
+			}
 			if err != nil {
 				errs.Add(err)
 				continue
