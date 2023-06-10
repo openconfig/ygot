@@ -15,16 +15,42 @@
 package util_test
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
 	"github.com/openconfig/ygot/integration_tests/schemaops/utestschema"
 	"github.com/openconfig/ygot/internal/ytestutil"
 	"github.com/openconfig/ygot/util"
+)
+
+var (
+	PrintMapKeysSchemaAnnotationFunc = func(ni *util.NodeInfo, in, out interface{}) (errs util.Errors) {
+		if util.IsNilOrInvalidValue(ni.FieldKey) {
+			return
+		}
+		outs := out.(*string)
+		s := "nil"
+		if !util.IsNilOrInvalidValue(ni.FieldValue) {
+			s = pretty.Sprint(ni.FieldValue.Interface())
+		}
+
+		fn, err := util.SchemaPaths(ni.StructField)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		if l := len(fn); l != 1 {
+			errs = append(errs, fmt.Errorf("invalid schema path length %d for %v", l, ni.StructField.Name))
+		}
+
+		*outs += fmt.Sprintf("%s/%s : \n%s\n, ", util.ValueStr(ni.FieldKey.Interface()), fn[0][0], util.ValueStr(s))
+		return
+	}
 )
 
 // to ptr conversion utility functions
