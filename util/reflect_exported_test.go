@@ -350,7 +350,7 @@ func TestForEachDataFieldOrderedMap(t *testing.T) {
 			OrderedList: ctestschema.GetOrderedMap(t),
 		},
 		in:         nil,
-		inIterFunc: util.PrintMapKeysSchemaAnnotationFunc,
+		inIterFunc: PrintMapKeysSchemaAnnotationFunc,
 		wantOut: `foo (string)/ordered-lists : 
 {ΛMetadata:    [],
  Key:           "foo",
@@ -374,7 +374,7 @@ func TestForEachDataFieldOrderedMap(t *testing.T) {
 		desc:       "single-keyed uncompressed list",
 		inParent:   utestschema.GetDeviceWithOrderedMap(t),
 		in:         nil,
-		inIterFunc: util.PrintMapKeysSchemaAnnotationFunc,
+		inIterFunc: PrintMapKeysSchemaAnnotationFunc,
 		wantOut: `foo (string)/ordered-list : 
 {ΛMetadata:     [],
  Config:         {ΛMetadata: [],
@@ -396,7 +396,7 @@ func TestForEachDataFieldOrderedMap(t *testing.T) {
 			OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t),
 		},
 		in:         nil,
-		inIterFunc: util.PrintMapKeysSchemaAnnotationFunc,
+		inIterFunc: PrintMapKeysSchemaAnnotationFunc,
 		wantOut: `{ foo (string), 42 (uint64) }/ordered-multikeyed-lists : 
 {ΛMetadata: [],
  Key1:       "foo",
