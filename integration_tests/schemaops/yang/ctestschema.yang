@@ -81,7 +81,10 @@ module ctestschema {
 
   grouping list-config {
     leaf key { type string; }
-    leaf value { type string; }
+    leaf value {
+      type string;
+      default "default-value";
+    }
   }
 
   grouping list-state {
@@ -115,6 +118,9 @@ module ctestschema {
   grouping multikeyed-list-config {
     leaf key1 { type string; }
     leaf key2 { type uint64; }
-    leaf value { type string; }
+    leaf value {
+      type string;
+      default "default-multikeyed-value";
+    }
   }
 }
