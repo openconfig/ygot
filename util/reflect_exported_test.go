@@ -22,6 +22,7 @@ import (
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/integration_tests/schemaops/utestschema"
 	"github.com/openconfig/ygot/internal/ytestutil"
 	"github.com/openconfig/ygot/util"
 )
@@ -48,6 +49,9 @@ func TestIsValueNil(t *testing.T) {
 	if !util.IsValueNil((*ctestschema.OrderedList_OrderedMap)(nil)) {
 		t.Error("got util.IsValueNil(interface) false, want true")
 	}
+	if !util.IsValueNil((*utestschema.Ctestschema_OrderedLists_OrderedList_OrderedMap)(nil)) {
+		t.Error("got util.IsValueNil(interface) false, want true")
+	}
 
 	if util.IsValueNil(toInt8Ptr(42)) {
 		t.Error("got util.IsValueNil(ptr) true, want false")
@@ -62,6 +66,9 @@ func TestIsValueNil(t *testing.T) {
 		t.Error("got util.IsValueNil(interface) true, want false")
 	}
 	if util.IsValueNil(ctestschema.GetOrderedMap(t)) {
+		t.Error("got util.IsValueNil(interface) true, want false")
+	}
+	if util.IsValueNil(utestschema.GetOrderedMap(t)) {
 		t.Error("got util.IsValueNil(interface) true, want false")
 	}
 }
@@ -139,7 +146,7 @@ func TestInsertIntoMap(t *testing.T) {
 				return
 			}
 
-			if diff := cmp.Diff(tt.wantMap, tt.inMap, cmp.AllowUnexported(ctestschema.OrderedList_OrderedMap{})); diff != "" {
+			if diff := cmp.Diff(tt.wantMap, tt.inMap); diff != "" {
 				t.Errorf("(-want, +got):\n%s", diff)
 			}
 		})
@@ -269,6 +276,15 @@ func TestForEachFieldOrderedMap(t *testing.T) {
 		inIterFunc: ytestutil.PrintFieldsIterFunc,
 		wantOut:    `[config key]: &"foo", [key]: &"foo", [config value]: &"foo-val", [config key]: &"bar", [key]: &"bar", [config value]: &"bar-val", `,
 	}, {
+		desc:       "single-keyed uncompressed list",
+		inSchema:   utestschema.SchemaTree["Device"],
+		inParent:   utestschema.GetDeviceWithOrderedMap(t),
+		in:         nil,
+		inIterFunc: ytestutil.PrintFieldsIterFunc,
+		// Out-of-order since foo-val is config and bar-val is state.
+		// Remember that ForEachField traverses in pre-order.
+		wantOut: `[value]: &"foo-val", [key]: &"foo", [key]: &"bar", [value]: &"bar-val", `,
+	}, {
 		desc:     "multi-keyed list",
 		inSchema: ctestschema.SchemaTree["Device"],
 		inParent: &ctestschema.Device{
@@ -327,6 +343,26 @@ func TestForEachDataFieldOrderedMap(t *testing.T) {
  ParentKey:     nil,
  ΛParentKey:   [],
  RoVa...
+, `,
+	}, {
+		desc:       "single-keyed uncompressed list",
+		inParent:   utestschema.GetDeviceWithOrderedMap(t),
+		in:         nil,
+		inIterFunc: util.PrintMapKeysSchemaAnnotationFunc,
+		wantOut: `foo (string)/ordered-list : 
+{ΛMetadata:     [],
+ Config:         {ΛMetadata: [],
+                  Key:        nil,
+                  ΛKey:      [],
+                  Value:  ...
+, bar (string)/ordered-list : 
+{ΛMetadata:     [],
+ Config:         nil,
+ ΛConfig:       [],
+ Key:            "bar",
+ ΛKey:          [],
+ OrderedLists:   nil,
+ ΛOrderedLists: []...
 , `,
 	}, {
 		desc: "multi-keyed list",
