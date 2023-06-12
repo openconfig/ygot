@@ -627,7 +627,7 @@ func TestFindSetLeaves(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := findSetLeaves(tt.inStruct, tt.inOpts...)
+		got, err := findSetLeaves(tt.inStruct, false, tt.inOpts...)
 		if err != nil && (err.Error() != tt.wantErr) {
 			t.Errorf("%s: findSetLeaves(%v): did not get expected error: %v", tt.desc, tt.inStruct, err)
 			continue
@@ -1556,21 +1556,40 @@ func TestDiff(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := Diff(tt.inOrig, tt.inMod, tt.inOpts...)
-		if diff := errdiff.Substring(err, tt.wantErrSubStr); diff != "" {
-			t.Errorf("%s: Diff(%s, %s): did not get expected error status, got: %s, want: %s", tt.desc, pretty.Sprint(tt.inOrig), pretty.Sprint(tt.inMod), err, tt.wantErrSubStr)
-			continue
+		testDiffSingleNotif := func(t *testing.T, funcName string, got *gnmipb.Notification, err error) {
+			if diff := errdiff.Substring(err, tt.wantErrSubStr); diff != "" {
+				t.Errorf("%s: %s(%s, %s): did not get expected error status, got: %s, want: %s", tt.desc, funcName, pretty.Sprint(tt.inOrig), pretty.Sprint(tt.inMod), err, tt.wantErrSubStr)
+				return
+			}
+
+			if tt.wantErrSubStr != "" {
+				return
+			}
+			// To re-use the NotificationSetEqual helper, we put the want and got into
+			// a slice.
+			if !testutil.NotificationSetEqual([]*gnmipb.Notification{tt.want}, []*gnmipb.Notification{got}) {
+				diff := cmp.Diff(got, tt.want, protocmp.Transform())
+				t.Errorf("%s: Diff(%s, %s): did not get expected Notification, diff(-got,+want):\n%s", tt.desc, pretty.Sprint(tt.inOrig), pretty.Sprint(tt.inMod), diff)
+			}
 		}
 
-		if tt.wantErrSubStr != "" {
-			continue
-		}
-		// To re-use the NotificationSetEqual helper, we put the want and got into
-		// a slice.
-		if !testutil.NotificationSetEqual([]*gnmipb.Notification{tt.want}, []*gnmipb.Notification{got}) {
-			diff := cmp.Diff(got, tt.want, protocmp.Transform())
-			t.Errorf("%s: Diff(%s, %s): did not get expected Notification, diff(-got,+want):\n%s", tt.desc, pretty.Sprint(tt.inOrig), pretty.Sprint(tt.inMod), diff)
-		}
+		t.Run(tt.desc+"Diff", func(t *testing.T) {
+			got, err := Diff(tt.inOrig, tt.inMod, tt.inOpts...)
+			testDiffSingleNotif(t, "Diff", got, err)
+		})
+		t.Run(tt.desc+"DiffWithAtomic", func(t *testing.T) {
+			var got *gnmipb.Notification
+			gots, err := DiffWithAtomic(tt.inOrig, tt.inMod, tt.inOpts...)
+			switch len(gots) {
+			case 0:
+				got = nil
+			case 1:
+				got = gots[0]
+			default:
+				t.Fatalf("Got multiple Notifications for DiffWithAtomic: %d, this is not expected.", len(gots))
+			}
+			testDiffSingleNotif(t, "DiffWithAtomic", got, err)
+		})
 	}
 }
 

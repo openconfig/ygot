@@ -194,6 +194,25 @@ func (g *gnmiPath) AppendName(n string) error {
 	return nil
 }
 
+// Pop removes the last element from the gnmiPath.
+// If the supplied path is empty, then an error is returned.
+func (g *gnmiPath) Pop() error {
+	if !g.isValid() {
+		return fmt.Errorf("cannot pop from invalid path")
+	}
+
+	if g.Len() == 0 {
+		return fmt.Errorf("cannot pop from empty path")
+	}
+
+	if g.isStringSlicePath() {
+		g.stringSlicePath = g.stringSlicePath[:len(g.stringSlicePath)-1]
+	} else {
+		g.pathElemPath = g.pathElemPath[:g.Len()-1]
+	}
+	return nil
+}
+
 // LastPathElem returns the last PathElem element in the gnmiPath.
 func (g *gnmiPath) LastPathElem() (*gnmipb.PathElem, error) {
 	return g.PathElemAt(g.Len() - 1)
@@ -342,9 +361,8 @@ type GNMINotificationsConfig struct {
 // provided determines the path format utilised, and the prefix to be included
 // in the message if relevant. If there are any `ordered-by user` lists within
 // the input struct, then they will be treated as "telemetry-atomic", and put
-// into separate notifications at the beginning of the returned list where each
-// notification represents the entirety of the data of the ordered list, and
-// serialized in order of the list elements.
+// into separate atomic notifications after the initial notification containing
+// the non-atomic updates.
 //
 // Note: Within the generated notifications there could be data sharing for
 // space and compute optimization. Make a deep copy if one plans to modify the
@@ -401,46 +419,14 @@ func findUpdatedOrderedListLeaves(leaves any, s GoOrderedList, parent *gnmiPath)
 		return fmt.Errorf("internal ygot error: leaves is not an expected type: %T", leaves)
 	}
 
-	var atomicLeaves []*pathval
-	if err := yreflect.RangeOrderedMap(s, func(k reflect.Value, v reflect.Value) bool {
-		childPath, err := mapValuePath(k, v, parent)
-		if err != nil {
-			errs.Add(err)
-			return true
-		}
-
-		goStruct, ok := v.Interface().(GoStruct)
-		if !ok {
-			errs.Add(fmt.Errorf("%v: was not a valid GoStruct", parent))
-			return true
-		}
-		errs.Add(findUpdatedLeaves(&atomicLeaves, goStruct, childPath))
-		return true
-	}); err != nil {
+	atomicLeaves, subtreePath, err := orderedMapLeaves(s, parent)
+	if err != nil {
 		errs.Add(err)
 		return errs.Err()
 	}
 
 	if len(atomicLeaves) > 0 {
-		// TODO(wenbli): Make this more robust by potentially introducing another struct
-		// tag to indicate which element in the compressed path should the prefix cutoff
-		// be based on the placement of the atomic extension, although for ordered-maps
-		// it should always be at the container level. Need more discussion on this.
-		// The current use case is for BGP policy statements:
-		// https://github.com/openconfig/public/pull/867
-		// The reason for this parentPath hack is that compressed lists are represented
-		// using two elements, and only the first element should be in the prefix in the
-		// generated Notification rather than the whole set of elements since the atomic
-		// is at the container level.
-		parentPath := parent.Copy()
-		if parentPath.Len() > 1 {
-			if parentPath.isPathElemPath() {
-				parentPath.pathElemPath = parentPath.pathElemPath[:parentPath.Len()-1]
-			} else if parentPath.isStringSlicePath() {
-				parentPath.stringSlicePath = parentPath.stringSlicePath[:parentPath.Len()-1]
-			}
-		}
-		leavesMap[&path{parentPath}] = atomicLeaves
+		leavesMap[&path{subtreePath}] = atomicLeaves
 	}
 	return errs.Err()
 }
@@ -759,6 +745,31 @@ func sliceToScalarArray(v []any) (*gnmipb.ScalarArray, error) {
 	return arr, nil
 }
 
+// addToNotification adds the given path value pair to the given notification,
+// stripping the given prefix.
+func addToNotification(pk *path, value any, n *gnmipb.Notification, pfx *gnmiPath) error {
+	path, err := pk.p.StripPrefix(pfx)
+	if err != nil {
+		return err
+	}
+
+	ppath, err := path.ToProto()
+	if err != nil {
+		return err
+	}
+
+	val, err := EncodeTypedValue(value, gnmipb.Encoding_JSON)
+	if err != nil {
+		return err
+	}
+
+	n.Update = append(n.Update, &gnmipb.Update{
+		Path: ppath,
+		Val:  val,
+	})
+	return nil
+}
+
 // leavesToNotifications takes an input map of leaves, and outputs a slice of
 // notifications that corresponds to the leaf update, the supplied timestamp is
 // used in the set of notifications. If an error is encountered it is returned.
@@ -768,29 +779,6 @@ func sliceToScalarArray(v []any) (*gnmipb.ScalarArray, error) {
 // fragmentation of Updates across Notification messages in a future
 // implementation. We return a slice to keep the API stable.
 func leavesToNotifications(leaves map[*path]any, ts int64, pfx *gnmiPath) ([]*gnmipb.Notification, error) {
-	addToNotification := func(pk *path, value any, n *gnmipb.Notification, pfx *gnmiPath) error {
-		path, err := pk.p.StripPrefix(pfx)
-		if err != nil {
-			return err
-		}
-
-		ppath, err := path.ToProto()
-		if err != nil {
-			return err
-		}
-
-		val, err := EncodeTypedValue(value, gnmipb.Encoding_JSON)
-		if err != nil {
-			return err
-		}
-
-		n.Update = append(n.Update, &gnmipb.Update{
-			Path: ppath,
-			Val:  val,
-		})
-		return nil
-	}
-
 	var notifs []*gnmipb.Notification
 
 	// Non-"telemetry-atomic" values.
@@ -807,7 +795,7 @@ func leavesToNotifications(leaves map[*path]any, ts int64, pfx *gnmiPath) ([]*gn
 	for pk, v := range leaves {
 		// This is for handling "telemetry-atomic" subtrees that have
 		// leaves bundled and possibly in a certain order.
-		if pvs, ok := v.([]*pathval); ok && len(pvs) > 0 {
+		if pvs, ok := v.([]*pathval); ok {
 			// Check that the subtree path matches the prefix, and
 			// then provide the subtree path itself as the prefix.
 			subtreePfx := pk.p
@@ -815,28 +803,19 @@ func leavesToNotifications(leaves map[*path]any, ts int64, pfx *gnmiPath) ([]*gn
 				return nil, err
 			}
 
-			no := &gnmipb.Notification{
-				Timestamp: ts,
-				Atomic:    true,
-			}
-			p, err := subtreePfx.ToProto()
+			notif, err := createAtomicNotif(pvs, ts, subtreePfx)
 			if err != nil {
 				return nil, err
 			}
-			no.Prefix = p
-
-			for _, pv := range pvs {
-				if err := addToNotification(pv.path, pv.val, no, subtreePfx); err != nil {
-					return nil, err
-				}
+			if notif != nil {
+				notifs = append(notifs, notif)
 			}
-			notifs = append(notifs, no)
 		} else if err := addToNotification(pk, v, n, pfx); err != nil {
 			return nil, err
 		}
 	}
 	if len(n.Update) > 0 {
-		notifs = append(notifs, n)
+		notifs = append([]*gnmipb.Notification{n}, notifs...)
 	}
 
 	return notifs, nil
