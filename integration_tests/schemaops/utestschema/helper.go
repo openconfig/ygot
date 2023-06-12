@@ -20,6 +20,10 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
+// GetOrderedMap returns a populated ordered map with dummy values.
+//
+// - foo: foo-val
+// - bar: bar-val
 func GetOrderedMap(t *testing.T) *Ctestschema_OrderedLists_OrderedList_OrderedMap {
 	orderedMap := &Ctestschema_OrderedLists_OrderedList_OrderedMap{}
 	v, err := orderedMap.AppendNew("foo")
@@ -37,6 +41,8 @@ func GetOrderedMap(t *testing.T) *Ctestschema_OrderedLists_OrderedList_OrderedMa
 	return orderedMap
 }
 
+// GetDeviceWithOrderedMap returns a Device object with a populated ordered map
+// field.
 func GetDeviceWithOrderedMap(t *testing.T) *Device {
 	return &Device{
 		OrderedLists: &Ctestschema_OrderedLists{
