@@ -2137,26 +2137,6 @@ func (t *unmarshalableJSON) UnmarshalJSON(d []byte) error {
 }
 
 func TestConstructJSON(t *testing.T) {
-	getMultiKeyOrderedMap := func() *MultiKeyOrderedMap {
-		orderedMap := &MultiKeyOrderedMap{}
-		v, err := orderedMap.AppendNew("foo", 42)
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("foo-val")
-		v, err = orderedMap.AppendNew("bar", 43)
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("bar-val")
-		v, err = orderedMap.AppendNew("baz", 44)
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("baz-val")
-		return orderedMap
-	}
-
 	tests := []struct {
 		name                     string
 		in                       GoStruct
@@ -2421,81 +2401,6 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
-	}, {
-		name: "multi-keyed ordered list",
-		in: &structWithMultiKey{
-			OrderedMap: getMultiKeyOrderedMap(),
-		},
-		wantIETF: map[string]any{
-			"rootmod:foo-ordered": []any{
-				map[string]any{
-					"ctestschema:key1": "foo",
-					"ctestschema:key2": "42",
-					"ctestschema:config": map[string]any{
-						"key2":  "42",
-						"value": "foo-val",
-					},
-					"ctestschema:state": map[string]any{
-						"key1": "foo",
-					},
-				},
-				map[string]any{
-					"ctestschema:key1": "bar",
-					"ctestschema:key2": "43",
-					"ctestschema:config": map[string]any{
-						"key2":  "43",
-						"value": "bar-val",
-					},
-					"ctestschema:state": map[string]any{
-						"key1": "bar",
-					},
-				},
-				map[string]any{
-					"ctestschema:key1": "baz",
-					"ctestschema:key2": "44",
-					"ctestschema:config": map[string]any{
-						"key2":  "44",
-						"value": "baz-val",
-					},
-					"ctestschema:state": map[string]any{
-						"key1": "baz",
-					},
-				},
-			},
-		},
-		wantInternal: map[string]any{
-			"foo-ordered": []any{
-				map[string]any{
-					"key1": "foo",
-					"key2": float64(42),
-					"config": map[string]any{
-						"key1":  "foo",
-						"key2":  float64(42),
-						"value": "foo-val",
-					},
-				},
-				map[string]any{
-					"key1": "bar",
-					"key2": float64(43),
-					"config": map[string]any{
-						"key1":  "bar",
-						"key2":  float64(43),
-						"value": "bar-val",
-					},
-				},
-				map[string]any{
-					"key1": "baz",
-					"key2": float64(44),
-					"config": map[string]any{
-						"key1":  "baz",
-						"key2":  float64(44),
-						"value": "baz-val",
-					},
-				},
-			},
-		},
-		inPreferShadowPath: true,
-		inAppendMod:        true,
 	}, {
 		name: "not enough module elements",
 		in: &structWithMultiKeyInvalidModuleTag{

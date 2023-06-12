@@ -1,0 +1,7 @@
+module ctestschema-rootmod {
+  prefix "ctsr";
+  namespace "urn:ctsr";
+
+  container ordered-multikeyed-lists {
+  }
+}
