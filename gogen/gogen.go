@@ -1058,12 +1058,13 @@ func writeGoStruct(targetStruct *ygen.ParsedDirectory, goStructElements map[stri
 
 			if listMethods != nil {
 				associatedListMethods = append(associatedListMethods, listMethods)
-				associatedDefaultMethod.ChildUnorderedListNames = append(associatedDefaultMethod.ChildUnorderedListNames, fieldName)
 			}
 
 			if orderedMapSpec != nil {
 				associatedOrderedMapStructs = append(associatedOrderedMapStructs, orderedMapSpec)
 				associatedDefaultMethod.ChildOrderedListNames = append(associatedDefaultMethod.ChildOrderedListNames, fieldName)
+			} else {
+				associatedDefaultMethod.ChildUnorderedListNames = append(associatedDefaultMethod.ChildUnorderedListNames, fieldName)
 			}
 
 			if multiKeyListKey != nil {

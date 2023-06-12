@@ -566,7 +566,8 @@ func (*InputStruct) ΛBelongingModule() string {
 			},
 		},
 		inGoOpts: GoOpts{
-			GenerateJSONSchema: true,
+			GenerateJSONSchema:      true,
+			GeneratePopulateDefault: true,
 		},
 		want: wantGoStructOut{
 			structs: `
@@ -581,6 +582,19 @@ type QStruct struct {
 func (*QStruct) IsYANGGoStruct() {}
 `,
 			methods: `
+// PopulateDefaults recursively populates unset leaf fields in the QStruct
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *QStruct) PopulateDefaults() {
+	if (t == nil) {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	for _, e := range t.AList {
+		e.PopulateDefaults()
+	}
+}
+
 // Validate validates s against the YANG schema corresponding to its type.
 func (t *QStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["QStruct"], t, opts...); err != nil {
