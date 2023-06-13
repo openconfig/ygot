@@ -20,6 +20,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/integration_tests/schemaops/utestschema"
 	"github.com/openconfig/ygot/internal/ytestutil"
 	"github.com/openconfig/ygot/ygot"
 )
@@ -54,6 +55,34 @@ func TestPruneConfigFalseOrderedMap(t *testing.T) {
 				}
 				return om
 			}(),
+		},
+	}, {
+		desc:     "prune through ordered map uncompressed",
+		inSchema: utestschema.SchemaTree["Device"],
+		inStruct: &utestschema.Device{
+			OrderedLists: &utestschema.Ctestschema_OrderedLists{
+				OrderedList: func() *utestschema.Ctestschema_OrderedLists_OrderedList_OrderedMap {
+					om := &utestschema.Ctestschema_OrderedLists_OrderedList_OrderedMap{}
+					ome, err := om.AppendNew("foo")
+					if err != nil {
+						t.Fatal(err)
+					}
+					ome.GetOrCreateState().RoValue = ygot.String("ro-value")
+					return om
+				}(),
+			},
+		},
+		want: &utestschema.Device{
+			OrderedLists: &utestschema.Ctestschema_OrderedLists{
+				OrderedList: func() *utestschema.Ctestschema_OrderedLists_OrderedList_OrderedMap {
+					om := &utestschema.Ctestschema_OrderedLists_OrderedList_OrderedMap{}
+					_, err := om.AppendNew("foo")
+					if err != nil {
+						t.Fatal(err)
+					}
+					return om
+				}(),
+			},
 		},
 	}}
 

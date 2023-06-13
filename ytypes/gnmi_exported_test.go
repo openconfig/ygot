@@ -20,6 +20,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/integration_tests/schemaops/utestschema"
 	"github.com/openconfig/ygot/internal/ytestutil"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
@@ -81,6 +82,56 @@ func TestUnmarshalNotificationsOrderedMap(t *testing.T) {
 				v.Value = ygot.String("coo-val")
 				return orderedMap
 			}(),
+		},
+	}, {
+		desc: "atomic update to a non-empty uncompressed struct",
+		inSchema: &ytypes.Schema{
+			Root:       utestschema.GetDeviceWithOrderedMap(t),
+			SchemaTree: utestschema.SchemaTree,
+		},
+		inNotifications: []*gpb.Notification{{
+			Timestamp: 42,
+			Atomic:    true,
+			Prefix:    mustPath("/ordered-lists"),
+			Update: []*gpb.Update{{
+				Path: mustPath(`ordered-list[key=boo]/config/key`),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "boo"}},
+			}, {
+				Path: mustPath(`ordered-list[key=boo]/key`),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "boo"}},
+			}, {
+				Path: mustPath(`ordered-list[key=boo]/config/value`),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "boo-val"}},
+			}, {
+				Path: mustPath(`ordered-list[key=coo]/config/key`),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "coo"}},
+			}, {
+				Path: mustPath(`ordered-list[key=coo]/key`),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "coo"}},
+			}, {
+				Path: mustPath(`ordered-list[key=coo]/state/value`),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "coo-val"}},
+			}},
+		}},
+		want: &utestschema.Device{
+			OrderedLists: &utestschema.Ctestschema_OrderedLists{
+				OrderedList: func() *utestschema.Ctestschema_OrderedLists_OrderedList_OrderedMap {
+					orderedMap := &utestschema.Ctestschema_OrderedLists_OrderedList_OrderedMap{}
+					v, err := orderedMap.AppendNew("boo")
+					if err != nil {
+						t.Error(err)
+					}
+					v.GetOrCreateConfig().Key = ygot.String("boo")
+					v.GetOrCreateConfig().Value = ygot.String("boo-val")
+					v, err = orderedMap.AppendNew("coo")
+					if err != nil {
+						t.Error(err)
+					}
+					v.GetOrCreateConfig().Key = ygot.String("coo")
+					v.GetOrCreateState().Value = ygot.String("coo-val")
+					return orderedMap
+				}(),
+			},
 		},
 	}}
 
