@@ -57,7 +57,7 @@ func TestPruneConfigFalseOrderedMap(t *testing.T) {
 			}(),
 		},
 	}, {
-		desc:     "prune through ordered map",
+		desc:     "prune through ordered map uncompressed",
 		inSchema: utestschema.SchemaTree["Device"],
 		inStruct: &utestschema.Device{
 			OrderedLists: &utestschema.Ctestschema_OrderedLists{
