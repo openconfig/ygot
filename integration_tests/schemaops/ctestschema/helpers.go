@@ -58,6 +58,10 @@ func (*MapStructTestOneChild) ΛValidate(...ygot.ValidationOption) error {
 func (*MapStructTestOneChild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*MapStructTestOneChild) ΛBelongingModule() string                { return "test-one" }
 
+// GetOrderedMap returns a populated ordered map with dummy values.
+//
+// - foo: foo-val
+// - bar: bar-val
 func GetOrderedMap(t *testing.T) *OrderedList_OrderedMap {
 	orderedMap := &OrderedList_OrderedMap{}
 	v, err := orderedMap.AppendNew("foo")
@@ -73,6 +77,11 @@ func GetOrderedMap(t *testing.T) *OrderedList_OrderedMap {
 	return orderedMap
 }
 
+// GetOrderedMapLonger returns a populated ordered map with more dummy values.
+//
+// - foo: foo-val
+// - bar: bar-val
+// - baz: baz-val
 func GetOrderedMapLonger(t *testing.T) *OrderedList_OrderedMap {
 	orderedMap := &OrderedList_OrderedMap{}
 	v, err := orderedMap.AppendNew("foo")
@@ -93,6 +102,10 @@ func GetOrderedMapLonger(t *testing.T) *OrderedList_OrderedMap {
 	return orderedMap
 }
 
+// GetOrderedMap2 returns a populated ordered map with different dummy values.
+//
+// - wee: wee-val
+// - woo: woo-val
 func GetOrderedMap2(t *testing.T) *OrderedList_OrderedMap {
 	orderedMap := &OrderedList_OrderedMap{}
 	v, err := orderedMap.AppendNew("wee")
@@ -108,6 +121,12 @@ func GetOrderedMap2(t *testing.T) *OrderedList_OrderedMap {
 	return orderedMap
 }
 
+// GetNestedOrderedMap returns a populated nested ordered map with dummy
+// values.
+//
+// - foo: foo-val
+//   - foo: foo-val
+//   - bar: bar-val
 func GetNestedOrderedMap(t *testing.T) *OrderedList_OrderedMap {
 	om := GetOrderedMap(t)
 
@@ -127,6 +146,12 @@ func GetNestedOrderedMap(t *testing.T) *OrderedList_OrderedMap {
 	return om
 }
 
+// GetOrderedMapMultikeyed returns a populated multi-keyed ordered map with
+// dummy values.
+//
+// - foo, 42: foo-val
+// - bar, 42: bar-val
+// - baz, 84: baz-val
 func GetOrderedMapMultikeyed(t *testing.T) *OrderedMultikeyedList_OrderedMap {
 	orderedMap := &OrderedMultikeyedList_OrderedMap{}
 	v, err := orderedMap.AppendNew("foo", 42)

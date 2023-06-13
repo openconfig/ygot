@@ -51,6 +51,10 @@ func GetDeviceWithOrderedMap(t *testing.T) *Device {
 	}
 }
 
+// GetOrderedMap2 returns a populated ordered map with different dummy values.
+//
+// - wee: wee-val
+// - woo: woo-val
 func GetOrderedMap2(t *testing.T) *Ctestschema_OrderedLists_OrderedList_OrderedMap {
 	orderedMap := &Ctestschema_OrderedLists_OrderedList_OrderedMap{}
 	v, err := orderedMap.AppendNew("wee")
@@ -68,6 +72,8 @@ func GetOrderedMap2(t *testing.T) *Ctestschema_OrderedLists_OrderedList_OrderedM
 	return orderedMap
 }
 
+// GetDeviceWithOrderedMap returns a Device object with a ordered map
+// field populated with different values.
 func GetDeviceWithOrderedMap2(t *testing.T) *Device {
 	return &Device{
 		OrderedLists: &Ctestschema_OrderedLists{
@@ -76,6 +82,12 @@ func GetDeviceWithOrderedMap2(t *testing.T) *Device {
 	}
 }
 
+// GetOrderedMultikeyedMap returns a populated multi-keyed ordered map with
+// dummy values.
+//
+// - foo, 42: foo-val
+// - bar, 42: bar-val
+// - baz, 84: baz-val
 func GetOrderedMultikeyedMap(t *testing.T) *CtestschemaRootmod_OrderedMultikeyedLists_OrderedMultikeyedList_OrderedMap {
 	orderedMap := &CtestschemaRootmod_OrderedMultikeyedLists_OrderedMultikeyedList_OrderedMap{}
 	v, err := orderedMap.AppendNew("foo", 42)
