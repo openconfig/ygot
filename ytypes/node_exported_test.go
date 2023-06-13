@@ -417,7 +417,7 @@ func TestGetOrCreateNodeOrderedMap(t *testing.T) {
 			}(),
 		},
 	}, {
-		desc:     "single-keyed ordered list",
+		desc:     "single-keyed ordered list uncompressed",
 		inSchema: utestschema.SchemaTree["Device"],
 		inParent: &utestschema.Device{},
 		inPath:   mustPath("/ordered-lists/ordered-list[key=foo]"),
