@@ -235,7 +235,7 @@ func toStringPathMap(pathMap map[*pathSpec]interface{}) (map[string]*pathInfo, e
 // A specific Annotation is used to store the absolute path of the entity during
 // the walk.
 //
-// - orderedMapAsLeaf=true specifies that ordered maps (GoOrderedList
+// - orderedMapAsLeaf=true specifies that ordered maps (GoOrderedMap
 // interface) will be treated as a leaf and will be returned as-is instead of
 // being walked and its leaves populated.
 func findSetLeaves(s GoStruct, orderedMapAsLeaf bool, opts ...DiffOpt) (map[*pathSpec]interface{}, error) {
@@ -303,7 +303,7 @@ func findSetLeaves(s GoStruct, orderedMapAsLeaf bool, opts ...DiffOpt) (map[*pat
 
 		ival := ni.FieldValue.Interface()
 
-		orderedMap, isOrderedMap := ival.(GoOrderedList)
+		orderedMap, isOrderedMap := ival.(GoOrderedMap)
 
 		// Ignore non-data, or default data values.
 		if util.IsNilOrInvalidValue(ni.FieldValue) || util.IsValueNilOrDefault(ni.FieldValue.Interface()) || util.IsValueMap(ni.FieldValue) {
@@ -535,7 +535,7 @@ func DiffWithAtomic(original, modified GoStruct, opts ...DiffOpt) ([]*gnmipb.Not
 //     list. This must not be empty.
 //   - The second return value is the prefix path that must be used in the
 //     atomic Notification representing the ordered list.
-func orderedMapLeaves(orderedMap GoOrderedList, parent *gnmiPath) ([]*pathval, *gnmiPath, error) {
+func orderedMapLeaves(orderedMap GoOrderedMap, parent *gnmiPath) ([]*pathval, *gnmiPath, error) {
 	var errs errlist.List
 	var atomicLeaves []*pathval
 
@@ -579,7 +579,7 @@ func orderedMapLeaves(orderedMap GoOrderedList, parent *gnmiPath) ([]*pathval, *
 //   - If empty, then nil is returned.
 //   - parent is the gNMI path representing the absolute path to the ordered
 //     list. This must not be empty.
-func orderedMapNotif(orderedMap GoOrderedList, parent *gnmiPath, ts int64) (*gnmipb.Notification, error) {
+func orderedMapNotif(orderedMap GoOrderedMap, parent *gnmiPath, ts int64) (*gnmipb.Notification, error) {
 	atomicLeaves, subtreePath, err := orderedMapLeaves(orderedMap, parent)
 	if err != nil {
 		return nil, err
@@ -643,7 +643,7 @@ func diff(original, modified GoStruct, withAtomic bool, opts ...DiffOpt) ([]*gnm
 	var atomicNotifs []*gnmipb.Notification
 	n := &gnmipb.Notification{}
 	processUpdate := func(path string, modVal *pathInfo) error {
-		if orderedMap, isOrderedMap := modVal.val.(GoOrderedList); isOrderedMap {
+		if orderedMap, isOrderedMap := modVal.val.(GoOrderedMap); isOrderedMap {
 			notif, err := orderedMapNotif(orderedMap, newPathElemGNMIPath(modVal.path.GetElem()), 0)
 			if err != nil {
 				return err
@@ -667,7 +667,7 @@ func diff(original, modified GoStruct, withAtomic bool, opts ...DiffOpt) ([]*gnm
 				}
 			}
 		} else if !ok {
-			if orderedMap, isOrderedMap := origVal.val.(GoOrderedList); isOrderedMap {
+			if orderedMap, isOrderedMap := origVal.val.(GoOrderedMap); isOrderedMap {
 				pathLen := len(origVal.path.Elem)
 				if pathLen == 0 {
 					return nil, fmt.Errorf("deletion path on ordered list is empty, this is unexpected: %T", orderedMap)

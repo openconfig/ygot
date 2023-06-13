@@ -626,12 +626,12 @@ func TestSetNodeOrderedMap(t *testing.T) {
 		// even if the first usage involved a modification.
 		inParentFn       func() any
 		inPath           *gpb.Path
-		inVal            interface{}
-		inValJSON        interface{}
+		inVal            any
+		inValJSON        any
 		inOpts           []ytypes.SetNodeOpt
 		wantErrSubstring string
 		want             any
-		wantParent       interface{}
+		wantParent       any
 	}{{
 		desc:     "success setting string field in ordered map",
 		inSchema: ctestschema.SchemaTree["Device"],
@@ -891,7 +891,7 @@ func TestSetNodeOrderedMap(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		for typeDesc, inVal := range map[string]interface{}{"scalar": tt.inVal, "JSON": tt.inValJSON} {
+		for typeDesc, inVal := range map[string]any{"scalar": tt.inVal, "JSON": tt.inValJSON} {
 			if inVal == nil {
 				continue
 			}

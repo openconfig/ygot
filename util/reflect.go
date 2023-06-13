@@ -689,7 +689,7 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 	v := ni.FieldValue
 	t := v.Type()
 
-	orderedMap, isOrderedMap := v.Interface().(goOrderedList)
+	orderedMap, isOrderedMap := v.Interface().(goOrderedMap)
 
 	switch {
 	case isOrderedMap, IsTypeSlice(t), IsTypeMap(t):
@@ -878,7 +878,7 @@ func forEachDataFieldInternal(ni *NodeInfo, in, out any, iterFunction FieldItera
 	v := ni.FieldValue
 	t := v.Type()
 
-	orderedMap, isOrderedMap := v.Interface().(goOrderedList)
+	orderedMap, isOrderedMap := v.Interface().(goOrderedMap)
 
 	// Determine whether we need to recurse into the field, or whether it is
 	// a leaf or leaf-list, which are not recursed into when traversing the
