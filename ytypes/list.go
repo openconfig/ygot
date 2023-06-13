@@ -44,7 +44,7 @@ func validateList(schema *yang.Entry, value interface{}) util.Errors {
 	util.DbgPrint("validateList with value %v, type %T, schema name %s", value, value, schema.Name)
 
 	kind := reflect.TypeOf(value).Kind()
-	orderedMap, isOrderedMap := value.(ygot.GoOrderedList)
+	orderedMap, isOrderedMap := value.(ygot.GoOrderedMap)
 	if kind == reflect.Slice || kind == reflect.Map || isOrderedMap {
 		// Check list attributes: size constraints etc.
 		// Skip this check if not a list type - in this case value may be a list
@@ -86,7 +86,7 @@ func validateList(schema *yang.Entry, value interface{}) util.Errors {
 		errors = util.AppendErrs(errors, validateStructElems(schema, value))
 
 	default:
-		errors = util.AppendErr(errors, fmt.Errorf("validateList expected map/slice/GoOrderedList type for %s, got %T", schema.Name, value))
+		errors = util.AppendErr(errors, fmt.Errorf("validateList expected map/slice/GoOrderedMap type for %s, got %T", schema.Name, value))
 	}
 
 	return errors
@@ -304,7 +304,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 	// Parent must be a map, slice ptr, or struct ptr.
 	t := reflect.TypeOf(parent)
 
-	orderedMap, isOrderedMap := parent.(ygot.GoOrderedList)
+	orderedMap, isOrderedMap := parent.(ygot.GoOrderedMap)
 
 	var listElementType reflect.Type
 	switch {

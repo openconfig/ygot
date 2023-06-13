@@ -22,6 +22,8 @@ import (
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/integration_tests/schemaops/utestschema"
+	"github.com/openconfig/ygot/internal/ytestutil"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
 )
@@ -226,11 +228,25 @@ func TestUnmarshalKeyedList(t *testing.T) {
 			},
 		},
 		{
+			desc:   "success with ordered map uncompressed",
+			json:   `{ "ordered-lists": { "ordered-list" : [ { "key" : "foo", "config": { "value" : "foo-val" } }, { "key" : "bar", "state": { "value" : "bar-val" } } ] } }`,
+			schema: utestschema.SchemaTree["Device"],
+			parent: &utestschema.Device{},
+			want:   utestschema.GetDeviceWithOrderedMap(t),
+		},
+		{
 			desc:   "success at ordered map level",
 			json:   `[ { "key" : "foo", "config": { "value" : "foo-val" } }, { "key" : "bar", "config": { "value" : "bar-val" } } ]`,
 			schema: ctestschema.SchemaTree["OrderedList"],
 			parent: &ctestschema.OrderedList_OrderedMap{},
 			want:   ctestschema.GetOrderedMap(t),
+		},
+		{
+			desc:   "success at ordered map level uncompressed",
+			json:   `[ { "key" : "foo", "config": { "value" : "foo-val" } }, { "key" : "bar", "state": { "value" : "bar-val" } } ]`,
+			schema: utestschema.SchemaTree["Ctestschema_OrderedLists_OrderedList"],
+			parent: &utestschema.Ctestschema_OrderedLists_OrderedList_OrderedMap{},
+			want:   utestschema.GetOrderedMap(t),
 		},
 		{
 			desc:   "success with nested ordered map",
@@ -256,7 +272,7 @@ func TestUnmarshalKeyedList(t *testing.T) {
 			}
 			if err == nil {
 				got, want := tt.parent, tt.want
-				if diff := cmp.Diff(want, got, cmp.AllowUnexported(ctestschema.OrderedList_OrderedMap{}, ctestschema.OrderedList_OrderedList_OrderedMap{})); diff != "" {
+				if diff := cmp.Diff(want, got, ytestutil.OrderedMapCmpOptions...); diff != "" {
 					t.Errorf("%s: Unmarshal (-want, +got):\n%s", tt.desc, diff)
 				}
 			}
@@ -316,6 +332,19 @@ func TestValidatedOrderedMap(t *testing.T) {
 		desc:     "single-keyed list",
 		inSchema: ctestschema.SchemaTree["OrderedList"],
 		inVal:    ctestschema.GetOrderedMap(t),
+	}, {
+		desc:     "single-keyed list uncompressed",
+		inSchema: utestschema.SchemaTree["Ctestschema_OrderedLists_OrderedList"],
+		inVal:    utestschema.GetOrderedMap(t),
+	}, {
+		desc:     "single-keyed list uncompressed fail",
+		inSchema: utestschema.SchemaTree["Ctestschema_OrderedLists_OrderedList"],
+		inVal: func() *utestschema.Ctestschema_OrderedLists_OrderedList_OrderedMap {
+			orderedMap := utestschema.GetOrderedMap(t)
+			orderedMap.Get("foo").Key = ygot.String("foosball")
+			return orderedMap
+		}(),
+		wantErr: true,
 	}, {
 		desc:     "multi-keyed list",
 		inSchema: ctestschema.SchemaTree["OrderedMultikeyedList"],

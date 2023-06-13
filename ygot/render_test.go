@@ -1026,6 +1026,13 @@ func TestTogNMINotifications(t *testing.T) {
 		want           []*gnmipb.Notification
 		wantErr        bool
 	}{{
+		name:        "empty",
+		inTimestamp: 42,
+		inStruct:    &renderExample{},
+		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+		}},
+	}, {
 		name:        "simple single leaf example",
 		inTimestamp: 42,
 		inStruct:    &renderExample{Str: String("hello")},
@@ -2408,9 +2415,9 @@ func TestConstructJSON(t *testing.T) {
 		wantInternal: map[string]any{
 			"str":        "hello",
 			"leaf-list":  []any{"hello", "world"},
-			"int-val":    float64(42),
+			"int-val":    int32(42),
 			"enum":       "VAL_TWO",
-			"mixed-list": []any{float64(42)},
+			"mixed-list": []any{uint64(42)},
 			"keyless-list": []any{
 				map[string]any{
 					"val": "21st Amendment",
@@ -2440,7 +2447,7 @@ func TestConstructJSON(t *testing.T) {
 			"list": []any{},
 		},
 		wantInternal: map[string]any{
-			"ch": map[string]any{"val": float64(42)},
+			"ch": map[string]any{"val": uint64(42)},
 		},
 	}, {
 		name: "empty map nil",
@@ -2454,7 +2461,7 @@ func TestConstructJSON(t *testing.T) {
 			"ch": map[string]any{"val": "42"},
 		},
 		wantInternal: map[string]any{
-			"ch": map[string]any{"val": float64(42)},
+			"ch": map[string]any{"val": uint64(42)},
 		},
 	}, {
 		name:     "empty child",
@@ -2511,7 +2518,7 @@ func TestConstructJSON(t *testing.T) {
 			"mixed-list": []any{"foo:VAL_ONE", "test", float64(42)},
 		},
 		wantInternal: map[string]any{
-			"ch": map[string]any{"val": float64(42)},
+			"ch": map[string]any{"val": uint64(42)},
 			"enum-list": map[string]any{
 				"VAL_ONE": map[string]any{
 					"config": map[string]any{
@@ -2534,7 +2541,7 @@ func TestConstructJSON(t *testing.T) {
 					"val": "eighty four",
 				},
 			},
-			"mixed-list": []any{"VAL_ONE", "test", float64(42)},
+			"mixed-list": []any{"VAL_ONE", "test", 42},
 		},
 	}, {
 		name: "json test with complex children with PrependModuleNameIdentityref=true",
@@ -2579,7 +2586,7 @@ func TestConstructJSON(t *testing.T) {
 			"mixed-list": []any{"foo:VAL_ONE", "test", float64(42)},
 		},
 		wantInternal: map[string]any{
-			"ch": map[string]any{"val": float64(42)},
+			"ch": map[string]any{"val": uint64(42)},
 			"enum-list": map[string]any{
 				"VAL_ONE": map[string]any{
 					"config": map[string]any{
@@ -2602,7 +2609,7 @@ func TestConstructJSON(t *testing.T) {
 					"val": "eighty four",
 				},
 			},
-			"mixed-list": []any{"VAL_ONE", "test", float64(42)},
+			"mixed-list": []any{"VAL_ONE", "test", 42},
 		},
 	}, {
 		name: "device example #1",
@@ -2624,7 +2631,16 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
-		wantSame: true,
+		wantInternal: map[string]any{
+			"bgp": map[string]any{
+				"global": map[string]any{
+					"config": map[string]any{
+						"as":        uint32(15169),
+						"router-id": "192.0.2.1",
+					},
+				},
+			},
+		},
 	}, {
 		name: "device example #2",
 		in: &exampleDevice{
@@ -2680,7 +2696,7 @@ func TestConstructJSON(t *testing.T) {
 								"description":      "a neighbor",
 								"enabled":          true,
 								"neighbor-address": "192.0.2.1",
-								"peer-as":          float64(29636),
+								"peer-as":          uint32(29636),
 							},
 							"neighbor-address": "192.0.2.1",
 						},
@@ -2689,7 +2705,7 @@ func TestConstructJSON(t *testing.T) {
 								"description":      "a second neighbor",
 								"enabled":          false,
 								"neighbor-address": "100.64.32.96",
-								"peer-as":          float64(5413),
+								"peer-as":          uint32(5413),
 							},
 							"neighbor-address": "100.64.32.96",
 						},
@@ -2714,7 +2730,7 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantInternal: map[string]any{
 			"state": map[string]any{
-				"enabled-address-families-simple": []any{float64(3.14), float64(42), base64testStringEncoded, "VAL_ONE"},
+				"enabled-address-families-simple": []any{3.14, int64(42), base64testStringEncoded, "VAL_ONE"},
 			},
 		},
 	}, {
@@ -2727,7 +2743,11 @@ func TestConstructJSON(t *testing.T) {
 				"transport-address-simple": "42.42.42.42",
 			},
 		},
-		wantSame: true,
+		wantInternal: map[string]any{
+			"state": map[string]any{
+				"transport-address-simple": testutil.UnionString("42.42.42.42"),
+			},
+		},
 	}, {
 		name: "union example - enum",
 		in: &exampleBgpNeighbor{
@@ -2762,7 +2782,7 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantInternal: map[string]any{
 			"state": map[string]any{
-				"transport-address-simple": float64(3.14),
+				"transport-address-simple": testutil.UnionFloat64(3.14),
 			},
 		},
 	}, {
@@ -2824,7 +2844,7 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantInternal: map[string]any{
 			"state": map[string]any{
-				"transport-address": float64(42),
+				"transport-address": uint64(42),
 			},
 		},
 	}, {
@@ -2842,7 +2862,7 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantInternal: map[string]any{
 			"state": map[string]any{
-				"enabled-address-families": []any{"IPV6", float64(42)},
+				"enabled-address-families": []any{"IPV6", uint64(42)},
 			},
 		},
 	}, {
@@ -3106,13 +3126,13 @@ func TestConstructJSON(t *testing.T) {
 						"description":      "a neighbor",
 						"enabled":          true,
 						"neighbor-address": "192.0.2.1",
-						"peer-as":          float64(29636),
+						"peer-as":          uint32(29636),
 					},
 					"100.64.32.96": map[string]any{
 						"description":      "a second neighbor",
 						"enabled":          false,
 						"neighbor-address": "100.64.32.96",
-						"peer-as":          float64(5413),
+						"peer-as":          uint32(5413),
 					},
 				},
 			},

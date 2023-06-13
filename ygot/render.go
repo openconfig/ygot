@@ -404,7 +404,7 @@ func TogNMINotifications(s GoStruct, ts int64, cfg GNMINotificationsConfig) ([]*
 // Note: the returned paths use a shallow copy of the parentPath.
 //
 // Limitation: nested ordered lists are not supported.
-func findUpdatedOrderedListLeaves(leaves any, s GoOrderedList, parent *gnmiPath) error {
+func findUpdatedOrderedListLeaves(leaves any, s GoOrderedMap, parent *gnmiPath) error {
 	var errs errlist.List
 
 	var leavesMap map[*path]any
@@ -516,7 +516,7 @@ func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath) error {
 				errs.Add(findUpdatedLeaves(leaves, goStruct, childPath))
 			}
 		case reflect.Ptr:
-			if ol, ok := fval.Interface().(GoOrderedList); ok {
+			if ol, ok := fval.Interface().(GoOrderedMap); ok {
 				// This is an ordered-map for YANG "ordered-by user" lists.
 				errs.Add(findUpdatedOrderedListLeaves(leaves, ol, mapPaths[0]))
 			} else {
@@ -814,11 +814,14 @@ func leavesToNotifications(leaves map[*path]any, ts int64, pfx *gnmiPath) ([]*gn
 			return nil, err
 		}
 	}
-	if len(n.Update) > 0 {
-		notifs = append([]*gnmipb.Notification{n}, notifs...)
+	switch {
+	case len(n.Update) == 0 && len(notifs) == 0:
+		return []*gnmipb.Notification{n}, nil
+	case len(n.Update) == 0:
+		return notifs, nil
+	default:
+		return append([]*gnmipb.Notification{n}, notifs...), nil
 	}
-
-	return notifs, nil
 }
 
 // EncodeTypedValueOpt is an interface implemented by arguments to
@@ -839,7 +842,7 @@ func EncodeTypedValue(val any, enc gnmipb.Encoding, opts ...EncodeTypedValueOpt)
 	}
 
 	switch v := val.(type) {
-	case GoStruct, GoOrderedList:
+	case GoStruct, GoOrderedMap:
 		return marshalStructOrOrderedList(v, enc, jc)
 	case GoEnum:
 		en, err := EnumName(v)
@@ -1379,7 +1382,9 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			if prependmods != nil && prependmods[i][j] != "" {
 				k = fmt.Sprintf("%s:%s", prependmods[i][j], k)
 			}
-			value, err = normalizeJSONValue(value)
+			if args.jType != Internal {
+				value, err = normalizeJSONValue(value)
+			}
 			if err != nil {
 				errs.Add(err)
 				continue
@@ -1566,7 +1571,7 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 			errs.Add(err)
 		}
 	case reflect.Ptr:
-		if _, ok := field.Interface().(GoOrderedList); ok {
+		if _, ok := field.Interface().(GoOrderedMap); ok {
 			// This is an ordered-map for YANG "ordered-by user" lists.
 			valuesMethod, err := yreflect.MethodByName(field, "Values")
 			if err != nil {

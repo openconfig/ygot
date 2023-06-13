@@ -19,11 +19,11 @@ import (
 	"reflect"
 )
 
-// goOrderedList is a convenience interface for ygot.GoOrderedList. It is here
+// goOrderedMap is a convenience interface for ygot.GoOrderedMap. It is here
 // to avoid a circular dependency.
-type goOrderedList interface {
+type goOrderedMap interface {
 	// IsYANGOrderedList is a marker method that indicates that the struct
-	// implements the goOrderedList interface.
+	// implements the goOrderedMap interface.
 	IsYANGOrderedList()
 	// Len returns the size of the ordered list.
 	Len() int
@@ -42,7 +42,7 @@ func MethodByName(v reflect.Value, name string) (reflect.Value, error) {
 // AppendIntoOrderedMap appends a populated value into the ordered map.
 //
 // There must not exist an existing element with the same key.
-func AppendIntoOrderedMap(orderedMap goOrderedList, value any) error {
+func AppendIntoOrderedMap(orderedMap goOrderedMap, value any) error {
 	appendMethod, err := MethodByName(reflect.ValueOf(orderedMap), "Append")
 	if err != nil {
 		return err
@@ -62,7 +62,7 @@ func AppendIntoOrderedMap(orderedMap goOrderedList, value any) error {
 //
 // The for loop break when either the visit function returns false or an error
 // is encountered due to the ordered map not being well-formed.
-func RangeOrderedMap(orderedMap goOrderedList, visit func(k reflect.Value, v reflect.Value) bool) error {
+func RangeOrderedMap(orderedMap goOrderedMap, visit func(k reflect.Value, v reflect.Value) bool) error {
 	getMethod, err := MethodByName(reflect.ValueOf(orderedMap), "Get")
 	if err != nil {
 		return err
@@ -107,19 +107,19 @@ func UnaryMethodArgType(t reflect.Type, methodName string) (reflect.Type, error)
 }
 
 // OrderedMapElementType returns the list element type of the ordered map.
-func OrderedMapElementType(om goOrderedList) (reflect.Type, error) {
+func OrderedMapElementType(om goOrderedMap) (reflect.Type, error) {
 	return UnaryMethodArgType(reflect.TypeOf(om), "Append")
 }
 
 // OrderedMapKeyType returns the key type of the ordered map, which will be a
 // struct type for a multi-keyed list.
-func OrderedMapKeyType(om goOrderedList) (reflect.Type, error) {
+func OrderedMapKeyType(om goOrderedMap) (reflect.Type, error) {
 	return UnaryMethodArgType(reflect.TypeOf(om), "Get")
 }
 
 // OrderedMapKeys returns the keys of the ordered map in a slice analogous to
 // reflect's Value.MapKeys() method although it returns an error.
-func OrderedMapKeys(om goOrderedList) ([]reflect.Value, error) {
+func OrderedMapKeys(om goOrderedMap) ([]reflect.Value, error) {
 	// First get the ordered keys, and then index into each of the values associated with it.
 	keysMethod, err := MethodByName(reflect.ValueOf(om), "Keys")
 	if err != nil {

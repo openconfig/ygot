@@ -13,6 +13,7 @@ generate:
 	go generate ./integration_tests/uncompressed
 	go generate ./integration_tests/annotations/apb
 	go generate ./integration_tests/annotations/proto2apb
+	go generate ./integration_tests/schemaops/...
 clean:
 	rm -f demo/getting_started/pkg/ocdemo/oc.go
 	rm -f demo/uncompressed/pkg/demo/uncompressed.go

@@ -681,7 +681,7 @@ func copyStruct(dstVal, srcVal reflect.Value, accessPath string, opts ...MergeOp
 		dstField := dstVal.Field(i)
 		accessPath := accessPath + "." + srcVal.Type().Field(i).Name
 
-		orderedMap, isOrderedMap := srcField.Interface().(GoOrderedList)
+		orderedMap, isOrderedMap := srcField.Interface().(GoOrderedMap)
 		switch srcField.Kind() {
 		case reflect.Ptr:
 			if isOrderedMap {
@@ -918,8 +918,8 @@ func validateMap(srcField, dstField reflect.Value) (*mapType, error) {
 // keys, then the keys in the src are appended to the dst. If there are
 // overlapping values, then an ereror is returned since the behaviour is not
 // well-defined.
-func copyOrderedMap(dstField reflect.Value, srcOrderedMap GoOrderedList, accessPath string, opts ...MergeOpt) error {
-	dstOrderedMap, dstIsOrderedMap := dstField.Interface().(GoOrderedList)
+func copyOrderedMap(dstField reflect.Value, srcOrderedMap GoOrderedMap, accessPath string, opts ...MergeOpt) error {
+	dstOrderedMap, dstIsOrderedMap := dstField.Interface().(GoOrderedMap)
 	srcField := reflect.ValueOf(srcOrderedMap)
 	if dstType, srcType := srcField.Type(), dstField.Type(); dstType != srcType || !dstIsOrderedMap {
 		return fmt.Errorf("source and destination ordered map types not matching: src: %s, dst: %s", dstType.Name(), srcType.Name())
@@ -935,7 +935,7 @@ func copyOrderedMap(dstField reflect.Value, srcOrderedMap GoOrderedList, accessP
 
 	if dstOrderedMap.Len() == 0 {
 		dstField.Set(reflect.New(dstField.Type().Elem()))
-		dstOrderedMap = dstField.Interface().(GoOrderedList)
+		dstOrderedMap = dstField.Interface().(GoOrderedMap)
 	}
 
 	srcKeys := map[any]struct{}{}

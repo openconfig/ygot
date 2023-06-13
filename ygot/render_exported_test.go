@@ -366,10 +366,10 @@ func TestConstructJSONOrderedMap(t *testing.T) {
 				"ordered-multikeyed-list": []any{
 					map[string]any{
 						"key1": "foo",
-						"key2": float64(42),
+						"key2": uint64(42),
 						"config": map[string]any{
 							"key1":  "foo",
-							"key2":  float64(42),
+							"key2":  uint64(42),
 							"value": "foo-val",
 						},
 						"state": map[string]any{
@@ -378,10 +378,10 @@ func TestConstructJSONOrderedMap(t *testing.T) {
 					},
 					map[string]any{
 						"key1": "bar",
-						"key2": float64(42),
+						"key2": uint64(42),
 						"config": map[string]any{
 							"key1":  "bar",
-							"key2":  float64(42),
+							"key2":  uint64(42),
 							"value": "bar-val",
 						},
 						"state": map[string]any{
@@ -390,10 +390,10 @@ func TestConstructJSONOrderedMap(t *testing.T) {
 					},
 					map[string]any{
 						"key1": "baz",
-						"key2": float64(84),
+						"key2": uint64(84),
 						"config": map[string]any{
 							"key1":  "baz",
-							"key2":  float64(84),
+							"key2":  uint64(84),
 							"value": "baz-val",
 						},
 						"state": map[string]any{
@@ -457,7 +457,7 @@ func TestConstructJSONOrderedMap(t *testing.T) {
 				"ordered-multikeyed-list": []any{
 					map[string]any{
 						"key1": "foo",
-						"key2": float64(42),
+						"key2": uint64(42),
 						"config": map[string]any{
 							"value": "foo-val",
 						},
@@ -467,7 +467,7 @@ func TestConstructJSONOrderedMap(t *testing.T) {
 					},
 					map[string]any{
 						"key1": "bar",
-						"key2": float64(42),
+						"key2": uint64(42),
 						"state": map[string]any{
 							"value":    "bar-val",
 							"ro-value": "bar-state-val",
@@ -475,7 +475,7 @@ func TestConstructJSONOrderedMap(t *testing.T) {
 					},
 					map[string]any{
 						"key1": "baz",
-						"key2": float64(84),
+						"key2": uint64(84),
 						"config": map[string]any{
 							"value": "baz-val",
 						},
