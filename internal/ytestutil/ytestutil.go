@@ -20,6 +20,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/kr/pretty"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/integration_tests/schemaops/utestschema"
 	"github.com/openconfig/ygot/util"
 )
 
@@ -39,6 +40,9 @@ var (
 			ctestschema.OrderedList_OrderedMap{},
 			ctestschema.OrderedList_OrderedList_OrderedMap{},
 			ctestschema.OrderedMultikeyedList_OrderedMap{},
+			utestschema.Ctestschema_OrderedLists_OrderedList_OrderedMap{},
+			utestschema.Ctestschema_OrderedLists_OrderedList_OrderedLists_OrderedList_OrderedMap{},
+			utestschema.CtestschemaRootmod_OrderedMultikeyedLists_OrderedMultikeyedList_OrderedMap{},
 		),
 	}
 )
