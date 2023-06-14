@@ -29,13 +29,39 @@ type UnmarshalOpt interface {
 	IsUnmarshalOpt()
 }
 
-// BestEffortUnmarshal is an unmarshal option that 'ignores' errors while unmarshalling,
-// and continues the unmarshaling process. A failing unmarshal will still fail, but it will
-// fail as a series of error reports.
-type BestEffortUnmarshal struct{}
+// ComplianceErrors contains the compliance errors encountered from an Unmarshal operation.
+type ComplianceErrors struct {
+	// Generic errors for now, until we make a decision on what specific types of errors should
+	// be returned
+	Errors []error
+}
+
+func (c *ComplianceErrors) String() string {
+	if c == nil {
+		return ""
+	}
+
+	var b strings.Builder
+	b.WriteString("Noncompliance errors:")
+	if len(c.Errors) != 0 {
+		for _, e := range c.Errors {
+			b.WriteString("\n\t")
+			b.WriteString(e.Error())
+		}
+	} else {
+		b.WriteString(" None")
+	}
+	b.WriteString("\n")
+	return b.String()
+}
+
+// BestEffortUnmarshal is an unmarshal option that accumulates errors while unmarshalling,
+// and continues the unmarshaling process. An unmarshal will no longer fail, but
+// will return an error report.
+type bestEffortUnmarshal struct{}
 
 // IsUnmarshalOpt marks BestEffortUnmarshal as a valid UnmarshalOpt.
-func (*BestEffortUnmarshal) IsUnmarshalOpt() {}
+func (*bestEffortUnmarshal) IsUnmarshalOpt() {}
 
 // IgnoreExtraFields is an unmarshal option that controls the
 // behaviour of the Unmarshal function when additional fields are
@@ -136,7 +162,7 @@ func hasPreferShadowPath(opts []UnmarshalOpt) bool {
 // contains the BestEffortUnmarshal option.
 func hasBestEffortUnmarshal(opts []UnmarshalOpt) bool {
 	for _, o := range opts {
-		if _, ok := o.(*BestEffortUnmarshal); ok {
+		if _, ok := o.(*bestEffortUnmarshal); ok {
 			return true
 		}
 	}

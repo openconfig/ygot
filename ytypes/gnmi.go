@@ -36,7 +36,7 @@ import (
 //
 // If an error occurs during unmarshalling, schema.Root may already be
 // modified. A rollback is not performed.
-func UnmarshalNotifications(schema *Schema, ns []*gpb.Notification, opts ...UnmarshalOpt) error {
+func UnmarshalNotifications(schema *Schema, ns []*gpb.Notification, opts ...UnmarshalOpt) (*ComplianceErrors, error) {
 	for _, n := range ns {
 		deletePaths := n.Delete
 		if n.Atomic {
@@ -63,7 +63,7 @@ func UnmarshalNotifications(schema *Schema, ns []*gpb.Notification, opts ...Unma
 //
 // If an error occurs during unmarshalling, schema.Root may already be
 // modified. A rollback is not performed.
-func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, opts ...UnmarshalOpt) error {
+func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, opts ...UnmarshalOpt) (*ComplianceErrors, error) {
 	preferShadowPath := hasPreferShadowPath(opts)
 	ignoreExtraFields := hasIgnoreExtraFields(opts)
 	bestEffortUnmarshal := hasBestEffortUnmarshal(opts)
