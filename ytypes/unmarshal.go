@@ -31,12 +31,12 @@ type UnmarshalOpt interface {
 
 // ComplianceErrors contains the compliance errors encountered from an Unmarshal operation.
 type ComplianceErrors struct {
-	// Generic errors for now, until we make a decision on what specific types of errors should
-	// be returned
+	// Errors represent generic errors for now, until we make a decision on what specific types
+	// of errors should be returned.
 	Errors []error
 }
 
-func (c *ComplianceErrors) String() string {
+func (c *ComplianceErrors) Error() string {
 	if c == nil {
 		return ""
 	}
@@ -53,6 +53,15 @@ func (c *ComplianceErrors) String() string {
 	}
 	b.WriteString("\n")
 	return b.String()
+}
+
+func (c *ComplianceErrors) Append(errs... error) *ComplianceErrors {
+	if c == nil {
+		return &ComplianceErrors{Errors: errs}
+	}
+
+	c.Errors = append(c.Errors, errs...)
+	return c
 }
 
 // BestEffortUnmarshal is an unmarshal option that accumulates errors while unmarshalling,
