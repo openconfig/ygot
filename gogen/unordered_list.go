@@ -632,7 +632,7 @@ func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, pa
 	var orderedMapSpec *generatedOrderedMapStruct
 
 	if listField.YANGDetails.OrderedByUser {
-		structName := fmt.Sprintf("%s_OrderedMap", listElem.Name)
+		structName := OrderedMapTypeName(listElem.Name)
 		listType = fmt.Sprintf("*%s", structName)
 		// Create spec for generating ordered maps.
 		orderedMapSpec = &generatedOrderedMapStruct{

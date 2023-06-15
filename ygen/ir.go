@@ -506,8 +506,10 @@ const (
 	_ DirType = iota
 	// Container represents a YANG 'container'.
 	Container
-	// List represents a YANG 'list'.
+	// List represents a YANG 'list' that is 'ordered-by system'.
 	List
+	// OrderedList represents a YANG 'list' that is 'ordered-by user'.
+	OrderedList
 )
 
 // NodeDetails describes an individual field of the generated
