@@ -90,21 +90,40 @@ func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, opts ...UnmarshalO
 	// Process deletes, then replace, then updates.
 	if err := deletePaths(schema.SchemaTree[nodeName], node, prefix, req.Delete, preferShadowPath, bestEffortUnmarshal); err != nil {
 		if bestEffortUnmarshal {
-			complianceErrs = complianceErrs.Append(err.Errors)
+			complianceErrs = complianceErrs.append(err.Errors)
+		} else {
+			return err
+		}
+	}
+	if err := deletePaths(schema.SchemaTree[nodeName], node, prefix, req.Delete, preferShadowPath, bestEffortUnmarshal); err != nil {
+		if bestEffortUnmarshal {
+			complianceErrs = complianceErrs.append(err.Errors)
 		} else {
 			return err
 		}
 	}
 	if err := replacePaths(schema.SchemaTree[nodeName], node, prefix, req.Replace, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal); err != nil {
 		if bestEffortUnmarshal{
-			complianceErrs = complianceErrs.Append(err.Errors)
+			complianceErrs = complianceErrs.append(err.Errors)
+		} else {
+			return err
+		}
+	}
+		if bestEffortUnmarshal{
+			complianceErrs = complianceErrs.append(err.Errors)
 		} else {
 			return err
 		}
 	}
 	if err := updatePaths(schema.SchemaTree[nodeName], node, prefix, req.Update, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal); err != nil {
 		if bestEffortUnmarshal {
-			complianceErrs = complianceErrs.Append(err.Errors)
+			complianceErrs = complianceErrs.append(err.Errors)
+		} else {
+			return err
+		}
+	}
+		if bestEffortUnmarshal {
+			complianceErrs = complianceErrs.append(err.Errors)
 		} else {
 			return err
 		}
@@ -186,6 +205,7 @@ func joinPrefixToUpdate(prefix *gpb.Path, update *gpb.Update) (*gpb.Update, erro
 func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, updates []*gpb.Update, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal bool) error {
 	var dopts []DelNodeOpt
 	var ce *ComplianceErrors
+	var ce *ComplianceErrors
 	if preferShadowPath {
 		dopts = append(dopts, &PreferShadowPath{})
 	}
@@ -212,6 +232,8 @@ func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, 
 // updatePaths unmarshals a slice of updates into the given GoStruct. These
 // updates can either by JSON-encoded or gNMI-encoded values (scalars).
 func updatePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, updates []*gpb.Update, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal bool) error {
+	var ce *ComplianceErrors
+
 	var ce *ComplianceErrors
 
 	for _, update := range updates {
