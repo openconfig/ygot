@@ -1592,7 +1592,7 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 		case reflect.Struct:
 			goStruct, ok := field.Interface().(GoStruct)
 			if !ok {
-				return nil, fmt.Errorf("cannot map struct %v, invalid GoStruct", field)
+				return nil, fmt.Errorf("cannot map struct (%T, %v), invalid GoStruct", field.Interface(), field)
 			}
 
 			var err error

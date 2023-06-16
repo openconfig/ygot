@@ -364,7 +364,7 @@ func outputNestedMessage(msg *ygen.ParsedDirectory, compressPaths bool) bool {
 	// parent will have been removed, therefore this is a valid message. The path
 	// is 4 elements long since it is of the form
 	// []string{"", module-name, surrounding-container, list-name}.
-	if compressPaths && msg.Type == ygen.List && len(strings.Split(msg.Path, "/")) == 4 {
+	if compressPaths && (msg.Type == ygen.List || msg.Type == ygen.OrderedList) && len(strings.Split(msg.Path, "/")) == 4 {
 		return true
 	}
 

@@ -16,6 +16,7 @@ package gogen
 
 import (
 	"bytes"
+	"fmt"
 )
 
 // generatedOrderedMapStruct contains the necessary information to generate an
@@ -39,6 +40,12 @@ type generatedOrderedMapStruct struct {
 	ParentStructName string
 	// YANGPath is the YANG path of the YANG ordered list.
 	YANGPath string
+}
+
+// OrderedMapTypeName returns the type name of an ordered map given the type
+// name of the ordered map list element.
+func OrderedMapTypeName(listElemTypeName string) string {
+	return fmt.Sprintf("%s_OrderedMap", listElemTypeName)
 }
 
 var (
