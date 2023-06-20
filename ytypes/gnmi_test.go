@@ -496,6 +496,48 @@ func TestUnmarshalSetRequest(t *testing.T) {
 			}},
 		},
 		wantErr: true,
+	}, {
+		desc: "mix of an error and a non-error update with best-effort flag",
+		inSchema: &Schema{
+			Root: &ListElemStruct1{
+				Key1: ygot.String("mix"),
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName: ygot.Int32(43),
+						Int32LeafListName: []int32{100},
+						StringLeafName: ygot.String("bear"),
+					},
+				},
+			},
+		},
+		inReq: &gpb.SetRequest{
+			Prefix: &gpb.Path{},
+			Update: []*gpb.Update{{
+				Path: mustPath("/key1"),
+				Val: &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "non-error"}},
+			}, {
+				Path: mustPath("/outer/error"),
+				Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{
+					JsonIetfVal: []byte(`
+{
+	"int32-leaf-list": [42]
+}
+					`),
+				}},
+			}},
+		},
+		inUnmarshalOpts: []UnmarshalOpt{&bestEffortUnmarshal{}},
+		want: &ListElemStruct1{
+			Key1: ygot.String("non-error"),
+			Outer: &OuterContainerType1{
+				Inner: &InnerContainerType1{
+					Int32LeafName: ygot.Int32(43),
+					Int32LeafListName: []int32{100},
+					StringLeafName: ygot.String("bear"),
+				},
+			},
+		},
+		wantErr: true,
 	}}
 
 	for _, tt := range tests {

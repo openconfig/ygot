@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
@@ -90,46 +89,30 @@ func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, opts ...UnmarshalO
 	// Process deletes, then replace, then updates.
 	if err := deletePaths(schema.SchemaTree[nodeName], node, prefix, req.Delete, preferShadowPath, bestEffortUnmarshal); err != nil {
 		if bestEffortUnmarshal {
-			complianceErrs = complianceErrs.append(err.Errors)
-		} else {
-			return err
-		}
-	}
-	if err := deletePaths(schema.SchemaTree[nodeName], node, prefix, req.Delete, preferShadowPath, bestEffortUnmarshal); err != nil {
-		if bestEffortUnmarshal {
-			complianceErrs = complianceErrs.append(err.Errors)
+			complianceErrs = complianceErrs.append(err.(*ComplianceErrors).Errors...)
 		} else {
 			return err
 		}
 	}
 	if err := replacePaths(schema.SchemaTree[nodeName], node, prefix, req.Replace, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal); err != nil {
 		if bestEffortUnmarshal{
-			complianceErrs = complianceErrs.append(err.Errors)
-		} else {
-			return err
-		}
-	}
-		if bestEffortUnmarshal{
-			complianceErrs = complianceErrs.append(err.Errors)
+			complianceErrs = complianceErrs.append(err.(*ComplianceErrors).Errors...)
 		} else {
 			return err
 		}
 	}
 	if err := updatePaths(schema.SchemaTree[nodeName], node, prefix, req.Update, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal); err != nil {
 		if bestEffortUnmarshal {
-			complianceErrs = complianceErrs.append(err.Errors)
-		} else {
-			return err
-		}
-	}
-		if bestEffortUnmarshal {
-			complianceErrs = complianceErrs.append(err.Errors)
+			complianceErrs = complianceErrs.append(err.(*ComplianceErrors).Errors...)
 		} else {
 			return err
 		}
 	}
 
-	return complianceErrs
+	if bestEffortUnmarshal && complianceErrs != nil {
+		return complianceErrs
+	}
+	return nil
 }
 
 // getOrCreateNode instantiates the node at the given path, and returns that
@@ -175,7 +158,11 @@ func deletePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, p
 			return err
 		}
 	}
-	return ce
+
+	if bestEffortUnmarshal && ce != nil {
+		return ce
+	}
+	return nil
 }
 
 // joinPrefixToUpdate returns a new update that has the prefix joined to the path.
@@ -205,7 +192,6 @@ func joinPrefixToUpdate(prefix *gpb.Path, update *gpb.Update) (*gpb.Update, erro
 func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, updates []*gpb.Update, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal bool) error {
 	var dopts []DelNodeOpt
 	var ce *ComplianceErrors
-	var ce *ComplianceErrors
 	if preferShadowPath {
 		dopts = append(dopts, &PreferShadowPath{})
 	}
@@ -226,14 +212,15 @@ func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, 
 			return err
 		}
 	}
-	return ce
+	if bestEffortUnmarshal && ce != nil {
+		return ce 
+	}
+	return nil
 }
 
 // updatePaths unmarshals a slice of updates into the given GoStruct. These
 // updates can either by JSON-encoded or gNMI-encoded values (scalars).
 func updatePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, updates []*gpb.Update, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal bool) error {
-	var ce *ComplianceErrors
-
 	var ce *ComplianceErrors
 
 	for _, update := range updates {
@@ -250,7 +237,10 @@ func updatePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, u
 		}
 	}
 
-	return ce
+	if bestEffortUnmarshal && ce != nil {
+		return ce
+	}
+	return nil
 }
 
 // setNode unmarshals either a JSON-encoded value or a gNMI-encoded (scalar)
