@@ -23,21 +23,6 @@ import (
 	"github.com/openconfig/ygot/ygen"
 )
 
-var (
-	// enableOrderedMap enables generation of ordered maps. This flag is
-	// used to avoid rolling out a feature that's not fully supported
-	// leading to backwards-incompatible errors, while continuing to allow
-	// development on the main branch.
-	//
-	// TODO: remove this flag when ygot supports all helpers for ordered
-	// maps.
-	//
-	// TODO: Once this flag is removed, add to Makefile the generation for
-	// integration_tests/schemaops/ctestschema so that tests will use the
-	// latest version of the generated code.
-	enableOrderedMap bool = false
-)
-
 // generatedGoMultiKeyListStruct is used to represent a struct used as a key of a YANG list that has multiple
 // key elements.
 type generatedGoMultiKeyListStruct struct {
@@ -646,8 +631,8 @@ func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, pa
 	var listMethodSpec *generatedGoListMethod
 	var orderedMapSpec *generatedOrderedMapStruct
 
-	if listField.YANGDetails.OrderedByUser && enableOrderedMap {
-		structName := fmt.Sprintf("%s_OrderedMap", listElem.Name)
+	if listField.YANGDetails.OrderedByUser {
+		structName := OrderedMapTypeName(listElem.Name)
 		listType = fmt.Sprintf("*%s", structName)
 		// Create spec for generating ordered maps.
 		orderedMapSpec = &generatedOrderedMapStruct{

@@ -26,6 +26,7 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/integration_tests/schemaops/utestschema"
 	"github.com/openconfig/ygot/internal/ytestutil"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
@@ -413,10 +414,10 @@ func TestDeepCopyOrderedMap(t *testing.T) {
 func TestMergeStructsOrderedMap(t *testing.T) {
 	tests := []struct {
 		name          string
-		inA           *ctestschema.Device
-		inB           *ctestschema.Device
+		inA           ygot.GoStruct
+		inB           ygot.GoStruct
 		inOpts        []ygot.MergeOpt
-		want          *ctestschema.Device
+		want          ygot.GoStruct
 		wantErrSubstr string
 	}{{
 		name: "non-overlapping ordered lists",
@@ -444,6 +445,11 @@ func TestMergeStructsOrderedMap(t *testing.T) {
 		want: &ctestschema.Device{
 			OrderedList: ctestschema.GetOrderedMap2(t),
 		},
+	}, {
+		name: "merge from non-empty to empty uncompressed",
+		inA:  &utestschema.Device{},
+		inB:  utestschema.GetDeviceWithOrderedMap(t),
+		want: utestschema.GetDeviceWithOrderedMap(t),
 	}, {
 		name: "merge from empty to non-empty",
 		inA: &ctestschema.Device{

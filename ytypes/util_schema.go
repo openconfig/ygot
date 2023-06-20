@@ -92,7 +92,7 @@ func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
 
 	var size uint64
 	if value != nil {
-		orderedMap, isOrderedMap := value.(ygot.GoOrderedList)
+		orderedMap, isOrderedMap := value.(ygot.GoOrderedMap)
 		kind := reflect.TypeOf(value).Kind()
 		switch {
 		case isOrderedMap:

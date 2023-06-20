@@ -180,6 +180,9 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 		switch {
 		case dir.Entry.IsList():
 			pd.Type = List
+			if dir.Entry.ListAttr.OrderedByUser {
+				pd.Type = OrderedList
+			}
 			if !util.IsUnkeyedList(dir.Entry) {
 				pd.ListKeys = dir.ListAttr.Keys
 				pd.ListKeyYANGNames = dir.ListAttr.ListKeyYANGNames

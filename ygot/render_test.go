@@ -1017,53 +1017,22 @@ type pathElemExampleMultiKeyChildKey struct {
 }
 
 func TestTogNMINotifications(t *testing.T) {
-	getOrderedMap := func() *OrderedMap {
-		orderedMap := &OrderedMap{}
-		v, err := orderedMap.AppendNew("foo")
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("foo-val")
-		v, err = orderedMap.AppendNew("bar")
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("bar-val")
-		return orderedMap
-	}
-
-	getOrderedMap2 := func() *OrderedMap {
-		orderedMap := &OrderedMap{}
-		v, err := orderedMap.AppendNew("wee")
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("wee-val")
-		v, err = orderedMap.AppendNew("woo")
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("woo-val")
-		return orderedMap
-	}
-
-	getNestedOrderedMap := func() *OrderedMap {
-		om := getOrderedMap()
-		om.Get("foo").OrderedList = getOrderedMap()
-		return om
-	}
-
 	tests := []struct {
-		name        string
-		inTimestamp int64
-		inStruct    GoStruct
-		inConfig    GNMINotificationsConfig
-		// wantAtomicCutoff represents the index one-past the one at
-		// which atomic notifications end.
-		wantAtomicCutoff uint
-		want             []*gnmipb.Notification
-		wantErr          bool
+		name           string
+		inTimestamp    int64
+		inStruct       GoStruct
+		inConfig       GNMINotificationsConfig
+		wantAtomicMsgs int
+		want           []*gnmipb.Notification
+		wantErr        bool
 	}{{
+		name:        "empty",
+		inTimestamp: 42,
+		inStruct:    &renderExample{},
+		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+		}},
+	}, {
 		name:        "simple single leaf example",
 		inTimestamp: 42,
 		inStruct:    &renderExample{Str: String("hello")},
@@ -1371,143 +1340,6 @@ func TestTogNMINotifications(t *testing.T) {
 			}},
 		}},
 	}, {
-		name:        "struct with two ordered lists",
-		inTimestamp: 42,
-		inStruct: &mapStructTestOne{
-			OrderedList: getOrderedMap(),
-			Child: &mapStructTestOneChild{
-				FieldOne:    String("abc -> def"),
-				FieldTwo:    Uint32(42),
-				OrderedList: getOrderedMap2(),
-			},
-		},
-		inConfig: GNMINotificationsConfig{
-			UsePathElem:    true,
-			PathElemPrefix: mustPathElem("heart/of/gold"),
-		},
-		wantAtomicCutoff: 2,
-		want: []*gnmipb.Notification{{
-			Timestamp: 42,
-			Atomic:    true,
-			Prefix:    mustPath("heart/of/gold/ordered-lists"),
-			Update: []*gnmipb.Update{{
-				Path: mustPath(`ordered-list[key=foo]/config/key`),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
-			}, {
-				Path: mustPath(`ordered-list[key=foo]/key`),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
-			}, {
-				Path: mustPath(`ordered-list[key=foo]/config/value`),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo-val"}},
-			}, {
-				Path: mustPath(`ordered-list[key=bar]/config/key`),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
-			}, {
-				Path: mustPath(`ordered-list[key=bar]/key`),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
-			}, {
-				Path: mustPath(`ordered-list[key=bar]/config/value`),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar-val"}},
-			}},
-		}, {
-			Timestamp: 42,
-			Atomic:    true,
-			Prefix:    mustPath("heart/of/gold/child/ordered-lists"),
-			Update: []*gnmipb.Update{{
-				Path: mustPath(`ordered-list[key=wee]/config/key`),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "wee"}},
-			}, {
-				Path: mustPath(`ordered-list[key=wee]/key`),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "wee"}},
-			}, {
-				Path: mustPath(`ordered-list[key=wee]/config/value`),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "wee-val"}},
-			}, {
-				Path: mustPath(`ordered-list[key=woo]/config/key`),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "woo"}},
-			}, {
-				Path: mustPath(`ordered-list[key=woo]/key`),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "woo"}},
-			}, {
-				Path: mustPath(`ordered-list[key=woo]/config/value`),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "woo-val"}},
-			}},
-		}, {
-			Timestamp: 42,
-			Prefix:    mustPath("heart/of/gold"),
-			Update: []*gnmipb.Update{{
-				Path: mustPath(`child/config/field-one`),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "abc -> def"}},
-			}, {
-				Path: mustPath(`child/config/field-two`),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{UintVal: 42}},
-			}},
-		}},
-	}, {
-		name:        "struct with ordered list string slice mode",
-		inTimestamp: 42,
-		inStruct: &mapStructTestOne{
-			OrderedList: getOrderedMap(),
-			Child: &mapStructTestOneChild{
-				FieldOne: String("abc -> def"),
-				FieldTwo: Uint32(42),
-			},
-		},
-		inConfig: GNMINotificationsConfig{
-			StringSlicePrefix: []string{"heart", "of", "gold"},
-		},
-		wantAtomicCutoff: 1,
-		want: []*gnmipb.Notification{{
-			Timestamp: 42,
-			Atomic:    true,
-			Prefix:    &gnmipb.Path{Element: []string{"heart", "of", "gold", "ordered-lists"}},
-			Update: []*gnmipb.Update{{
-				Path: &gnmipb.Path{Element: []string{"ordered-list", "foo", "config", "key"}},
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
-			}, {
-				Path: &gnmipb.Path{Element: []string{"ordered-list", "foo", "key"}},
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
-			}, {
-				Path: &gnmipb.Path{Element: []string{"ordered-list", "foo", "config", "value"}},
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo-val"}},
-			}, {
-				Path: &gnmipb.Path{Element: []string{"ordered-list", "bar", "config", "key"}},
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
-			}, {
-				Path: &gnmipb.Path{Element: []string{"ordered-list", "bar", "key"}},
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
-			}, {
-				Path: &gnmipb.Path{Element: []string{"ordered-list", "bar", "config", "value"}},
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar-val"}},
-			}},
-		}, {
-			Timestamp: 42,
-			Prefix:    &gnmipb.Path{Element: []string{"heart", "of", "gold"}},
-			Update: []*gnmipb.Update{{
-				Path: &gnmipb.Path{Element: []string{"child", "config", "field-one"}},
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "abc -> def"}},
-			}, {
-				Path: &gnmipb.Path{Element: []string{"child", "config", "field-two"}},
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{UintVal: 42}},
-			}},
-		}},
-	}, {
-		name:        "struct with nested ordered list",
-		inTimestamp: 42,
-		inStruct: &mapStructTestOne{
-			OrderedList: getNestedOrderedMap(),
-			Child: &mapStructTestOneChild{
-				FieldOne: String("abc -> def"),
-				FieldTwo: Uint32(42),
-			},
-		},
-		inConfig: GNMINotificationsConfig{
-			UsePathElem:    true,
-			PathElemPrefix: mustPathElem("heart/of/gold"),
-		},
-		wantAtomicCutoff: 1,
-		wantErr:          true,
-	}, {
 		name:        "struct with list",
 		inTimestamp: 42,
 		inStruct: &renderExample{
@@ -1708,23 +1540,30 @@ func TestTogNMINotifications(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := TogNMINotifications(tt.inStruct, tt.inTimestamp, tt.inConfig)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("%s: TogNMINotifications(%v, %v, %v): got unexpected error: %v", tt.name, tt.inStruct, tt.inTimestamp, tt.inConfig, err)
+			}
 			if err != nil {
-				if !tt.wantErr {
-					t.Errorf("%s: TogNMINotifications(%v, %v, %v): got unexpected error: %v", tt.name, tt.inStruct, tt.inTimestamp, tt.inConfig, err)
-				}
 				return
 			}
 
-			if diff := cmp.Diff(got[:tt.wantAtomicCutoff], tt.want[:tt.wantAtomicCutoff], cmpopts.SortSlices(testutil.NotificationLess), protocmp.Transform()); diff != "" {
-				t.Errorf("%s: telemetry-atomic values of TogNMINotifications(%v, %v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, tt.inTimestamp, diff)
+			if gotLen, wantLen := len(got), len(tt.want); gotLen != wantLen {
+				t.Errorf("gotLen: %d, wantLen: %d", gotLen, wantLen)
+				if diff := cmp.Diff(got, tt.want, cmpopts.SortSlices(testutil.NotificationLess), testutil.NotificationComparer()); diff != "" {
+					t.Errorf("%s: telemetry-atomic values of TogNMINotifications(%v, %v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, tt.inTimestamp, diff)
+				}
+				return
 			}
 
 			// Avoid test flakiness by ignoring the update ordering. Required because
 			// there is no order to the map of fields that are returned by the struct
 			// output.
-
-			if diff := cmp.Diff(got[tt.wantAtomicCutoff:], tt.want[tt.wantAtomicCutoff:], testutil.NotificationComparer(), cmpopts.SortSlices(testutil.NotificationLess)); diff != "" {
+			if diff := cmp.Diff(got[:len(got)-tt.wantAtomicMsgs], tt.want[:len(got)-tt.wantAtomicMsgs], cmpopts.SortSlices(testutil.NotificationLess), testutil.NotificationComparer()); diff != "" {
 				t.Errorf("%s: non-telemetry-atomic values of TogNMINotifications(%v, %v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, tt.inTimestamp, diff)
+			}
+
+			if diff := cmp.Diff(got[len(got)-tt.wantAtomicMsgs:], tt.want[len(got)-tt.wantAtomicMsgs:], cmpopts.SortSlices(testutil.NotificationLess), protocmp.Transform()); diff != "" {
+				t.Errorf("%s: telemetry-atomic values of TogNMINotifications(%v, %v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, tt.inTimestamp, diff)
 			}
 		})
 	}
@@ -1996,89 +1835,13 @@ func (*invalidGoStructMap) ΛEnumTypeMap() map[string][]reflect.Type { return ni
 func (*invalidGoStructMap) ΛBelongingModule() string                { return "" }
 
 type structWithMultiKey struct {
-	Map        map[mapKey]*structMultiKeyChild `path:"foo" module:"rootmod"`
-	OrderedMap *MultiKeyOrderedMap             `path:"foo-ordered" module:"rootmod"`
+	Map map[mapKey]*structMultiKeyChild `path:"foo" module:"rootmod"`
 }
 
 func (*structWithMultiKey) IsYANGGoStruct()                         {}
 func (*structWithMultiKey) ΛValidate(...ValidationOption) error     { return nil }
 func (*structWithMultiKey) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*structWithMultiKey) ΛBelongingModule() string                { return "" }
-
-type OrderedMultikeyedListKey struct {
-	Key1 string `path:"key1"`
-	Key2 uint64 `path:"key2"`
-}
-
-// OrderedMultikeyedList represents the /ctestschema/ordered-multikeyed-lists/ordered-multikeyed-list YANG schema element.
-type OrderedMultikeyedList struct {
-	Key1  *string `path:"config/key1|key1" module:"ctestschema/ctestschema|ctestschema" shadow-path:"state/key1|key1" shadow-module:"ctestschema/ctestschema|ctestschema"`
-	Key2  *uint64 `path:"config/key2|key2" module:"ctestschema/ctestschema|ctestschema"`
-	Value *string `path:"config/value" module:"ctestschema/ctestschema"`
-}
-
-func (*OrderedMultikeyedList) IsYANGGoStruct() {}
-
-type MultiKeyOrderedMap struct {
-	keys     []OrderedMultikeyedListKey
-	valueMap map[OrderedMultikeyedListKey]*OrderedMultikeyedList
-}
-
-func (*MultiKeyOrderedMap) IsYANGOrderedList() {}
-
-// init initializes any uninitialized values.
-func (o *MultiKeyOrderedMap) init() {
-	if o == nil {
-		return
-	}
-	if o.valueMap == nil {
-		o.valueMap = map[OrderedMultikeyedListKey]*OrderedMultikeyedList{}
-	}
-}
-
-// Values returns the current set of the list's values in order.
-func (o *MultiKeyOrderedMap) Values() []*OrderedMultikeyedList {
-	if o == nil {
-		return nil
-	}
-	var values []*OrderedMultikeyedList
-	for _, key := range o.keys {
-		values = append(values, o.valueMap[key])
-	}
-	return values
-}
-
-// Len returns a size of OrderedMultikeyedList_OrderedMap
-func (o *MultiKeyOrderedMap) Len() int {
-	if o == nil {
-		return 0
-	}
-	return len(o.keys)
-}
-
-// AppendNew creates and appends a new OrderedMultikeyedList, returning the
-// newly-initialized v. It returns an error if the v already exists.
-func (o *MultiKeyOrderedMap) AppendNew(Key1 string, Key2 uint64) (*OrderedMultikeyedList, error) {
-	if o == nil {
-		return nil, fmt.Errorf("nil ordered map, cannot append OrderedMultikeyedList")
-	}
-	key := OrderedMultikeyedListKey{
-		Key1: Key1,
-		Key2: Key2,
-	}
-
-	if _, ok := o.valueMap[key]; ok {
-		return nil, fmt.Errorf("duplicate key for list Statement %v", key)
-	}
-	o.keys = append(o.keys, key)
-	newElement := &OrderedMultikeyedList{
-		Key1: &Key1,
-		Key2: &Key2,
-	}
-	o.init()
-	o.valueMap[key] = newElement
-	return newElement, nil
-}
 
 type structWithMultiKeyInvalidModuleTag struct {
 	Map map[mapKey]*structMultiKeyChild `path:"foo/bar" module:"rootmod"`
@@ -2305,26 +2068,6 @@ func (t *unmarshalableJSON) UnmarshalJSON(d []byte) error {
 }
 
 func TestConstructJSON(t *testing.T) {
-	getMultiKeyOrderedMap := func() *MultiKeyOrderedMap {
-		orderedMap := &MultiKeyOrderedMap{}
-		v, err := orderedMap.AppendNew("foo", 42)
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("foo-val")
-		v, err = orderedMap.AppendNew("bar", 43)
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("bar-val")
-		v, err = orderedMap.AppendNew("baz", 44)
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("baz-val")
-		return orderedMap
-	}
-
 	tests := []struct {
 		name                     string
 		in                       GoStruct
@@ -2590,81 +2333,6 @@ func TestConstructJSON(t *testing.T) {
 			},
 		},
 	}, {
-		name: "multi-keyed ordered list",
-		in: &structWithMultiKey{
-			OrderedMap: getMultiKeyOrderedMap(),
-		},
-		wantIETF: map[string]any{
-			"rootmod:foo-ordered": []any{
-				map[string]any{
-					"ctestschema:key1": "foo",
-					"ctestschema:key2": "42",
-					"ctestschema:config": map[string]any{
-						"key2":  "42",
-						"value": "foo-val",
-					},
-					"ctestschema:state": map[string]any{
-						"key1": "foo",
-					},
-				},
-				map[string]any{
-					"ctestschema:key1": "bar",
-					"ctestschema:key2": "43",
-					"ctestschema:config": map[string]any{
-						"key2":  "43",
-						"value": "bar-val",
-					},
-					"ctestschema:state": map[string]any{
-						"key1": "bar",
-					},
-				},
-				map[string]any{
-					"ctestschema:key1": "baz",
-					"ctestschema:key2": "44",
-					"ctestschema:config": map[string]any{
-						"key2":  "44",
-						"value": "baz-val",
-					},
-					"ctestschema:state": map[string]any{
-						"key1": "baz",
-					},
-				},
-			},
-		},
-		wantInternal: map[string]any{
-			"foo-ordered": []any{
-				map[string]any{
-					"key1": "foo",
-					"key2": float64(42),
-					"config": map[string]any{
-						"key1":  "foo",
-						"key2":  float64(42),
-						"value": "foo-val",
-					},
-				},
-				map[string]any{
-					"key1": "bar",
-					"key2": float64(43),
-					"config": map[string]any{
-						"key1":  "bar",
-						"key2":  float64(43),
-						"value": "bar-val",
-					},
-				},
-				map[string]any{
-					"key1": "baz",
-					"key2": float64(44),
-					"config": map[string]any{
-						"key1":  "baz",
-						"key2":  float64(44),
-						"value": "baz-val",
-					},
-				},
-			},
-		},
-		inPreferShadowPath: true,
-		inAppendMod:        true,
-	}, {
 		name: "not enough module elements",
 		in: &structWithMultiKeyInvalidModuleTag{
 			Map: map[mapKey]*structMultiKeyChild{
@@ -2747,9 +2415,9 @@ func TestConstructJSON(t *testing.T) {
 		wantInternal: map[string]any{
 			"str":        "hello",
 			"leaf-list":  []any{"hello", "world"},
-			"int-val":    float64(42),
+			"int-val":    int32(42),
 			"enum":       "VAL_TWO",
-			"mixed-list": []any{float64(42)},
+			"mixed-list": []any{uint64(42)},
 			"keyless-list": []any{
 				map[string]any{
 					"val": "21st Amendment",
@@ -2779,7 +2447,7 @@ func TestConstructJSON(t *testing.T) {
 			"list": []any{},
 		},
 		wantInternal: map[string]any{
-			"ch": map[string]any{"val": float64(42)},
+			"ch": map[string]any{"val": uint64(42)},
 		},
 	}, {
 		name: "empty map nil",
@@ -2793,7 +2461,7 @@ func TestConstructJSON(t *testing.T) {
 			"ch": map[string]any{"val": "42"},
 		},
 		wantInternal: map[string]any{
-			"ch": map[string]any{"val": float64(42)},
+			"ch": map[string]any{"val": uint64(42)},
 		},
 	}, {
 		name:     "empty child",
@@ -2850,7 +2518,7 @@ func TestConstructJSON(t *testing.T) {
 			"mixed-list": []any{"foo:VAL_ONE", "test", float64(42)},
 		},
 		wantInternal: map[string]any{
-			"ch": map[string]any{"val": float64(42)},
+			"ch": map[string]any{"val": uint64(42)},
 			"enum-list": map[string]any{
 				"VAL_ONE": map[string]any{
 					"config": map[string]any{
@@ -2873,7 +2541,7 @@ func TestConstructJSON(t *testing.T) {
 					"val": "eighty four",
 				},
 			},
-			"mixed-list": []any{"VAL_ONE", "test", float64(42)},
+			"mixed-list": []any{"VAL_ONE", "test", 42},
 		},
 	}, {
 		name: "json test with complex children with PrependModuleNameIdentityref=true",
@@ -2918,7 +2586,7 @@ func TestConstructJSON(t *testing.T) {
 			"mixed-list": []any{"foo:VAL_ONE", "test", float64(42)},
 		},
 		wantInternal: map[string]any{
-			"ch": map[string]any{"val": float64(42)},
+			"ch": map[string]any{"val": uint64(42)},
 			"enum-list": map[string]any{
 				"VAL_ONE": map[string]any{
 					"config": map[string]any{
@@ -2941,7 +2609,7 @@ func TestConstructJSON(t *testing.T) {
 					"val": "eighty four",
 				},
 			},
-			"mixed-list": []any{"VAL_ONE", "test", float64(42)},
+			"mixed-list": []any{"VAL_ONE", "test", 42},
 		},
 	}, {
 		name: "device example #1",
@@ -2963,7 +2631,16 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
-		wantSame: true,
+		wantInternal: map[string]any{
+			"bgp": map[string]any{
+				"global": map[string]any{
+					"config": map[string]any{
+						"as":        uint32(15169),
+						"router-id": "192.0.2.1",
+					},
+				},
+			},
+		},
 	}, {
 		name: "device example #2",
 		in: &exampleDevice{
@@ -3019,7 +2696,7 @@ func TestConstructJSON(t *testing.T) {
 								"description":      "a neighbor",
 								"enabled":          true,
 								"neighbor-address": "192.0.2.1",
-								"peer-as":          float64(29636),
+								"peer-as":          uint32(29636),
 							},
 							"neighbor-address": "192.0.2.1",
 						},
@@ -3028,7 +2705,7 @@ func TestConstructJSON(t *testing.T) {
 								"description":      "a second neighbor",
 								"enabled":          false,
 								"neighbor-address": "100.64.32.96",
-								"peer-as":          float64(5413),
+								"peer-as":          uint32(5413),
 							},
 							"neighbor-address": "100.64.32.96",
 						},
@@ -3053,7 +2730,7 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantInternal: map[string]any{
 			"state": map[string]any{
-				"enabled-address-families-simple": []any{float64(3.14), float64(42), base64testStringEncoded, "VAL_ONE"},
+				"enabled-address-families-simple": []any{3.14, int64(42), base64testStringEncoded, "VAL_ONE"},
 			},
 		},
 	}, {
@@ -3066,7 +2743,11 @@ func TestConstructJSON(t *testing.T) {
 				"transport-address-simple": "42.42.42.42",
 			},
 		},
-		wantSame: true,
+		wantInternal: map[string]any{
+			"state": map[string]any{
+				"transport-address-simple": testutil.UnionString("42.42.42.42"),
+			},
+		},
 	}, {
 		name: "union example - enum",
 		in: &exampleBgpNeighbor{
@@ -3101,7 +2782,7 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantInternal: map[string]any{
 			"state": map[string]any{
-				"transport-address-simple": float64(3.14),
+				"transport-address-simple": testutil.UnionFloat64(3.14),
 			},
 		},
 	}, {
@@ -3163,7 +2844,7 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantInternal: map[string]any{
 			"state": map[string]any{
-				"transport-address": float64(42),
+				"transport-address": uint64(42),
 			},
 		},
 	}, {
@@ -3181,7 +2862,7 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantInternal: map[string]any{
 			"state": map[string]any{
-				"enabled-address-families": []any{"IPV6", float64(42)},
+				"enabled-address-families": []any{"IPV6", uint64(42)},
 			},
 		},
 	}, {
@@ -3445,13 +3126,13 @@ func TestConstructJSON(t *testing.T) {
 						"description":      "a neighbor",
 						"enabled":          true,
 						"neighbor-address": "192.0.2.1",
-						"peer-as":          float64(29636),
+						"peer-as":          uint32(29636),
 					},
 					"100.64.32.96": map[string]any{
 						"description":      "a second neighbor",
 						"enabled":          false,
 						"neighbor-address": "100.64.32.96",
-						"peer-as":          float64(5413),
+						"peer-as":          uint32(5413),
 					},
 				},
 			},
@@ -4131,21 +3812,6 @@ func TestKeyValueAsString(t *testing.T) {
 }
 
 func TestEncodeTypedValue(t *testing.T) {
-	getOrderedMap := func() *OrderedMap {
-		orderedMap := &OrderedMap{}
-		v, err := orderedMap.AppendNew("foo")
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("foo-val")
-		v, err = orderedMap.AppendNew("bar")
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("bar-val")
-		return orderedMap
-	}
-
 	tests := []struct {
 		name             string
 		inVal            any
@@ -4254,45 +3920,6 @@ func TestEncodeTypedValue(t *testing.T) {
 			}},
 		},
 	}, {
-		name:  "ordered list type",
-		inVal: getOrderedMap(),
-		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonVal{[]byte(`[
-  {
-    "config": {
-      "key": "foo",
-      "value": "foo-val"
-    },
-    "key": "foo"
-  },
-  {
-    "config": {
-      "key": "bar",
-      "value": "bar-val"
-    },
-    "key": "bar"
-  }
-]`)}},
-	}, {
-		name:  "ordered list type - ietf json",
-		inVal: getOrderedMap(),
-		inEnc: gnmipb.Encoding_JSON_IETF,
-		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(`[
-  {
-    "ctestschema:config": {
-      "key": "foo",
-      "value": "foo-val"
-    },
-    "ctestschema:key": "foo"
-  },
-  {
-    "ctestschema:config": {
-      "key": "bar",
-      "value": "bar-val"
-    },
-    "ctestschema:key": "bar"
-  }
-]`)}},
-	}, {
 		name: "struct val - ietf json",
 		inVal: &ietfRenderExample{
 			F1: String("hello"),
@@ -4375,16 +4002,6 @@ func mustPathElem(s string) []*gnmipb.PathElem {
 		panic(err)
 	}
 	return p.Elem
-}
-
-// mustPath returns a string as a gNMI path, causing a panic if the string
-// is invalid.
-func mustPath(s string) *gnmipb.Path {
-	p, err := StringToStructuredPath(s)
-	if err != nil {
-		panic(err)
-	}
-	return p
 }
 
 func TestFindUpdatedLeaves(t *testing.T) {
@@ -4515,21 +4132,6 @@ func TestFindUpdatedLeaves(t *testing.T) {
 }
 
 func TestMarshal7951(t *testing.T) {
-	getOrderedMap := func() *OrderedMap {
-		orderedMap := &OrderedMap{}
-		v, err := orderedMap.AppendNew("foo")
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("foo-val")
-		v, err = orderedMap.AppendNew("bar")
-		if err != nil {
-			t.Error(err)
-		}
-		v.Value = String("bar-val")
-		return orderedMap
-	}
-
 	tests := []struct {
 		desc             string
 		in               any
@@ -4645,16 +4247,6 @@ func TestMarshal7951(t *testing.T) {
 		desc: "float type",
 		in:   &renderExample{FloatVal: Float64(42.42)},
 		want: `{"floatval":"42.42"}`,
-	}, {
-		desc: "container with ordered list",
-		in: &mapStructTestOne{
-			OrderedList: getOrderedMap(),
-		},
-		want: `{"ordered-lists":{"ordered-list":[{"config":{"key":"foo","value":"foo-val"},"key":"foo"},{"config":{"key":"bar","value":"bar-val"},"key":"bar"}]}}`,
-	}, {
-		desc: "ordered list",
-		in:   getOrderedMap(),
-		want: `[{"config":{"key":"foo","value":"foo-val"},"key":"foo"},{"config":{"key":"bar","value":"bar-val"},"key":"bar"}]`,
 	}, {
 		desc: "indentation requested",
 		in: &renderExample{

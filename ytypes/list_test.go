@@ -136,7 +136,7 @@ func TestValidateList(t *testing.T) {
 
 	// bad value type
 	err = util.Errors(validateList(validListSchema, struct{}{})).Error()
-	wantErr = `validateList expected map/slice/GoOrderedList type for valid-list-schema, got struct {}`
+	wantErr = `validateList expected map/slice/GoOrderedMap type for valid-list-schema, got struct {}`
 	if got, want := err, wantErr; got != want {
 		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
