@@ -75,21 +75,21 @@ func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, opts ...UnmarshalO
 	var complianceErrs *ComplianceErrors
 
 	// Process deletes, then replace, then updates.
-	if err := deletePaths(schema.SchemaTree[nodeName], node, prefix, req.Delete, preferShadowPath, bestEffortUnmarshal); err != nil {
+	if err := deletePaths(schema.SchemaTree[rootName], root, req.Prefix, req.Delete, preferShadowPath, bestEffortUnmarshal); err != nil {
 		if bestEffortUnmarshal {
 			complianceErrs = complianceErrs.append(err.(*ComplianceErrors).Errors...)
 		} else {
 			return err
 		}
 	}
-	if err := replacePaths(schema.SchemaTree[nodeName], node, prefix, req.Replace, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal); err != nil {
+	if err := replacePaths(schema.SchemaTree[rootName], root, req.Prefix, req.Replace, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal); err != nil {
 		if bestEffortUnmarshal{
 			complianceErrs = complianceErrs.append(err.(*ComplianceErrors).Errors...)
 		} else {
 			return err
 		}
 	}
-	if err := updatePaths(schema.SchemaTree[nodeName], node, prefix, req.Update, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal); err != nil {
+	if err := updatePaths(schema.SchemaTree[rootName], root, req.Prefix, req.Update, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal); err != nil {
 		if bestEffortUnmarshal {
 			complianceErrs = complianceErrs.append(err.(*ComplianceErrors).Errors...)
 		} else {

@@ -68,10 +68,10 @@ func (c *ComplianceErrors) append(errs... error) *ComplianceErrors {
 // BestEffortUnmarshal is an unmarshal option that accumulates errors while unmarshalling,
 // and continues the unmarshaling process. An unmarshal now return a ComplianceErrors struct,
 // instead of a single error.
-type bestEffortUnmarshal struct{}
+type BestEffortUnmarshal struct{}
 
 // IsUnmarshalOpt marks BestEffortUnmarshal as a valid UnmarshalOpt.
-func (*bestEffortUnmarshal) IsUnmarshalOpt() {}
+func (*BestEffortUnmarshal) IsUnmarshalOpt() {}
 
 // IgnoreExtraFields is an unmarshal option that controls the
 // behaviour of the Unmarshal function when additional fields are
@@ -172,7 +172,7 @@ func hasPreferShadowPath(opts []UnmarshalOpt) bool {
 // contains the BestEffortUnmarshal option.
 func hasBestEffortUnmarshal(opts []UnmarshalOpt) bool {
 	for _, o := range opts {
-		if _, ok := o.(*bestEffortUnmarshal); ok {
+		if _, ok := o.(*BestEffortUnmarshal); ok {
 			return true
 		}
 	}

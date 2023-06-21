@@ -15,6 +15,7 @@
 package ytypes
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -32,6 +33,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 		inUnmarshalOpts []UnmarshalOpt
 		want            ygot.GoStruct
 		wantErr         bool
+		numErrs int
 	}{{
 		desc: "nil input",
 		inSchema: &Schema{
@@ -500,7 +502,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 		desc: "mix of an error and a non-error update with best-effort flag",
 		inSchema: &Schema{
 			Root: &ListElemStruct1{
-				Key1: ygot.String("mix"),
+				Key1: ygot.String("mixedupdate"),
 				Outer: &OuterContainerType1{
 					Inner: &InnerContainerType1{
 						Int32LeafName: ygot.Int32(43),
@@ -508,6 +510,9 @@ func TestUnmarshalSetRequest(t *testing.T) {
 						StringLeafName: ygot.String("bear"),
 					},
 				},
+			},
+			SchemaTree: map[string]*yang.Entry{
+				"ListElemStruct1": simpleSchema(),
 			},
 		},
 		inReq: &gpb.SetRequest{
@@ -524,9 +529,18 @@ func TestUnmarshalSetRequest(t *testing.T) {
 }
 					`),
 				}},
+			}, {
+				Path: mustPath("/outer/error2"),
+				Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{
+					JsonIetfVal: []byte(`
+{
+	"int32-leaf-list": [42]
+}
+					`),
+				}},
 			}},
 		},
-		inUnmarshalOpts: []UnmarshalOpt{&bestEffortUnmarshal{}},
+		inUnmarshalOpts: []UnmarshalOpt{&BestEffortUnmarshal{}},
 		want: &ListElemStruct1{
 			Key1: ygot.String("non-error"),
 			Outer: &OuterContainerType1{
@@ -538,6 +552,87 @@ func TestUnmarshalSetRequest(t *testing.T) {
 			},
 		},
 		wantErr: true,
+		numErrs: 2,
+	}, {
+		desc: "mix of an error and a non-error replace with best-effort flag",
+		inSchema: &Schema{
+			Root: &ListElemStruct1{
+				Key1: ygot.String("mixedreplace"),
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName:     ygot.Int32(43),
+						Int32LeafListName: []int32{100},
+						StringLeafName:    ygot.String("bear"),
+					},
+				},
+			},
+			SchemaTree: map[string]*yang.Entry{
+				"ListElemStruct1": simpleSchema(),
+			},
+		},
+		inReq: &gpb.SetRequest{
+			Prefix: &gpb.Path{},
+			Replace: []*gpb.Update{{
+				Path: mustPath("/key1"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "success"}},
+			}, {
+				Path: mustPath("/key2"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "failure"}},
+			}, {
+				Path: mustPath("/key3"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "failure"}},
+			}},
+		},
+		inUnmarshalOpts: []UnmarshalOpt{&BestEffortUnmarshal{}},
+		want: &ListElemStruct1{
+			Key1: ygot.String("success"),
+			Outer: &OuterContainerType1{
+				Inner: &InnerContainerType1{
+					Int32LeafName:     ygot.Int32(43),
+					Int32LeafListName: []int32{100},
+					StringLeafName:    ygot.String("bear"),
+				},
+			},
+		},
+		wantErr: true,
+		numErrs: 2,
+	}, {
+		desc: "mix of an error and a non-error delete with best-effort flag",
+		inSchema: &Schema{
+			Root: &ListElemStruct1{
+				Key1: ygot.String("mixeddelete"),
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName:     ygot.Int32(43),
+						Int32LeafListName: []int32{100},
+						StringLeafName:    ygot.String("bear"),
+					},
+				},
+			},
+			SchemaTree: map[string]*yang.Entry{
+				"ListElemStruct1": simpleSchema(),
+			},
+		},
+		inReq: &gpb.SetRequest{
+			Prefix: &gpb.Path{},
+			Delete: []*gpb.Path{
+				mustPath("/outer/inner/config/int32-leaf-field"),
+				mustPath("/outer/error"),
+				mustPath("/outer/error2"),
+			},
+		},
+		inUnmarshalOpts: []UnmarshalOpt{&BestEffortUnmarshal{}},
+		want: &ListElemStruct1{
+			Key1: ygot.String("mixeddelete"),
+			Outer: &OuterContainerType1{
+				Inner: &InnerContainerType1{
+					Int32LeafListName: []int32{100},
+					StringLeafName:    ygot.String("bear"),
+				},
+			},
+		},
+		wantErr: true,
+		numErrs: 2,
 	}}
 
 	for _, tt := range tests {
@@ -545,6 +640,16 @@ func TestUnmarshalSetRequest(t *testing.T) {
 			err := UnmarshalSetRequest(tt.inSchema, tt.inReq, tt.inUnmarshalOpts...)
 			if gotErr := err != nil; gotErr != tt.wantErr {
 				t.Fatalf("got error: %v, want: %v", err, tt.wantErr)
+			}
+			if gotErr := err != nil; gotErr && hasBestEffortUnmarshal(tt.inUnmarshalOpts) {
+				var ce *ComplianceErrors
+				if errors.As(err, &ce) {
+					if len(ce.Errors) != tt.numErrs {
+						t.Fatalf("Got the incorrect number of errors: want %v, got %v", tt.numErrs, len(ce.Errors))
+					}
+				} else {
+					t.Fatalf("Error casting BestEffortUnmarshal result to compliance errors struct")
+				}
 			}
 			if !tt.wantErr {
 				if diff := cmp.Diff(tt.inSchema.Root, tt.want); diff != "" {
