@@ -3,6 +3,8 @@ module openconfig-complex {
   namespace "urn:occomplex";
   prefix "oc";
 
+  import openconfig-extensions { prefix "oc-ext"; }
+
   description
     "A complex test module that is used to verify code generation for a variety
     of different schema features";
@@ -127,11 +129,13 @@ module openconfig-complex {
 
   grouping top {
     container example-presence {
+      oc-ext:telemetry-atomic;
       presence "This is an example presence container";
     }
 
     container model {
       container a {
+        oc-ext:telemetry-atomic;
         list single-key {
           key "key";
 
@@ -164,6 +168,7 @@ module openconfig-complex {
 
       container b {
         list multi-key {
+          oc-ext:telemetry-atomic;
           key "key1
 
                 key2"; // Test for irregular spacing
