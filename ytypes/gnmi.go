@@ -170,6 +170,10 @@ func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, 
 			return err
 		}
 		if err := DeleteNode(schema, goStruct, update.Path, dopts...); err != nil {
+			if bestEffortUnmarshal {
+				ce = ce.append(err)
+				continue
+			}
 			return err
 		}
 		if err := setNode(schema, goStruct, update, preferShadowPath, ignoreExtraFields); err != nil {
