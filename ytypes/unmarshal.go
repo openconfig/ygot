@@ -56,7 +56,7 @@ func (c *ComplianceErrors) Error() string {
 	return b.String()
 }
 
-func (c *ComplianceErrors) append(errs... error) *ComplianceErrors {
+func (c *ComplianceErrors) append(errs ...error) *ComplianceErrors {
 	if c == nil {
 		return &ComplianceErrors{Errors: errs}
 	}

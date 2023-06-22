@@ -83,7 +83,7 @@ func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, opts ...UnmarshalO
 		}
 	}
 	if err := replacePaths(schema.SchemaTree[rootName], root, req.Prefix, req.Replace, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal); err != nil {
-		if bestEffortUnmarshal{
+		if bestEffortUnmarshal {
 			complianceErrs = complianceErrs.append(err.(*ComplianceErrors).Errors...)
 		} else {
 			return err
@@ -185,7 +185,7 @@ func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, 
 		}
 	}
 	if bestEffortUnmarshal && ce != nil {
-		return ce 
+		return ce
 	}
 	return nil
 }

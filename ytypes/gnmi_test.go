@@ -33,7 +33,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 		inUnmarshalOpts []UnmarshalOpt
 		want            ygot.GoStruct
 		wantErr         bool
-		numErrs int
+		numErrs         int
 	}{{
 		desc: "nil input",
 		inSchema: &Schema{
@@ -505,9 +505,9 @@ func TestUnmarshalSetRequest(t *testing.T) {
 				Key1: ygot.String("mixederrors"),
 				Outer: &OuterContainerType1{
 					Inner: &InnerContainerType1{
-						Int32LeafName: ygot.Int32(43),
+						Int32LeafName:     ygot.Int32(43),
 						Int32LeafListName: []int32{100},
-						StringLeafName: ygot.String("bear"),
+						StringLeafName:    ygot.String("bear"),
 					},
 				},
 			},
@@ -519,7 +519,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 			Prefix: &gpb.Path{},
 			Update: []*gpb.Update{{
 				Path: mustPath("/key1"),
-				Val: &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "non-error"}},
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "non-error"}},
 			}, {
 				Path: mustPath("/outer/error"),
 				Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{
@@ -561,7 +561,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 			Outer: &OuterContainerType1{
 				Inner: &InnerContainerType1{
 					Int32LeafListName: []int32{100},
-					StringLeafName: ygot.String("bear"),
+					StringLeafName:    ygot.String("bear"),
 				},
 			},
 		},
