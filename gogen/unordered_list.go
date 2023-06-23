@@ -519,13 +519,13 @@ func generateGetListKey(buf *bytes.Buffer, s *ygen.ParsedDirectory, nameMap map[
 	return goKeyMapTemplate.Execute(buf, h)
 }
 
-// UnOrderedKeyedMapTypeName returns the map and key type names of an
+// UnorderedMapTypeName returns the map and key type names of an
 // unordered, keyed map given go-generated IR information, as well as whether
 // it is a defined type rather than a Go built-in type.
 //
 // e.g. for a list to be represented as map[string]*Foo, it returns
 // "map[string]*Foo", "string", false, nil
-func UnOrderedKeyedMapTypeName(listYANGPath, listFieldName, parentName string, goStructElements map[string]*ygen.ParsedDirectory) (string, string, bool, error) {
+func UnorderedMapTypeName(listYANGPath, listFieldName, parentName string, goStructElements map[string]*ygen.ParsedDirectory) (string, string, bool, error) {
 	// The list itself, since it is a container, has a struct associated with it. Retrieve
 	// this from the set of Directory structs for which code (a Go struct) will be
 	//  generated such that additional details can be used in the code generation.
@@ -609,7 +609,7 @@ func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, pa
 		return fmt.Sprintf("[]*%s", listElem.Name), nil, nil, nil, nil
 	}
 
-	listType, keyType, _, err := UnOrderedKeyedMapTypeName(listField.YANGDetails.Path, listFieldName, parent.Name, goStructElements)
+	listType, keyType, _, err := UnorderedMapTypeName(listField.YANGDetails.Path, listFieldName, parent.Name, goStructElements)
 	if err != nil {
 		return "", nil, nil, nil, err
 	}

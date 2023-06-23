@@ -156,7 +156,7 @@ func TestUnOrderedKeyedMapTypeName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			gotMapName, gotKeyName, gotIsDefined, err := UnOrderedKeyedMapTypeName(tt.inListYANGPath, tt.inListFieldName, tt.inParentName, tt.inGoStructElements)
+			gotMapName, gotKeyName, gotIsDefined, err := UnorderedMapTypeName(tt.inListYANGPath, tt.inListFieldName, tt.inParentName, tt.inGoStructElements)
 			if diff := errdiff.Substring(err, tt.wantErrSubstr); diff != "" {
 				t.Fatalf("did not get expected error, %s", diff)
 			}
