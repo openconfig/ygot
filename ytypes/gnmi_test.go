@@ -16,6 +16,7 @@ package ytypes
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -906,7 +907,7 @@ func TestUnmarshalNotifications(t *testing.T) {
 				}},
 			}},
 		}},
-		inUnmarshalOpts: []UnmarshalOpt{&bestEffortUnmarshal{}},
+		inUnmarshalOpts: []UnmarshalOpt{&BestEffortUnmarshal{}},
 		want: &ListElemStruct1{
 			Key1: ygot.String("non-error"),
 			Outer: &OuterContainerType1{
