@@ -65,6 +65,13 @@ func TestUnmarshal(t *testing.T) {
 			value:  nil,
 			opts:   []UnmarshalOpt{&IgnoreExtraFields{}},
 		},
+		{
+			desc: "passing invalid option to Unmarshal",
+			schema: validSchema,
+			value: nil,
+			opts: []UnmarshalOpt{&BestEffortUnmarshal{}},
+			wantErr: `unmarshalGeneric passed unsupported option BestEffortUnmarshal`,
+		},
 	}
 
 	for _, tt := range tests {

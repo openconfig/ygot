@@ -131,6 +131,10 @@ func unmarshalGeneric(schema *yang.Entry, parent interface{}, value interface{},
 		return errors.New("unmarshalling a non leaf node isn't supported in GNMIEncoding mode")
 	}
 
+	if hasBestEffortUnmarshal(opts) {
+		return errors.New("unmarshalGeneric passed unsupported option BestEffortUnmarshal")
+	}
+
 	switch {
 	case schema.IsLeaf():
 		return unmarshalLeaf(schema, parent, value, enc, opts...)
