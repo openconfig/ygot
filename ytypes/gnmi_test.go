@@ -606,7 +606,7 @@ func TestUnmarshalNotifications(t *testing.T) {
 		inUnmarshalOpts []UnmarshalOpt
 		want            ygot.GoStruct
 		wantErr         bool
-		numErrs int
+		numErrs         int
 	}{{
 		desc: "updates to an empty struct",
 		inSchema: &Schema{
