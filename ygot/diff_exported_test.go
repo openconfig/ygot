@@ -42,7 +42,6 @@ func mustPath(s string) *gnmipb.Path {
 }
 
 func TestDiffOrderedMap(t *testing.T) {
-	// TODO: Test for uncompressed structs.
 	tests := []struct {
 		name          string
 		inOrig, inMod ygot.GoStruct
@@ -656,9 +655,6 @@ func TestDiffOrderedMap(t *testing.T) {
 				return
 			}
 
-			if err != nil {
-				return
-			}
 			// To re-use the NotificationSetEqual helper, we put the want and got into
 			// a slice.
 			if !testutil.NotificationSetEqual([]*gnmipb.Notification{got}, []*gnmipb.Notification{tt.want}) {

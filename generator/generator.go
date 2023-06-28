@@ -99,6 +99,7 @@ var (
 	includeModelData        = flag.Bool("include_model_data", false, "If set to true, a slice of gNMI ModelData messages are included in the generated Go code containing the details of the input schemas from which the code was generated.")
 	generatePopulateDefault = flag.Bool("generate_populate_defaults", false, "If set to true, a PopulateDefault method will be generated for all GoStructs which recursively populates default values.")
 	generateValidateFnName  = flag.String("validate_fn_name", "Validate", "The Name of the proxy function for the Validate functionality.")
+	generateOrderedMaps     = flag.Bool("generate_ordered_maps", true, "If set to true, ordered map structures satisfying the interface ygot.GoOrderedMap will be generated for `ordered-by user` lists instead of Go built-in maps.")
 
 	// Flags used for PathStruct generation only.
 	schemaStructPath        = flag.String("schema_struct_path", "", "The Go import path for the schema structs package. This should be specified if and only if schema structs are not being generated at the same time as path structs.")
@@ -374,6 +375,7 @@ func main() {
 				IncludeModelData:                    *includeModelData,
 				AppendEnumSuffixForSimpleUnionEnums: *appendEnumSuffixForSimpleUnionEnums,
 				IgnoreShadowSchemaPaths:             *ignoreShadowSchemaPaths,
+				GenerateOrderedListsAsUnorderedMaps: !*generateOrderedMaps,
 			},
 		)
 

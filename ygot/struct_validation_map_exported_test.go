@@ -118,7 +118,7 @@ func (*mapStructTestFourCOtherSet) ΛBelongingModule() string                { r
 // an enumeration in the YANG schema.
 type ECTest int64
 
-// IsYANGEnumeration ensures that the ECTest derived enum type implemnts
+// IsYANGEnumeration ensures that the ECTest derived enum type implements
 // the GoEnum interface.
 func (ECTest) IsYANGGoEnum() {}
 

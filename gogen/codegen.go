@@ -120,6 +120,10 @@ type GoOpts struct {
 	// compression is enabled, that the shadowed paths are to be ignored
 	// while while unmarshalling.
 	IgnoreShadowSchemaPaths bool
+	// GenerateOrderedListsAsUnorderedMaps indicates that lists that are
+	// marked `ordered-by user` will be represented using built-in Go maps
+	// instead of an ordered map Go structure.
+	GenerateOrderedListsAsUnorderedMaps bool
 }
 
 // GeneratedCode contains generated code snippets that can be processed by the calling
