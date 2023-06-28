@@ -3,8 +3,9 @@ package gogen
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -24,6 +25,8 @@ const (
 	// should be performed to check for flakes.
 	deflakeRuns int = 10
 )
+
+var updateGolden = flag.Bool("update_golden", false, "Update golden files")
 
 // yangTestCase describs a test case for which code generation is performed
 // through Goyang's API, it provides the input set of parameters in a way that
@@ -307,6 +310,25 @@ func TestSimpleStructs(t *testing.T) {
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-withlist-opstate.formatted-txt"),
+	}, {
+		name:    "OpenConfig schema test - list and associated method (rename, new) - using unordered list",
+		inFiles: []string{filepath.Join(datapath, "openconfig-withlist.yang")},
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					CompressBehaviour:                    genutil.PreferIntendedConfig,
+					ShortenEnumLeafNames:                 true,
+					UseDefiningModuleForTypedefEnumNames: true,
+					EnumerationsUseUnderscores:           true,
+				},
+			},
+			GoOptions: GoOpts{
+				GenerateRenameMethod:                true,
+				GenerateSimpleUnions:                true,
+				GenerateOrderedListsAsUnorderedMaps: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-withlist-unordered.formatted-txt"),
 	}, {
 		name:    "OpenConfig schema test - multi-keyed list key struct name conflict and associated method (rename, new)",
 		inFiles: []string{filepath.Join(datapath, "openconfig-multikey-list-name-conflict.yang")},
@@ -1161,9 +1183,9 @@ func TestSimpleStructs(t *testing.T) {
 			}
 
 			if tt.wantSchemaFile != "" {
-				wantSchema, rferr := ioutil.ReadFile(tt.wantSchemaFile)
+				wantSchema, rferr := os.ReadFile(tt.wantSchemaFile)
 				if rferr != nil {
-					t.Fatalf("%s: ioutil.ReadFile(%q) error: %v", tt.name, tt.wantSchemaFile, rferr)
+					t.Fatalf("%s: os.ReadFile(%q) error: %v", tt.name, tt.wantSchemaFile, rferr)
 				}
 
 				var wantJSON map[string]interface{}
@@ -1177,14 +1199,19 @@ func TestSimpleStructs(t *testing.T) {
 				}
 			}
 
-			wantCodeBytes, rferr := ioutil.ReadFile(tt.wantStructsCodeFile)
+			wantCodeBytes, rferr := os.ReadFile(tt.wantStructsCodeFile)
 			if rferr != nil {
-				t.Fatalf("%s: ioutil.ReadFile(%q) error: %v", tt.name, tt.wantStructsCodeFile, rferr)
+				t.Fatalf("%s: os.ReadFile(%q) error: %v", tt.name, tt.wantStructsCodeFile, rferr)
 			}
 
 			wantCode := string(wantCodeBytes)
 
 			if gotCode != wantCode {
+				if *updateGolden {
+					if err := os.WriteFile(tt.wantStructsCodeFile, []byte(gotCode), 0644); err != nil {
+						t.Fatal(err)
+					}
+				}
 				// Use difflib to generate a unified diff between the
 				// two code snippets such that this is simpler to debug
 				// in the test output.

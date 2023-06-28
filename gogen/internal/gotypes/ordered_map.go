@@ -72,7 +72,7 @@ type RoutingPolicy_PolicyDefinition_Statement struct {
 type RoutingPolicy_PolicyDefinition_Statement_OrderedMap struct {
 	// TODO: Add a mutex here and add race tests after implementing
 	// ygot.Equal and evaluating the thread-safety of ygot.
-	//mu       sync.RWmutex
+	// mu       sync.RWmutex
 	// keys contain the key order of the map.
 	keys []string
 	// valueMap contains the mapping from the statement key to each of the

@@ -262,6 +262,74 @@ func (n *ModelPathAny) SingleKey(Key string) *Model_SingleKeyPathAny {
 	}
 }
 
+// SingleKeyOrderedAny (list): 
+// ----------------------------------------
+// Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
+// Path from parent: "c/single-key-ordered"
+// Path from root: "/model/c/single-key-ordered"
+// Key (wildcarded): string
+func (n *ModelPath) SingleKeyOrderedAny() *Model_SingleKeyOrderedPathAny {
+	return &Model_SingleKeyOrderedPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"c", "single-key-ordered"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// SingleKeyOrderedAny (list): 
+// ----------------------------------------
+// Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
+// Path from parent: "c/single-key-ordered"
+// Path from root: "/model/c/single-key-ordered"
+// Key (wildcarded): string
+func (n *ModelPathAny) SingleKeyOrderedAny() *Model_SingleKeyOrderedPathAny {
+	return &Model_SingleKeyOrderedPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"c", "single-key-ordered"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// SingleKeyOrdered (list): 
+// ----------------------------------------
+// Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
+// Path from parent: "c/single-key-ordered"
+// Path from root: "/model/c/single-key-ordered"
+// Key: string
+func (n *ModelPath) SingleKeyOrdered(Key string) *Model_SingleKeyOrderedPath {
+	return &Model_SingleKeyOrderedPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"c", "single-key-ordered"},
+			map[string]interface{}{"key": Key},
+			n,
+		),
+	}
+}
+
+// SingleKeyOrdered (list): 
+// ----------------------------------------
+// Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
+// Path from parent: "c/single-key-ordered"
+// Path from root: "/model/c/single-key-ordered"
+// Key: string
+func (n *ModelPathAny) SingleKeyOrdered(Key string) *Model_SingleKeyOrderedPathAny {
+	return &Model_SingleKeyOrderedPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"c", "single-key-ordered"},
+			map[string]interface{}{"key": Key},
+			n,
+		),
+	}
+}
+
 // Model_MultiKeyPath represents the /openconfig-withlist/model/b/multi-key YANG schema element.
 type Model_MultiKeyPath struct {
 	*ygot.NodePath
@@ -400,6 +468,58 @@ func (n *Model_SingleKeyPath) Key() *Model_SingleKey_KeyPath {
 // Path from root: "/model/a/single-key/state/key"
 func (n *Model_SingleKeyPathAny) Key() *Model_SingleKey_KeyPathAny {
 	return &Model_SingleKey_KeyPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "key"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Model_SingleKeyOrderedPath represents the /openconfig-withlist/model/c/single-key-ordered YANG schema element.
+type Model_SingleKeyOrderedPath struct {
+	*ygot.NodePath
+}
+
+// Model_SingleKeyOrderedPathAny represents the wildcard version of the /openconfig-withlist/model/c/single-key-ordered YANG schema element.
+type Model_SingleKeyOrderedPathAny struct {
+	*ygot.NodePath
+}
+
+// Model_SingleKeyOrdered_KeyPath represents the /openconfig-withlist/model/c/single-key-ordered/state/key YANG schema element.
+type Model_SingleKeyOrdered_KeyPath struct {
+	*ygot.NodePath
+}
+
+// Model_SingleKeyOrdered_KeyPathAny represents the wildcard version of the /openconfig-withlist/model/c/single-key-ordered/state/key YANG schema element.
+type Model_SingleKeyOrdered_KeyPathAny struct {
+	*ygot.NodePath
+}
+
+// Key (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
+// Path from parent: "state/key"
+// Path from root: "/model/c/single-key-ordered/state/key"
+func (n *Model_SingleKeyOrderedPath) Key() *Model_SingleKeyOrdered_KeyPath {
+	return &Model_SingleKeyOrdered_KeyPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "key"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Key (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
+// Path from parent: "state/key"
+// Path from root: "/model/c/single-key-ordered/state/key"
+func (n *Model_SingleKeyOrderedPathAny) Key() *Model_SingleKeyOrdered_KeyPathAny {
+	return &Model_SingleKeyOrdered_KeyPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "key"},
 			map[string]interface{}{},

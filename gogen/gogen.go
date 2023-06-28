@@ -1045,7 +1045,7 @@ func writeGoStruct(targetStruct *ygen.ParsedDirectory, goStructElements map[stri
 			// If the field within the struct is a list, then generate code for this list. This
 			// includes extracting any new types that are required to represent the key of a
 			// list that has multiple keys.
-			fieldType, multiKeyListKey, listMethods, orderedMapSpec, listErr := yangListFieldToGoType(field, fieldName, targetStruct, goStructElements)
+			fieldType, multiKeyListKey, listMethods, orderedMapSpec, listErr := yangListFieldToGoType(field, fieldName, targetStruct, goStructElements, !goOpts.GenerateOrderedListsAsUnorderedMaps)
 			if listErr != nil {
 				errs = append(errs, listErr)
 			}

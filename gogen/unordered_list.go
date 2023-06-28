@@ -594,7 +594,7 @@ func UnorderedMapTypeName(listYANGPath, listFieldName, parentName string, goStru
 //
 // In the case that the list has multiple keys, the type generated as the key of the list is returned.
 // If errors are encountered during the type generation for the list, the error is returned.
-func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, parent *ygen.ParsedDirectory, goStructElements map[string]*ygen.ParsedDirectory) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, *generatedOrderedMapStruct, error) {
+func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, parent *ygen.ParsedDirectory, goStructElements map[string]*ygen.ParsedDirectory, generateOrderedMaps bool) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, *generatedOrderedMapStruct, error) {
 	// The list itself, since it is a container, has a struct associated with it. Retrieve
 	// this from the set of Directory structs for which code (a Go struct) will be
 	//  generated such that additional details can be used in the code generation.
@@ -665,7 +665,7 @@ func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, pa
 	var listMethodSpec *generatedGoListMethod
 	var orderedMapSpec *generatedOrderedMapStruct
 
-	if listField.YANGDetails.OrderedByUser {
+	if listField.YANGDetails.OrderedByUser && generateOrderedMaps {
 		structName := OrderedMapTypeName(listElem.Name)
 		listType = fmt.Sprintf("*%s", structName)
 		// Create spec for generating ordered maps.

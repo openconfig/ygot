@@ -73,6 +73,7 @@ type UnionUnsupported struct {
 type Model struct {
 	MultiKey	map[Model_MultiKey_Key]*Model_MultiKey	`path:"b/multi-key" module:"openconfig-withlist/openconfig-withlist"`
 	SingleKey	map[string]*Model_SingleKey	`path:"a/single-key" module:"openconfig-withlist/openconfig-withlist"`
+	SingleKeyOrdered	*Model_SingleKeyOrdered_OrderedMap	`path:"c/single-key-ordered" module:"openconfig-withlist/openconfig-withlist"`
 }
 
 // IsYANGGoStruct ensures that Model implements the yang.GoStruct
@@ -196,6 +197,165 @@ func (t *Model) RenameSingleKey(oldK, newK string) error {
 	return nil
 }
 
+// AppendNewSingleKeyOrdered creates a new entry in the SingleKeyOrdered
+// ordered map of the Model struct. The keys of the list are
+// populated from the input arguments.
+func (s *Model) AppendNewSingleKeyOrdered(Key string) (*Model_SingleKeyOrdered, error) {
+	if s.SingleKeyOrdered == nil {
+		s.SingleKeyOrdered = &Model_SingleKeyOrdered_OrderedMap{}
+	}
+	return s.SingleKeyOrdered.AppendNew(Key)
+}
+
+// AppendSingleKeyOrdered appends the supplied Model_SingleKeyOrdered struct
+// to the list SingleKeyOrdered of Model. If the key value(s)
+// specified in the supplied Model_SingleKeyOrdered already exist in the list, an
+// error is returned.
+func (s *Model) AppendSingleKeyOrdered(v *Model_SingleKeyOrdered) error {
+	if s.SingleKeyOrdered == nil {
+		s.SingleKeyOrdered = &Model_SingleKeyOrdered_OrderedMap{}
+	}
+	return s.SingleKeyOrdered.Append(v)
+}
+
+// GetSingleKeyOrdered retrieves the value with the specified key from the
+// SingleKeyOrdered map field of Model. If the receiver
+// is nil, or the specified key is not present in the list, nil is returned
+// such that Get* methods may be safely chained.
+func (s *Model) GetSingleKeyOrdered(Key string) *Model_SingleKeyOrdered {
+	key := Key
+	return s.SingleKeyOrdered.Get(key)
+}
+
+// DeleteSingleKeyOrdered deletes the value with the specified keys from
+// the receiver Model. If there is no such element, the
+// function is a no-op.
+func (s *Model) DeleteSingleKeyOrdered(Key string) bool {
+	key := Key
+	return s.SingleKeyOrdered.Delete(key)
+}
+
+// Model_SingleKeyOrdered_OrderedMap is an ordered map that represents the "ordered-by user"
+// list elements at /openconfig-withlist/model/c/single-key-ordered.
+type Model_SingleKeyOrdered_OrderedMap struct {
+	keys []string
+	valueMap map[string]*Model_SingleKeyOrdered
+}
+
+// IsYANGOrderedList ensures that Model_SingleKeyOrdered_OrderedMap implements the
+// ygot.GoOrderedMap interface.
+func (*Model_SingleKeyOrdered_OrderedMap) IsYANGOrderedList() {}
+
+// init initializes any uninitialized values.
+func (o *Model_SingleKeyOrdered_OrderedMap) init() {
+	if o == nil {
+		return
+	}
+	if o.valueMap == nil {
+		o.valueMap = map[string]*Model_SingleKeyOrdered{}
+	}
+}
+
+// Keys returns a copy of the list's keys.
+func (o *Model_SingleKeyOrdered_OrderedMap) Keys() []string {
+	if o == nil {
+		return nil
+	}
+	return append([]string{}, o.keys...)
+}
+
+// Values returns the current set of the list's values in order.
+func (o *Model_SingleKeyOrdered_OrderedMap) Values() []*Model_SingleKeyOrdered {
+	if o == nil {
+		return nil
+	}
+	var values []*Model_SingleKeyOrdered
+	for _, key := range o.keys {
+		values = append(values, o.valueMap[key])
+	}
+	return values
+}
+
+// Len returns a size of Model_SingleKeyOrdered_OrderedMap
+func (o *Model_SingleKeyOrdered_OrderedMap) Len() int {
+	if o == nil {
+		return 0
+	}
+	return len(o.keys)
+}
+
+// Get returns the value corresponding to the key. If the key is not found, nil
+// is returned.
+func (o *Model_SingleKeyOrdered_OrderedMap) Get(key string) *Model_SingleKeyOrdered {
+	if o == nil {
+		return nil
+	}
+	val, _ := o.valueMap[key]
+	return val
+}
+
+// Delete deletes an element.
+func (o *Model_SingleKeyOrdered_OrderedMap) Delete(key string) bool {
+	if o == nil {
+		return false
+	}
+	if _, ok := o.valueMap[key]; !ok {
+		return false
+	}
+	for i, k := range o.keys {
+		if k == key {
+			o.keys = append(o.keys[:i], o.keys[i+1:]...)
+			delete(o.valueMap, key)
+			return true
+		}
+	}
+	return false
+}
+
+// Append appends a Model_SingleKeyOrdered, returning an error if the key
+// already exists in the ordered list or if the key is unspecified.
+func (o *Model_SingleKeyOrdered_OrderedMap) Append(v *Model_SingleKeyOrdered) error {
+	if o == nil {
+		return fmt.Errorf("nil ordered map, cannot append Model_SingleKeyOrdered")
+	}
+	if v == nil {
+		return fmt.Errorf("nil Model_SingleKeyOrdered")
+	}
+	if v.Key == nil {
+		return fmt.Errorf("invalid nil key received for Key")
+	}
+
+	key := *v.Key
+
+	if _, ok := o.valueMap[key]; ok {
+		return fmt.Errorf("duplicate key for list Statement %v", key)
+	}
+	o.keys = append(o.keys, key)
+	o.init()
+	o.valueMap[key] = v
+	return nil
+}
+
+// AppendNew creates and appends a new Model_SingleKeyOrdered, returning the
+// newly-initialized v. It returns an error if the v already exists.
+func (o *Model_SingleKeyOrdered_OrderedMap) AppendNew(Key string) (*Model_SingleKeyOrdered, error) {
+	if o == nil {
+		return nil, fmt.Errorf("nil ordered map, cannot append Model_SingleKeyOrdered")
+	}
+	key := Key
+
+	if _, ok := o.valueMap[key]; ok {
+		return nil, fmt.Errorf("duplicate key for list Statement %v", key)
+	}
+	o.keys = append(o.keys, key)
+	newElement := &Model_SingleKeyOrdered{
+		Key: &Key,
+	}
+	o.init()
+	o.valueMap[key] = newElement
+	return newElement, nil
+}
+
 // ΛBelongingModule returns the name of the module that defines the namespace
 // of Model.
 func (*Model) ΛBelongingModule() string {
@@ -259,5 +419,32 @@ func (t *Model_SingleKey) ΛListKeyMap() (map[string]interface{}, error) {
 // ΛBelongingModule returns the name of the module that defines the namespace
 // of Model_SingleKey.
 func (*Model_SingleKey) ΛBelongingModule() string {
+	return "openconfig-withlist"
+}
+
+// Model_SingleKeyOrdered represents the /openconfig-withlist/model/c/single-key-ordered YANG schema element.
+type Model_SingleKeyOrdered struct {
+	Key	*string	`path:"state/key|key" module:"openconfig-withlist/openconfig-withlist|openconfig-withlist"`
+}
+
+// IsYANGGoStruct ensures that Model_SingleKeyOrdered implements the yang.GoStruct
+// interface. This allows functions that need to handle this struct to
+// identify it as being generated by ygen.
+func (*Model_SingleKeyOrdered) IsYANGGoStruct() {}
+
+// ΛListKeyMap returns the keys of the Model_SingleKeyOrdered struct, which is a YANG list entry.
+func (t *Model_SingleKeyOrdered) ΛListKeyMap() (map[string]interface{}, error) {
+	if t.Key == nil {
+		return nil, fmt.Errorf("nil value for key Key")
+	}
+
+	return map[string]interface{}{
+		"key": *t.Key,
+	}, nil
+}
+
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Model_SingleKeyOrdered.
+func (*Model_SingleKeyOrdered) ΛBelongingModule() string {
 	return "openconfig-withlist"
 }

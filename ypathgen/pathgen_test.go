@@ -15,7 +15,8 @@
 package ypathgen
 
 import (
-	"io/ioutil"
+	"flag"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -38,6 +39,8 @@ const (
 	// datapath is the path to common YANG test modules.
 	datapath = "../testdata/modules"
 )
+
+var updateGolden = flag.Bool("update_golden", false, "Update golden files")
 
 func TestGeneratePathCode(t *testing.T) {
 	tests := []struct {
@@ -974,14 +977,19 @@ func TestGeneratePathCode(t *testing.T) {
 				}
 			}
 
-			wantCodeBytes, rferr := ioutil.ReadFile(tt.wantStructsCodeFile)
+			wantCodeBytes, rferr := os.ReadFile(tt.wantStructsCodeFile)
 			if rferr != nil {
-				t.Fatalf("ioutil.ReadFile(%q) error: %v", tt.wantStructsCodeFile, rferr)
+				t.Fatalf("os.ReadFile(%q) error: %v", tt.wantStructsCodeFile, rferr)
 			}
 
 			wantCode := string(wantCodeBytes)
 
 			if gotCode != wantCode {
+				if *updateGolden {
+					if err := os.WriteFile(tt.wantStructsCodeFile, []byte(gotCode), 0644); err != nil {
+						t.Fatal(err)
+					}
+				}
 				// Use difflib to generate a unified diff between the
 				// two code snippets such that this is simpler to debug
 				// in the test output.
@@ -1083,9 +1091,9 @@ func TestGeneratePathCodeSplitFiles(t *testing.T) {
 
 			var wantCode []string
 			for _, codeFile := range tt.wantStructsCodeFiles {
-				wantCodeBytes, rferr := ioutil.ReadFile(codeFile)
+				wantCodeBytes, rferr := os.ReadFile(codeFile)
 				if rferr != nil {
-					t.Fatalf("ioutil.ReadFile(%q) error: %v", tt.wantStructsCodeFiles, rferr)
+					t.Fatalf("os.ReadFile(%q) error: %v", tt.wantStructsCodeFiles, rferr)
 				}
 				wantCode = append(wantCode, string(wantCodeBytes))
 			}
@@ -1096,6 +1104,11 @@ func TestGeneratePathCodeSplitFiles(t *testing.T) {
 			} else {
 				for i := range gotCode {
 					if gotCode[i] != wantCode[i] {
+						if *updateGolden {
+							if err := os.WriteFile(tt.wantStructsCodeFiles[i], []byte(gotCode[i]), 0644); err != nil {
+								t.Fatal(err)
+							}
+						}
 						// Use difflib to generate a unified diff between the
 						// two code snippets such that this is simpler to debug
 						// in the test output.
@@ -1186,9 +1199,9 @@ func TestGeneratePathCodeSplitModules(t *testing.T) {
 
 			wantCode := map[string]string{}
 			for pkg, codeFile := range tt.wantStructsCodeFiles {
-				wantCodeBytes, rferr := ioutil.ReadFile(codeFile)
+				wantCodeBytes, rferr := os.ReadFile(codeFile)
 				if rferr != nil {
-					t.Fatalf("ioutil.ReadFile(%q) error: %v", tt.wantStructsCodeFiles, rferr)
+					t.Fatalf("os.ReadFile(%q) error: %v", tt.wantStructsCodeFiles, rferr)
 				}
 				wantCode[pkg] = string(wantCodeBytes)
 			}
@@ -1199,6 +1212,11 @@ func TestGeneratePathCodeSplitModules(t *testing.T) {
 			} else {
 				for pkg := range gotCode {
 					if gotCode[pkg] != wantCode[pkg] {
+						if *updateGolden {
+							if err := os.WriteFile(tt.wantStructsCodeFiles[pkg], []byte(gotCode[pkg]), 0644); err != nil {
+								t.Fatal(err)
+							}
+						}
 						// Use difflib to generate a unified diff between the
 						// two code snippets such that this is simpler to debug
 						// in the test output.

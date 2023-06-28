@@ -610,7 +610,7 @@ func (node *PathQueryNodeMemo) GetRoot() *PathQueryNodeMemo {
 }
 
 // FieldIteratorFunc is an iteration function for arbitrary field traversals.
-// in, out are passed through from the caller to the iteration vistior function
+// in, out are passed through from the caller to the iteration visitor function
 // and can be used to pass state in and out. They are not otherwise touched.
 // It returns a slice of errors encountered while processing the field.
 type FieldIteratorFunc func(ni *NodeInfo, in, out interface{}) Errors
@@ -629,7 +629,7 @@ const (
 )
 
 // FieldIteratorFunc2 is an iteration function for arbitrary field traversals.
-// in, out are passed through from the caller to the iteration vistior function
+// in, out are passed through from the caller to the iteration visitor function
 // and can be used to pass state in and out. They are not otherwise touched.
 // It returns what next iteration action to take as well as an error.
 type FieldIteratorFunc2 func(ni *NodeInfo, in, out any) (IterationAction, Errors)
