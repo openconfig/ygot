@@ -22,8 +22,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/integration_tests/schemaops/utestschema"
+	"github.com/openconfig/ygot/internal/ytestutil"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
 )
@@ -114,7 +118,7 @@ func (*mapStructTestFourCOtherSet) ΛBelongingModule() string                { r
 // an enumeration in the YANG schema.
 type ECTest int64
 
-// IsYANGEnumeration ensures that the ECTest derived enum type implemnts
+// IsYANGEnumeration ensures that the ECTest derived enum type implements
 // the GoEnum interface.
 func (ECTest) IsYANGGoEnum() {}
 
@@ -299,6 +303,188 @@ func TestEmitJSON(t *testing.T) {
 					diff = diffl
 				}
 				t.Errorf("%s: EmitJSON(%v, nil): got invalid JSON, diff(-want, +got):\n%s", tt.name, tt.inStruct, diff)
+			}
+		})
+	}
+}
+
+func TestDeepCopyOrderedMap(t *testing.T) {
+	tests := []struct {
+		name             string
+		in               func() *ctestschema.Device
+		inKey            string
+		wantErrSubstring string
+	}{{
+		name: "single-keyed",
+		in:   func() *ctestschema.Device { return &ctestschema.Device{OrderedList: ctestschema.GetOrderedMap(t)} },
+	}, {
+		name: "multi-keyed",
+		in: func() *ctestschema.Device {
+			return &ctestschema.Device{OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t)}
+		},
+	}, {
+		name: "nested",
+		in: func() *ctestschema.Device {
+			return &ctestschema.Device{OrderedList: ctestschema.GetNestedOrderedMap(t)}
+		},
+	}}
+
+	for _, tt := range tests {
+		got, err := ygot.DeepCopy(tt.in())
+		gotRoot, ok := got.(*ctestschema.Device)
+		if !ok {
+			t.Fatalf("Got object that's not root device: %T", got)
+		}
+
+		in := tt.in()
+		if err != nil {
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Errorf("%s: DeepCopy(%#v): did not get expected error, %s", tt.name, in, diff)
+			}
+			continue
+		}
+
+		if diff := cmp.Diff(got, in, ytestutil.OrderedMapCmpOptions...); diff != "" {
+			t.Errorf("did not get identical copy, diff(-got,+want):\n%s", diff)
+		}
+
+		gotValues := gotRoot.OrderedList.Values()
+		for i, inV := range in.OrderedList.Values() {
+			gotV := gotValues[i]
+			if inV == gotV {
+				t.Errorf("%s: DeepCopy: after copy, input and copy have same memory address: %v", tt.name, inV)
+			}
+			if gotV == nil {
+				continue
+			}
+			if inV.Key != nil && inV.Key == gotV.Key {
+				t.Errorf("%s: DeepCopy: key have same address", tt.name)
+			}
+			if inV.ParentKey != nil && inV.ParentKey == gotV.ParentKey {
+				t.Errorf("%s: DeepCopy: ParentKey have same address", tt.name)
+			}
+			if inV.RoValue != nil && inV.RoValue == gotV.RoValue {
+				t.Errorf("%s: DeepCopy: RoValue have same address", tt.name)
+			}
+			if inV.Value != nil && inV.Value == gotV.Value {
+				t.Errorf("%s: DeepCopy: Value have same address", tt.name)
+			}
+			for j, inV := range inV.OrderedList.Values() {
+				gotV := gotValues[i].OrderedList.Values()[j]
+				if inV == gotV {
+					t.Errorf("%s: DeepCopy: after copy, input and copy have same memory address: %v", tt.name, inV)
+				}
+				if gotV == nil {
+					continue
+				}
+				if inV.Key != nil && inV.Key == gotV.Key {
+					t.Errorf("%s: DeepCopy: key have same address", tt.name)
+				}
+				if inV.ParentKey != nil && inV.ParentKey == gotV.ParentKey {
+					t.Errorf("%s: DeepCopy: ParentKey have same address", tt.name)
+				}
+				if inV.Value != nil && inV.Value == gotV.Value {
+					t.Errorf("%s: DeepCopy: Value have same address", tt.name)
+				}
+			}
+		}
+
+		gotMultikeyedValues := gotRoot.OrderedMultikeyedList.Values()
+		for i, inV := range in.OrderedMultikeyedList.Values() {
+			gotV := gotMultikeyedValues[i]
+			if inV == gotV {
+				t.Errorf("%s: DeepCopy: after copy, input and copy have same memory address: %v", tt.name, inV)
+			}
+			if gotV == nil {
+				continue
+			}
+			if inV.Key1 != nil && inV.Key1 == gotV.Key1 {
+				t.Errorf("%s: DeepCopy: key have same address", tt.name)
+			}
+			if inV.Key2 != nil && inV.Key2 == gotV.Key2 {
+				t.Errorf("%s: DeepCopy: RoValue have same address", tt.name)
+			}
+			if inV.Value != nil && inV.Value == gotV.Value {
+				t.Errorf("%s: DeepCopy: Value have same address", tt.name)
+			}
+		}
+	}
+}
+
+func TestMergeStructsOrderedMap(t *testing.T) {
+	tests := []struct {
+		name          string
+		inA           ygot.GoStruct
+		inB           ygot.GoStruct
+		inOpts        []ygot.MergeOpt
+		want          ygot.GoStruct
+		wantErrSubstr string
+	}{{
+		name: "non-overlapping ordered lists",
+		inA: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		inB: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap2(t),
+		},
+		want: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				list := ctestschema.GetOrderedMap(t)
+				for _, v := range ctestschema.GetOrderedMap2(t).Values() {
+					list.Append(v)
+				}
+				return list
+			}(),
+		},
+	}, {
+		name: "merge from non-empty to empty",
+		inA:  &ctestschema.Device{},
+		inB: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap2(t),
+		},
+		want: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap2(t),
+		},
+	}, {
+		name: "merge from non-empty to empty uncompressed",
+		inA:  &utestschema.Device{},
+		inB:  utestschema.GetDeviceWithOrderedMap(t),
+		want: utestschema.GetDeviceWithOrderedMap(t),
+	}, {
+		name: "merge from empty to non-empty",
+		inA: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap2(t),
+		},
+		inB: &ctestschema.Device{},
+		want: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap2(t),
+		},
+	}, {
+		// NOTE: For overlaps where the second ordered list is a subset
+		// of the first, then this may be a valid merge and we may want
+		// to implement this if there is a use case.
+		name: "overlapping ordered lists",
+		inA: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		inB: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		wantErrSubstr: "ordered map keys overlap at foo -- merge behaviour is not well defined",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ygot.MergeStructs(tt.inA, tt.inB, tt.inOpts...)
+			if diff := errdiff.Substring(err, tt.wantErrSubstr); diff != "" {
+				t.Errorf("%s: MergeStructs(%v, %v): did not get expected error status, %s", tt.name, tt.inA, tt.inB, diff)
+			}
+			if err != nil {
+				return
+			}
+
+			if diff := cmp.Diff(got, tt.want, ytestutil.OrderedMapCmpOptions...); diff != "" {
+				t.Errorf("%s: MergeStructs(%v, %v): did not get expected returned struct, diff(-got,+want):\n%s", tt.name, tt.inA, tt.inB, diff)
 			}
 		})
 	}

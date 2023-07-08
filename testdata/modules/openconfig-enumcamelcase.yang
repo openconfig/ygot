@@ -2,6 +2,8 @@ module openconfig-enumcamelcase {
   prefix "occ";
   namespace "urn:occ";
 
+  import openconfig-codegen-extensions { prefix "ocgenext"; }
+
   ocgenext:camelcase-name "OpenConfigCamelCase";
 
   container foo {

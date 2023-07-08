@@ -15,16 +15,41 @@
 package util_test
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/integration_tests/schemaops/utestschema"
 	"github.com/openconfig/ygot/internal/ytestutil"
 	"github.com/openconfig/ygot/util"
 )
+
+func PrintMapKeysSchemaAnnotationFunc(ni *util.NodeInfo, in, out interface{}) (errs util.Errors) {
+	if util.IsNilOrInvalidValue(ni.FieldKey) {
+		return
+	}
+	outs := out.(*string)
+	s := "nil"
+	if !util.IsNilOrInvalidValue(ni.FieldValue) {
+		s = pretty.Sprint(ni.FieldValue.Interface())
+	}
+
+	fn, err := util.SchemaPaths(ni.StructField)
+	if err != nil {
+		errs = append(errs, err)
+	}
+	if l := len(fn); l != 1 {
+		errs = append(errs, fmt.Errorf("invalid schema path length %d for %v", l, ni.StructField.Name))
+	}
+
+	*outs += fmt.Sprintf("%s/%s : \n%s\n, ", util.ValueStr(ni.FieldKey.Interface()), fn[0][0], util.ValueStr(s))
+	return
+}
 
 // to ptr conversion utility functions
 func toInt8Ptr(i int8) *int8 { return &i }
@@ -48,6 +73,9 @@ func TestIsValueNil(t *testing.T) {
 	if !util.IsValueNil((*ctestschema.OrderedList_OrderedMap)(nil)) {
 		t.Error("got util.IsValueNil(interface) false, want true")
 	}
+	if !util.IsValueNil((*utestschema.Ctestschema_OrderedLists_OrderedList_OrderedMap)(nil)) {
+		t.Error("got util.IsValueNil(interface) false, want true")
+	}
 
 	if util.IsValueNil(toInt8Ptr(42)) {
 		t.Error("got util.IsValueNil(ptr) true, want false")
@@ -62,6 +90,9 @@ func TestIsValueNil(t *testing.T) {
 		t.Error("got util.IsValueNil(interface) true, want false")
 	}
 	if util.IsValueNil(ctestschema.GetOrderedMap(t)) {
+		t.Error("got util.IsValueNil(interface) true, want false")
+	}
+	if util.IsValueNil(utestschema.GetOrderedMap(t)) {
 		t.Error("got util.IsValueNil(interface) true, want false")
 	}
 }
@@ -139,7 +170,7 @@ func TestInsertIntoMap(t *testing.T) {
 				return
 			}
 
-			if diff := cmp.Diff(tt.wantMap, tt.inMap, cmp.AllowUnexported(ctestschema.OrderedList_OrderedMap{})); diff != "" {
+			if diff := cmp.Diff(tt.wantMap, tt.inMap); diff != "" {
 				t.Errorf("(-want, +got):\n%s", diff)
 			}
 		})
@@ -269,6 +300,15 @@ func TestForEachFieldOrderedMap(t *testing.T) {
 		inIterFunc: ytestutil.PrintFieldsIterFunc,
 		wantOut:    `[config key]: &"foo", [key]: &"foo", [config value]: &"foo-val", [config key]: &"bar", [key]: &"bar", [config value]: &"bar-val", `,
 	}, {
+		desc:       "single-keyed uncompressed list",
+		inSchema:   utestschema.SchemaTree["Device"],
+		inParent:   utestschema.GetDeviceWithOrderedMap(t),
+		in:         nil,
+		inIterFunc: ytestutil.PrintFieldsIterFunc,
+		// Out-of-order since foo-val is config and bar-val is state.
+		// Remember that ForEachField traverses in pre-order.
+		wantOut: `[value]: &"foo-val", [key]: &"foo", [key]: &"bar", [value]: &"bar-val", `,
+	}, {
 		desc:     "multi-keyed list",
 		inSchema: ctestschema.SchemaTree["Device"],
 		inParent: &ctestschema.Device{
@@ -289,6 +329,116 @@ func TestForEachFieldOrderedMap(t *testing.T) {
 			if diff := cmp.Diff(outStr, tt.wantOut); diff != "" {
 				t.Errorf("%s:\n%s", tt.desc, diff)
 			}
+		}
+	}
+}
+
+func TestForEachDataFieldOrderedMap(t *testing.T) {
+	tests := []struct {
+		desc       string
+		inParent   any
+		in         any
+		out        any
+		inIterFunc util.FieldIteratorFunc
+		wantOut    string
+		wantErr    string
+	}{{
+		desc: "single-keyed list",
+		inParent: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		in:         nil,
+		inIterFunc: PrintMapKeysSchemaAnnotationFunc,
+		wantOut: `foo (string)/ordered-lists : 
+{ΛMetadata:    [],
+ Key:           "foo",
+ ΛKey:         [],
+ OrderedList:   nil,
+ ΛOrderedList: [],
+ ParentKey:     nil,
+ ΛParentKey:   [],
+ RoVa...
+, bar (string)/ordered-lists : 
+{ΛMetadata:    [],
+ Key:           "bar",
+ ΛKey:         [],
+ OrderedList:   nil,
+ ΛOrderedList: [],
+ ParentKey:     nil,
+ ΛParentKey:   [],
+ RoVa...
+, `,
+	}, {
+		desc:       "single-keyed uncompressed list",
+		inParent:   utestschema.GetDeviceWithOrderedMap(t),
+		in:         nil,
+		inIterFunc: PrintMapKeysSchemaAnnotationFunc,
+		wantOut: `foo (string)/ordered-list : 
+{ΛMetadata:     [],
+ Config:         {ΛMetadata: [],
+                  Key:        nil,
+                  ΛKey:      [],
+                  Value:  ...
+, bar (string)/ordered-list : 
+{ΛMetadata:     [],
+ Config:         nil,
+ ΛConfig:       [],
+ Key:            "bar",
+ ΛKey:          [],
+ OrderedLists:   nil,
+ ΛOrderedLists: []...
+, `,
+	}, {
+		desc: "multi-keyed list",
+		inParent: &ctestschema.Device{
+			OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t),
+		},
+		in:         nil,
+		inIterFunc: PrintMapKeysSchemaAnnotationFunc,
+		wantOut: `{ foo (string), 42 (uint64) }/ordered-multikeyed-lists : 
+{ΛMetadata: [],
+ Key1:       "foo",
+ ΛKey1:     [],
+ Key2:       42,
+ ΛKey2:     [],
+ RoValue:    nil,
+ ΛRoValue:  [],
+ Value:      "foo-val",
+ Λ...
+, { bar (string), 42 (uint64) }/ordered-multikeyed-lists : 
+{ΛMetadata: [],
+ Key1:       "bar",
+ ΛKey1:     [],
+ Key2:       42,
+ ΛKey2:     [],
+ RoValue:    nil,
+ ΛRoValue:  [],
+ Value:      "bar-val",
+ Λ...
+, { baz (string), 84 (uint64) }/ordered-multikeyed-lists : 
+{ΛMetadata: [],
+ Key1:       "baz",
+ ΛKey1:     [],
+ Key2:       84,
+ ΛKey2:     [],
+ RoValue:    nil,
+ ΛRoValue:  [],
+ Value:      "baz-val",
+ Λ...
+, `,
+	}}
+
+	for _, tt := range tests {
+		outStr := ""
+		var errs util.Errors = util.ForEachDataField(tt.inParent, tt.in, &outStr, tt.inIterFunc)
+		if diff := cmp.Diff(errs.String(), tt.wantErr); diff != "" {
+			t.Errorf("error (-got, +want):\n%s", diff)
+		}
+		if len(errs) > 0 {
+			continue
+		}
+		if diff := cmp.Diff(outStr, tt.wantOut); diff != "" {
+			t.Errorf("%s (-got, +want):\n%s", tt.desc, diff)
 		}
 	}
 }

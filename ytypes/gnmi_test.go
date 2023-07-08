@@ -15,6 +15,8 @@
 package ytypes
 
 import (
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -32,6 +34,7 @@ func TestUnmarshalSetRequest(t *testing.T) {
 		inUnmarshalOpts []UnmarshalOpt
 		want            ygot.GoStruct
 		wantErr         bool
+		numErrs         int
 	}{{
 		desc: "nil input",
 		inSchema: &Schema{
@@ -496,6 +499,75 @@ func TestUnmarshalSetRequest(t *testing.T) {
 			}},
 		},
 		wantErr: true,
+	}, {
+		desc: "mix of errors and a non-error with best-effort flag",
+		inSchema: &Schema{
+			Root: &ListElemStruct1{
+				Key1: ygot.String("mixederrors"),
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName:     ygot.Int32(43),
+						Int32LeafListName: []int32{100},
+						StringLeafName:    ygot.String("bear"),
+					},
+				},
+			},
+			SchemaTree: map[string]*yang.Entry{
+				"ListElemStruct1": simpleSchema(),
+			},
+		},
+		inReq: &gpb.SetRequest{
+			Prefix: &gpb.Path{},
+			Update: []*gpb.Update{{
+				Path: mustPath("/key1"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "non-error"}},
+			}, {
+				Path: mustPath("/outer/error"),
+				Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{
+					JsonIetfVal: []byte(`
+{
+	"int32-leaf-list": [42]
+}
+					`),
+				}},
+			}, {
+				Path: mustPath("/outer/error2"),
+				Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{
+					JsonIetfVal: []byte(`
+{
+	"int32-leaf-list": [42]
+}
+					`),
+				}},
+			}},
+			Replace: []*gpb.Update{{
+				Path: mustPath("/key1"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "success"}},
+			}, {
+				Path: mustPath("/key2"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "failure"}},
+			}, {
+				Path: mustPath("/key3"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "failure"}},
+			}},
+			Delete: []*gpb.Path{
+				mustPath("/outer/inner/config/int32-leaf-field"),
+				mustPath("/outer/error"),
+				mustPath("/outer/error2"),
+			},
+		},
+		inUnmarshalOpts: []UnmarshalOpt{&BestEffortUnmarshal{}},
+		want: &ListElemStruct1{
+			Key1: ygot.String("non-error"),
+			Outer: &OuterContainerType1{
+				Inner: &InnerContainerType1{
+					Int32LeafListName: []int32{100},
+					StringLeafName:    ygot.String("bear"),
+				},
+			},
+		},
+		wantErr: true,
+		numErrs: 6,
 	}}
 
 	for _, tt := range tests {
@@ -503,6 +575,19 @@ func TestUnmarshalSetRequest(t *testing.T) {
 			err := UnmarshalSetRequest(tt.inSchema, tt.inReq, tt.inUnmarshalOpts...)
 			if gotErr := err != nil; gotErr != tt.wantErr {
 				t.Fatalf("got error: %v, want: %v", err, tt.wantErr)
+			}
+			if err != nil && hasBestEffortUnmarshal(tt.inUnmarshalOpts) {
+				var ce *ComplianceErrors
+				if errors.As(err, &ce) {
+					if len(ce.Errors) != tt.numErrs {
+						t.Fatalf("Got the incorrect number of errors: want %v, got %v", tt.numErrs, len(ce.Errors))
+					}
+					if !strings.HasPrefix(ce.Error(), "Noncompliance errors") {
+						t.Fatalf("Incorrect error message, should begin with \"Noncompliance errors\": %v", err)
+					}
+				} else {
+					t.Fatalf("Error casting BestEffortUnmarshal result to compliance errors struct")
+				}
 			}
 			if !tt.wantErr {
 				if diff := cmp.Diff(tt.inSchema.Root, tt.want); diff != "" {
@@ -521,6 +606,7 @@ func TestUnmarshalNotifications(t *testing.T) {
 		inUnmarshalOpts []UnmarshalOpt
 		want            ygot.GoStruct
 		wantErr         bool
+		numErrs         int
 	}{{
 		desc: "updates to an empty struct",
 		inSchema: &Schema{
@@ -774,6 +860,65 @@ func TestUnmarshalNotifications(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		desc: "mix of errors and a non-error with best-effort flag",
+		inSchema: &Schema{
+			Root: &ListElemStruct1{
+				Key1: ygot.String("mixederrors"),
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName:     ygot.Int32(43),
+						Int32LeafListName: []int32{100},
+						StringLeafName:    ygot.String("bear"),
+					},
+				},
+			},
+			SchemaTree: map[string]*yang.Entry{
+				"ListElemStruct1": simpleSchema(),
+			},
+		},
+		inNotifications: []*gpb.Notification{{
+			Prefix: &gpb.Path{},
+			Delete: []*gpb.Path{
+				mustPath("/outer/inner/config/int32-leaf-field"),
+				mustPath("/outer/error"),
+				mustPath("/outer/error2"),
+			},
+			Update: []*gpb.Update{{
+				Path: mustPath("/key1"),
+				Val:  &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "non-error"}},
+			}, {
+				Path: mustPath("/outer/error"),
+				Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{
+					JsonIetfVal: []byte(`
+{
+	"int32-leaf-list": [42]
+}
+					`),
+				}},
+			}, {
+				Path: mustPath("/outer/error2"),
+				Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonIetfVal{
+					JsonIetfVal: []byte(`
+{
+	"int32-leaf-list": [42]
+}
+					`),
+				}},
+			}},
+		}},
+		inUnmarshalOpts: []UnmarshalOpt{&BestEffortUnmarshal{}},
+		want: &ListElemStruct1{
+			Key1: ygot.String("non-error"),
+			Outer: &OuterContainerType1{
+				Inner: &InnerContainerType1{
+					Int32LeafListName: []int32{100},
+					StringLeafName:    ygot.String("bear"),
+				},
+			},
+		},
+		wantErr: true,
+		numErrs: 4,
 	}}
 
 	for _, tt := range tests {
@@ -781,6 +926,20 @@ func TestUnmarshalNotifications(t *testing.T) {
 			err := UnmarshalNotifications(tt.inSchema, tt.inNotifications, tt.inUnmarshalOpts...)
 			if gotErr := err != nil; gotErr != tt.wantErr {
 				t.Fatalf("got error: %v, want: %v", err, tt.wantErr)
+			}
+			if err != nil && hasBestEffortUnmarshal(tt.inUnmarshalOpts) {
+				var ce *ComplianceErrors
+				if errors.As(err, &ce) {
+					if len(ce.Errors) != tt.numErrs {
+						t.Log(err.Error())
+						t.Fatalf("Got the incorrect number of errors: want %v, got %v", tt.numErrs, len(ce.Errors))
+					}
+					if !strings.HasPrefix(ce.Error(), "Noncompliance errors") {
+						t.Fatalf("Incorrect error message, should begin with \"Noncompliance errors\": %v", err)
+					}
+				} else {
+					t.Fatalf("Error casting BestEffortUnmarshal result to compliance errors struct")
+				}
 			}
 			if !tt.wantErr {
 				if diff := cmp.Diff(tt.inSchema.Root, tt.want); diff != "" {

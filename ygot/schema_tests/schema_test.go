@@ -28,6 +28,9 @@ import (
 	"github.com/openconfig/ygot/exampleoc"
 	"github.com/openconfig/ygot/exampleoc/opstateoc"
 	"github.com/openconfig/ygot/exampleoc/wrapperunionoc"
+	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/integration_tests/schemaops/utestschema"
+	"github.com/openconfig/ygot/internal/ytestutil"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/uexampleoc"
 	"github.com/openconfig/ygot/ygot"
@@ -154,6 +157,93 @@ func TestPopulateDefaults(t *testing.T) {
 		t.Errorf("(-got, +want):\n%s", diff)
 	}
 	if got, want := len(got.Interface), 1; got != want {
+		t.Errorf("got %v interfaces populated in struct, expected %v.", got, want)
+	}
+}
+
+func TestPopulateDefaultsOrderedMapCompressed(t *testing.T) {
+	setAndPopulate := func() *ctestschema.Device {
+		d := &ctestschema.Device{}
+		d.AppendNewOrderedList("foo")
+		d.AppendNewOrderedList("bar")
+		d.AppendNewOrderedMultikeyedList("foo", 42)
+		d.AppendNewOrderedMultikeyedList("bar", 42)
+		d.AppendNewOrderedMultikeyedList("baz", 84)
+
+		d.OrderedList.Get("foo").Value = ygot.String("non-default-value")
+		d.GetOrderedMultikeyedList("foo", 42).Value = ygot.String("non-default-value")
+		d.PopulateDefaults()
+		return d
+	}
+
+	populateAndSet := func() *ctestschema.Device {
+		d := &ctestschema.Device{}
+		d.AppendNewOrderedList("foo")
+		d.AppendNewOrderedList("bar")
+		d.AppendNewOrderedMultikeyedList("foo", 42)
+		d.AppendNewOrderedMultikeyedList("bar", 42)
+		d.AppendNewOrderedMultikeyedList("baz", 84)
+
+		d.PopulateDefaults()
+		d.OrderedList.Get("foo").Value = ygot.String("non-default-value")
+		d.OrderedList.Get("bar").Value = ygot.String("default-value")
+		d.GetOrderedMultikeyedList("foo", 42).Value = ygot.String("non-default-value")
+		d.GetOrderedMultikeyedList("bar", 42).Value = ygot.String("default-multikeyed-value")
+		d.GetOrderedMultikeyedList("baz", 84).Value = ygot.String("default-multikeyed-value")
+		return d
+	}
+
+	got, want := setAndPopulate(), populateAndSet()
+	if diff := cmp.Diff(got, want, ytestutil.OrderedMapCmpOptions...); diff != "" {
+		t.Errorf("(-got, +want):\n%s", diff)
+	}
+	if got, want := got.OrderedList.Len(), 2; got != want {
+		t.Errorf("got %v interfaces populated in struct, expected %v.", got, want)
+	}
+}
+
+func TestPopulateDefaultsOrderedMapUncompressed(t *testing.T) {
+	setAndPopulate := func() *utestschema.Device {
+		d := &utestschema.Device{}
+		o := d.GetOrCreateOrderedLists()
+		o.AppendNewOrderedList("foo")
+		o.AppendNewOrderedList("bar")
+		m := d.GetOrCreateOrderedMultikeyedLists()
+		m.AppendNewOrderedMultikeyedList("foo", 42)
+		m.AppendNewOrderedMultikeyedList("bar", 42)
+		m.AppendNewOrderedMultikeyedList("baz", 84)
+
+		o.OrderedList.Get("foo").GetOrCreateConfig().Value = ygot.String("non-default-value")
+		d.GetOrderedMultikeyedLists().GetOrderedMultikeyedList("foo", 42).GetOrCreateConfig().Value = ygot.String("non-default-value")
+		d.PopulateDefaults()
+		return d
+	}
+
+	populateAndSet := func() *utestschema.Device {
+		d := &utestschema.Device{}
+		o := d.GetOrCreateOrderedLists()
+		o.AppendNewOrderedList("foo")
+		o.AppendNewOrderedList("bar")
+		m := d.GetOrCreateOrderedMultikeyedLists()
+		m.AppendNewOrderedMultikeyedList("foo", 42)
+		m.AppendNewOrderedMultikeyedList("bar", 42)
+		m.AppendNewOrderedMultikeyedList("baz", 84)
+
+		d.PopulateDefaults()
+		o.OrderedList.Get("foo").GetOrCreateConfig().Value = ygot.String("non-default-value")
+		o.OrderedList.Get("bar").GetOrCreateConfig().Value = ygot.String("default-value")
+		m = d.GetOrCreateOrderedMultikeyedLists()
+		m.GetOrderedMultikeyedList("foo", 42).GetOrCreateConfig().Value = ygot.String("non-default-value")
+		m.GetOrderedMultikeyedList("bar", 42).GetOrCreateConfig().Value = ygot.String("default-multikeyed-value")
+		m.GetOrderedMultikeyedList("baz", 84).GetOrCreateConfig().Value = ygot.String("default-multikeyed-value")
+		return d
+	}
+
+	got, want := setAndPopulate(), populateAndSet()
+	if diff := cmp.Diff(got, want, ytestutil.OrderedMapCmpOptions...); diff != "" {
+		t.Errorf("(-got, +want):\n%s", diff)
+	}
+	if got, want := got.OrderedLists.OrderedList.Len(), 2; got != want {
 		t.Errorf("got %v interfaces populated in struct, expected %v.", got, want)
 	}
 }

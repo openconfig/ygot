@@ -21,6 +21,8 @@ import (
 	"strings"
 
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errlist"
+	"github.com/openconfig/ygot/internal/yreflect"
 	"github.com/openconfig/ygot/util"
 	"google.golang.org/protobuf/proto"
 
@@ -232,11 +234,15 @@ func toStringPathMap(pathMap map[*pathSpec]interface{}) (map[string]*pathInfo, e
 // walk of the struct - using the out argument to store the set of changed leaves.
 // A specific Annotation is used to store the absolute path of the entity during
 // the walk.
-func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, error) {
+//
+// - orderedMapAsLeaf=true specifies that ordered maps (GoOrderedMap
+// interface) will be treated as a leaf and will be returned as-is instead of
+// being walked and its leaves populated.
+func findSetLeaves(s GoStruct, orderedMapAsLeaf bool, opts ...DiffOpt) (map[*pathSpec]interface{}, error) {
 	pathOpt := hasDiffPathOpt(opts)
 	processedPaths := map[string]bool{}
 
-	findSetIterFunc := func(ni *util.NodeInfo, in, out interface{}) (errs util.Errors) {
+	findSetIterFunc := func(ni *util.NodeInfo, in, out interface{}) (action util.IterationAction, errs util.Errors) {
 		if reflect.DeepEqual(ni.StructField, reflect.StructField{}) {
 			return
 		}
@@ -272,15 +278,17 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 
 		vp, err := nodeValuePath(ni, sp)
 		if err != nil {
-			return util.NewErrs(err)
+			errs = util.NewErrs(err)
+			return
 		}
 
-		//prevent duplicate key
+		// Avoid processing twice if there is duplicate path.
 		keys := make([]string, len(vp.gNMIPaths))
 		for i, paths := range vp.gNMIPaths {
 			s, err := PathToString(paths)
 			if err != nil {
-				return util.NewErrs(err)
+				errs = util.NewErrs(err)
+				return
 			}
 			keys[i] = s
 		}
@@ -293,12 +301,23 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 
 		ni.Annotation = []interface{}{vp}
 
+		ival := ni.FieldValue.Interface()
+
+		orderedMap, isOrderedMap := ival.(GoOrderedMap)
+
 		// Ignore non-data, or default data values.
-		if util.IsNilOrInvalidValue(ni.FieldValue) || util.IsValueNilOrDefault(ni.FieldValue.Interface()) || util.IsValueStructPtr(ni.FieldValue) || util.IsValueMap(ni.FieldValue) {
+		if util.IsNilOrInvalidValue(ni.FieldValue) || util.IsValueNilOrDefault(ni.FieldValue.Interface()) || util.IsValueMap(ni.FieldValue) {
 			return
 		}
-
-		ival := ni.FieldValue.Interface()
+		// Ignore structs unless it is an ordered map and we're
+		// treating it as a leaf (since it is assumed to be
+		// telemetry-atomic in order to preserve ordering of entries).
+		if (!isOrderedMap || !orderedMapAsLeaf) && util.IsValueStructPtr(ni.FieldValue) {
+			return
+		}
+		if isOrderedMap && orderedMap.Len() == 0 {
+			return
+		}
 
 		// If this is an enumerated value in the output structs, then check whether
 		// it is set. Only include values that are set to a non-zero value.
@@ -317,11 +336,17 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 		outs := out.(map[*pathSpec]interface{})
 		outs[vp] = ival
 
+		if isOrderedMap && orderedMapAsLeaf {
+			// We treat the ordered map as a leaf, so don't
+			// traverse any descendant elements.
+			action = util.DoNotIterateDescendants
+		}
+
 		return
 	}
 
 	out := map[*pathSpec]interface{}{}
-	if errs := util.ForEachDataField(s, nil, out, findSetIterFunc); errs != nil {
+	if errs := util.ForEachDataField2(s, nil, out, findSetIterFunc); errs != nil {
 		return nil, fmt.Errorf("error from ForEachDataField iteration: %v", errs)
 	}
 
@@ -434,6 +459,11 @@ func (*DiffPathOpt) IsDiffOpt() {}
 //     field value.
 //   - The paths within the Delete field of the notification indicate that the
 //     field was not present in the modified struct, but was set in the original.
+//   - NOTE: For `ordered-by user` nodes, which are represented by ordered maps
+//     in the ygot-generated code, the output Notification cannot be directly
+//     unmarshalling into original to arrive at modified since updates are
+//     granular. For generating atomic:true Notifications, use
+//     ygot.DiffWithAtomic instead.
 //
 // Annotation fields that are contained within the supplied original or modified
 // GoStruct are skipped.
@@ -447,17 +477,156 @@ func (*DiffPathOpt) IsDiffOpt() {}
 // to the fields specified if a GoStruct that does not represent the root of
 // a YANG schema tree is not supplied as original and modified.
 func Diff(original, modified GoStruct, opts ...DiffOpt) (*gnmipb.Notification, error) {
+	notifs, err := diff(original, modified, false, opts...)
+	switch len(notifs) {
+	case 0:
+		return &gnmipb.Notification{}, err
+	case 1:
+		return notifs[0], err
+	default:
+		return nil, fmt.Errorf("internal error: Diff expected a single Notification but got multiple")
+	}
+}
 
+// DiffWithAtomic takes an original and modified GoStruct, which must be of the same
+// type and returns a slice of gNMI Notifications that represents the diff
+// between them in a way that can be used to update a local gNMI.Subscribe
+// server with the Notifications to be served. When
+// ytypes.UnmarshalNotifications is called, it can also provide the same
+// GoStruct back.
+//
+// The last message in the slice (if it exists) contains a non-atomic
+// Notification representing updates/deletes to non-atomic nodes and deletes to
+// atomic nodes. All messages prior to the last one are atomic Notifications
+// representing updates to atomic nodes.
+//
+// NOTE: Currently only YANG `ordered-by user lists` are supported as atomic
+// nodes. Further, they're always treated as so since there is no way of
+// representing order using TypedValue scalar types.
+//
+// The original struct is considered as the "from" data, with the
+// modified struct the "to" such that:
+//
+//   - The contents of the Update field of the notification indicate that the
+//     field in modified was either not present in original, or had a different
+//     field value.
+//   - The paths within the Delete field of the notification indicate that the
+//     field was not present in the modified struct, but was set in the original.
+//
+// Annotation fields that are contained within the supplied original or modified
+// GoStruct are skipped.
+//
+// A set of options for diff's behaviour, as specified by the supplied DiffOpts
+// can be used to modify the behaviour of the Diff function per the individual
+// option's specification.
+//
+// The returned gNMI Notification cannot be put on the wire unmodified, since
+// it does not specify a timestamp - and may not contain the absolute paths
+// to the fields specified if a GoStruct that does not represent the root of
+// a YANG schema tree is not supplied as original and modified.
+func DiffWithAtomic(original, modified GoStruct, opts ...DiffOpt) ([]*gnmipb.Notification, error) {
+	return diff(original, modified, true, opts...)
+}
+
+// orderedMapLeaves returns an ordered list of path-value pairs representing
+// the leaves belonging to the input ordered map.
+//
+//   - parent is the gNMI path representing the absolute path to the ordered
+//     list. This must not be empty.
+//   - The second return value is the prefix path that must be used in the
+//     atomic Notification representing the ordered list.
+func orderedMapLeaves(orderedMap GoOrderedMap, parent *gnmiPath) ([]*pathval, *gnmiPath, error) {
+	var errs errlist.List
+	var atomicLeaves []*pathval
+
+	if err := yreflect.RangeOrderedMap(orderedMap, func(k reflect.Value, v reflect.Value) bool {
+		childPath, err := mapValuePath(k, v, parent)
+		if err != nil {
+			errs.Add(err)
+			return true
+		}
+
+		goStruct, ok := v.Interface().(GoStruct)
+		if !ok {
+			errs.Add(fmt.Errorf("%v: was not a valid GoStruct", parent))
+			return true
+		}
+		errs.Add(findUpdatedLeaves(&atomicLeaves, goStruct, childPath))
+		return true
+	}); err != nil {
+		errs.Add(err)
+		return nil, nil, errs.Err()
+	}
+
+	// TODO(wenbli): Make this more robust by potentially introducing another struct
+	// tag to indicate which element in the compressed path should the prefix cutoff
+	// be based on the placement of the atomic extension, although for ordered-maps
+	// it should always be at the container level. Need more discussion on this.
+	// The current use case is for BGP policy statements:
+	// https://github.com/openconfig/public/pull/867
+	// The reason for this subtreePath hack is that the atomic annotation
+	// is at the container surrounding the ordered lists.
+	subtreePath := parent.Copy()
+	if err := subtreePath.Pop(); err != nil {
+		errs.Add(err)
+	}
+
+	return atomicLeaves, subtreePath, errs.Err()
+}
+
+// orderedMapNotif returns an atomic Notification for the given ordered map.
+//
+//   - If empty, then nil is returned.
+//   - parent is the gNMI path representing the absolute path to the ordered
+//     list. This must not be empty.
+func orderedMapNotif(orderedMap GoOrderedMap, parent *gnmiPath, ts int64) (*gnmipb.Notification, error) {
+	atomicLeaves, subtreePath, err := orderedMapLeaves(orderedMap, parent)
+	if err != nil {
+		return nil, err
+	}
+	if len(atomicLeaves) == 0 {
+		return nil, nil
+	}
+
+	return createAtomicNotif(atomicLeaves, ts, subtreePath)
+}
+
+func createAtomicNotif(atomicLeaves []*pathval, ts int64, subtreePfx *gnmiPath) (*gnmipb.Notification, error) {
+	no := &gnmipb.Notification{
+		Timestamp: ts,
+		Atomic:    true,
+	}
+	p, err := subtreePfx.ToProto()
+	if err != nil {
+		return nil, err
+	}
+	no.Prefix = p
+
+	for _, pv := range atomicLeaves {
+		if err := addToNotification(pv.path, pv.val, no, subtreePfx); err != nil {
+			return nil, err
+		}
+	}
+	return no, nil
+}
+
+// diff produces a slice of notifications given two GoStructs.
+//
+// See documentation for Diff and DiffWithAtomic for more information.
+//
+//   - withAtomic indicates that atomic notifications should be generated
+//     (currently this is only supported for `ordered-by user` lists)
+func diff(original, modified GoStruct, withAtomic bool, opts ...DiffOpt) ([]*gnmipb.Notification, error) {
 	if reflect.TypeOf(original) != reflect.TypeOf(modified) {
 		return nil, fmt.Errorf("cannot diff structs of different types, original: %T, modified: %T", original, modified)
 	}
 
-	origLeaves, err := findSetLeaves(original, opts...)
+	origLeaves, err := findSetLeaves(original, withAtomic, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("could not extract set leaves from original struct: %v", err)
 	}
 
-	modLeaves, err := findSetLeaves(modified, opts...)
+	modLeaves, err := findSetLeaves(modified, withAtomic, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("could not extract set leaves from modified struct: %v", err)
 	}
@@ -471,34 +640,61 @@ func Diff(original, modified GoStruct, opts ...DiffOpt) (*gnmipb.Notification, e
 		return nil, fmt.Errorf("could not convert leaf path map to string path map: %v", err)
 	}
 
+	var atomicNotifs []*gnmipb.Notification
 	n := &gnmipb.Notification{}
+	processUpdate := func(path string, modVal *pathInfo) error {
+		if orderedMap, isOrderedMap := modVal.val.(GoOrderedMap); isOrderedMap {
+			notif, err := orderedMapNotif(orderedMap, newPathElemGNMIPath(modVal.path.GetElem()), 0)
+			if err != nil {
+				return err
+			}
+			atomicNotifs = append(atomicNotifs, notif)
+		} else {
+			// The contents of the value should indicate that value a has changed
+			// to value b.
+			if err := appendUpdate(n, path, modVal); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 	for origPath, origVal := range origLeavesStr {
 		if modVal, ok := modLeavesStr[origPath]; ok {
 			if !reflect.DeepEqual(origVal.val, modVal.val) {
-				// The contents of the value should indicate that value a has changed
-				// to value b.
-				if err := appendUpdate(n, origPath, modVal); err != nil {
+				if err := processUpdate(origPath, modVal); err != nil {
 					return nil, err
 				}
 			}
 		} else if !ok {
+			if orderedMap, isOrderedMap := origVal.val.(GoOrderedMap); isOrderedMap {
+				pathLen := len(origVal.path.Elem)
+				if pathLen == 0 {
+					return nil, fmt.Errorf("deletion path on ordered list is empty, this is unexpected: %T", orderedMap)
+				}
+				origVal.path.Elem = origVal.path.Elem[:pathLen-1]
+			}
 			// This leaf was set in the original struct, but not in the modified
 			// struct, therefore it has been deleted.
 			n.Delete = append(n.Delete, origVal.path)
 		}
 	}
-	if hasIgnoreAdditions(opts) != nil {
-		return n, nil
-	}
-	// Check that all paths that are in the modified struct have been examined, if
-	// not they are updates.
-	for modPath, modVal := range modLeavesStr {
-		if _, ok := origLeavesStr[modPath]; !ok {
-			if err := appendUpdate(n, modPath, modVal); err != nil {
-				return nil, err
+
+	if hasIgnoreAdditions(opts) == nil {
+		// Check that all paths that are in the modified struct have been examined, if
+		// not they are updates.
+		for modPath, modVal := range modLeavesStr {
+			if _, ok := origLeavesStr[modPath]; !ok {
+				if err := processUpdate(modPath, modVal); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
 
-	return n, nil
+	if len(n.Delete)+len(n.Update) == 0 {
+		return atomicNotifs, nil
+	}
+
+	return append([]*gnmipb.Notification{n}, atomicNotifs...), nil
 }

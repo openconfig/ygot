@@ -19,6 +19,7 @@ import (
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/integration_tests/schemaops/ctestschema"
+	"github.com/openconfig/ygot/integration_tests/schemaops/utestschema"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
 )
@@ -36,6 +37,37 @@ func TestValidateLeafRefDataOrderedMap(t *testing.T) {
 		in: &ctestschema.Device{
 			OrderedList: ctestschema.GetOrderedMap(t),
 		},
+	}, {
+		desc:     "checking uncompressed list key leafref success",
+		inSchema: utestschema.SchemaTree["Device"],
+		in: &utestschema.Device{
+			OrderedLists: &utestschema.Ctestschema_OrderedLists{
+				OrderedList: func() *utestschema.Ctestschema_OrderedLists_OrderedList_OrderedMap {
+					orderedMap := &utestschema.Ctestschema_OrderedLists_OrderedList_OrderedMap{}
+					v, err := orderedMap.AppendNew("foo")
+					if err != nil {
+						t.Error(err)
+					}
+					// Config value
+					v.GetOrCreateConfig().Value = ygot.String("foo-val")
+					v, err = orderedMap.AppendNew("bar")
+					if err != nil {
+						t.Error(err)
+					}
+					// State value
+					v.GetOrCreateState().Value = ygot.String("bar-val")
+					return orderedMap
+				}(),
+			},
+		},
+		wantErr: `pointed-to value with path ../config/key from field Key value foo (string ptr) schema /device/ordered-lists/ordered-list/key is empty set
+pointed-to value with path ../config/key from field Key value bar (string ptr) schema /device/ordered-lists/ordered-list/key is empty set`,
+	}, {
+		desc:     "checking uncompressed list key leafref fail",
+		inSchema: utestschema.SchemaTree["Device"],
+		in:       utestschema.GetDeviceWithOrderedMap(t),
+		wantErr: `pointed-to value with path ../config/key from field Key value foo (string ptr) schema /device/ordered-lists/ordered-list/key is empty set
+pointed-to value with path ../config/key from field Key value bar (string ptr) schema /device/ordered-lists/ordered-list/key is empty set`,
 	}, {
 		desc:     "checking short leafref",
 		inSchema: ctestschema.SchemaTree["Device"],

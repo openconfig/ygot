@@ -65,61 +65,48 @@ func UnmarshalNotifications(schema *Schema, ns []*gpb.Notification, opts ...Unma
 func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, opts ...UnmarshalOpt) error {
 	preferShadowPath := hasPreferShadowPath(opts)
 	ignoreExtraFields := hasIgnoreExtraFields(opts)
+	bestEffortUnmarshal := hasBestEffortUnmarshal(opts)
 	if req == nil {
 		return nil
 	}
 	root := schema.Root
-	var prefix *gpb.Path
-	node, nodeName, err := getOrCreateNode(schema.RootSchema(), root, req.Prefix, preferShadowPath)
-	if err != nil {
-		// Fallback to prepending the prefix if getOrCreateNode failed.
-		// This can happen if the prefix points to a compressed-out
-		// node in compressed generated code. In particular this will
-		// always happen for `telemetry-atomic` where the extension
-		// marks such compressed out elements (i.e. surrounding
-		// containers for lists and config/state containers).
-		node = root
-		nodeName = reflect.TypeOf(root).Elem().Name()
-		prefix = req.Prefix
-	}
+	rootName := reflect.TypeOf(root).Elem().Name()
+
+	var complianceErrs *ComplianceErrors
 
 	// Process deletes, then replace, then updates.
-	if err := deletePaths(schema.SchemaTree[nodeName], node, prefix, req.Delete, preferShadowPath); err != nil {
-		return err
+	if err := deletePaths(schema.SchemaTree[rootName], root, req.Prefix, req.Delete, preferShadowPath, bestEffortUnmarshal); err != nil {
+		if bestEffortUnmarshal {
+			complianceErrs = complianceErrs.append(err.(*ComplianceErrors).Errors...)
+		} else {
+			return err
+		}
 	}
-	if err := replacePaths(schema.SchemaTree[nodeName], node, prefix, req.Replace, preferShadowPath, ignoreExtraFields); err != nil {
-		return err
+	if err := replacePaths(schema.SchemaTree[rootName], root, req.Prefix, req.Replace, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal); err != nil {
+		if bestEffortUnmarshal {
+			complianceErrs = complianceErrs.append(err.(*ComplianceErrors).Errors...)
+		} else {
+			return err
+		}
 	}
-	if err := updatePaths(schema.SchemaTree[nodeName], node, prefix, req.Update, preferShadowPath, ignoreExtraFields); err != nil {
-		return err
+	if err := updatePaths(schema.SchemaTree[rootName], root, req.Prefix, req.Update, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal); err != nil {
+		if bestEffortUnmarshal {
+			complianceErrs = complianceErrs.append(err.(*ComplianceErrors).Errors...)
+		} else {
+			return err
+		}
 	}
 
+	if bestEffortUnmarshal && complianceErrs != nil {
+		return complianceErrs
+	}
 	return nil
 }
 
-// getOrCreateNode instantiates the node at the given path, and returns that
-// node along with its name.
-func getOrCreateNode(schema *yang.Entry, goStruct ygot.GoStruct, path *gpb.Path, preferShadowPath bool) (ygot.GoStruct, string, error) {
-	var gcopts []GetOrCreateNodeOpt
-	if preferShadowPath {
-		gcopts = append(gcopts, &PreferShadowPath{})
-	}
-	// Operate at the prefix level.
-	nodeI, _, err := GetOrCreateNode(schema, goStruct, path, gcopts...)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to GetOrCreate the prefix node: %v", err)
-	}
-	node, ok := nodeI.(ygot.GoStruct)
-	if !ok {
-		return nil, "", fmt.Errorf("prefix path points to a non-GoStruct, this is not allowed: %T, %v", nodeI, nodeI)
-	}
-
-	return node, reflect.TypeOf(nodeI).Elem().Name(), nil
-}
-
 // deletePaths deletes a slice of paths from the given GoStruct.
-func deletePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, paths []*gpb.Path, preferShadowPath bool) error {
+func deletePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, paths []*gpb.Path, preferShadowPath, bestEffortUnmarshal bool) error {
 	var dopts []DelNodeOpt
+	var ce *ComplianceErrors
 	if preferShadowPath {
 		dopts = append(dopts, &PreferShadowPath{})
 	}
@@ -132,8 +119,16 @@ func deletePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, p
 			}
 		}
 		if err := DeleteNode(schema, goStruct, path, dopts...); err != nil {
+			if bestEffortUnmarshal {
+				ce = ce.append(err)
+				continue
+			}
 			return err
 		}
+	}
+
+	if bestEffortUnmarshal && ce != nil {
+		return ce
 	}
 	return nil
 }
@@ -162,8 +157,9 @@ func joinPrefixToUpdate(prefix *gpb.Path, update *gpb.Update) (*gpb.Update, erro
 // replacePaths unmarshals a slice of updates into the given GoStruct. It
 // deletes the values at these paths before unmarshalling them. These updates
 // can either by JSON-encoded or gNMI-encoded values (scalars).
-func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, updates []*gpb.Update, preferShadowPath, ignoreExtraFields bool) error {
+func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, updates []*gpb.Update, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal bool) error {
 	var dopts []DelNodeOpt
+	var ce *ComplianceErrors
 	if preferShadowPath {
 		dopts = append(dopts, &PreferShadowPath{})
 	}
@@ -174,26 +170,47 @@ func replacePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, 
 			return err
 		}
 		if err := DeleteNode(schema, goStruct, update.Path, dopts...); err != nil {
+			if bestEffortUnmarshal {
+				ce = ce.append(err)
+				continue
+			}
 			return err
 		}
 		if err := setNode(schema, goStruct, update, preferShadowPath, ignoreExtraFields); err != nil {
+			if bestEffortUnmarshal {
+				ce = ce.append(err)
+				continue
+			}
 			return err
 		}
+	}
+	if bestEffortUnmarshal && ce != nil {
+		return ce
 	}
 	return nil
 }
 
 // updatePaths unmarshals a slice of updates into the given GoStruct. These
 // updates can either by JSON-encoded or gNMI-encoded values (scalars).
-func updatePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, updates []*gpb.Update, preferShadowPath, ignoreExtraFields bool) error {
+func updatePaths(schema *yang.Entry, goStruct ygot.GoStruct, prefix *gpb.Path, updates []*gpb.Update, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal bool) error {
+	var ce *ComplianceErrors
+
 	for _, update := range updates {
 		var err error
 		if update, err = joinPrefixToUpdate(prefix, update); err != nil {
 			return err
 		}
 		if err := setNode(schema, goStruct, update, preferShadowPath, ignoreExtraFields); err != nil {
+			if bestEffortUnmarshal {
+				ce = ce.append(err)
+				continue
+			}
 			return err
 		}
+	}
+
+	if bestEffortUnmarshal && ce != nil {
+		return ce
 	}
 	return nil
 }

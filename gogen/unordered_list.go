@@ -23,21 +23,6 @@ import (
 	"github.com/openconfig/ygot/ygen"
 )
 
-var (
-	// enableOrderedMap enables generation of ordered maps. This flag is
-	// used to avoid rolling out a feature that's not fully supported
-	// leading to backwards-incompatible errors, while continuing to allow
-	// development on the main branch.
-	//
-	// TODO: remove this flag when ygot supports all helpers for ordered
-	// maps.
-	//
-	// TODO: Once this flag is removed, add to Makefile the generation for
-	// integration_tests/schemaops/ctestschema so that tests will use the
-	// latest version of the generated code.
-	enableOrderedMap bool = false
-)
-
 // generatedGoMultiKeyListStruct is used to represent a struct used as a key of a YANG list that has multiple
 // key elements.
 type generatedGoMultiKeyListStruct struct {
@@ -534,6 +519,60 @@ func generateGetListKey(buf *bytes.Buffer, s *ygen.ParsedDirectory, nameMap map[
 	return goKeyMapTemplate.Execute(buf, h)
 }
 
+// UnorderedMapTypeName returns the map and key type names of an
+// unordered, keyed map given go-generated IR information, as well as whether
+// it is a defined type rather than a Go built-in type.
+//
+// e.g. for a list to be represented as map[string]*Foo, it returns
+// "map[string]*Foo", "string", false, nil
+func UnorderedMapTypeName(listYANGPath, listFieldName, parentName string, goStructElements map[string]*ygen.ParsedDirectory) (string, string, bool, error) {
+	// The list itself, since it is a container, has a struct associated with it. Retrieve
+	// this from the set of Directory structs for which code (a Go struct) will be
+	//  generated such that additional details can be used in the code generation.
+	listElem, ok := goStructElements[listYANGPath]
+	if !ok {
+		return "", "", false, fmt.Errorf("struct for %s did not exist", listYANGPath)
+	}
+
+	var listType, keyType string
+	var isDefinedType bool
+	switch len(listElem.ListKeys) {
+	case 0:
+		return "", "", false, fmt.Errorf("list does not contain any keys: %s:", listElem.Name)
+	case 1:
+		// This is a single keyed list, so we can represent it as a map with
+		// a simple Go type as the key. Note that a leaf-list can never be
+		// a key, so we do not need to handle the case whereby we would have to
+		// have a slice which keys the list.
+		for _, listKey := range listElem.ListKeys {
+			listType = fmt.Sprintf("map[%s]*%s", listKey.LangType.NativeType, listElem.Name)
+			keyType = listKey.LangType.NativeType
+			isDefinedType = ygen.IsYgenDefinedGoType(listKey.LangType)
+		}
+	default:
+		// This is a list with multiple keys, so we need to generate a new structure
+		// that represents the list key itself - this struct is described in a
+		// generatedGoMultiKeyListStruct struct, which is then expanded by a template to the struct
+		// definition.
+		listKeyStructName := fmt.Sprintf("%s_Key", listElem.Name)
+		names := make(map[string]bool, len(goStructElements))
+		for _, d := range goStructElements {
+			names[d.Name] = true
+		}
+		if names[listKeyStructName] {
+			listKeyStructName = fmt.Sprintf("%s_%s_YANGListKey", parentName, listFieldName)
+			if names[listKeyStructName] {
+				return "", "", false, fmt.Errorf("unexpected generated list key name conflict for %s", listYANGPath)
+			}
+			names[listKeyStructName] = true
+		}
+		listType = fmt.Sprintf("map[%s]*%s", listKeyStructName, listElem.Name)
+		keyType = listKeyStructName
+		isDefinedType = true
+	}
+	return listType, keyType, isDefinedType, nil
+}
+
 // yangListFieldToGoType takes a yang node description (listField) and returns
 // a string corresponding to the Go type that should be used to represent it
 // within its parent struct (the parent argument). If applicable, it also
@@ -555,7 +594,7 @@ func generateGetListKey(buf *bytes.Buffer, s *ygen.ParsedDirectory, nameMap map[
 //
 // In the case that the list has multiple keys, the type generated as the key of the list is returned.
 // If errors are encountered during the type generation for the list, the error is returned.
-func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, parent *ygen.ParsedDirectory, goStructElements map[string]*ygen.ParsedDirectory) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, *generatedOrderedMapStruct, error) {
+func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, parent *ygen.ParsedDirectory, goStructElements map[string]*ygen.ParsedDirectory, generateOrderedMaps bool) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, *generatedOrderedMapStruct, error) {
 	// The list itself, since it is a container, has a struct associated with it. Retrieve
 	// this from the set of Directory structs for which code (a Go struct) will be
 	//  generated such that additional details can be used in the code generation.
@@ -570,11 +609,12 @@ func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, pa
 		return fmt.Sprintf("[]*%s", listElem.Name), nil, nil, nil, nil
 	}
 
-	var listType string
-	var keyType string
+	listType, keyType, _, err := UnorderedMapTypeName(listField.YANGDetails.Path, listFieldName, parent.Name, goStructElements)
+	if err != nil {
+		return "", nil, nil, nil, err
+	}
 	var multiListKey *generatedGoMultiKeyListStruct
 	var listKeys []goStructField
-	var listKeyStructName string
 
 	shortestPath := func(ss [][]string) [][]string {
 		var shortest []string
@@ -609,45 +649,24 @@ func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, pa
 	}
 
 	switch {
-	case len(listElem.ListKeys) == 1:
-		// This is a single keyed list, so we can represent it as a map with
-		// a simple Go type as the key. Note that a leaf-list can never be
-		// a key, so we do not need to handle the case whereby we would have to
-		// have a slice which keys the list.
-		listType = fmt.Sprintf("map[%s]*%s", listKeys[0].Type, listElem.Name)
-		keyType = listKeys[0].Type
-	default:
+	case len(listElem.ListKeys) != 1:
 		// This is a list with multiple keys, so we need to generate a new structure
 		// that represents the list key itself - this struct is described in a
 		// generatedGoMultiKeyListStruct struct, which is then expanded by a template to the struct
 		// definition.
-		listKeyStructName = fmt.Sprintf("%s_Key", listElem.Name)
-		names := make(map[string]bool, len(goStructElements))
-		for _, d := range goStructElements {
-			names[d.Name] = true
-		}
-		if names[listKeyStructName] {
-			listKeyStructName = fmt.Sprintf("%s_%s_YANGListKey", parent.Name, listFieldName)
-			if names[listKeyStructName] {
-				return "", nil, nil, nil, fmt.Errorf("unexpected generated list key name conflict for %s", listField.YANGDetails.Path)
-			}
-			names[listKeyStructName] = true
-		}
 		multiListKey = &generatedGoMultiKeyListStruct{
-			KeyStructName: listKeyStructName,
+			KeyStructName: keyType,
 			ParentPath:    parent.Path,
 			ListName:      listFieldName,
 			Keys:          listKeys,
 		}
-		listType = fmt.Sprintf("map[%s]*%s", listKeyStructName, listElem.Name)
-		keyType = listKeyStructName
 	}
 
 	var listMethodSpec *generatedGoListMethod
 	var orderedMapSpec *generatedOrderedMapStruct
 
-	if listField.YANGDetails.OrderedByUser && enableOrderedMap {
-		structName := fmt.Sprintf("%s_OrderedMap", listElem.Name)
+	if listField.YANGDetails.OrderedByUser && generateOrderedMaps {
+		structName := OrderedMapTypeName(listElem.Name)
 		listType = fmt.Sprintf("*%s", structName)
 		// Create spec for generating ordered maps.
 		orderedMapSpec = &generatedOrderedMapStruct{
@@ -663,11 +682,13 @@ func yangListFieldToGoType(listField *ygen.NodeDetails, listFieldName string, pa
 		// Generate the specification for the methods that should be generated for this
 		// list, such that this can be handed to the relevant templates to generate code.
 		listMethodSpec = &generatedGoListMethod{
-			ListName:  listFieldName,
-			ListType:  listElem.Name,
-			KeyStruct: listKeyStructName,
-			Keys:      listKeys,
-			Receiver:  parent.Name,
+			ListName: listFieldName,
+			ListType: listElem.Name,
+			Keys:     listKeys,
+			Receiver: parent.Name,
+		}
+		if multiListKey != nil {
+			listMethodSpec.KeyStruct = keyType
 		}
 	}
 

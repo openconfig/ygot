@@ -298,17 +298,8 @@ func TestValidateInterfaceOpState(t *testing.T) {
 }
 
 func TestValidateSystemDns(t *testing.T) {
-	dev := &oc.Device{
-		System: &oc.System{
-			Dns: &oc.System_Dns{
-				Server: map[string]*oc.System_Dns_Server{
-					"10.10.10.10": {
-						Address: ygot.String("10.10.10.10"),
-					},
-				},
-			},
-		},
-	}
+	dev := &oc.Device{}
+	dev.GetOrCreateSystem().GetOrCreateDns().AppendNewServer("10.10.10.10")
 
 	// Validate the fake root device.
 	if err := dev.ΛValidate(); err != nil {
@@ -320,7 +311,8 @@ func TestValidateSystemDns(t *testing.T) {
 	}
 
 	// Key in map != key field value in element.
-	dev.System.Dns.Server["bad_key"] = &oc.System_Dns_Server{Address: ygot.String("server1")}
+	dev.System.Dns.AppendServer(&oc.System_Dns_Server{Address: ygot.String("bad_key")})
+	dev.System.Dns.GetServer("bad_key").Address = ygot.String("server1")
 	if err := dev.ΛValidate(); err == nil {
 		t.Errorf("bad key: got nil, want error")
 	} else {
