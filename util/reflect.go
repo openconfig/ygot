@@ -21,7 +21,6 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/internal/yreflect"
 
 	log "github.com/golang/glog"
 
