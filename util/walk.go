@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"reflect"
 
-        log "github.com/golang/glog"
-        "github.com/openconfig/goyang/pkg/yang"
-        "github.com/openconfig/ygot/internal/yreflect"
+	log "github.com/golang/glog"
+	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/internal/yreflect"
 )
 
 // WalkNode is an abstraction of NodeInfo during the util.Walk.
@@ -390,4 +390,3 @@ func walkDataFieldInternal(visitor Visitor, node WalkNode, o *WalkOptions) {
 		}
 	}
 }
-
