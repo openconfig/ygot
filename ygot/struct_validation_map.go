@@ -912,11 +912,60 @@ func validateMap(srcField, dstField reflect.Value) (*mapType, error) {
 	return &mapType{key: st.Key(), value: st.Elem()}, nil
 }
 
+func srcKeysIsSubset(dstKeys, srcKeys []reflect.Value) bool {
+	dstKeyMap := map[any]struct{}{}
+	for _, k := range dstKeys {
+		dstKeyMap[k.Interface()] = struct{}{}
+	}
+	for _, k := range srcKeys {
+		if _, ok := dstKeyMap[k.Interface()]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// orderedMapKeysMergeable determines whether the src ordered map is mergeable
+// into dst.
+//
+// Mergeability criteria:
+// * Maps are disjoint; or,
+// * src map is a subset of dst, and the ordering does not contradict.
+func orderedMapKeysMergeable(dstOrderedMap, srcOrderedMap GoOrderedMap) error {
+	srcKeys, err := yreflect.OrderedMapKeys(srcOrderedMap)
+	if err != nil {
+		return err
+	}
+	dstKeys, err := yreflect.OrderedMapKeys(dstOrderedMap)
+	if err != nil {
+		return err
+	}
+
+	si, di := 0, 0
+	for ; si != len(srcKeys) && di != len(dstKeys); di++ {
+		// Map keys must be comparable
+		if srcKeys[si].Interface() == dstKeys[di].Interface() {
+			si++
+		}
+	}
+
+	switch {
+	case si == len(srcKeys), si == 0:
+		// Either all srcKeys are matched in order, or the two maps are disjoint.
+		return nil
+	case srcKeysIsSubset(dstKeys, srcKeys):
+		return fmt.Errorf("ordered map keys have different ordering -- merge behaviour is not well defined: (src order: %v) (dst order: %v)", srcKeys, dstKeys)
+	default:
+		return fmt.Errorf("src ordered map partially overlaps with dst ordered map -- merge behaviour is not well defined: (src order: %v) (dst order: %v)", srcKeys, dstKeys)
+	}
+}
+
 // copyOrderedMap copies srcOrderedMap into dstField. Both srcOrderedMap and
 // dstField (this is a reflect.Value for convenience) are ordered list values.
 // If both srcOrderedMap and dstField are populated, and have non-overlapping
 // keys, then the keys in the src are appended to the dst. If there are
-// overlapping values, then an ereror is returned since the behaviour is not
+// overlapping values, then if src is a subset of dst and is in the same order,
+// merge is done; otherwise an error is returned since the behaviour is not
 // well-defined.
 func copyOrderedMap(dstField reflect.Value, srcOrderedMap GoOrderedMap, accessPath string, opts ...MergeOpt) error {
 	dstOrderedMap, dstIsOrderedMap := dstField.Interface().(GoOrderedMap)
@@ -938,22 +987,8 @@ func copyOrderedMap(dstField reflect.Value, srcOrderedMap GoOrderedMap, accessPa
 		dstOrderedMap = dstField.Interface().(GoOrderedMap)
 	}
 
-	srcKeys := map[any]struct{}{}
-	keys, err := yreflect.OrderedMapKeys(srcOrderedMap)
-	if err != nil {
+	if err := orderedMapKeysMergeable(dstOrderedMap, srcOrderedMap); err != nil {
 		return err
-	}
-	for _, k := range keys {
-		srcKeys[k.Interface()] = struct{}{}
-	}
-	keys, err = yreflect.OrderedMapKeys(dstOrderedMap)
-	if err != nil {
-		return err
-	}
-	for _, k := range keys {
-		if _, ok := srcKeys[k.Interface()]; ok {
-			return fmt.Errorf("ordered map keys overlap at %v -- merge behaviour is not well defined", k)
-		}
 	}
 
 	elemType, err := yreflect.OrderedMapElementType(dstOrderedMap)
@@ -964,13 +999,26 @@ func copyOrderedMap(dstField reflect.Value, srcOrderedMap GoOrderedMap, accessPa
 	errs := &errlist.Error{}
 	errs.Separator = "\n"
 	if err := yreflect.RangeOrderedMap(srcOrderedMap, func(k, v reflect.Value) bool {
-		d := reflect.New(elemType.Elem())
+		d, ok, err := yreflect.GetOrderedMapElement(dstOrderedMap, k)
+		if err != nil {
+			errs.Add(err)
+			return true
+		}
+		switch {
+		case !ok:
+			d = reflect.New(elemType.Elem())
+		case d.IsZero():
+			errs.Add(fmt.Errorf("dst ordered map has a key whose value is nil: %v", k.Interface()))
+			return true
+		}
 		if err := copyStruct(d.Elem(), v.Elem(), fmt.Sprintf("%s[%#v]", accessPath, k.Interface()), opts...); err != nil {
 			errs.Add(err)
 			return true
 		}
-		if err := yreflect.AppendIntoOrderedMap(dstOrderedMap, d.Interface()); err != nil {
-			errs.Add(err)
+		if !ok {
+			if err := yreflect.AppendIntoOrderedMap(dstOrderedMap, d.Interface()); err != nil {
+				errs.Add(err)
+			}
 		}
 		return true
 	}); err != nil {
