@@ -941,8 +941,8 @@ func orderedMapKeysMergeable(dstOrderedMap, srcOrderedMap GoOrderedMap) error {
 		return err
 	}
 
-	si, di := 0, 0
-	for ; si != len(srcKeys) && di != len(dstKeys); di++ {
+	si := 0
+	for di := 0; si != len(srcKeys) && di != len(dstKeys); di++ {
 		// Map keys must be comparable
 		if srcKeys[si].Interface() == dstKeys[di].Interface() {
 			si++
