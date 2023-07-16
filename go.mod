@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/derekparker/trie v0.0.0-20221221181808-1424fce0c981
-	github.com/golang/glog v1.1.1
+	github.com/golang/glog v1.0.0
 	github.com/golang/protobuf v1.5.3
 	github.com/google/go-cmp v0.5.9
 	github.com/kr/pretty v0.3.1
@@ -14,8 +14,8 @@ require (
 	github.com/openconfig/gribi v1.0.0
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/spf13/cobra v1.7.0
-	github.com/spf13/viper v1.16.0
-	google.golang.org/grpc v1.56.2
+	github.com/spf13/viper v1.15.0
+	google.golang.org/grpc v1.55.0-dev
 	google.golang.org/protobuf v1.31.0
 )
 
