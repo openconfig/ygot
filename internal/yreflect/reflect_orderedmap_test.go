@@ -15,6 +15,7 @@
 package yreflect_test
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -41,7 +42,7 @@ func TestAppendIntoOrderedMap(t *testing.T) {
 	tests := []struct {
 		desc          string
 		inMap         ygot.GoOrderedMap
-		inValue       interface{}
+		inValue       any
 		wantMap       ygot.GoOrderedMap
 		wantErrSubstr string
 	}{{
@@ -63,6 +64,59 @@ func TestAppendIntoOrderedMap(t *testing.T) {
 
 			if diff := cmp.Diff(tt.wantMap, tt.inMap, cmp.AllowUnexported(ctestschema.OrderedList_OrderedMap{})); diff != "" {
 				t.Errorf("(-want, +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+type invalidOrderedMapType struct {
+	ygot.GoOrderedMap
+}
+
+func TestGetOrderedMapElement(t *testing.T) {
+	tests := []struct {
+		desc          string
+		inMap         ygot.GoOrderedMap
+		inKey         any
+		wantVal       any
+		wantOk        bool
+		wantErrSubstr string
+	}{{
+		desc:  "has",
+		inMap: ctestschema.GetOrderedMap(t),
+		inKey: "foo",
+		wantVal: &ctestschema.OrderedList{
+			Key:   ygot.String("foo"),
+			Value: ygot.String("foo-val"),
+		},
+		wantOk: true,
+	}, {
+		desc:    "has-not",
+		inMap:   ctestschema.GetOrderedMap(t),
+		inKey:   "fooo",
+		wantVal: (*ctestschema.OrderedList)(nil),
+		wantOk:  false,
+	}, {
+		desc:          "invalid",
+		inMap:         &invalidOrderedMapType{},
+		wantErrSubstr: "did not find Get() method on type",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, gotOk, err := yreflect.GetOrderedMapElement(tt.inMap, reflect.ValueOf(tt.inKey))
+			if diff := errdiff.Substring(err, tt.wantErrSubstr); diff != "" {
+				t.Fatalf("InsertIntoMap: %s", diff)
+			}
+			if err != nil {
+				return
+			}
+
+			if diff := cmp.Diff(tt.wantVal, got.Interface()); diff != "" {
+				t.Errorf("(-want, +got):\n%s", diff)
+			}
+			if gotOk != tt.wantOk {
+				t.Errorf("gotOk: %v, wantOk: %v", gotOk, tt.wantOk)
 			}
 		})
 	}

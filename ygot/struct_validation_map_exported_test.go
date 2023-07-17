@@ -460,17 +460,226 @@ func TestMergeStructsOrderedMap(t *testing.T) {
 			OrderedList: ctestschema.GetOrderedMap2(t),
 		},
 	}, {
-		// NOTE: For overlaps where the second ordered list is a subset
-		// of the first, then this may be a valid merge and we may want
-		// to implement this if there is a use case.
-		name: "overlapping ordered lists",
+		name: "no change",
 		inA: &ctestschema.Device{
 			OrderedList: ctestschema.GetOrderedMap(t),
 		},
 		inB: &ctestschema.Device{
 			OrderedList: ctestschema.GetOrderedMap(t),
 		},
-		wantErrSubstr: "ordered map keys overlap at foo -- merge behaviour is not well defined",
+		want: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+	}, {
+		name: "second ordered map is subset of first",
+		inA: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := &ctestschema.OrderedList_OrderedMap{}
+				_, err := orderedMap.AppendNew("foo")
+				if err != nil {
+					t.Error(err)
+				}
+				_, err = orderedMap.AppendNew("bar")
+				if err != nil {
+					t.Error(err)
+				}
+				_, err = orderedMap.AppendNew("baz")
+				if err != nil {
+					t.Error(err)
+				}
+				return orderedMap
+			}(),
+		},
+		inB: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := &ctestschema.OrderedList_OrderedMap{}
+				v, err := orderedMap.AppendNew("foo")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("foo-val")
+				v, err = orderedMap.AppendNew("bar")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("bar-val")
+				return orderedMap
+			}(),
+		},
+		want: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := &ctestschema.OrderedList_OrderedMap{}
+				v, err := orderedMap.AppendNew("foo")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("foo-val")
+				v, err = orderedMap.AppendNew("bar")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("bar-val")
+				_, err = orderedMap.AppendNew("baz")
+				if err != nil {
+					t.Error(err)
+				}
+				return orderedMap
+			}(),
+		},
+	}, {
+		name: "second ordered map is subset of first, skipping an element",
+		inA: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := &ctestschema.OrderedList_OrderedMap{}
+				_, err := orderedMap.AppendNew("foo")
+				if err != nil {
+					t.Error(err)
+				}
+				_, err = orderedMap.AppendNew("bar")
+				if err != nil {
+					t.Error(err)
+				}
+				_, err = orderedMap.AppendNew("baz")
+				if err != nil {
+					t.Error(err)
+				}
+				return orderedMap
+			}(),
+		},
+		inB: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := &ctestschema.OrderedList_OrderedMap{}
+				v, err := orderedMap.AppendNew("foo")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("foo-val")
+				v, err = orderedMap.AppendNew("baz")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("baz-val")
+				return orderedMap
+			}(),
+		},
+		want: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := &ctestschema.OrderedList_OrderedMap{}
+				v, err := orderedMap.AppendNew("foo")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("foo-val")
+				_, err = orderedMap.AppendNew("bar")
+				if err != nil {
+					t.Error(err)
+				}
+				v, err = orderedMap.AppendNew("baz")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("baz-val")
+				return orderedMap
+			}(),
+		},
+	}, {
+		name: "second-ordered-map-subset-different-ordering",
+		inA: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		inB: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := &ctestschema.OrderedList_OrderedMap{}
+				v, err := orderedMap.AppendNew("bar")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("bar-val")
+				v, err = orderedMap.AppendNew("foo")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("foo-val")
+				return orderedMap
+			}(),
+		},
+		want: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		wantErrSubstr: "ordered map keys have different ordering -- merge behaviour is not well defined",
+	}, {
+		// NOTE: We may want to support the case where the src ordered
+		// map has a shared key that is the last element of the dst
+		// ordered map. In this case any new elements that come after
+		// should get appended.  Similarly, new elements that come
+		// prior should get prepended.
+		name: "second-ordered-map-superset-new-elements-at-end",
+		inA: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		inB: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMapLonger(t),
+		},
+		want: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		wantErrSubstr: "src ordered map partially overlaps with dst ordered map -- merge behaviour is not well defined",
+	}, {
+		name: "second-ordered-map-superset-new-elements-before-existing",
+		inA: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := &ctestschema.OrderedList_OrderedMap{}
+				v, err := orderedMap.AppendNew("foo")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("foo-val")
+				v, err = orderedMap.AppendNew("bar")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("bar-val")
+				return orderedMap
+			}(),
+		},
+		inB: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := &ctestschema.OrderedList_OrderedMap{}
+				v, err := orderedMap.AppendNew("foo")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("foo-val")
+				v, err = orderedMap.AppendNew("baz")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("baz-val")
+				v, err = orderedMap.AppendNew("bar")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("bar-val")
+				return orderedMap
+			}(),
+		},
+		want: &ctestschema.Device{
+			OrderedList: func() *ctestschema.OrderedList_OrderedMap {
+				orderedMap := &ctestschema.OrderedList_OrderedMap{}
+				v, err := orderedMap.AppendNew("foo")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("foo-val")
+				v, err = orderedMap.AppendNew("bar")
+				if err != nil {
+					t.Error(err)
+				}
+				v.Value = ygot.String("bar-val")
+				return orderedMap
+			}(),
+		},
+		wantErrSubstr: "src ordered map partially overlaps with dst ordered map -- merge behaviour is not well defined",
 	}}
 
 	for _, tt := range tests {

@@ -847,6 +847,13 @@ type PathErrorStruct struct {
 	Field *string
 }
 
+type BadBasicStructMissingPath struct {
+	Int32Field     int32
+	StringField    string
+	Int32PtrField  *int32  `path:"int32ptr"`
+	StringPtrField *string `path:"stringptr"`
+}
+
 type BasicStruct struct {
 	Int32Field     int32   `path:"int32"`
 	StringField    string  `path:"string"`
@@ -987,6 +994,13 @@ var (
 	}
 
 	basicStruct1 = BasicStruct{
+		Int32Field:     int32(42),
+		StringField:    "forty two",
+		Int32PtrField:  toInt32Ptr(4242),
+		StringPtrField: toStringPtr("forty two ptr"),
+	}
+
+	badBasicStruct1 = BadBasicStructMissingPath{
 		Int32Field:     int32(42),
 		StringField:    "forty two",
 		Int32PtrField:  toInt32Ptr(4242),
@@ -1211,6 +1225,76 @@ func TestForEachField(t *testing.T) {
 			}
 		}
 		testErrLog(t, tt.desc, errs)
+	}
+}
+
+type testWalkVisitor struct {
+	out string
+}
+
+var _ Visitor = &testWalkVisitor{}
+
+func (v *testWalkVisitor) Visit(node WalkNode) Visitor {
+	if node == nil {
+		return nil
+	}
+	v.out += node.NodeInfo().FieldValue.String() + "\n"
+	return v
+}
+
+func TestWalk(t *testing.T) {
+	tests := []struct {
+		desc         string
+		parentStruct any
+		options      *WalkOptions
+		wantOut      string
+		wantErr      Errors
+	}{
+		{
+			desc:         "nil",
+			parentStruct: nil,
+			wantOut:      ``,
+		},
+		{
+			desc:         "struct with schema",
+			options:      DefaultWalkOptions().WithSchema(forEachContainerSchema.Dir["basic-struct"]),
+			parentStruct: &basicStruct1,
+			wantOut:      "<*util.BasicStruct Value>\n<int32 Value>\nforty two\n<*int32 Value>\n<*string Value>\n",
+		},
+		{
+			desc:         "struct mismatched schema not an error",
+			options:      DefaultWalkOptions().WithSchema(forEachContainerSchema.Dir["basic-struct"].Dir["int32ptr"]),
+			parentStruct: &basicStruct1,
+			wantOut:      "<*util.BasicStruct Value>\n",
+		},
+		{
+			desc:         "struct no schema",
+			parentStruct: &basicStruct1,
+			wantOut:      "<*util.BasicStruct Value>\n<int32 Value>\nforty two\n<*int32 Value>\n<*string Value>\n",
+		},
+		{
+			desc:         "fail struct type missing path",
+			options:      DefaultWalkOptions().WithSchema(forEachContainerSchema.Dir["basic-struct"]),
+			parentStruct: &badBasicStruct1,
+			wantErr:      []error{fmt.Errorf("field Int32Field did not specify a path")},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.desc, func(t *testing.T) {
+			node := WalkNodeFromGoStruct(tt.parentStruct)
+			v := &testWalkVisitor{}
+			errs := Walk(v, node, tt.options).(*DefaultWalkErrors).Errors
+			if diff := cmp.Diff(errs.String(), tt.wantErr.String()); diff != "" {
+				t.Errorf("error (-got, +want):\n%s", diff)
+			}
+			if errs != nil {
+				return
+			}
+			if diff := cmp.Diff(v.out, tt.wantOut); diff != "" {
+				t.Errorf("%s:\n%s", tt.desc, diff)
+			}
+		})
 	}
 }
 
