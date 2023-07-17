@@ -74,6 +74,10 @@ module proto-test-c {
       type string;
     }
 
+    leaf three {
+      type enum-with-default;
+    }
+
     leaf non-key {
       type string;
     }
@@ -81,7 +85,7 @@ module proto-test-c {
 
   container elists {
     list elist {
-      key "one two";
+      key "one two three";
 
       leaf one {
         type leafref {
@@ -92,6 +96,12 @@ module proto-test-c {
       leaf two {
         type leafref {
           path "../config/two";
+        }
+      }
+
+      leaf three {
+        type leafref {
+          path "../config/three";
         }
       }
 

@@ -1117,10 +1117,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 			enum = args.ir.Enums[scalarType.EnumeratedYANGTypeKey]
 		}
 		switch {
-		case scalarType.IsEnumeratedValue && enum.Kind == ygen.IdentityType:
-			km.Imports = append(km.Imports, importPath(args.cfg.baseImportPath, args.cfg.basePackageName, args.cfg.enumPackageName))
-			fd.Type = scalarType.NativeType
-		case scalarType.IsEnumeratedValue:
+		case scalarType.IsEnumeratedValue && enum.Kind == ygen.SimpleEnumerationType:
 			// list keys must be leafs and not leaf-lists.
 			e, err := genProtoEnum(enum, args.cfg.annotateEnumNames, true)
 			if err != nil {
@@ -1129,6 +1126,9 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 			tn := genutil.MakeNameUnique(scalarType.NativeType, definedFieldNames)
 			fd.Type = tn
 			km.Enums[tn] = e
+		case scalarType.IsEnumeratedValue:
+			km.Imports = append(km.Imports, importPath(args.cfg.baseImportPath, args.cfg.basePackageName, args.cfg.enumPackageName))
+			fd.Type = scalarType.NativeType
 		case scalarType.UnionTypes != nil:
 			fd.IsOneOf = true
 			path := kf.YANGDetails.LeafrefTargetPath

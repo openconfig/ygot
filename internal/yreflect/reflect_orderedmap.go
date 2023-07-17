@@ -141,3 +141,27 @@ func OrderedMapKeys(om goOrderedMap) ([]reflect.Value, error) {
 
 	return keySlice, nil
 }
+
+// GetOrderedMapElement calls the given ordered map's Get function given the
+// key value.
+//
+// - reflect.Value is the retrieved value at the key.
+// - bool is whether the value exists.
+// - error is whether an unexpected condition was detected.
+func GetOrderedMapElement(om goOrderedMap, k reflect.Value) (reflect.Value, bool, error) {
+	getMethod, err := MethodByName(reflect.ValueOf(om), "Get")
+	if err != nil {
+		return reflect.Value{}, false, err
+	}
+
+	ret := getMethod.Call([]reflect.Value{k})
+	if got, wantReturnN := len(ret), 1; got != wantReturnN {
+		return reflect.Value{}, false, fmt.Errorf("method Get() doesn't have expected number of return values, got %v, want %v", got, wantReturnN)
+	}
+	v := ret[0]
+	if gotKind := v.Type().Kind(); gotKind != reflect.Ptr {
+		return reflect.Value{}, false, fmt.Errorf("method Keys() did not return a ptr value, got %v", gotKind)
+	}
+
+	return v, !v.IsZero(), nil
+}

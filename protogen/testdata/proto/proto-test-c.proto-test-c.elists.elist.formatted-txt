@@ -8,6 +8,7 @@ syntax = "proto3";
 package openconfig.proto_test_c.elists.elist;
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+import "openconfig/enums/enums.proto";
 
 option go_package = "github.com/foo/baz/openconfig/proto_test_c/elists/elist";
 
@@ -21,6 +22,7 @@ message Config {
   }
   ywrapper.StringValue non_key = 460983769;
   One one = 441760514;
+  openconfig.enums.ProtoTestCEnumWithDefault three = 174447098;
   ywrapper.StringValue two = 294851988;
 }
 
@@ -34,5 +36,6 @@ message State {
   }
   ywrapper.StringValue non_key = 139458606;
   One one = 199644645;
+  openconfig.enums.ProtoTestCEnumWithDefault three = 20703553;
   ywrapper.StringValue two = 346656131;
 }
