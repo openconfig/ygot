@@ -80,6 +80,23 @@ func (n *ModelPath) SingleKey(Key string) *Model_SingleKeyPath {
 	}
 }
 
+// SingleKeyOrdered (list): 
+// ----------------------------------------
+// Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
+// Path from parent: "c/single-key-ordered"
+// Path from root: "/model/c/single-key-ordered"
+// Key: string
+func (n *ModelPath) SingleKeyOrdered(Key string) *Model_SingleKeyOrderedPath {
+	return &Model_SingleKeyOrderedPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"c", "single-key-ordered"},
+			map[string]interface{}{"key": Key},
+			n,
+		),
+	}
+}
+
 // Model_MultiKeyPath represents the /openconfig-withlist/model/b/multi-key YANG schema element.
 type Model_MultiKeyPath struct {
 	*ygot.NodePath
@@ -145,6 +162,32 @@ type Model_SingleKey_KeyPath struct {
 // Path from root: "/model/a/single-key/state/key"
 func (n *Model_SingleKeyPath) Key() *Model_SingleKey_KeyPath {
 	return &Model_SingleKey_KeyPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "key"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Model_SingleKeyOrderedPath represents the /openconfig-withlist/model/c/single-key-ordered YANG schema element.
+type Model_SingleKeyOrderedPath struct {
+	*ygot.NodePath
+}
+
+// Model_SingleKeyOrdered_KeyPath represents the /openconfig-withlist/model/c/single-key-ordered/state/key YANG schema element.
+type Model_SingleKeyOrdered_KeyPath struct {
+	*ygot.NodePath
+}
+
+// Key (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
+// Path from parent: "state/key"
+// Path from root: "/model/c/single-key-ordered/state/key"
+func (n *Model_SingleKeyOrderedPath) Key() *Model_SingleKeyOrdered_KeyPath {
+	return &Model_SingleKeyOrdered_KeyPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "key"},
 			map[string]interface{}{},

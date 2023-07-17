@@ -66,6 +66,28 @@ module openconfig-withlist {
           }
         }
       }
+
+      container c {
+        list single-key-ordered {
+          key "key";
+          ordered-by user;
+
+          leaf key {
+            type leafref {
+              path "../config/key";
+            }
+          }
+
+          container config {
+            uses single-key-config;
+          }
+
+          container state {
+            config false;
+            uses single-key-config;
+          }
+        }
+      }
     }
   }
 

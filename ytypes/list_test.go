@@ -136,7 +136,7 @@ func TestValidateList(t *testing.T) {
 
 	// bad value type
 	err = util.Errors(validateList(validListSchema, struct{}{})).Error()
-	wantErr = `validateList expected map/slice type for valid-list-schema, got struct {}`
+	wantErr = `validateList expected map/slice/GoOrderedMap type for valid-list-schema, got struct {}`
 	if got, want := err, wantErr; got != want {
 		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
@@ -524,159 +524,63 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 	}
 }
 
-func TestUnmarshalKeyedList(t *testing.T) {
-	keyListSchema := func() *yang.Entry {
-		return &yang.Entry{
-			Name:     "key-list",
-			Kind:     yang.DirectoryEntry,
-			ListAttr: yang.NewDefaultListAttr(),
-			Key:      "key",
-			Config:   yang.TSTrue,
-			Dir: map[string]*yang.Entry{
-				"key": {
-					Kind: yang.LeafEntry,
-					Name: "key",
-					Type: &yang.YangType{Kind: yang.Ystring},
-				},
-				"leaf-field": {
-					Kind: yang.LeafEntry,
-					Name: "leaf-field",
-					Type: &yang.YangType{Kind: yang.Yint32},
-				},
-			},
-		}
-	}
-
-	containerWithLeafListSchema := &yang.Entry{
-		Name: "container",
-		Kind: yang.DirectoryEntry,
+func TestUnmarshalSingleListElement(t *testing.T) {
+	listSchema := &yang.Entry{
+		Name:     "struct-list",
+		Kind:     yang.DirectoryEntry,
+		ListAttr: yang.NewDefaultListAttr(),
 		Dir: map[string]*yang.Entry{
-			"key-list": keyListSchema(),
-		},
-	}
-	addParents(containerWithLeafListSchema)
-
-	containerWithPreferConfigSchema := &yang.Entry{
-		Name: "container",
-		Kind: yang.DirectoryEntry,
-		Dir: map[string]*yang.Entry{
-			"config": {
-				Name: "config",
-				Kind: yang.DirectoryEntry,
-				Dir: map[string]*yang.Entry{
-					"key-list": keyListSchema(),
-				},
+			"leaf-field": {
+				Kind: yang.LeafEntry,
+				Name: "leaf-field",
+				Type: &yang.YangType{Kind: yang.Yint32},
 			},
-			"state": {
-				Name: "state",
-				Kind: yang.DirectoryEntry,
-				Dir: map[string]*yang.Entry{
-					"key-list": keyListSchema(),
-				},
+			"enum-leaf-field": {
+				Kind: yang.LeafEntry,
+				Name: "enum-leaf-field",
+				Type: &yang.YangType{Kind: yang.Yenum},
+			},
+			"leaf2-field": {
+				Kind: yang.LeafEntry,
+				Name: "leaf2-field",
+				Type: &yang.YangType{Kind: yang.Yint64},
 			},
 		},
 	}
-	addParents(containerWithPreferConfigSchema)
 
 	type ListElemStruct struct {
-		Key       *string `path:"key"`
-		LeafField *int32  `path:"leaf-field"`
-	}
-	type ContainerStruct struct {
-		KeyList map[string]*ListElemStruct `path:"key-list"`
-	}
-
-	type ContainerStructPreferConfig struct {
-		KeyList map[string]*ListElemStruct `path:"config/key-list" shadow-path:"state/key-list"`
+		LeafName  *int32   `path:"leaf-field"`
+		EnumLeaf  EnumType `path:"enum-leaf-field"`
+		Leaf2Name *int64   `path:"leaf2-field"`
 	}
 
 	tests := []struct {
 		desc    string
-		json    string
 		schema  *yang.Entry
-		parent  interface{}
-		want    interface{}
-		opts    []UnmarshalOpt
+		json    string
+		parent  any
+		want    any
 		wantErr string
 	}{
 		{
 			desc:   "success",
-			json:   `{ "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] }`,
-			schema: containerWithLeafListSchema,
-			parent: &ContainerStruct{},
-			want: &ContainerStruct{
-				KeyList: map[string]*ListElemStruct{
-					"forty-two": {
-						Key:       ygot.String("forty-two"),
-						LeafField: ygot.Int32(42),
-					},
-				},
+			schema: listSchema,
+			json:   `{ "leaf-field" : 42, "enum-leaf-field" : "E_VALUE_FORTY_TWO"}`,
+			parent: &ListElemStruct{
+				Leaf2Name: ygot.Int64(42),
 			},
-		},
-		{
-			desc:   "success with config path",
-			json:   `{ "config": { "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] } }`,
-			schema: containerWithPreferConfigSchema,
-			parent: &ContainerStructPreferConfig{},
-			want: &ContainerStructPreferConfig{
-				KeyList: map[string]*ListElemStruct{
-					"forty-two": {
-						Key:       ygot.String("forty-two"),
-						LeafField: ygot.Int32(42),
-					},
-				},
-			},
-		},
-		{
-			desc:   "success ignoring shadowed state path",
-			json:   `{ "state": { "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] } }`,
-			schema: containerWithPreferConfigSchema,
-			parent: &ContainerStructPreferConfig{},
-			want:   &ContainerStructPreferConfig{},
-		},
-		{
-			desc:   "success ignoring path with preferShadowPath",
-			json:   `{ "config": { "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] } }`,
-			opts:   []UnmarshalOpt{&PreferShadowPath{}},
-			schema: containerWithPreferConfigSchema,
-			parent: &ContainerStructPreferConfig{},
-			want:   &ContainerStructPreferConfig{},
-		},
-		{
-			desc:   "success unmarshalling shadow path",
-			json:   `{ "state": { "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] } }`,
-			opts:   []UnmarshalOpt{&PreferShadowPath{}},
-			schema: containerWithPreferConfigSchema,
-			parent: &ContainerStructPreferConfig{},
-			want: &ContainerStructPreferConfig{
-				KeyList: map[string]*ListElemStruct{
-					"forty-two": {
-						Key:       ygot.String("forty-two"),
-						LeafField: ygot.Int32(42),
-					},
-				},
+			want: &ListElemStruct{
+				LeafName:  ygot.Int32(42),
+				Leaf2Name: ygot.Int64(42),
+				EnumLeaf:  42,
 			},
 		},
 		{
 			desc:    "bad field",
-			json:    `{ "key-list" : [ { "key" : "forty-two", "bad-field" : 42} ] }`,
-			schema:  containerWithLeafListSchema,
-			parent:  &ContainerStruct{},
-			wantErr: `parent container key-list (type *ytypes.ListElemStruct): JSON contains unexpected field bad-field`,
-		},
-		{
-			desc:   "ignore unknown field",
-			json:   `{ "key-list" : [ { "key" : "forty-two", "bad-field" : 42} ] }`,
-			opts:   []UnmarshalOpt{&IgnoreExtraFields{}},
-			schema: containerWithLeafListSchema,
-			parent: &ContainerStruct{},
-			want: &ContainerStruct{
-				KeyList: map[string]*ListElemStruct{
-					"forty-two": {
-						Key: ygot.String("forty-two"),
-					},
-				},
-			},
+			schema:  listSchema,
+			json:    `{ "leaf-field" : 42, "bad-field" : "E_VALUE_FORTY_TWO"}`,
+			parent:  &ListElemStruct{},
+			wantErr: `parent container struct-list (type *ytypes.ListElemStruct): JSON contains unexpected field bad-field`,
 		},
 	}
 
@@ -687,11 +591,10 @@ func TestUnmarshalKeyedList(t *testing.T) {
 				t.Fatalf("%s : %s", tt.desc, err)
 			}
 
-			err := Unmarshal(tt.schema, tt.parent, jsonTree, tt.opts...)
-			if got, want := errToString(err), tt.wantErr; got != want {
-				t.Errorf("%s: Unmarshal got error: %v, want error: %v", tt.desc, got, want)
+			err := Unmarshal(tt.schema, tt.parent, jsonTree)
+			if diff := errdiff.Text(err, tt.wantErr); diff != "" {
+				t.Fatalf("%s: Unmarshal error not expected:\n%s", tt.desc, diff)
 			}
-			testErrLog(t, tt.desc, err)
 			if err == nil {
 				got, want := tt.parent, tt.want
 				if diff := cmp.Diff(want, got); diff != "" {
@@ -786,75 +689,6 @@ func TestUnmarshalStructKeyedList(t *testing.T) {
 			}
 
 			err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
-			if got, want := errToString(err), tt.wantErr; got != want {
-				t.Errorf("%s: Unmarshal got error: %v, want error: %v", tt.desc, got, want)
-			}
-			testErrLog(t, tt.desc, err)
-			if err == nil {
-				got, want := parent, tt.want
-				if diff := cmp.Diff(want, got); diff != "" {
-					t.Errorf("%s: Unmarshal (-want, +got):\n%s", tt.desc, diff)
-				}
-			}
-		})
-	}
-}
-
-func TestUnmarshalSingleListElement(t *testing.T) {
-	listSchema := &yang.Entry{
-		Name:     "struct-list",
-		Kind:     yang.DirectoryEntry,
-		ListAttr: yang.NewDefaultListAttr(),
-		Dir: map[string]*yang.Entry{
-			"leaf-field": {
-				Kind: yang.LeafEntry,
-				Name: "leaf-field",
-				Type: &yang.YangType{Kind: yang.Yint32},
-			},
-			"enum-leaf-field": {
-				Kind: yang.LeafEntry,
-				Name: "enum-leaf-field",
-				Type: &yang.YangType{Kind: yang.Yenum},
-			},
-		},
-	}
-
-	type ListElemStruct struct {
-		LeafName *int32   `path:"leaf-field"`
-		EnumLeaf EnumType `path:"enum-leaf-field"`
-	}
-
-	tests := []struct {
-		desc    string
-		json    string
-		want    ListElemStruct
-		wantErr string
-	}{
-		{
-			desc: "success",
-			json: `{ "leaf-field" : 42, "enum-leaf-field" : "E_VALUE_FORTY_TWO"}`,
-			want: ListElemStruct{
-				LeafName: ygot.Int32(42),
-				EnumLeaf: 42,
-			},
-		},
-		{
-			desc:    "bad field",
-			json:    `{ "leaf-field" : 42, "bad-field" : "E_VALUE_FORTY_TWO"}`,
-			wantErr: `parent container struct-list (type *ytypes.ListElemStruct): JSON contains unexpected field bad-field`,
-		},
-	}
-
-	var jsonTree interface{}
-	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
-			var parent ListElemStruct
-
-			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-				t.Fatalf("%s : %s", tt.desc, err)
-			}
-
-			err := Unmarshal(listSchema, &parent, jsonTree)
 			if got, want := errToString(err), tt.wantErr; got != want {
 				t.Errorf("%s: Unmarshal got error: %v, want error: %v", tt.desc, got, want)
 			}

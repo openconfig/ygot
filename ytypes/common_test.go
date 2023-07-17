@@ -33,6 +33,7 @@ var (
 	testErrOutput = false
 	globalEnumMap = map[string]map[int64]ygot.EnumDefinition{
 		"EnumType": {
+			41: {Name: "E_VALUE_FORTY_ONE"},
 			42: {Name: "E_VALUE_FORTY_TWO"},
 		},
 		"EnumType2": {

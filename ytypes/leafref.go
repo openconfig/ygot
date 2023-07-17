@@ -190,7 +190,8 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.Path
 			if root.Parent == nil {
 				return nil, fmt.Errorf("no parent for leafref path at %v, with remaining path %s", ni.Schema.Path(), path)
 			}
-			if (root.Parent.Schema.IsList() && util.IsValueMap(root.Parent.FieldValue)) || (root.Parent.Schema.IsLeafList() && util.IsValueSlice(root.Parent.FieldValue)) {
+			_, isOrderedMap := root.Parent.FieldValue.Interface().(ygot.GoOrderedMap)
+			if (root.Parent.Schema.IsList() && (util.IsValueMap(root.Parent.FieldValue) || isOrderedMap)) || (root.Parent.Schema.IsLeafList() && util.IsValueSlice(root.Parent.FieldValue)) {
 				// YANG lists and YANG leaf-lists are represented as Go maps and slices respectively.
 				// Despite these being a single level in the YANG hierarchy, util.ForEachField actually
 				// traverses these elements in two levels: first at the map/slice level, and then at the
@@ -229,7 +230,14 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.Path
 	if ok {
 		return qVal.Nodes, qVal.Err
 	}
-	nodes, _, err := util.GetNodes(root.Schema, root.FieldValue.Interface(), path)
+	// Get all non-nil values
+	var nodes []any
+	treeNodes, err := GetNode(root.Schema, root.FieldValue.Interface(), path, &GetPartialKeyMatch{}, &GetHandleWildcards{}, &GetTolerateNil{})
+	for _, treeNode := range treeNodes {
+		if !util.IsValueNil(treeNode.Data) {
+			nodes = append(nodes, treeNode.Data)
+		}
+	}
 	pathQueryRoot.Memo[strPath] = util.PathQueryResult{Nodes: nodes, Err: err}
 	return nodes, err
 }

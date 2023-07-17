@@ -22,6 +22,7 @@ import (
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
+	"github.com/openconfig/ygot/ygot"
 )
 
 //lint:file-ignore U1000 Ignore all unused code, it represents generated code.
@@ -91,8 +92,12 @@ func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
 
 	var size uint64
 	if value != nil {
-		switch reflect.TypeOf(value).Kind() {
-		case reflect.Slice, reflect.Map:
+		orderedMap, isOrderedMap := value.(ygot.GoOrderedMap)
+		kind := reflect.TypeOf(value).Kind()
+		switch {
+		case isOrderedMap:
+			size = uint64(orderedMap.Len())
+		case kind == reflect.Slice, kind == reflect.Map:
 			size = uint64(reflect.ValueOf(value).Len())
 		default:
 			return util.NewErrs(fmt.Errorf("value %v type %T must be map or slice type for schema %s", value, value, schema.Name))

@@ -2,51 +2,86 @@ module ctestschema {
   prefix "cts";
   namespace "urn:cts";
 
+  import ctestschema-rootmod { prefix rm; }
+
   description
     "ctestschema contains elements that are compatible for compressed (and
     therefore also uncompressed) generation options.";
 
-  container ordered-lists {
-    list ordered-list {
-      key "key";
-      ordered-by user;
+  grouping ctestschema-top {
 
-      leaf key { type leafref { path "../config/key"; } }
-
+    container other-data {
       container config {
-        uses list-config;
+        uses other-data-config;
       }
 
       container state {
         config false;
-        uses list-config;
+        uses other-data-config;
       }
     }
-  }
 
-  container unordered-lists {
-    list unordered-list {
-      key "key";
+    container unordered-lists {
+      list unordered-list {
+        key "key";
 
-      leaf key { type leafref { path "../config/key"; } }
+        leaf key { type leafref { path "../config/key"; } }
 
-      container config {
-        uses list-config;
-      }
+        container config {
+          uses list-config;
+        }
 
-      container state {
-        config false;
-        uses list-config;
+        container state {
+          config false;
+          uses list-config;
+        }
       }
     }
+
+    container ordered-lists {
+      list ordered-list {
+        key "key";
+        ordered-by user;
+        // These numbers are for testing the validation logic in ytypes/.
+        min-elements 0;
+        max-elements 5;
+
+        leaf key { type leafref { path "../config/key"; } }
+
+        container config {
+          uses list-config;
+        }
+
+        container state {
+          config false;
+          uses list-config;
+          uses list-state;
+        }
+
+        container ordered-lists {
+          list ordered-list {
+            key "key";
+            ordered-by user;
+
+            leaf key { type leafref { path "../config/key"; } }
+
+            container config {
+              uses list-config;
+            }
+
+            container state {
+              config false;
+              uses list-config;
+              uses nested-list-state;
+            }
+          }
+        }
+      }
+    }
+
   }
 
-  grouping list-config {
-    leaf key { type string; }
-    leaf value { type string; }
-  }
-
-  container ordered-multikeyed-lists {
+  grouping ordered-multikeyed-list-top {
     list ordered-multikeyed-list {
       key "key1 key2";
       ordered-by user;
@@ -61,13 +96,47 @@ module ctestschema {
       container state {
         config false;
         uses multikeyed-list-config;
+        uses multikeyed-list-state;
       }
     }
+  }
+
+  grouping other-data-config {
+    leaf motd { type string; }
+  }
+
+  grouping list-config {
+    leaf key { type string; }
+    leaf value {
+      type string;
+      default "default-value";
+    }
+  }
+
+  grouping list-state {
+    leaf ro-value { type string; }
+    leaf parent-key { type leafref { path "../../../ordered-list/key";} }
+  }
+
+  grouping multikeyed-list-state {
+    leaf ro-value { type string; }
+  }
+
+  grouping nested-list-state {
+    leaf parent-key { type leafref { path "../../../../config/key";} }
   }
 
   grouping multikeyed-list-config {
     leaf key1 { type string; }
     leaf key2 { type uint64; }
-    leaf value { type string; }
+    leaf value {
+      type string;
+      default "default-multikeyed-value";
+    }
+  }
+
+  uses ctestschema-top;
+  augment "/rm:ordered-multikeyed-lists" {
+    uses ordered-multikeyed-list-top;
   }
 }

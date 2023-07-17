@@ -91,75 +91,6 @@ func toStringPtr(s string) *string { return &s }
 func toInt8Ptr(i int8) *int8       { return &i }
 func toInt32Ptr(i int32) *int32    { return &i }
 
-func TestIsValueNil(t *testing.T) {
-	if !IsValueNil(nil) {
-		t.Error("got IsValueNil(nil) false, want true")
-	}
-	if !IsValueNil((*int)(nil)) {
-		t.Error("got IsValueNil(ptr) false, want true")
-	}
-	if !IsValueNil((map[int]int)(nil)) {
-		t.Error("got IsValueNil(map) false, want true")
-	}
-	if !IsValueNil(([]int)(nil)) {
-		t.Error("got IsValueNil(slice) false, want true")
-	}
-	if !IsValueNil((interface{})(nil)) {
-		t.Error("got IsValueNil(interface) false, want true")
-	}
-
-	if IsValueNil(toInt8Ptr(42)) {
-		t.Error("got IsValueNil(ptr) true, want false")
-	}
-	if IsValueNil(map[int]int{42: 42}) {
-		t.Error("got IsValueNil(map) true, want false")
-	}
-	if IsValueNil([]int{1, 2, 3}) {
-		t.Error("got IsValueNil(slice) true, want false")
-	}
-	if IsValueNil((interface{})(42)) {
-		t.Error("got IsValueNil(interface) true, want false")
-	}
-}
-
-func TestIsValueNilOrDefault(t *testing.T) {
-	// want true tests
-	if !IsValueNilOrDefault(nil) {
-		t.Error("got IsValueNilOrDefault(nil) false, want true")
-	}
-	if !IsValueNilOrDefault((*int)(nil)) {
-		t.Error("got IsValueNilOrDefault(ptr) false, want true")
-	}
-	if !IsValueNilOrDefault((map[int]int)(nil)) {
-		t.Error("got IsValueNilOrDefault(map) false, want true")
-	}
-	if !IsValueNilOrDefault(([]int)(nil)) {
-		t.Error("got IsValueNilOrDefault(slice) false, want true")
-	}
-	if !IsValueNilOrDefault((interface{})(nil)) {
-		t.Error("got IsValueNilOrDefault(interface) false, want true")
-	}
-	if !IsValueNilOrDefault(int(0)) {
-		t.Error("got IsValueNilOrDefault(int(0)) false, want true")
-	}
-	if !IsValueNilOrDefault("") {
-		t.Error("got IsValueNilOrDefault(\"\") false, want true")
-	}
-	if !IsValueNilOrDefault(false) {
-		t.Error("got IsValueNilOrDefault(false) false, want true")
-	}
-
-	// want false tests
-	i := 32
-	ip := &i
-	if IsValueNilOrDefault(&ip) {
-		t.Error("got IsValueNilOrDefault(ptr to ptr) true, want false")
-	}
-	if IsValueNilOrDefault([]int{}) {
-		t.Error("got IsValueNilOrDefault([]int{}) true, want false")
-	}
-}
-
 func TestIsValueFuncs(t *testing.T) {
 	testInt := int(42)
 	testStruct := struct{}{}
@@ -862,103 +793,6 @@ func TestInsertIntoMapStructField(t *testing.T) {
 	}
 }
 
-func TestInsertIntoSlice(t *testing.T) {
-	parentSlice := []int{42, 43}
-	value := 44
-	if err := InsertIntoSlice(&parentSlice, value); err != nil {
-		t.Fatalf("got error: %s, want error: nil", err)
-	}
-	wantSlice := []int{42, 43, value}
-	got, want := parentSlice, wantSlice
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("(-want, +got):\n%s", diff)
-	}
-
-	badParent := struct{}{}
-	wantErr := `InsertIntoSlice parent type is *struct {}, must be slice ptr`
-	if got, want := errToString(InsertIntoSlice(&badParent, value)), wantErr; got != want {
-		t.Fatalf("got error: %s, want error: %s", got, want)
-	}
-}
-
-func TestInsertIntoMap(t *testing.T) {
-	parentMap := map[int]string{42: "forty two", 43: "forty three"}
-	key := 44
-	value := "forty four"
-	if err := InsertIntoMap(parentMap, key, value); err != nil {
-		t.Fatalf("got error: %s, want error: nil", err)
-	}
-	wantMap := map[int]string{42: "forty two", 43: "forty three", 44: "forty four"}
-	got, want := parentMap, wantMap
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("(-want, +got):\n%s", diff)
-	}
-
-	badParent := struct{}{}
-	wantErr := `InsertIntoMap parent type is *struct {}, must be map`
-	if got, want := errToString(InsertIntoMap(&badParent, key, value)), wantErr; got != want {
-		t.Fatalf("got error: %s, want error: %s", got, want)
-	}
-}
-
-func TestInitializeStructField(t *testing.T) {
-	type testStruct struct {
-		// Following two fields exist to exercise
-		// initializing pointer fields
-		IPtr      *int
-		SPtr      *string
-		StructPtr *struct {
-			IPtr *int
-			SPtr *string
-		}
-		// Following field exists to exercise
-		// initializing composite fields
-		MPtr map[string]int
-		// Following fields exist to exercise
-		// skipping initializing a slice and
-		// non pointer field
-		SlPtr []string
-		I     int
-	}
-
-	tests := []struct {
-		f          string
-		skip       bool
-		isLeafType bool
-	}{
-		{f: "IPtr", isLeafType: true},
-		{f: "SPtr", isLeafType: true},
-		{f: "StructPtr"},
-		{f: "MPtr"},
-		{f: "SlPtr", skip: true},
-		{f: "I", skip: true},
-	}
-
-	for _, initLeaf := range []bool{false, true} {
-		for _, tt := range tests {
-			i := &testStruct{}
-			v := reflect.ValueOf(i)
-			if IsValuePtr(v) {
-				v = v.Elem()
-			}
-			fv := v.FieldByName(tt.f)
-			err := InitializeStructField(i, tt.f, initLeaf)
-			if err != nil {
-				t.Errorf("got %v, want no error", err)
-			}
-			skip := tt.skip || (!initLeaf && tt.isLeafType)
-			switch {
-			case !skip && fv.IsNil():
-				t.Errorf("got nil, want initialized field value: %q", tt.f)
-			case skip && !IsValuePtr(fv) && !fv.IsZero():
-				t.Errorf("got initialized non-pointer field value %q, want zero value", tt.f)
-			case skip && IsValuePtr(fv) && !fv.IsNil():
-				t.Errorf("got initialized field value %q, want nil", tt.f)
-			}
-		}
-	}
-}
-
 func TestInitializeStructFieldForSameField(t *testing.T) {
 	type testStruct struct {
 		MPtr map[string]string
@@ -1011,6 +845,13 @@ var (
 
 type PathErrorStruct struct {
 	Field *string
+}
+
+type BadBasicStructMissingPath struct {
+	Int32Field     int32
+	StringField    string
+	Int32PtrField  *int32  `path:"int32ptr"`
+	StringPtrField *string `path:"stringptr"`
 }
 
 type BasicStruct struct {
@@ -1104,7 +945,7 @@ var (
 		return
 	}
 
-	printMapKeysSchemaAnnotationFunc = func(ni *NodeInfo, in, out interface{}) (errs Errors) {
+	PrintMapKeysSchemaAnnotationFunc = func(ni *NodeInfo, in, out interface{}) (errs Errors) {
 		if IsNilOrInvalidValue(ni.FieldKey) {
 			return
 		}
@@ -1126,7 +967,40 @@ var (
 		return
 	}
 
+	PrintMapKeysSchemaAnnotationFuncSkipBasicStruct2 = func(ni *NodeInfo, in, out interface{}) (action IterationAction, errs Errors) {
+		if IsNilOrInvalidValue(ni.FieldKey) {
+			return
+		}
+		if key := ni.FieldKey.Interface(); key == "basicStruct2" {
+			action = DoNotIterateDescendants
+			return
+		}
+		outs := out.(*string)
+		s := "nil"
+		if !IsNilOrInvalidValue(ni.FieldValue) {
+			s = pretty.Sprint(ni.FieldValue.Interface())
+		}
+
+		fn, err := SchemaPaths(ni.StructField)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		if l := len(fn); l != 1 {
+			errs = append(errs, fmt.Errorf("invalid schema path length %d for %v", l, ni.StructField.Name))
+		}
+
+		*outs += fmt.Sprintf("%s/%s : \n%s\n, ", ValueStr(ni.FieldKey.Interface()), fn[0][0], ValueStr(s))
+		return
+	}
+
 	basicStruct1 = BasicStruct{
+		Int32Field:     int32(42),
+		StringField:    "forty two",
+		Int32PtrField:  toInt32Ptr(4242),
+		StringPtrField: toStringPtr("forty two ptr"),
+	}
+
+	badBasicStruct1 = BadBasicStructMissingPath{
 		Int32Field:     int32(42),
 		StringField:    "forty two",
 		Int32PtrField:  toInt32Ptr(4242),
@@ -1342,17 +1216,85 @@ func TestForEachField(t *testing.T) {
 	for _, tt := range tests {
 		outStr := ""
 		var errs Errors = ForEachField(tt.schema, tt.parentStruct, tt.in, &outStr, tt.iterFunc)
-		if got, want := errs.String(), tt.wantErr; got != want {
-			diff, _ := testutil.GenerateUnifiedDiff(want, got)
-			t.Errorf("%s:\n%s", tt.desc, diff)
+		if diff := cmp.Diff(errs.String(), tt.wantErr); diff != "" {
+			t.Errorf("error (-got, +want):\n%s", diff)
 		}
 		if errs == nil {
-			if got, want := outStr, tt.wantOut; got != want {
-				diff, _ := testutil.GenerateUnifiedDiff(want, got)
+			if diff := cmp.Diff(outStr, tt.wantOut); diff != "" {
 				t.Errorf("%s:\n%s", tt.desc, diff)
 			}
 		}
 		testErrLog(t, tt.desc, errs)
+	}
+}
+
+type testWalkVisitor struct {
+	out string
+}
+
+var _ Visitor = &testWalkVisitor{}
+
+func (v *testWalkVisitor) Visit(node WalkNode) Visitor {
+	if node == nil {
+		return nil
+	}
+	v.out += node.NodeInfo().FieldValue.String() + "\n"
+	return v
+}
+
+func TestWalk(t *testing.T) {
+	tests := []struct {
+		desc         string
+		parentStruct any
+		options      *WalkOptions
+		wantOut      string
+		wantErr      Errors
+	}{
+		{
+			desc:         "nil",
+			parentStruct: nil,
+			wantOut:      ``,
+		},
+		{
+			desc:         "struct with schema",
+			options:      DefaultWalkOptions().WithSchema(forEachContainerSchema.Dir["basic-struct"]),
+			parentStruct: &basicStruct1,
+			wantOut:      "<*util.BasicStruct Value>\n<int32 Value>\nforty two\n<*int32 Value>\n<*string Value>\n",
+		},
+		{
+			desc:         "struct mismatched schema not an error",
+			options:      DefaultWalkOptions().WithSchema(forEachContainerSchema.Dir["basic-struct"].Dir["int32ptr"]),
+			parentStruct: &basicStruct1,
+			wantOut:      "<*util.BasicStruct Value>\n",
+		},
+		{
+			desc:         "struct no schema",
+			parentStruct: &basicStruct1,
+			wantOut:      "<*util.BasicStruct Value>\n<int32 Value>\nforty two\n<*int32 Value>\n<*string Value>\n",
+		},
+		{
+			desc:         "fail struct type missing path",
+			options:      DefaultWalkOptions().WithSchema(forEachContainerSchema.Dir["basic-struct"]),
+			parentStruct: &badBasicStruct1,
+			wantErr:      []error{fmt.Errorf("field Int32Field did not specify a path")},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.desc, func(t *testing.T) {
+			node := WalkNodeFromGoStruct(tt.parentStruct)
+			v := &testWalkVisitor{}
+			errs := Walk(v, node, tt.options).(*DefaultWalkErrors).Errors
+			if diff := cmp.Diff(errs.String(), tt.wantErr.String()); diff != "" {
+				t.Errorf("error (-got, +want):\n%s", diff)
+			}
+			if errs != nil {
+				return
+			}
+			if diff := cmp.Diff(v.out, tt.wantOut); diff != "" {
+				t.Errorf("%s:\n%s", tt.desc, diff)
+			}
+		})
 	}
 }
 
@@ -1362,9 +1304,11 @@ func TestForEachDataField(t *testing.T) {
 		parentStruct interface{}
 		in           interface{}
 		out          interface{}
-		iterFunc     FieldIteratorFunc
-		wantOut      string
-		wantErr      string
+		// Only one of the below iterFunc must be specified.
+		iterFunc  FieldIteratorFunc
+		iterFunc2 FieldIteratorFunc2
+		wantOut   string
+		wantErr   string
 	}{
 		{
 			desc:         "nil",
@@ -1423,7 +1367,7 @@ func TestForEachDataField(t *testing.T) {
 			desc:         "map keys with no struct schema",
 			in:           nil,
 			parentStruct: &StructOfMapOfStructs{BasicStructMapField: map[string]BasicStruct{"basicStruct1": basicStruct1}, BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2}},
-			iterFunc:     printMapKeysSchemaAnnotationFunc,
+			iterFunc:     PrintMapKeysSchemaAnnotationFunc,
 			wantOut: `basicStruct1 (string)/basic-struct : 
 {Int32Field:     42,
  StringField:    "forty two",
@@ -1434,6 +1378,18 @@ func TestForEachDataField(t *testing.T) {
  StringField:    "forty three",
  Int32PtrField:  4343,
  StringPtrField: "forty three ptr"} (string)
+, `,
+		},
+		{
+			desc:         "map keys with no struct schema, skipping basicStruct2",
+			in:           nil,
+			parentStruct: &StructOfMapOfStructs{BasicStructMapField: map[string]BasicStruct{"basicStruct1": basicStruct1}, BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2}},
+			iterFunc2:    PrintMapKeysSchemaAnnotationFuncSkipBasicStruct2,
+			wantOut: `basicStruct1 (string)/basic-struct : 
+{Int32Field:     42,
+ StringField:    "forty two",
+ Int32PtrField:  4242,
+ StringPtrField: "forty two ptr"} (string)
 , `,
 		},
 		{
@@ -1449,20 +1405,34 @@ func TestForEachDataField(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		outStr := ""
-		var errs Errors = ForEachDataField(tt.parentStruct, tt.in, &outStr, tt.iterFunc)
-		if got, want := errs.String(), tt.wantErr; got != want {
-			diff, _ := testutil.GenerateUnifiedDiff(want, got)
-			t.Errorf("%s: ForEachDataField(%v, %#v, ...): \n%s", tt.desc, tt.parentStruct, tt.in, diff)
-		}
-		testErrLog(t, tt.desc, errs)
-		if len(errs) > 0 {
-			continue
-		}
-		if got, want := outStr, tt.wantOut; got != want {
-			diff, _ := testutil.GenerateUnifiedDiff(want, got)
-			t.Errorf("%s: ForEachDataField(%v, %#v, ...): \n%s", tt.desc, tt.parentStruct, tt.in, diff)
-		}
+		t.Run(tt.desc, func(t *testing.T) {
+			outStr := ""
+			test := func(funcName string, errs Errors) {
+				if got, want := errs.String(), tt.wantErr; got != want {
+					diff, _ := testutil.GenerateUnifiedDiff(want, got)
+					t.Errorf("%s: %s(%v, %#v, ...): \n%s", tt.desc, funcName, tt.parentStruct, tt.in, diff)
+				}
+				testErrLog(t, tt.desc, errs)
+				if len(errs) > 0 {
+					return
+				}
+				if got, want := outStr, tt.wantOut; got != want {
+					diff, _ := testutil.GenerateUnifiedDiff(want, got)
+					t.Errorf("%s: %s(%v, %#v, ...): \n%s", tt.desc, funcName, tt.parentStruct, tt.in, diff)
+				}
+				outStr = ""
+			}
+
+			switch {
+			case tt.iterFunc != nil && tt.iterFunc2 != nil:
+				t.Fatalf("Only one of iterFunc and iterFunc2 must be specified")
+			case tt.iterFunc2 != nil:
+				test("ForEachDataField2", ForEachDataField2(tt.parentStruct, tt.in, &outStr, tt.iterFunc2))
+			default:
+				test("ForEachDataField", ForEachDataField(tt.parentStruct, tt.in, &outStr, tt.iterFunc))
+				test("ForEachDataField2", ForEachDataField2(tt.parentStruct, tt.in, &outStr, iterFuncToIterFunc2(tt.iterFunc)))
+			}
+		})
 	}
 }
 

@@ -167,6 +167,7 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 		if definingModule := yang.RootNode(dir.Entry.Node); definingModule != nil {
 			definingModuleName = definingModule.Name
 		}
+
 		pd := &ParsedDirectory{
 			Name:              dir.Name,
 			Path:              util.SlicePathToString(dir.Path),
@@ -180,12 +181,38 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 		switch {
 		case dir.Entry.IsList():
 			pd.Type = List
+			if dir.Entry.ListAttr.OrderedByUser {
+				pd.Type = OrderedList
+			}
 			if !util.IsUnkeyedList(dir.Entry) {
 				pd.ListKeys = dir.ListAttr.Keys
 				pd.ListKeyYANGNames = dir.ListAttr.ListKeyYANGNames
 			}
 		default:
 			pd.Type = Container
+		}
+
+		for i, entry := 0, dir.Entry; ; i++ {
+			exts, err := yang.MatchingEntryExtensions(entry, "openconfig-extensions", "telemetry-atomic")
+			if err != nil {
+				return nil, fmt.Errorf("cannot retrieve OpenConfig extensions: %v", err)
+			}
+			if len(exts) > 0 {
+				if i == 0 {
+					pd.TelemetryAtomic = true
+				} else {
+					pd.CompressedTelemetryAtomic = true
+				}
+			}
+
+			if entry.Parent == nil {
+				// The very first element is the module -- skip it.
+				break
+			}
+			entry = entry.Parent
+			if _, ok := directory[entry.Path()]; ok {
+				break
+			}
 		}
 
 		pd.Fields = make(map[string]*NodeDetails, len(dir.Fields))

@@ -17,6 +17,7 @@ package ytypes
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
@@ -28,6 +29,49 @@ import (
 type UnmarshalOpt interface {
 	IsUnmarshalOpt()
 }
+
+// ComplianceErrors contains the compliance errors encountered from an Unmarshal operation.
+type ComplianceErrors struct {
+	// Errors represent generic errors for now, until we make a decision on what specific types
+	// of errors should be returned.
+	Errors []error
+}
+
+func (c *ComplianceErrors) Error() string {
+	if c == nil {
+		return ""
+	}
+
+	var b strings.Builder
+	b.WriteString("Noncompliance errors:")
+	if len(c.Errors) != 0 {
+		for _, e := range c.Errors {
+			b.WriteString("\n\t")
+			b.WriteString(e.Error())
+		}
+	} else {
+		b.WriteString(" None")
+	}
+	b.WriteString("\n")
+	return b.String()
+}
+
+func (c *ComplianceErrors) append(errs ...error) *ComplianceErrors {
+	if c == nil {
+		return &ComplianceErrors{Errors: errs}
+	}
+
+	c.Errors = append(c.Errors, errs...)
+	return c
+}
+
+// BestEffortUnmarshal is an unmarshal option that accumulates errors while unmarshalling,
+// and continues the unmarshaling process. An unmarshal now return a ComplianceErrors struct,
+// instead of a single error.
+type BestEffortUnmarshal struct{}
+
+// IsUnmarshalOpt marks BestEffortUnmarshal as a valid UnmarshalOpt.
+func (*BestEffortUnmarshal) IsUnmarshalOpt() {}
 
 // IgnoreExtraFields is an unmarshal option that controls the
 // behaviour of the Unmarshal function when additional fields are
@@ -87,6 +131,10 @@ func unmarshalGeneric(schema *yang.Entry, parent interface{}, value interface{},
 		return errors.New("unmarshalling a non leaf node isn't supported in GNMIEncoding mode")
 	}
 
+	if hasBestEffortUnmarshal(opts) {
+		return errors.New("unmarshalGeneric passed unsupported option BestEffortUnmarshal")
+	}
+
 	switch {
 	case schema.IsLeaf():
 		return unmarshalLeaf(schema, parent, value, enc, opts...)
@@ -121,5 +169,17 @@ func hasPreferShadowPath(opts []UnmarshalOpt) bool {
 			return true
 		}
 	}
+	return false
+}
+
+// hasBestEffortUnmarshal determines whether the supplied slice of UnmarshalOpts
+// contains the BestEffortUnmarshal option.
+func hasBestEffortUnmarshal(opts []UnmarshalOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*BestEffortUnmarshal); ok {
+			return true
+		}
+	}
+
 	return false
 }

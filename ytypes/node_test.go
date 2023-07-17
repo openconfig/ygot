@@ -440,7 +440,7 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 						Key1: ygot.String("forty-two"),
 						Outer: &OuterContainerType1{
 							Inner: &InnerContainerType1{
-								EnumLeafName: EnumType(43),
+								EnumLeafName: EnumType(41),
 							},
 						},
 					},
@@ -448,7 +448,7 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 			},
 			inSchema: containerWithStringKey(),
 			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/enum-leaf-field"),
-			want:     EnumType(43),
+			want:     EnumType(41),
 		},
 		{
 			inDesc:   "success get enum leaf with a new key",

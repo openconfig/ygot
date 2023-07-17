@@ -35,3 +35,13 @@ func YangIntTypeBits(t yang.TypeKind) (int, error) {
 	}
 	return 0, fmt.Errorf("type is not an int")
 }
+
+// goOrderedMap is a convenience interface for ygot.GoOrderedMap. It is here
+// to avoid a circular dependency.
+type goOrderedMap interface {
+	// IsYANGOrderedList is a marker method that indicates that the struct
+	// implements the goOrderedMap interface.
+	IsYANGOrderedList()
+	// Len returns the size of the ordered list.
+	Len() int
+}
