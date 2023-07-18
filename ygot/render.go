@@ -568,6 +568,16 @@ func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath) error {
 				addLeaf(&path{p}, fval.Interface())
 			}
 			continue
+		case reflect.Bool:
+			if fval.Type().Name() == EmptyTypeName {
+				// This is an empty value.
+				// Only marshal if the empty leaf is present.
+				if val := fval.Bool(); val {
+					for _, p := range mapPaths {
+						addLeaf(&path{p}, fval.Interface())
+					}
+				}
+			}
 		}
 	}
 	return errs.Err()
