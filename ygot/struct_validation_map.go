@@ -212,7 +212,8 @@ func initialiseTree(t reflect.Type, v reflect.Value) {
 		fVal := v.Field(i)
 		fType := t.Field(i)
 
-		if util.IsTypeStructPtr(fType.Type) {
+		_, isOrderedMap := fVal.Interface().(GoOrderedMap)
+		if !isOrderedMap && util.IsTypeStructPtr(fType.Type) {
 			// Only initialise nested struct pointers, since all struct fields within
 			// a GoStruct are expected to be pointers, and we do not want to initialise
 			// non-struct values. If the struct pointer is not nil, it is skipped.
