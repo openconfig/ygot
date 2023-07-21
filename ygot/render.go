@@ -19,13 +19,13 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"sort"
 	"strings"
 
 	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/gnmi/value"
 	"github.com/openconfig/ygot/internal/yreflect"
 	"github.com/openconfig/ygot/util"
+	"golang.org/x/exp/slices"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 
@@ -1442,73 +1442,67 @@ func keyValue(v reflect.Value, prependModuleNameIref bool) (any, error) {
 	return name, nil
 }
 
-// mapJSON takes an input reflect.Value containing a map, and
-// constructs the representation for JSON marshalling that corresponds to it.
-// The module within which the map is defined is specified by the parentMod
-// argument.
-func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (any, error) {
-	var errs errlist.List
-	mapKeyMap := map[string]reflect.Value{}
-	// Order of elements determines the order in which keys will be processed.
-	var mapKeys []string
+// mapKeyToJSONString converts a map key to a string to be used in JSON output.
+func mapKeyToJSONString(k reflect.Value, args jsonOutputConfig) (string, error) {
 	switch args.jType {
 	case RFC7951:
-		// YANG lists are marshalled into a JSON object array for IETF
-		// JSON. We handle the keys in alphabetical order to ensure that
-		// deterministic ordering is achieved in the output JSON.
-		for _, k := range field.MapKeys() {
-			keyval, err := keyValue(k, false)
-			if err != nil {
-				errs.Add(fmt.Errorf("invalid enumerated key: %v", err))
-				continue
-			}
-			kn := fmt.Sprintf("%v", keyval)
-			mapKeys = append(mapKeys, kn)
-			mapKeyMap[kn] = k
+		k, err := keyValue(k, false)
+		if err != nil {
+			return "", fmt.Errorf("invalid enumerated key: %v", err)
 		}
+		return fmt.Sprintf("%v", k), nil
 	case Internal:
 		// In non-IETF JSON, then we output a list as a JSON object. The keys
 		// are stored as strings.
-		for _, k := range field.MapKeys() {
-			var kn string
-			switch k.Kind() {
-			case reflect.Struct:
-				// Handle the case of a multikey list.
-				var kp []string
-				for j := 0; j < k.NumField(); j++ {
-					keyval, err := keyValue(k.Field(j), false)
-					if err != nil {
-						errs.Add(fmt.Errorf("invalid enumerated key: %v", err))
-						continue
-					}
-					kp = append(kp, fmt.Sprintf("%v", keyval))
-				}
-				kn = strings.Join(kp, " ")
-			case reflect.Int64:
-				keyval, err := keyValue(k, false)
+		switch k.Kind() {
+		case reflect.Struct:
+			var errs errlist.List
+			// Handle the case of a multikey list.
+			var kp []string
+			for j := 0; j < k.NumField(); j++ {
+				keyval, err := keyValue(k.Field(j), false)
 				if err != nil {
 					errs.Add(fmt.Errorf("invalid enumerated key: %v", err))
 					continue
 				}
-				kn = fmt.Sprintf("%v", keyval)
-			default:
-				kn = fmt.Sprintf("%v", k.Interface())
+				kp = append(kp, fmt.Sprintf("%v", keyval))
 			}
-			mapKeys = append(mapKeys, kn)
-			mapKeyMap[kn] = k
+			if errs.Err() != nil {
+				return "", errs.Err()
+			}
+			return strings.Join(kp, " "), nil
+		case reflect.Int64:
+			keyval, err := keyValue(k, false)
+			if err != nil {
+				return "", fmt.Errorf("invalid enumerated key: %v", err)
+			}
+			return fmt.Sprintf("%v", keyval), nil
+		default:
+			return fmt.Sprintf("%v", k.Interface()), nil
 		}
 	default:
-		return nil, fmt.Errorf("unknown JSON type: %v", args.jType)
+		return "", fmt.Errorf("unknown JSON type: %v", args.jType)
 	}
-	sort.Strings(mapKeys)
+}
 
-	if len(mapKeys) == 0 {
+// mapValuePair represents a map value pair with the key as a string.
+type mapValuePair struct {
+	k string
+	v reflect.Value
+}
+
+// mapValuePairsToJSON converts the given ordered pair of map values to JSON
+// according to the JSON format option.
+func mapValuePairsToJSON(pairs []mapValuePair, parentMod string, args jsonOutputConfig) (any, error) {
+	if len(pairs) == 0 {
 		// empty list should be encoded as empty list
 		if args.jType == RFC7951 {
 			return []any{}, nil
 		}
 		return nil, nil
 	}
+
+	var errs errlist.List
 
 	// Build the output that we expect. Since there is a difference between the IETF
 	// and non-IETF forms, we simply choose vals to be any, and then type assert
@@ -1524,11 +1518,10 @@ func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (any,
 	default:
 		return nil, fmt.Errorf("invalid JSON format specified: %v", args.jType)
 	}
-	for _, kn := range mapKeys {
-		k := mapKeyMap[kn]
-		goStruct, ok := field.MapIndex(k).Interface().(GoStruct)
+	for _, pair := range pairs {
+		goStruct, ok := pair.v.Interface().(GoStruct)
 		if !ok {
-			errs.Add(fmt.Errorf("cannot map struct %v, invalid GoStruct", field))
+			errs.Add(fmt.Errorf("cannot map struct %v, invalid GoStruct", pair.v.Interface()))
 			continue
 		}
 
@@ -1542,17 +1535,44 @@ func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (any,
 		case RFC7951:
 			vals = append(vals.([]any), val)
 		case Internal:
-			vals.(map[string]any)[kn] = val
+			vals.(map[string]any)[pair.k] = val
 		default:
 			errs.Add(fmt.Errorf("invalid JSON type: %v", args.jType))
 			continue
 		}
 	}
-
 	if errs.Err() != nil {
 		return nil, errs.Err()
 	}
 	return vals, nil
+}
+
+// mapJSON takes an input reflect.Value containing a map, and
+// constructs the representation for JSON marshalling that corresponds to it.
+// The module within which the map is defined is specified by the parentMod
+// argument.
+func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (any, error) {
+	var errs errlist.List
+	// Order of elements determines the order in which keys will be processed.
+	var pairs []mapValuePair
+
+	iter := field.MapRange()
+	for iter.Next() {
+		kn, err := mapKeyToJSONString(iter.Key(), args)
+		if err != nil {
+			errs.Add(err)
+			continue
+		}
+		pairs = append(pairs, mapValuePair{k: kn, v: iter.Value()})
+	}
+	slices.SortFunc(pairs, func(a, b mapValuePair) bool { return a.k < b.k })
+
+	js, err := mapValuePairsToJSON(pairs, parentMod, args)
+	errs.Add(err)
+	if errs.Err() != nil {
+		return nil, errs.Err()
+	}
+	return js, nil
 }
 
 // jsonValue takes a reflect.Value which represents a struct field and
@@ -1581,21 +1601,26 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 			errs.Add(err)
 		}
 	case reflect.Ptr:
-		if _, ok := field.Interface().(GoOrderedMap); ok {
-			// This is an ordered-map for YANG "ordered-by user" lists.
-			valuesMethod, err := yreflect.MethodByName(field, "Values")
-			if err != nil {
-				return nil, err
+		if om, ok := field.Interface().(GoOrderedMap); ok {
+			var pairs []mapValuePair
+			if err := yreflect.RangeOrderedMap(om, func(k reflect.Value, v reflect.Value) bool {
+				kn, err := mapKeyToJSONString(k, args)
+				if err != nil {
+					errs.Add(err)
+					return true
+				}
+				pairs = append(pairs, mapValuePair{k: kn, v: v})
+				return true
+			}); err != nil {
+				errs.Add(err)
 			}
-			ret := valuesMethod.Call(nil)
-			if got, wantReturnN := len(ret), 1; got != wantReturnN {
-				return nil, fmt.Errorf("method Values() doesn't have expected number of return values, got %v, want %v", got, wantReturnN)
+
+			js, err := mapValuePairsToJSON(pairs, parentMod, args)
+			errs.Add(err)
+			if errs.Err() != nil {
+				return nil, errs.Err()
 			}
-			values := ret[0]
-			if gotKind := values.Type().Kind(); gotKind != reflect.Slice {
-				return nil, fmt.Errorf("method Values() did not return a slice value, got %v", gotKind)
-			}
-			return jsonValue(values, parentMod, args)
+			return js, nil
 		}
 
 		switch field.Elem().Kind() {
