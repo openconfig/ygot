@@ -308,6 +308,25 @@ func TestEmitJSON(t *testing.T) {
 	}
 }
 
+func TestBuildEmptyTree(t *testing.T) {
+	tests := []struct {
+		name     string
+		inStruct ygot.GoStruct
+		want     ygot.GoStruct
+	}{{
+		name:     "device containing ordered map",
+		inStruct: &ctestschema.Device{},
+		want:     &ctestschema.Device{OtherData: &ctestschema.OtherData{}},
+	}}
+
+	for _, tt := range tests {
+		ygot.BuildEmptyTree(tt.inStruct)
+		if diff := cmp.Diff(tt.inStruct, tt.want); diff != "" {
+			t.Errorf("%s: did not get expected output, diff(-got,+want):\n%s", tt.name, diff)
+		}
+	}
+}
+
 func TestDeepCopyOrderedMap(t *testing.T) {
 	tests := []struct {
 		name             string
