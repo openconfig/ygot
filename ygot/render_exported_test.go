@@ -363,8 +363,8 @@ func TestConstructJSONOrderedMap(t *testing.T) {
 		},
 		wantInternal: map[string]any{
 			"ordered-multikeyed-lists": map[string]any{
-				"ordered-multikeyed-list": []any{
-					map[string]any{
+				"ordered-multikeyed-list": map[string]any{
+					"foo 42": map[string]any{
 						"key1": "foo",
 						"key2": uint64(42),
 						"config": map[string]any{
@@ -376,7 +376,7 @@ func TestConstructJSONOrderedMap(t *testing.T) {
 							"ro-value": "foo-state-val",
 						},
 					},
-					map[string]any{
+					"bar 42": map[string]any{
 						"key1": "bar",
 						"key2": uint64(42),
 						"config": map[string]any{
@@ -388,7 +388,7 @@ func TestConstructJSONOrderedMap(t *testing.T) {
 							"ro-value": "bar-state-val",
 						},
 					},
-					map[string]any{
+					"baz 84": map[string]any{
 						"key1": "baz",
 						"key2": uint64(84),
 						"config": map[string]any{
@@ -454,8 +454,8 @@ func TestConstructJSONOrderedMap(t *testing.T) {
 		},
 		wantInternal: map[string]any{
 			"ordered-multikeyed-lists": map[string]any{
-				"ordered-multikeyed-list": []any{
-					map[string]any{
+				"ordered-multikeyed-list": map[string]any{
+					"foo 42": map[string]any{
 						"key1": "foo",
 						"key2": uint64(42),
 						"config": map[string]any{
@@ -465,7 +465,7 @@ func TestConstructJSONOrderedMap(t *testing.T) {
 							"ro-value": "foo-state-val",
 						},
 					},
-					map[string]any{
+					"bar 42": map[string]any{
 						"key1": "bar",
 						"key2": uint64(42),
 						"state": map[string]any{
@@ -473,7 +473,7 @@ func TestConstructJSONOrderedMap(t *testing.T) {
 							"ro-value": "bar-state-val",
 						},
 					},
-					map[string]any{
+					"baz 84": map[string]any{
 						"key1": "baz",
 						"key2": uint64(84),
 						"config": map[string]any{
@@ -560,22 +560,22 @@ func TestEncodeTypedValueOrderedMap(t *testing.T) {
 	}{{
 		name:  "ordered list type",
 		inVal: ctestschema.GetOrderedMap(t),
-		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonVal{JsonVal: []byte(`[
-  {
-    "config": {
-      "key": "foo",
-      "value": "foo-val"
-    },
-    "key": "foo"
-  },
-  {
+		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonVal{JsonVal: []byte(`{
+  "bar": {
     "config": {
       "key": "bar",
       "value": "bar-val"
     },
     "key": "bar"
+  },
+  "foo": {
+    "config": {
+      "key": "foo",
+      "value": "foo-val"
+    },
+    "key": "foo"
   }
-]`)}},
+}`)}},
 	}, {
 		name:  "ordered list type - ietf json",
 		inVal: ctestschema.GetOrderedMap(t),

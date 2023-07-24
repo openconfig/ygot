@@ -1,27 +1,27 @@
 {
    "ordered-lists": {
-      "ordered-list": [
-         {
-            "config": {
-               "key": "foo",
-               "value": "foo-val"
-            },
-            "key": "foo"
-         },
-         {
+      "ordered-list": {
+         "bar": {
             "config": {
                "key": "bar",
                "value": "bar-val"
             },
             "key": "bar"
          },
-         {
+         "baz": {
             "config": {
                "key": "baz",
                "value": "baz-val"
             },
             "key": "baz"
+         },
+         "foo": {
+            "config": {
+               "key": "foo",
+               "value": "foo-val"
+            },
+            "key": "foo"
          }
-      ]
+      }
    }
 }
