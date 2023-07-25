@@ -103,7 +103,7 @@ type LangMapperBaseSetup interface {
 	// setSchemaTree is used to supply a copy of the YANG schema tree to
 	// the mapped such that leaves of type leafref can be resolved to
 	// their target leaves.
-	setSchemaTree(*schemaTree)
+	setSchemaTree(*SchemaTree)
 
 	// InjectEnumSet is intended to be called by unit tests in order to set up the
 	// LangMapperBase such that generated enumeration/identity names can be looked
@@ -128,7 +128,7 @@ type LangMapperBase struct {
 
 	// schematree is a copy of the YANG schema tree, containing only leaf
 	// entries, such that schema paths can be referenced.
-	schematree *schemaTree
+	schematree *SchemaTree
 }
 
 // setEnumSet is used to supply a set of enumerated values to the
@@ -150,7 +150,7 @@ func (s *LangMapperBase) setEnumSet(e *enumSet) {
 // In testing contexts outside of GenerateIR, however, the corresponding
 // exported Inject method needs to be called in order for certain built-in
 // methods of LangMapperBase to be available for use.
-func (s *LangMapperBase) setSchemaTree(st *schemaTree) {
+func (s *LangMapperBase) setSchemaTree(st *SchemaTree) {
 	s.schematree = st
 }
 
@@ -175,7 +175,7 @@ func (s *LangMapperBase) InjectEnumSet(entries map[string]*yang.Entry, compressP
 // set of yang.Entry pointers into a ctree structure.
 // It returns an error if there is duplication within the set of entries.
 func (s *LangMapperBase) InjectSchemaTree(entries []*yang.Entry) error {
-	schematree, err := buildSchemaTree(entries)
+	schematree, err := BuildSchemaTree(entries)
 	if err != nil {
 		return err
 	}
@@ -192,7 +192,7 @@ func (s *LangMapperBase) InjectSchemaTree(entries []*yang.Entry) error {
 // In testing contexts, this function requires InjectSchemaTree to be called
 // prior to being usable.
 func (b *LangMapperBase) ResolveLeafrefTarget(path string, contextEntry *yang.Entry) (*yang.Entry, error) {
-	return b.schematree.resolveLeafrefTarget(path, contextEntry)
+	return b.schematree.ResolveLeafrefTarget(path, contextEntry)
 }
 
 // EnumeratedTypedefTypeName retrieves the name of an enumerated typedef (i.e.,

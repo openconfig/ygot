@@ -195,7 +195,7 @@ type mappedYANGDefinitions struct {
 	enumEntries map[string]*yang.Entry
 	// schematree is a copy of the YANG schema tree, containing only leaf
 	// entries, such that schema paths can be referenced.
-	schematree *schemaTree
+	schematree *SchemaTree
 	// modules is the set of parsed YANG modules that are being processed as part of the
 	// code generatio, expressed as a slice of yang.Entry pointers.
 	modules []*yang.Entry
@@ -255,7 +255,7 @@ func mappedDefinitions(yangFiles, includePaths []string, opts IROptions) (*mappe
 	// Build the schematree for the modules provided - we build for all of the
 	// root elements, since we might need to reference a part of the schema that
 	// we are not outputting for leafref lookups.
-	st, err := buildSchemaTree(treeElems)
+	st, err := BuildSchemaTree(treeElems)
 	if err != nil {
 		return nil, []error{err}
 	}
