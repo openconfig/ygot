@@ -1565,7 +1565,7 @@ func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (any,
 		}
 		pairs = append(pairs, mapValuePair{k: kn, v: iter.Value()})
 	}
-	slices.SortFunc(pairs, func(a, b mapValuePair) bool { return a.k < b.k })
+	slices.SortFunc(pairs, func(a, b mapValuePair) int { return strings.Compare(a.k, b.k) })
 
 	js, err := mapValuePairsToJSON(pairs, parentMod, args)
 	errs.Add(err)
