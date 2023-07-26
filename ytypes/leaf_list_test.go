@@ -148,6 +148,7 @@ func TestValidateLeafList(t *testing.T) {
 
 type LeafListContainer struct {
 	Int32LeafList        []*int32              `path:"int32-leaf-list"`
+	BinaryLeafList       []Binary              `path:"binary-leaf-list"`
 	EnumLeafList         []EnumType            `path:"enum-leaf-list"`
 	UnionLeafSlice       []UnionLeafType       `path:"union-leaflist"`
 	UnionLeafSliceSimple []UnionLeafTypeSimple `path:"union-leaflist-simple"`
@@ -212,6 +213,14 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 		Kind:     yang.LeafEntry,
 		ListAttr: yang.NewDefaultListAttr(),
 		Type:     &yang.YangType{Kind: yang.Yint32},
+	}
+
+	binaryLeafListSchema := &yang.Entry{
+		Parent:   containerSchema,
+		Name:     "binary-leaf-list",
+		Kind:     yang.LeafEntry,
+		ListAttr: yang.NewDefaultListAttr(),
+		Type:     &yang.YangType{Kind: yang.Ybinary},
 	}
 
 	enumLeafListSchema := &yang.Entry{
@@ -293,6 +302,20 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 				},
 			}},
 			want: LeafListContainer{Int32LeafList: []*int32{ygot.Int32(-42), ygot.Int32(0), ygot.Int32(42)}},
+		},
+		{
+			desc: "binary success",
+			sch:  binaryLeafListSchema,
+			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{
+						{Value: &gpb.TypedValue_BytesVal{BytesVal: []byte{0xa0, 0x00, 0x00, 0x00}}},
+						{Value: &gpb.TypedValue_BytesVal{BytesVal: []byte{0xb0, 0x00, 0x00, 0x00}}},
+						{Value: &gpb.TypedValue_BytesVal{BytesVal: []byte{0xc0, 0x00, 0x00, 0x00}}},
+					},
+				},
+			}},
+			want: LeafListContainer{BinaryLeafList: []Binary{Binary([]byte{0xa0, 0x00, 0x00, 0x00}), Binary([]byte{0xb0, 0x00, 0x00, 0x00}), Binary([]byte{0xc0, 0x00, 0x00, 0x00})}},
 		},
 		{
 			desc: "int32 success with existing values",
