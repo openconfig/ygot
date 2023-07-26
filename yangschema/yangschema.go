@@ -30,12 +30,12 @@ type Tree struct {
 	ctree.Tree
 }
 
-// BuildSchemaTree maps a set of yang.Entry pointers into a ctree structure.
+// BuildTree maps a set of yang.Entry pointers into a ctree structure.
 // Only leaf or leaflist values are mapped, since these are the only entities
 // that can be referenced by XPATH expressions within a YANG schema.
 // It returns an error if there is duplication within the set of entries. The
 // paths that are used within the schema are represented as a slice of strings.
-func BuildSchemaTree(entries []*yang.Entry) (*Tree, error) {
+func BuildTree(entries []*yang.Entry) (*Tree, error) {
 	t := &Tree{}
 	for _, e := range entries {
 		pp := strings.Split(e.Path(), "/")

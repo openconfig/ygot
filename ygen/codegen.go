@@ -256,7 +256,7 @@ func mappedDefinitions(yangFiles, includePaths []string, opts IROptions) (*mappe
 	// Build the schematree for the modules provided - we build for all of the
 	// root elements, since we might need to reference a part of the schema that
 	// we are not outputting for leafref lookups.
-	st, err := yangschema.BuildSchemaTree(treeElems)
+	st, err := yangschema.BuildTree(treeElems)
 	if err != nil {
 		return nil, []error{err}
 	}

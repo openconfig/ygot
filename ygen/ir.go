@@ -176,7 +176,7 @@ func (s *LangMapperBase) InjectEnumSet(entries map[string]*yang.Entry, compressP
 // set of yang.Entry pointers into a ctree structure.
 // It returns an error if there is duplication within the set of entries.
 func (s *LangMapperBase) InjectSchemaTree(entries []*yang.Entry) error {
-	schematree, err := yangschema.BuildSchemaTree(entries)
+	schematree, err := yangschema.BuildTree(entries)
 	if err != nil {
 		return err
 	}

@@ -118,16 +118,16 @@ func TestBuildSchemaTree(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := BuildSchemaTree(tt.inEntries)
+		got, err := BuildTree(tt.inEntries)
 		if err != nil {
-			t.Errorf("%s: BuildSchemaTree(%v): got unexpected error building tree: %v", tt.name, tt.inEntries, err)
+			t.Errorf("%s: BuildTree(%v): got unexpected error building tree: %v", tt.name, tt.inEntries, err)
 			continue
 		}
 
 		for _, want := range tt.wantElements {
 			gotElement := got.GetLeafValue(want.path)
 			if diff := pretty.Compare(gotElement, want.value); diff != "" {
-				t.Errorf("%s: BuildSchemaTree(%v): got incorrect value for element %v, diff(-got,+want)\n:%s", tt.name, tt.inEntries, want.path, diff)
+				t.Errorf("%s: BuildTree(%v): got incorrect value for element %v, diff(-got,+want)\n:%s", tt.name, tt.inEntries, want.path, diff)
 				continue
 			}
 		}
@@ -221,9 +221,9 @@ func TestResolveLeafrefTargetType(t *testing.T) {
 	for _, tt := range tests {
 		// Since we are outside of the build of a module, need to initialise
 		// the schematree.
-		st, err := BuildSchemaTree(tt.inEntries)
+		st, err := BuildTree(tt.inEntries)
 		if err != nil {
-			t.Errorf("%s: BuildSchemaTree(%v): got unexpected error: %v", tt.name, tt.inEntries, err)
+			t.Errorf("%s: BuildTree(%v): got unexpected error: %v", tt.name, tt.inEntries, err)
 		}
 		got, err := st.ResolveLeafrefTarget(tt.inPath, tt.inContextEntry)
 		if err != nil {
