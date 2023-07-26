@@ -161,6 +161,7 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/zero",
 								LeafrefTargetPath: "",
 								Description:       "",
+								ConfigFalse:       true,
 							},
 							Type: ygen.LeafNode,
 							LangType: &ygen.MappedType{
@@ -211,6 +212,7 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/two",
 								LeafrefTargetPath: "",
 								Description:       "",
+								ConfigFalse:       true,
 							},
 							Type: ygen.LeafNode,
 							LangType: &ygen.MappedType{
@@ -451,6 +453,7 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/zero",
 								LeafrefTargetPath: "",
 								Description:       "",
+								ConfigFalse:       true,
 							},
 							Type:                    ygen.LeafNode,
 							LangType:                &ygen.MappedType{NativeType: "string", ZeroValue: `""`},
@@ -472,6 +475,7 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/parent/child/config/one",
 								LeafrefTargetPath: "",
 								Description:       "",
+								ConfigFalse:       true,
 							},
 							Type: ygen.LeafNode,
 							LangType: &ygen.MappedType{
@@ -498,6 +502,7 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/two",
 								LeafrefTargetPath: "",
 								Description:       "",
+								ConfigFalse:       true,
 							},
 							Type: ygen.LeafNode,
 							LangType: &ygen.MappedType{
@@ -525,6 +530,7 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/parent/child/config/three",
 								LeafrefTargetPath: "",
 								Description:       "",
+								ConfigFalse:       true,
 							},
 							Type: ygen.LeafNode,
 							LangType: &ygen.MappedType{
@@ -552,6 +558,7 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/parent/child/config/four",
 								LeafrefTargetPath: "",
 								Description:       "",
+								ConfigFalse:       true,
 							},
 							Type: ygen.LeafNode,
 							LangType: &ygen.MappedType{
@@ -589,6 +596,7 @@ func TestGenerateIR(t *testing.T) {
 								ShadowSchemaPath:  "/remote-container/config/a-leaf",
 								LeafrefTargetPath: "",
 								Description:       "",
+								ConfigFalse:       true,
 							},
 							Type: ygen.LeafNode,
 							LangType: &ygen.MappedType{
@@ -753,6 +761,7 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state",
 								LeafrefTargetPath: "",
 								Description:       "",
+								ConfigFalse:       true,
 							},
 							Type:              1,
 							MappedPaths:       [][]string{{"state"}},
@@ -872,6 +881,7 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/four",
 								LeafrefTargetPath: "",
 								Description:       "",
+								ConfigFalse:       true,
 							},
 							Type: 3,
 							LangType: &ygen.MappedType{
@@ -898,6 +908,7 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/one",
 								LeafrefTargetPath: "",
 								Description:       "",
+								ConfigFalse:       true,
 							},
 							Type: 3,
 							LangType: &ygen.MappedType{
@@ -924,6 +935,7 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/three",
 								LeafrefTargetPath: "",
 								Description:       "",
+								ConfigFalse:       true,
 							},
 							Type: 3,
 							LangType: &ygen.MappedType{
@@ -950,6 +962,7 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/two",
 								LeafrefTargetPath: "",
 								Description:       "",
+								ConfigFalse:       true,
 							},
 							Type: 3,
 							LangType: &ygen.MappedType{
@@ -976,6 +989,7 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/state/zero",
 								LeafrefTargetPath: "",
 								Description:       "",
+								ConfigFalse:       true,
 							},
 							Type: 3,
 							LangType: &ygen.MappedType{
@@ -1030,6 +1044,7 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container/state",
 								LeafrefTargetPath: "",
 								Description:       "",
+								ConfigFalse:       true,
 							},
 							Type:              1,
 							MappedPaths:       [][]string{{"state"}},
@@ -1095,6 +1110,7 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container/state/a-leaf",
 								LeafrefTargetPath: "",
 								Description:       "",
+								ConfigFalse:       true,
 							},
 							Type: 3,
 							LangType: &ygen.MappedType{
@@ -1365,6 +1381,7 @@ func TestGenerateIR(t *testing.T) {
 								DefiningModule:    "openconfig-complex",
 								Path:              "/openconfig-complex/model/c/unkeyed-list",
 								SchemaPath:        "/model/c/unkeyed-list",
+								ConfigFalse:       true,
 							},
 							Type:              ygen.ListNode,
 							MappedPaths:       [][]string{{"c", "unkeyed-list"}},
@@ -1783,6 +1800,7 @@ func TestGenerateIR(t *testing.T) {
 								DefiningModule:    "openconfig-complex",
 								Path:              "/openconfig-complex/model/c/unkeyed-list/field",
 								SchemaPath:        "/model/c/unkeyed-list/field",
+								ConfigFalse:       true,
 							},
 							Type:              ygen.LeafNode,
 							LangType:          &ygen.MappedType{NativeType: "Binary", ZeroValue: "nil"},
