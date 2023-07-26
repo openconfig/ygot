@@ -26,6 +26,7 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
+	"github.com/openconfig/ygot/yangschema"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -142,10 +143,10 @@ func GetOrderedPathDirectories(directory map[string]*Directory) []string {
 }
 
 // getOrderedDirDetails takes in a language-specific LangMapper, a map of
-// Directory objects containing the raw AST information, a schemaTree, and IR
+// Directory objects containing the raw AST information, a SchemaTree, and IR
 // generation options, and returns a map of ParsedDirectory objects that form
 // the primary component of ygen's IR output.
-func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory, schematree *schemaTree, opts IROptions) (map[string]*ParsedDirectory, error) {
+func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory, schematree *yangschema.Tree, opts IROptions) (map[string]*ParsedDirectory, error) {
 	dirDets := map[string]*ParsedDirectory{}
 	for _, dirPath := range GetOrderedPathDirectories(directory) {
 		dir := directory[dirPath]
@@ -237,7 +238,7 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 
 			var target *yang.Entry
 			if field.Type != nil && field.Type.Kind == yang.Yleafref {
-				if target, err = schematree.resolveLeafrefTarget(field.Type.Path, field); err != nil {
+				if target, err = schematree.ResolveLeafrefTarget(field.Type.Path, field); err != nil {
 					return nil, fmt.Errorf("unable to resolve leafref field: %v", err)
 				}
 			}

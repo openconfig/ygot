@@ -1,4 +1,4 @@
-// Copyright 2017 Google Inc.
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ygen
+package yangschema
 
 import (
 	"testing"
@@ -118,16 +118,16 @@ func TestBuildSchemaTree(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := buildSchemaTree(tt.inEntries)
+		got, err := BuildTree(tt.inEntries)
 		if err != nil {
-			t.Errorf("%s: buildSchemaTree(%v): got unexpected error building tree: %v", tt.name, tt.inEntries, err)
+			t.Errorf("%s: BuildTree(%v): got unexpected error building tree: %v", tt.name, tt.inEntries, err)
 			continue
 		}
 
 		for _, want := range tt.wantElements {
 			gotElement := got.GetLeafValue(want.path)
 			if diff := pretty.Compare(gotElement, want.value); diff != "" {
-				t.Errorf("%s: buildSchemaTree(%v): got incorrect value for element %v, diff(-got,+want)\n:%s", tt.name, tt.inEntries, want.path, diff)
+				t.Errorf("%s: BuildTree(%v): got incorrect value for element %v, diff(-got,+want)\n:%s", tt.name, tt.inEntries, want.path, diff)
 				continue
 			}
 		}
@@ -221,11 +221,11 @@ func TestResolveLeafrefTargetType(t *testing.T) {
 	for _, tt := range tests {
 		// Since we are outside of the build of a module, need to initialise
 		// the schematree.
-		st, err := buildSchemaTree(tt.inEntries)
+		st, err := BuildTree(tt.inEntries)
 		if err != nil {
-			t.Errorf("%s: buildSchemaTree(%v): got unexpected error: %v", tt.name, tt.inEntries, err)
+			t.Errorf("%s: BuildTree(%v): got unexpected error: %v", tt.name, tt.inEntries, err)
 		}
-		got, err := st.resolveLeafrefTarget(tt.inPath, tt.inContextEntry)
+		got, err := st.ResolveLeafrefTarget(tt.inPath, tt.inContextEntry)
 		if err != nil {
 			if !tt.wantErr {
 				t.Errorf("%s: resolveLeafrefTargetPath(%v, %v): got unexpected error: %v", tt.name, tt.inPath, tt.inContextEntry, err)
