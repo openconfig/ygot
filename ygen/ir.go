@@ -21,6 +21,7 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
+	"github.com/openconfig/ygot/yangschema"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -103,7 +104,7 @@ type LangMapperBaseSetup interface {
 	// setSchemaTree is used to supply a copy of the YANG schema tree to
 	// the mapped such that leaves of type leafref can be resolved to
 	// their target leaves.
-	setSchemaTree(*SchemaTree)
+	setSchemaTree(*yangschema.Tree)
 
 	// InjectEnumSet is intended to be called by unit tests in order to set up the
 	// LangMapperBase such that generated enumeration/identity names can be looked
@@ -128,7 +129,7 @@ type LangMapperBase struct {
 
 	// schematree is a copy of the YANG schema tree, containing only leaf
 	// entries, such that schema paths can be referenced.
-	schematree *SchemaTree
+	schematree *yangschema.Tree
 }
 
 // setEnumSet is used to supply a set of enumerated values to the
@@ -150,7 +151,7 @@ func (s *LangMapperBase) setEnumSet(e *enumSet) {
 // In testing contexts outside of GenerateIR, however, the corresponding
 // exported Inject method needs to be called in order for certain built-in
 // methods of LangMapperBase to be available for use.
-func (s *LangMapperBase) setSchemaTree(st *SchemaTree) {
+func (s *LangMapperBase) setSchemaTree(st *yangschema.Tree) {
 	s.schematree = st
 }
 
@@ -175,7 +176,7 @@ func (s *LangMapperBase) InjectEnumSet(entries map[string]*yang.Entry, compressP
 // set of yang.Entry pointers into a ctree structure.
 // It returns an error if there is duplication within the set of entries.
 func (s *LangMapperBase) InjectSchemaTree(entries []*yang.Entry) error {
-	schematree, err := BuildSchemaTree(entries)
+	schematree, err := yangschema.BuildSchemaTree(entries)
 	if err != nil {
 		return err
 	}

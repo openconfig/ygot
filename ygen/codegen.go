@@ -29,6 +29,7 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
+	"github.com/openconfig/ygot/yangschema"
 
 	"github.com/openconfig/ygot/internal/igenutil"
 
@@ -195,7 +196,7 @@ type mappedYANGDefinitions struct {
 	enumEntries map[string]*yang.Entry
 	// schematree is a copy of the YANG schema tree, containing only leaf
 	// entries, such that schema paths can be referenced.
-	schematree *SchemaTree
+	schematree *yangschema.Tree
 	// modules is the set of parsed YANG modules that are being processed as part of the
 	// code generatio, expressed as a slice of yang.Entry pointers.
 	modules []*yang.Entry
@@ -255,7 +256,7 @@ func mappedDefinitions(yangFiles, includePaths []string, opts IROptions) (*mappe
 	// Build the schematree for the modules provided - we build for all of the
 	// root elements, since we might need to reference a part of the schema that
 	// we are not outputting for leafref lookups.
-	st, err := BuildSchemaTree(treeElems)
+	st, err := yangschema.BuildSchemaTree(treeElems)
 	if err != nil {
 		return nil, []error{err}
 	}

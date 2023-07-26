@@ -1,4 +1,4 @@
-// Copyright 2017 Google Inc.
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ygen
+package yangschema
 
 import (
 	"bytes"
@@ -24,9 +24,9 @@ import (
 	"github.com/openconfig/ygot/util"
 )
 
-// SchemaTree contains a ctree.Tree that stores a copy of the YANG schema tree
+// Tree contains a ctree.Tree that stores a copy of the YANG schema tree
 // containing only leaf entries, such that schema paths can be referenced.
-type SchemaTree struct {
+type Tree struct {
 	ctree.Tree
 }
 
@@ -35,8 +35,8 @@ type SchemaTree struct {
 // that can be referenced by XPATH expressions within a YANG schema.
 // It returns an error if there is duplication within the set of entries. The
 // paths that are used within the schema are represented as a slice of strings.
-func BuildSchemaTree(entries []*yang.Entry) (*SchemaTree, error) {
-	t := &SchemaTree{}
+func BuildSchemaTree(entries []*yang.Entry) (*Tree, error) {
+	t := &Tree{}
 	for _, e := range entries {
 		pp := strings.Split(e.Path(), "/")
 		// We only want to find entities that are at the root of the
@@ -67,7 +67,7 @@ func BuildSchemaTree(entries []*yang.Entry) (*SchemaTree, error) {
 // it can be mapped to a native language type. It returns the yang.YangType that
 // is associated with the target, and the target yang.Entry, such that the
 // caller can map this to the relevant language type.
-func (t *SchemaTree) ResolveLeafrefTarget(path string, contextEntry *yang.Entry) (*yang.Entry, error) {
+func (t *Tree) ResolveLeafrefTarget(path string, contextEntry *yang.Entry) (*yang.Entry, error) {
 	if t == nil {
 		// This should not be possible if the calling code generation is
 		// well structured and builds the schematree during parsing of YANG
@@ -95,7 +95,7 @@ func (t *SchemaTree) ResolveLeafrefTarget(path string, contextEntry *yang.Entry)
 
 // schemaTreeChildrenAdd adds the children of the supplied yang.Entry to the
 // supplied ctree.Tree recursively.
-func schemaTreeChildrenAdd(t *SchemaTree, e *yang.Entry) error {
+func schemaTreeChildrenAdd(t *Tree, e *yang.Entry) error {
 	for _, ch := range util.Children(e) {
 		chPath := strings.Split(ch.Path(), "/")
 		// chPath is of the form []string{"", "module", "entity", "child"}
