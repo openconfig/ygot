@@ -699,6 +699,12 @@ type YANGNodeDetails struct {
 	// OrderedByUser indicates whether the node has the modifier
 	// "ordered-by user".
 	OrderedByUser bool
+	// ConfigFalse represents whether the node is state data as opposed to
+	// configuration data.
+	// The meaning of "config" is exactly the same as the "config"
+	// statement in YANG:
+	// https://datatracker.ietf.org/doc/html/rfc7950#section-7.21.1
+	ConfigFalse bool
 }
 
 // EnumeratedValueType is used to indicate the source YANG type
