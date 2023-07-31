@@ -172,6 +172,7 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 		pd := &ParsedDirectory{
 			Name:              dir.Name,
 			Path:              util.SlicePathToString(dir.Path),
+			SchemaPath:        util.SchemaTreePathNoModule(dir.Entry),
 			PackageName:       packageName,
 			IsFakeRoot:        dir.IsFakeRoot,
 			BelongingModule:   belongingModule,

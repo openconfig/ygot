@@ -40,9 +40,10 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 	return &ygen.IR{
 		Directories: map[string]*ygen.ParsedDirectory{
 			"/device": {
-				Name: "Device",
-				Type: ygen.Container,
-				Path: "/device",
+				Name:       "Device",
+				Type:       ygen.Container,
+				Path:       "/device",
+				SchemaPath: "",
 				Fields: map[string]*ygen.NodeDetails{
 					"model": {
 						Name: "model",
@@ -93,6 +94,7 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 				Name:                      "ExamplePresence",
 				Type:                      ygen.Container,
 				Path:                      "/openconfig-complex/example-presence",
+				SchemaPath:                "/example-presence",
 				Fields:                    map[string]*ygen.NodeDetails{},
 				PackageName:               "",
 				ListKeys:                  nil,
@@ -104,9 +106,10 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 				CompressedTelemetryAtomic: false,
 			},
 			"/openconfig-complex/model": {
-				Name: "Model",
-				Type: ygen.Container,
-				Path: "/openconfig-complex/model",
+				Name:       "Model",
+				Type:       ygen.Container,
+				Path:       "/openconfig-complex/model",
+				SchemaPath: "/model",
 				Fields: map[string]*ygen.NodeDetails{
 					"anydata-leaf": {
 						Name: "anydata_leaf",
@@ -215,9 +218,10 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 				DefiningModule:    "openconfig-complex",
 			},
 			"/openconfig-complex/model/a/single-key": {
-				Name: "SingleKey",
-				Type: ygen.List,
-				Path: "/openconfig-complex/model/a/single-key",
+				Name:       "SingleKey",
+				Type:       ygen.List,
+				Path:       "/openconfig-complex/model/a/single-key",
+				SchemaPath: "/model/a/single-key",
 				Fields: map[string]*ygen.NodeDetails{
 					"dates": {
 						Name: "dates",
@@ -688,9 +692,10 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 				CompressedTelemetryAtomic: true,
 			},
 			"/openconfig-complex/model/b/multi-key": {
-				Name: "MultiKey",
-				Type: ygen.List,
-				Path: "/openconfig-complex/model/b/multi-key",
+				Name:       "MultiKey",
+				Type:       ygen.List,
+				Path:       "/openconfig-complex/model/b/multi-key",
+				SchemaPath: "/model/b/multi-key",
 				Fields: map[string]*ygen.NodeDetails{
 					"key1": {
 						Name: "key1",
@@ -825,9 +830,10 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 				CompressedTelemetryAtomic: false,
 			},
 			"/openconfig-complex/model/c/unkeyed-list": {
-				Name: "UnkeyedList",
-				Type: ygen.List,
-				Path: "/openconfig-complex/model/c/unkeyed-list",
+				Name:       "UnkeyedList",
+				Type:       ygen.List,
+				Path:       "/openconfig-complex/model/c/unkeyed-list",
+				SchemaPath: "/model/c/unkeyed-list",
 				Fields: map[string]*ygen.NodeDetails{
 					"field": {
 						Name: "field",
@@ -1048,9 +1054,10 @@ func TestGenerateIR(t *testing.T) {
 		wantIR: &ygen.IR{
 			Directories: map[string]*ygen.ParsedDirectory{
 				"/device": {
-					Name: "Device",
-					Type: ygen.Container,
-					Path: "/device",
+					Name:       "Device",
+					Type:       ygen.Container,
+					Path:       "/device",
+					SchemaPath: "",
 					Fields: map[string]*ygen.NodeDetails{
 						"parent": {
 							Name: "parent",
@@ -1094,9 +1101,10 @@ func TestGenerateIR(t *testing.T) {
 					IsFakeRoot: true,
 				},
 				"/openconfig-simple/parent": {
-					Name: "Parent",
-					Type: ygen.Container,
-					Path: "/openconfig-simple/parent",
+					Name:       "Parent",
+					Type:       ygen.Container,
+					Path:       "/openconfig-simple/parent",
+					SchemaPath: "/parent",
 					Fields: map[string]*ygen.NodeDetails{
 						"child": {
 							Name: "child",
@@ -1125,9 +1133,10 @@ func TestGenerateIR(t *testing.T) {
 					DefiningModule:    "openconfig-simple",
 				},
 				"/openconfig-simple/parent/child": {
-					Name: "Child",
-					Type: ygen.Container,
-					Path: "/openconfig-simple/parent/child",
+					Name:       "Child",
+					Type:       ygen.Container,
+					Path:       "/openconfig-simple/parent/child",
+					SchemaPath: "/parent/child",
 					Fields: map[string]*ygen.NodeDetails{
 						"config": {
 							Name: "config",
@@ -1170,9 +1179,10 @@ func TestGenerateIR(t *testing.T) {
 					DefiningModule:    "openconfig-simple",
 				},
 				"/openconfig-simple/parent/child/config": {
-					Name: "Config",
-					Type: ygen.Container,
-					Path: "/openconfig-simple/parent/child/config",
+					Name:       "Config",
+					Type:       ygen.Container,
+					Path:       "/openconfig-simple/parent/child/config",
+					SchemaPath: "/parent/child/config",
 					Fields: map[string]*ygen.NodeDetails{
 						"four": {
 							Name: "four",
@@ -1260,9 +1270,10 @@ func TestGenerateIR(t *testing.T) {
 					DefiningModule:    "openconfig-simple",
 				},
 				"/openconfig-simple/parent/child/state": {
-					Name: "State",
-					Type: ygen.Container,
-					Path: "/openconfig-simple/parent/child/state",
+					Name:       "State",
+					Type:       ygen.Container,
+					Path:       "/openconfig-simple/parent/child/state",
+					SchemaPath: "/parent/child/state",
 					Fields: map[string]*ygen.NodeDetails{
 						"four": {
 							Name: "four",
@@ -1409,9 +1420,10 @@ func TestGenerateIR(t *testing.T) {
 					ConfigFalse:       true,
 				},
 				"/openconfig-simple/remote-container": {
-					Name: "RemoteContainer",
-					Type: ygen.Container,
-					Path: "/openconfig-simple/remote-container",
+					Name:       "RemoteContainer",
+					Type:       ygen.Container,
+					Path:       "/openconfig-simple/remote-container",
+					SchemaPath: "/remote-container",
 					Fields: map[string]*ygen.NodeDetails{
 						"config": {
 							Name: "config",
@@ -1454,9 +1466,10 @@ func TestGenerateIR(t *testing.T) {
 					DefiningModule:    "openconfig-remote",
 				},
 				"/openconfig-simple/remote-container/config": {
-					Name: "Config",
-					Type: ygen.Container,
-					Path: "/openconfig-simple/remote-container/config",
+					Name:       "Config",
+					Type:       ygen.Container,
+					Path:       "/openconfig-simple/remote-container/config",
+					SchemaPath: "/remote-container/config",
 					Fields: map[string]*ygen.NodeDetails{
 						"a-leaf": {
 							Name: "a_leaf",
@@ -1491,9 +1504,10 @@ func TestGenerateIR(t *testing.T) {
 					DefiningModule:    "openconfig-remote",
 				},
 				"/openconfig-simple/remote-container/state": {
-					Name: "State",
-					Type: ygen.Container,
-					Path: "/openconfig-simple/remote-container/state",
+					Name:       "State",
+					Type:       ygen.Container,
+					Path:       "/openconfig-simple/remote-container/state",
+					SchemaPath: "/remote-container/state",
 					Fields: map[string]*ygen.NodeDetails{
 						"a-leaf": {
 							Name: "a_leaf",

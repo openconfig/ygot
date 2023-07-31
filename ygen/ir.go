@@ -384,6 +384,9 @@ type ParsedDirectory struct {
 	Type DirType
 	// Path specifies the absolute YANG schema path of the node.
 	Path string
+	// SchemaPath specifies the absolute YANG schema node path. It does not
+	// include the module name nor choice/case elements in the YANG file.
+	SchemaPath string
 	// Fields is the set of direct children of the node that are to be
 	// output. It is keyed by the YANG node identifier of the child field
 	// since there could be name conflicts at this processing stage.
