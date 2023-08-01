@@ -2747,6 +2747,12 @@ func TestDeleteNode(t *testing.T) {
 		inPath:   mustPath("/"),
 		want:     &ListElemStruct1{},
 	}, {
+		name:     "deleting on nil root struct element",
+		inSchema: simpleSchema(),
+		inRoot:   (*ListElemStruct1)(nil),
+		inPath:   mustPath("/"),
+		want:     (*ListElemStruct1)(nil),
+	}, {
 		name:             "deleting on non-deletable element",
 		inRoot:           42,
 		inPath:           mustPath("/"),

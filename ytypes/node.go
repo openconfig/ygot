@@ -107,6 +107,9 @@ func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb
 			}
 		}
 		if args.delete {
+			if util.IsValueNil(root) {
+				return nil, nil
+			}
 			if rt, rv := reflect.TypeOf(root), reflect.ValueOf(root); rt.Kind() == reflect.Pointer && rv.Elem().CanSet() {
 				rv.Elem().Set(reflect.Zero(rv.Elem().Type()))
 			} else {
