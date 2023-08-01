@@ -106,6 +106,13 @@ func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb
 				return nil, status.Errorf(codes.Unknown, "path %v points to a node with non-leaf schema %v", traversedPath, schema)
 			}
 		}
+		if args.delete {
+			if rt, rv := reflect.TypeOf(root), reflect.ValueOf(root); rt.Kind() == reflect.Pointer && rv.Elem().CanSet() {
+				rv.Elem().Set(reflect.Zero(rv.Elem().Type()))
+			} else {
+				return nil, fmt.Errorf("cannot delete on unsettable element: (%T, %v)", root, root)
+			}
+		}
 		return []*TreeNode{{
 			Path:   traversedPath,
 			Schema: schema,

@@ -2741,6 +2741,23 @@ func TestDeleteNode(t *testing.T) {
 		inPath:   mustPath("/outer"),
 		want:     &ListElemStruct1{Key1: ygot.String("hello")},
 	}, {
+		name:     "deleting on root struct element",
+		inSchema: simpleSchema(),
+		inRoot:   &ListElemStruct1{Key1: ygot.String("hello"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafListName: []int32{42, 43, 44}, Int32LeafName: ygot.Int32(5)}}},
+		inPath:   mustPath("/"),
+		want:     &ListElemStruct1{},
+	}, {
+		name:             "deleting on non-deletable element",
+		inRoot:           42,
+		inPath:           mustPath("/"),
+		wantErrSubstring: "cannot delete on unsettable element",
+	}, {
+		name:     "deleting on root leaf element",
+		inSchema: simpleSchema(),
+		inRoot:   &ListElemStruct1{Key1: ygot.String("hello"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafListName: []int32{42, 43, 44}, Int32LeafName: ygot.Int32(5)}}},
+		inPath:   mustPath("/"),
+		want:     &ListElemStruct1{},
+	}, {
 		name:     "deleting int32 leaf in inner node",
 		inSchema: simpleSchema(),
 		inRoot:   &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5), Int32LeafListName: []int32{42, 43, 44}}}},
