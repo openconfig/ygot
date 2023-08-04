@@ -184,6 +184,11 @@ jobs:
             diff -u <(echo -n) <(gofmt -d -s ./$i)
           done
 
+      - name: Go Mod should be tidy
+        run: |
+          go mod tidy
+          diff -u <(echo -n) <(git diff)
+
       - name: Staticcheck
         run: |
           checkstr=""
