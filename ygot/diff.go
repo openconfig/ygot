@@ -535,7 +535,7 @@ func DiffWithAtomic(original, modified GoStruct, opts ...DiffOpt) ([]*gnmipb.Not
 //     list. This must not be empty.
 //   - The second return value is the prefix path that must be used in the
 //     atomic Notification representing the ordered list.
-func orderedMapLeaves(orderedMap GoOrderedMap, parent *gnmiPath) ([]*pathval, *gnmiPath, error) {
+func orderedMapLeaves(orderedMap GoOrderedMap, parent *gnmiPath, preferShadowPath bool) ([]*pathval, *gnmiPath, error) {
 	var errs errlist.List
 	var atomicLeaves []*pathval
 
@@ -551,7 +551,7 @@ func orderedMapLeaves(orderedMap GoOrderedMap, parent *gnmiPath) ([]*pathval, *g
 			errs.Add(fmt.Errorf("%v: was not a valid GoStruct", parent))
 			return true
 		}
-		errs.Add(findUpdatedLeaves(&atomicLeaves, goStruct, childPath))
+		errs.Add(findUpdatedLeaves(&atomicLeaves, goStruct, childPath, preferShadowPath))
 		return true
 	}); err != nil {
 		errs.Add(err)
@@ -579,8 +579,8 @@ func orderedMapLeaves(orderedMap GoOrderedMap, parent *gnmiPath) ([]*pathval, *g
 //   - If empty, then nil is returned.
 //   - parent is the gNMI path representing the absolute path to the ordered
 //     list. This must not be empty.
-func orderedMapNotif(orderedMap GoOrderedMap, parent *gnmiPath, ts int64) (*gnmipb.Notification, error) {
-	atomicLeaves, subtreePath, err := orderedMapLeaves(orderedMap, parent)
+func orderedMapNotif(orderedMap GoOrderedMap, parent *gnmiPath, ts int64, preferShadowPath bool) (*gnmipb.Notification, error) {
+	atomicLeaves, subtreePath, err := orderedMapLeaves(orderedMap, parent, preferShadowPath)
 	if err != nil {
 		return nil, err
 	}
@@ -644,7 +644,9 @@ func diff(original, modified GoStruct, withAtomic bool, opts ...DiffOpt) ([]*gnm
 	n := &gnmipb.Notification{}
 	processUpdate := func(path string, modVal *pathInfo) error {
 		if orderedMap, isOrderedMap := modVal.val.(GoOrderedMap); isOrderedMap {
-			notif, err := orderedMapNotif(orderedMap, newPathElemGNMIPath(modVal.path.GetElem()), 0)
+			diffopts := hasDiffPathOpt(opts)
+			preferShadowPath := diffopts != nil && diffopts.PreferShadowPath
+			notif, err := orderedMapNotif(orderedMap, newPathElemGNMIPath(modVal.path.GetElem()), 0, preferShadowPath)
 			if err != nil {
 				return err
 			}

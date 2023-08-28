@@ -466,6 +466,69 @@ func TestDiffOrderedMap(t *testing.T) {
 			}},
 		}},
 	}, {
+		name: "disjoint-ordered-lists-shadow-paths",
+		inOrig: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap2(t),
+		},
+		inMod: &ctestschema.Device{
+			OrderedList: ctestschema.GetOrderedMap(t),
+		},
+		inOpts: []ygot.DiffOpt{
+			&ygot.DiffPathOpt{PreferShadowPath: true},
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: mustPath(`/ordered-lists/ordered-list[key=foo]/state/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
+			}, {
+				Path: mustPath(`/ordered-lists/ordered-list[key=foo]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
+			}, {
+				Path: mustPath(`/ordered-lists/ordered-list[key=foo]/state/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo-val"}},
+			}, {
+				Path: mustPath(`/ordered-lists/ordered-list[key=bar]/state/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
+			}, {
+				Path: mustPath(`/ordered-lists/ordered-list[key=bar]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
+			}, {
+				Path: mustPath(`/ordered-lists/ordered-list[key=bar]/state/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar-val"}},
+			}},
+			Delete: []*gnmipb.Path{
+				mustPath(`/ordered-lists/ordered-list[key=wee]/state/key`),
+				mustPath(`/ordered-lists/ordered-list[key=wee]/key`),
+				mustPath(`/ordered-lists/ordered-list[key=wee]/state/value`),
+				mustPath(`/ordered-lists/ordered-list[key=woo]/state/key`),
+				mustPath(`/ordered-lists/ordered-list[key=woo]/key`),
+				mustPath(`/ordered-lists/ordered-list[key=woo]/state/value`),
+			},
+		},
+		wantAtomic: []*gnmipb.Notification{{
+			Prefix: mustPath(`ordered-lists`),
+			Atomic: true,
+			Update: []*gnmipb.Update{{
+				Path: mustPath(`ordered-list[key=foo]/state/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
+			}, {
+				Path: mustPath(`ordered-list[key=foo]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
+			}, {
+				Path: mustPath(`ordered-list[key=foo]/state/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo-val"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/state/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/state/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar-val"}},
+			}},
+		}},
+	}, {
 		name: "disjoint-ordered-lists-with-ignore-additions",
 		inOrig: &ctestschema.Device{
 			OrderedList: ctestschema.GetOrderedMap2(t),
@@ -712,7 +775,18 @@ func TestDiffOrderedMap(t *testing.T) {
 				t.Fatalf("Unexpected type: %T", tt.inOrig)
 			}
 			schema.Root = tt.inOrig
-			if err := ytypes.UnmarshalNotifications(schema, got); err != nil {
+			var preferShadowPath bool
+			for _, o := range tt.inOpts {
+				switch v := o.(type) {
+				case *ygot.DiffPathOpt:
+					preferShadowPath = v.PreferShadowPath
+				}
+			}
+			var unmopts []ytypes.UnmarshalOpt
+			if preferShadowPath {
+				unmopts = append(unmopts, &ytypes.PreferShadowPath{})
+			}
+			if err := ytypes.UnmarshalNotifications(schema, got, unmopts...); err != nil {
 				t.Fatal(err)
 			}
 			if diff := cmp.Diff(tt.inOrig, tt.inMod, ytestutil.OrderedMapCmpOptions...); diff != "" {
