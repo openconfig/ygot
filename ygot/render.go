@@ -382,7 +382,7 @@ func TogNMINotifications(s GoStruct, ts int64, cfg GNMINotificationsConfig) ([]*
 	}
 
 	leaves := map[*path]any{}
-	if err := findUpdatedLeaves(leaves, s, pfx); err != nil {
+	if err := findUpdatedLeaves(leaves, s, pfx, false); err != nil {
 		return nil, err
 	}
 
@@ -404,7 +404,7 @@ func TogNMINotifications(s GoStruct, ts int64, cfg GNMINotificationsConfig) ([]*
 // Note: the returned paths use a shallow copy of the parentPath.
 //
 // Limitation: nested ordered lists are not supported.
-func findUpdatedOrderedListLeaves(leaves any, s GoOrderedMap, parent *gnmiPath) error {
+func findUpdatedOrderedListLeaves(leaves any, s GoOrderedMap, parent *gnmiPath, preferShadowPath bool) error {
 	var errs errlist.List
 
 	var leavesMap map[*path]any
@@ -419,7 +419,7 @@ func findUpdatedOrderedListLeaves(leaves any, s GoOrderedMap, parent *gnmiPath) 
 		return fmt.Errorf("internal ygot error: leaves is not an expected type: %T", leaves)
 	}
 
-	atomicLeaves, subtreePath, err := orderedMapLeaves(s, parent)
+	atomicLeaves, subtreePath, err := orderedMapLeaves(s, parent, preferShadowPath)
 	if err != nil {
 		errs.Add(err)
 		return errs.Err()
@@ -439,7 +439,7 @@ func findUpdatedOrderedListLeaves(leaves any, s GoOrderedMap, parent *gnmiPath) 
 // is called recursively on them.
 //
 // Note: the returned paths use a shallow copy of the parentPath.
-func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath) error {
+func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath, preferShadowPath bool) error {
 	// addLeaf is the function that must be used to add a single leaf or
 	// atomic update to the input cache of leaves. The reason this is
 	// different is because atomic values must be added in a different way
@@ -492,7 +492,7 @@ func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath) error {
 			}
 		}
 
-		mapPaths, err := structTagToLibPaths(ftype, parent, false)
+		mapPaths, err := structTagToLibPaths(ftype, parent, preferShadowPath)
 		if err != nil {
 			errs.Add(fmt.Errorf("%v->%s: %v", parent, ftype.Name, err))
 			continue
@@ -513,12 +513,12 @@ func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath) error {
 					errs.Add(fmt.Errorf("%v: was not a valid GoStruct", mapPaths[0]))
 					continue
 				}
-				errs.Add(findUpdatedLeaves(leaves, goStruct, childPath))
+				errs.Add(findUpdatedLeaves(leaves, goStruct, childPath, preferShadowPath))
 			}
 		case reflect.Ptr:
 			if ol, ok := fval.Interface().(GoOrderedMap); ok {
 				// This is an ordered-map for YANG "ordered-by user" lists.
-				errs.Add(findUpdatedOrderedListLeaves(leaves, ol, mapPaths[0]))
+				errs.Add(findUpdatedOrderedListLeaves(leaves, ol, mapPaths[0], preferShadowPath))
 			} else {
 				// Otherwise this is a pointer to a struct (another YANG container), or a leaf.
 				switch fval.Elem().Kind() {
@@ -528,7 +528,7 @@ func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath) error {
 						errs.Add(fmt.Errorf("%v: was not a valid GoStruct", mapPaths[0]))
 						continue
 					}
-					errs.Add(findUpdatedLeaves(leaves, goStruct, mapPaths[0]))
+					errs.Add(findUpdatedLeaves(leaves, goStruct, mapPaths[0], preferShadowPath))
 				default:
 					for _, p := range mapPaths {
 						addLeaf(&path{p}, fval.Interface())

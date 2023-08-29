@@ -4146,7 +4146,7 @@ func TestFindUpdatedLeaves(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotLeaves := map[*path]any{}
-			if err := findUpdatedLeaves(gotLeaves, tt.in, tt.inParent); err != nil {
+			if err := findUpdatedLeaves(gotLeaves, tt.in, tt.inParent, false); err != nil {
 				if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 					t.Fatalf("did not get expected error, %v", err)
 				}
