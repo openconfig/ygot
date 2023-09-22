@@ -157,9 +157,9 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 	}, {
 		desc: "map next-hop-group",
 		inPaths: map[*gpb.Path]interface{}{
-			mustPath("next-hops/next-hop[index=1]/index"):        mustValue(t, 1),
-			mustPath("next-hops/next-hop[index=1]/state/index"):  mustValue(t, 1),
-			mustPath("next-hops/next-hop[index=1]/state/weight"): mustValue(t, 1),
+			mustPath("next-hops/next-hop[index=1]/index"):        mustValue(t, uint64(1)),
+			mustPath("next-hops/next-hop[index=1]/state/index"):  mustValue(t, uint64(1)),
+			mustPath("next-hops/next-hop[index=1]/state/weight"): mustValue(t, uint64(1)),
 		},
 		inProto: &gribi_aft.Afts_NextHopGroup{},
 		inPrefix: &gpb.Path{
@@ -174,13 +174,12 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 		wantProto: &gribi_aft.Afts_NextHopGroup{
 			// Currently this error is ignored for backwards compatibility with other
 			// messages where there are repeated fields that are not covered.
-			/*	NextHop: []*gribi_aft.Afts_NextHopGroup_NextHopKey{{
-					Index: 1,
-					NextHop: &gribi_aft.Afts_NextHopGroup_NextHop{
-						Weight: &wpb.UintValue{Value: 1},
-					},
-				}},
-			*/
+			NextHop: []*gribi_aft.Afts_NextHopGroup_NextHopKey{{
+				Index: 1,
+				NextHop: &gribi_aft.Afts_NextHopGroup_NextHop{
+					Weight: &wpb.UintValue{Value: 1},
+				},
+			}},
 		},
 	}, {
 		desc: "embedded field in next-hop",

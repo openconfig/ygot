@@ -20,6 +20,8 @@ package protomap
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"strconv"
 	"strings"
 
 	"google.golang.org/protobuf/proto"
@@ -539,53 +541,59 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, opt ...Unma
 	return protoFromPathsInternal(p, vals, valPrefix, protoPrefix, hasIgnoreExtraPaths(opt))
 }
 
-func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, protoPrefix *gpb.Path, ignoreExtras bool) error {
-	schemaPath := func(p *gpb.Path) *gpb.Path {
-		np := proto.Clone(p).(*gpb.Path)
-		for _, e := range np.Elem {
-			e.Key = nil
-		}
-		return np
+// schemaPath converts the path p into a schema path by removing all of the keys within the path.
+func schemaPath(p *gpb.Path) *gpb.Path {
+	np := proto.Clone(p).(*gpb.Path)
+	for _, e := range np.Elem {
+		e.Key = nil
 	}
+	return np
+}
 
-	findChildren := func(vals map[*gpb.Path]any, valPrefix *gpb.Path, protoPrefix *gpb.Path, directOnly, mustBeChildren bool) (map[*gpb.Path]any, error) {
-		// directCh is a map between the absolute schema path for a particular value, and
-		// the value specified.
-		directCh := map[*gpb.Path]interface{}{}
-		for p, v := range vals {
-			absPath := &gpb.Path{
-				Elem: append(append([]*gpb.PathElem{}, schemaPath(valPrefix).Elem...), p.Elem...),
+// findChildren returns the entries from the vals map that correspond to children of the specified protoPrefix path.
+// The valPrefix path is prepended to the paths within the vals map to make these values absolute. If the directOnly bool
+// is set to true, then only direct children (not subsequent descendents) are returned. If mustBeChildren is set to true
+// then an error is returned if there are any values within the vals map that are not children.
+func findChildren(vals map[*gpb.Path]any, valPrefix *gpb.Path, protoPrefix *gpb.Path, directOnly, mustBeChildren bool) (map[*gpb.Path]any, error) {
+	// directCh is a map between the absolute schema path for a particular value, and
+	// the value specified.
+	directCh := map[*gpb.Path]interface{}{}
+	for p, v := range vals {
+		absPath := &gpb.Path{
+			Elem: append(append([]*gpb.PathElem{}, valPrefix.Elem...), p.Elem...),
+		}
+
+		if !util.PathMatchesPathElemPrefix(absPath, protoPrefix) {
+			if mustBeChildren {
+				return nil, fmt.Errorf("invalid path provided, absolute paths must be used, %s does not have prefix %s", absPath, protoPrefix)
 			}
+			continue
+		}
 
-			if !util.PathMatchesPathElemPrefix(absPath, protoPrefix) {
-				if mustBeChildren {
-					return nil, fmt.Errorf("invalid path provided, absolute paths must be used, %s does not have prefix %s", absPath, protoPrefix)
-				}
-				continue
-			}
+		// make the path absolute, and a schema path.
+		pp := util.TrimGNMIPathElemPrefix(absPath, protoPrefix)
 
-			// make the path absolute, and a schema path.
-			pp := util.TrimGNMIPathElemPrefix(absPath, protoPrefix)
-
-			switch directOnly {
-			case true:
-				if len(pp.GetElem()) == 1 {
-					directCh[pp] = v
-				}
-				// TODO(robjs): it'd be good to have something here that tells us whether we are in
-				// a compressed schema. Potentially we should add something to the generated protobuf
-				// as a fileoption that would give us this indication.
-				if len(pp.Elem) == 2 {
-					if pp.Elem[len(pp.Elem)-2].Name == "config" || pp.Elem[len(pp.Elem)-2].Name == "state" {
-						directCh[pp] = v
-					}
-				}
-			case false:
+		switch directOnly {
+		case true:
+			if len(pp.GetElem()) == 1 {
 				directCh[pp] = v
 			}
+			// TODO(robjs): it'd be good to have something here that tells us whether we are in
+			// a compressed schema. Potentially we should add something to the generated protobuf
+			// as a fileoption that would give us this indication.
+			if len(pp.Elem) == 2 {
+				if pp.Elem[len(pp.Elem)-2].Name == "config" || pp.Elem[len(pp.Elem)-2].Name == "state" {
+					directCh[pp] = v
+				}
+			}
+		case false:
+			directCh[pp] = v
 		}
-		return directCh, nil
 	}
+	return directCh, nil
+}
+
+func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, protoPrefix *gpb.Path, ignoreExtras bool) error {
 	// It is an error if we get called with values that aren't at least indirect children at this point.
 	// For this iteration we want only the direct children.
 	directCh, err := findChildren(vals, valPrefix, protoPrefix, true, true)
@@ -607,11 +615,12 @@ func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, 
 
 		if len(directCh) != 0 {
 			for _, ap := range annotatedPath {
-				if !util.PathMatchesPathElemPrefix(ap, protoPrefix) {
+				trimmedPrefix := schemaPath(protoPrefix)
+				if !util.PathMatchesPathElemPrefix(ap, trimmedPrefix) {
 					rangeErr = fmt.Errorf("annotation %s does not match the supplied prefix %s", ap, protoPrefix)
 					return false
 				}
-				trimmedAP := util.TrimGNMIPathElemPrefix(ap, protoPrefix)
+				trimmedAP := util.TrimGNMIPathElemPrefix(ap, trimmedPrefix)
 
 				// Map the values that we have that a direct children of this message.
 				for chp, chv := range directCh {
@@ -652,7 +661,23 @@ func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, 
 		if fd.Kind() == protoreflect.MessageKind {
 			switch {
 			case fd.IsList():
-				// TODO(robjs): Support mapping these fields -- currently we silently drop them for backwards compatibility.
+				leaflist, leaflistunion, err := annotatedYANGFieldInfo(fd)
+				if err != nil {
+					rangeErr = fmt.Errorf("cannot extract field information for %s, %v", fd.FullName(), err)
+				}
+				switch {
+				case leaflist == true, leaflistunion == true:
+					// TODO(robjs): Support these fields, silently dropped for backwards compatibility.
+				default:
+					// This is a YANG list field which is a repeated within a protobuf. We need to extract the
+					// keys from this message and create a list in the entry.
+					members, err := createListField(p, fd, annotatedPath[0], valPrefix, protoPrefix, vals, ignoreExtras)
+					if err != nil {
+						rangeErr = err
+						return false
+					}
+					m.Set(fd, members)
+				}
 			case fd.IsMap():
 				rangeErr = fmt.Errorf("map fields are not supported in mapped protobufs at field %s", fd.FullName())
 				return false
@@ -698,6 +723,120 @@ func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, 
 	}
 
 	return nil
+}
+
+// createListField creates the entries of the repeated field fd within the protobuf message m, mapping the values within the val map.
+// valPrefix specifies the prefix to be applied to the paths within the vals map, protoPrefix specifies the prefix for the protobuf
+// message (if it is not the root), and fieldPath specifies the path to the field that is being mapped. ignoreExtras indicates whether
+// extra paths that do not exist in the message should be treated as errors.
+func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath, valPrefix, protoPrefix *gpb.Path, vals map[*gpb.Path]any, ignoreExtras bool) (protoreflect.Value, error) {
+	children, err := findChildren(vals, valPrefix, protoPrefix, false, false)
+	if err != nil {
+		return protoreflect.Value{}, fmt.Errorf("logic error, error returned from extracting children of list %s, %v", fd.FullName(), err)
+	}
+	keys := []map[string]string{}
+	keyPaths := []*gpb.Path{}
+	for p := range children {
+		// If the schema is compressed then the key will be at element 1, otherwise it will be at element 0.
+		switch {
+		case p == nil, p.Elem == nil, len(p.Elem) < 2:
+			// This must be an error as we only map leaf values.
+			return protoreflect.Value{}, fmt.Errorf("invalid input, cannot directly map lists for field %s, path: %s", fd.FullName(), p)
+		case p.Elem[0].Key != nil:
+			return protoreflect.Value{}, fmt.Errorf("unimplemented, uncompressed schemas are not supported, path %s", p)
+		case p.Elem[1].Key != nil:
+			if len(p.Elem[1].Key) != 1 {
+				return protoreflect.Value{}, fmt.Errorf("unimplemented, multi-key lists are not supported, path %s", p)
+			}
+			for k, v := range p.Elem[1].Key {
+				keys = append(keys, map[string]string{k: v})
+				keyP := append([]*gpb.PathElem{}, append(valPrefix.Elem, p.Elem[0:2]...)...)
+				keyPaths = append(keyPaths, &gpb.Path{Elem: keyP})
+			}
+		}
+	}
+
+	le := m.ProtoReflect().NewField(fd).List()
+	seen := []map[string]string{}
+	for i, key := range keys {
+		var done bool
+		for _, seen := range seen {
+			if reflect.DeepEqual(seen, key) {
+				done = true
+				break
+			}
+		}
+		if done {
+			continue
+		}
+		seen = append(seen, key)
+
+		newP := proto.Clone(valPrefix).(*gpb.Path)
+		newP.Elem[len(newP.Elem)-1].Key = key
+		listElemChildren, err := findChildren(vals, newP, newP, false, false)
+		if err != nil {
+			return protoreflect.Value{}, fmt.Errorf("logic error, error returned from extracting list member children, %v", err)
+		}
+
+		// We now need to create the "XXXKey" message, and populate the key values, subsequent values are then populated
+		// into the one protobuf message field.
+		childMsgEmpty := le.NewElement().Message()
+		childMsgTarget := le.NewElement().Message()
+
+		var retErr error
+		unpopRange{childMsgEmpty}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+			// We have one field that is a message in a key message, which is the payload. The remaining fields are the keys.
+			switch fd.Kind() {
+			case protoreflect.MessageKind:
+				m := childMsgTarget.NewField(fd).Message()
+				// We must ignore extra fields from this point in the recursion, because keys map to fields that
+				// are not present in the generated protobuf.
+				if err := protoFromPathsInternal(m.Interface(), listElemChildren, valPrefix, keyPaths[i], true); err != nil {
+					retErr = err
+					return false
+				}
+				childMsgTarget.Set(fd, protoreflect.ValueOfMessage(m))
+			default:
+				paths, err := annotatedSchemaPath(fd)
+				if err != nil {
+					retErr = err
+					return false
+				}
+
+				var keyName string
+				for _, p := range paths {
+					keyName = p.Elem[len(p.Elem)-1].Name
+					break
+				}
+				pv, err := toValue(fd, key[keyName])
+				if err != nil {
+					retErr = fmt.Errorf("field %s, %v", fd.FullName(), err)
+				}
+				childMsgTarget.Set(fd, pv)
+			}
+
+			return true
+		})
+		if retErr != nil {
+			return protoreflect.Value{}, fmt.Errorf("field %s, %v", fd.FullName(), retErr)
+		}
+		le.Append(protoreflect.ValueOfMessage(childMsgTarget))
+	}
+
+	return protoreflect.ValueOfList(le), nil
+}
+
+func toValue(fd protoreflect.FieldDescriptor, val string) (protoreflect.Value, error) {
+	switch fd.Kind() {
+	case protoreflect.Uint64Kind:
+		v, err := strconv.ParseUint(val, 10, 64)
+		if err != nil {
+			return protoreflect.Value{}, fmt.Errorf("invalid uint64 value %v, err: %v", val, err)
+		}
+		return protoreflect.ValueOfUint64(v), nil
+	default:
+		return protoreflect.Value{}, fmt.Errorf("invalid kind %v", fd.Kind())
+	}
 }
 
 // hasIgnoreExtraPaths checks whether the supplied opts slice contains the
