@@ -731,43 +731,46 @@ func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, 
 // message (if it is not the root), and fieldPath specifies the path to the field that is being mapped. ignoreExtras indicates whether
 // extra paths that do not exist in the message should be treated as errors.
 func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath, valPrefix, protoPrefix *gpb.Path, vals map[*gpb.Path]any, ignoreExtras bool) (protoreflect.Value, error) {
-	fmt.Printf("protoPrefix: %s\n", protoPrefix)
-	fmt.Printf("fieldPath: %s\n", fieldPath)
 	keys := []map[string]string{}
 	keyPaths := []*gpb.Path{}
 
-	// TODO(robjs): clean this up in the morning.
+	// We need to identify the keys that are within the list, as well as the data tree paths
+	// that they correspond to. We walk through the supplied values to determine which to process.
 	for p := range vals {
-		fmt.Printf("p -> %s\n", p)
+		// Make the paths within the vals map absolute according to the supplied valPrefix.
 		absPath := &gpb.Path{
 			Elem: append(append([]*gpb.PathElem{}, valPrefix.Elem...), p.Elem...),
 		}
+		// Since the fieldPath is a schema path, then we need to compare just schema paths
+		// to avoid comparing the keys.
 		if !util.PathMatchesPathElemPrefix(schemaPath(absPath), schemaPath(fieldPath)) {
 			continue
 		}
-		pfx := proto.Clone(fieldPath).(*gpb.Path)
-		k := absPath.Elem[len(pfx.Elem)-1]
+		// The key of the list is in the last element of the absolute path in the values map (the values
+		// map MUST contain data tree paths, since it is telling us list values to unmarshal).
+		k := absPath.Elem[len(fieldPath.Elem)-1]
 		// If the last element doesn't have a key, then we have not correctly found the list.
 		if k.Key == nil {
-			return protoreflect.Value{}, fmt.Errorf("uncompressed schemas unsupported")
+			return protoreflect.Value{}, fmt.Errorf("invalid list schema field path does not have a list at the end %s", fieldPath)
 		}
-		fmt.Printf("pfx: %v\n", pfx)
-		fmt.Printf("k: %v\n", k)
+
 		// Find the parts of the path that are not the list -- we assume that this is 2 elements since
 		// we are in a compressed schema.
+		// TODO(robjs): Currently, this may report incorrectly in an uncompressed schema, but we don't have
+		// a signal to indicate this. One needs to be added to the generated protobufs.
 		keyPath := &gpb.Path{
 			Elem: append(protoPrefix.Elem, absPath.Elem[len(protoPrefix.Elem):len(protoPrefix.Elem)+2]...),
 		}
-		fmt.Printf("k[: %v\n", keyPath)
 		keys = append(keys, k.Key)
 		keyPaths = append(keyPaths, keyPath)
-
 	}
-	fmt.Printf("KEYS %v\n", keys)
 
 	le := m.ProtoReflect().NewField(fd).List()
 	seen := []map[string]string{}
 	for i, key := range keys {
+		// Don't try and unmarshal a key that we have already looked at, since there may be multiple paths
+		// that are under the same list member. We map all children of a particular list key when we see it
+		// for the first time.
 		var done bool
 		for _, s := range seen {
 			if reflect.DeepEqual(s, key) {
@@ -780,8 +783,6 @@ func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath
 		}
 		seen = append(seen, key)
 
-		newP := proto.Clone(valPrefix).(*gpb.Path)
-		newP.Elem[len(newP.Elem)-1].Key = key
 		listElemChildren, err := findChildren(vals, valPrefix, keyPaths[i], false, false)
 		if err != nil {
 			return protoreflect.Value{}, fmt.Errorf("logic error, error returned from extracting list member children, %v", err)
@@ -792,6 +793,9 @@ func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath
 		childMsgEmpty := le.NewElement().Message()
 		childMsgTarget := le.NewElement().Message()
 
+		// Walk through the fields of the XXXKey message that we just created. We use the childMsgEmpty here so that we
+		// don't change the message whilst iterating which causes us to revisit that field. We set the values in
+		// the childMsgTarget message.
 		var retErr error
 		unpopRange{childMsgEmpty}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
 			// We have one field that is a message in a key message, which is the payload. The remaining fields are the keys.
@@ -817,7 +821,7 @@ func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath
 					keyName = p.Elem[len(p.Elem)-1].Name
 					break
 				}
-				pv, err := toValue(fd, key[keyName])
+				pv, err := listKeyAsProtoValue(fd, key[keyName])
 				if err != nil {
 					retErr = fmt.Errorf("field %s, %v", fd.FullName(), err)
 					return false
@@ -836,7 +840,9 @@ func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath
 	return protoreflect.ValueOfList(le), nil
 }
 
-func toValue(fd protoreflect.FieldDescriptor, val string) (protoreflect.Value, error) {
+// listKeyAsProtoValue converts the value of a list key (represented as a string) into a protoreflect.Value that can be
+// used to set a scalar protobuf field.
+func listKeyAsProtoValue(fd protoreflect.FieldDescriptor, val string) (protoreflect.Value, error) {
 	switch fd.Kind() {
 	case protoreflect.Uint64Kind:
 		v, err := strconv.ParseUint(val, 10, 64)
@@ -844,6 +850,8 @@ func toValue(fd protoreflect.FieldDescriptor, val string) (protoreflect.Value, e
 			return protoreflect.Value{}, fmt.Errorf("invalid uint64 value %v, err: %v", val, err)
 		}
 		return protoreflect.ValueOfUint64(v), nil
+	case protoreflect.StringKind:
+		return protoreflect.ValueOfString(val), nil
 	default:
 		return protoreflect.Value{}, fmt.Errorf("invalid kind %v", fd.Kind())
 	}

@@ -730,6 +730,88 @@ func TestProtoFromPaths(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		desc:    "list item - one entry",
+		inProto: &epb.Root{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/interfaces/interface[name=eth0]/config/description"): "hello-world",
+		},
+		wantProto: &epb.Root{
+			Interface: []*epb.Root_InterfaceKey{{
+				Name: "eth0",
+				Interface: &epb.Interface{
+					Description: &wpb.StringValue{Value: "hello-world"},
+				},
+			}},
+		},
+	}, {
+		desc:    "list item - two entries",
+		inProto: &epb.Root{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/interfaces/interface[name=eth0]/config/description"): "hello-world",
+			mustPath("/interfaces/interface[name=eth1]/config/description"): "hello-mars",
+		},
+		wantProto: &epb.Root{
+			Interface: []*epb.Root_InterfaceKey{{
+				Name: "eth0",
+				Interface: &epb.Interface{
+					Description: &wpb.StringValue{Value: "hello-world"},
+				},
+			}, {
+				Name: "eth1",
+				Interface: &epb.Interface{
+					Description: &wpb.StringValue{Value: "hello-mars"},
+				},
+			}},
+		},
+	}, {
+		desc:    "nested list - one entry",
+		inProto: &epb.Root{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/interfaces/interface[name=eth0]/config/description"):                                      "int",
+			mustPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=42]/config/description"): "subint",
+		},
+		wantProto: &epb.Root{
+			Interface: []*epb.Root_InterfaceKey{{
+				Name: "eth0",
+				Interface: &epb.Interface{
+					Description: &wpb.StringValue{Value: "int"},
+					Subinterface: []*epb.Interface_SubinterfaceKey{{
+						Index: 42,
+						Subinterface: &epb.Subinterface{
+							Description: &wpb.StringValue{Value: "subint"},
+						},
+					}},
+				},
+			}},
+		},
+	}, {
+		desc:    "nested list - multiple entries",
+		inProto: &epb.Root{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/interfaces/interface[name=eth0]/config/description"):                                      "int",
+			mustPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=42]/config/description"): "subint42",
+			mustPath("/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=84]/config/description"): "subint84",
+		},
+		wantProto: &epb.Root{
+			Interface: []*epb.Root_InterfaceKey{{
+				Name: "eth0",
+				Interface: &epb.Interface{
+					Description: &wpb.StringValue{Value: "int"},
+					Subinterface: []*epb.Interface_SubinterfaceKey{{
+						Index: 42,
+						Subinterface: &epb.Subinterface{
+							Description: &wpb.StringValue{Value: "subint42"},
+						},
+					}, {
+						Index: 84,
+						Subinterface: &epb.Subinterface{
+							Description: &wpb.StringValue{Value: "subint84"},
+						},
+					}},
+				},
+			}},
+		},
 	}}
 
 	for _, tt := range tests {
@@ -742,7 +824,11 @@ func TestProtoFromPaths(t *testing.T) {
 				return
 			}
 
-			if diff := cmp.Diff(tt.inProto, tt.wantProto, protocmp.Transform()); diff != "" {
+			if diff := cmp.Diff(tt.inProto, tt.wantProto,
+				protocmp.Transform(),
+				protocmp.SortRepeatedFields(&epb.Root{}, "interface"),
+				protocmp.SortRepeatedFields(&epb.Interface{}, "subinterface"),
+			); diff != "" {
 				t.Fatalf("did not get expected results, diff(-got,+want):\n%s", diff)
 			}
 		})
