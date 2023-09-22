@@ -730,10 +730,13 @@ func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, 
 // message (if it is not the root), and fieldPath specifies the path to the field that is being mapped. ignoreExtras indicates whether
 // extra paths that do not exist in the message should be treated as errors.
 func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath, valPrefix, protoPrefix *gpb.Path, vals map[*gpb.Path]any, ignoreExtras bool) (protoreflect.Value, error) {
+	fmt.Printf("protoPrefix: %s\n", protoPrefix)
+	fmt.Printf("fieldPath: %s\n", fieldPath)
 	children, err := findChildren(vals, valPrefix, protoPrefix, false, false)
 	if err != nil {
 		return protoreflect.Value{}, fmt.Errorf("logic error, error returned from extracting children of list %s, %v", fd.FullName(), err)
 	}
+	fmt.Printf("%v\n", children)
 	keys := []map[string]string{}
 	keyPaths := []*gpb.Path{}
 	for p := range children {
@@ -760,8 +763,8 @@ func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath
 	seen := []map[string]string{}
 	for i, key := range keys {
 		var done bool
-		for _, seen := range seen {
-			if reflect.DeepEqual(seen, key) {
+		for _, s := range seen {
+			if reflect.DeepEqual(s, key) {
 				done = true
 				break
 			}
@@ -773,7 +776,7 @@ func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath
 
 		newP := proto.Clone(valPrefix).(*gpb.Path)
 		newP.Elem[len(newP.Elem)-1].Key = key
-		listElemChildren, err := findChildren(vals, newP, newP, false, false)
+		listElemChildren, err := findChildren(vals, valPrefix, keyPaths[i], false, false)
 		if err != nil {
 			return protoreflect.Value{}, fmt.Errorf("logic error, error returned from extracting list member children, %v", err)
 		}
@@ -791,7 +794,7 @@ func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath
 				m := childMsgTarget.NewField(fd).Message()
 				// We must ignore extra fields from this point in the recursion, because keys map to fields that
 				// are not present in the generated protobuf.
-				if err := protoFromPathsInternal(m.Interface(), listElemChildren, valPrefix, keyPaths[i], true); err != nil {
+				if err := protoFromPathsInternal(m.Interface(), listElemChildren, keyPaths[i], keyPaths[i], true); err != nil {
 					retErr = err
 					return false
 				}
@@ -811,6 +814,7 @@ func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath
 				pv, err := toValue(fd, key[keyName])
 				if err != nil {
 					retErr = fmt.Errorf("field %s, %v", fd.FullName(), err)
+					return false
 				}
 				childMsgTarget.Set(fd, pv)
 			}
