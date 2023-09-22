@@ -532,6 +532,7 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, opt ...Unma
 	if err != nil {
 		return fmt.Errorf("invalid value prefix supplied, %v", err)
 	}
+	valPrefix = schemaPath(valPrefix)
 
 	protoPrefix, err := hasProtoMsgPrefix(opt)
 	if err != nil {
@@ -732,32 +733,37 @@ func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, 
 func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath, valPrefix, protoPrefix *gpb.Path, vals map[*gpb.Path]any, ignoreExtras bool) (protoreflect.Value, error) {
 	fmt.Printf("protoPrefix: %s\n", protoPrefix)
 	fmt.Printf("fieldPath: %s\n", fieldPath)
-	children, err := findChildren(vals, valPrefix, protoPrefix, false, false)
-	if err != nil {
-		return protoreflect.Value{}, fmt.Errorf("logic error, error returned from extracting children of list %s, %v", fd.FullName(), err)
-	}
-	fmt.Printf("%v\n", children)
 	keys := []map[string]string{}
 	keyPaths := []*gpb.Path{}
-	for p := range children {
-		// If the schema is compressed then the key will be at element 1, otherwise it will be at element 0.
-		switch {
-		case p == nil, p.Elem == nil, len(p.Elem) < 2:
-			// This must be an error as we only map leaf values.
-			return protoreflect.Value{}, fmt.Errorf("invalid input, cannot directly map lists for field %s, path: %s", fd.FullName(), p)
-		case p.Elem[0].Key != nil:
-			return protoreflect.Value{}, fmt.Errorf("unimplemented, uncompressed schemas are not supported, path %s", p)
-		case p.Elem[1].Key != nil:
-			if len(p.Elem[1].Key) != 1 {
-				return protoreflect.Value{}, fmt.Errorf("unimplemented, multi-key lists are not supported, path %s", p)
-			}
-			for k, v := range p.Elem[1].Key {
-				keys = append(keys, map[string]string{k: v})
-				keyP := append([]*gpb.PathElem{}, append(valPrefix.Elem, p.Elem[0:2]...)...)
-				keyPaths = append(keyPaths, &gpb.Path{Elem: keyP})
-			}
+
+	// TODO(robjs): clean this up in the morning.
+	for p := range vals {
+		fmt.Printf("p -> %s\n", p)
+		absPath := &gpb.Path{
+			Elem: append(append([]*gpb.PathElem{}, valPrefix.Elem...), p.Elem...),
 		}
+		if !util.PathMatchesPathElemPrefix(schemaPath(absPath), schemaPath(fieldPath)) {
+			continue
+		}
+		pfx := proto.Clone(fieldPath).(*gpb.Path)
+		k := absPath.Elem[len(pfx.Elem)-1]
+		// If the last element doesn't have a key, then we have not correctly found the list.
+		if k.Key == nil {
+			return protoreflect.Value{}, fmt.Errorf("uncompressed schemas unsupported")
+		}
+		fmt.Printf("pfx: %v\n", pfx)
+		fmt.Printf("k: %v\n", k)
+		// Find the parts of the path that are not the list -- we assume that this is 2 elements since
+		// we are in a compressed schema.
+		keyPath := &gpb.Path{
+			Elem: append(protoPrefix.Elem, absPath.Elem[len(protoPrefix.Elem):len(protoPrefix.Elem)+2]...),
+		}
+		fmt.Printf("k[: %v\n", keyPath)
+		keys = append(keys, k.Key)
+		keyPaths = append(keyPaths, keyPath)
+
 	}
+	fmt.Printf("KEYS %v\n", keys)
 
 	le := m.ProtoReflect().NewField(fd).List()
 	seen := []map[string]string{}
