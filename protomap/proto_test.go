@@ -812,6 +812,20 @@ func TestProtoFromPaths(t *testing.T) {
 				},
 			}},
 		},
+	}, {
+		desc:    "single list - incorrect key specified",
+		inProto: &epb.Root{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/interfaces/interface[notkey=eth0]/config/description"): "hello-world",
+		},
+		wantErrSubstring: "missing key",
+	}, {
+		desc:    "single list - additional key specified",
+		inProto: &epb.Root{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/interfaces/interface[name=eth0][type=ETHERNET]/config/description"): "invalid",
+		},
+		wantErrSubstring: "received additional keys",
 	}}
 
 	for _, tt := range tests {

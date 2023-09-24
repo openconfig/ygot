@@ -667,7 +667,7 @@ func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, 
 					rangeErr = fmt.Errorf("cannot extract field information for %s, %v", fd.FullName(), err)
 				}
 				switch {
-				case leaflist == true, leaflistunion == true:
+				case leaflist, leaflistunion:
 					// TODO(robjs): Support these fields, silently dropped for backwards compatibility.
 				default:
 					// This is a YANG list field which is a repeated within a protobuf. We need to extract the
@@ -750,8 +750,8 @@ func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath
 		// map MUST contain data tree paths, since it is telling us list values to unmarshal).
 		k := absPath.Elem[len(fieldPath.Elem)-1]
 		// If the last element doesn't have a key, then we have not correctly found the list.
-		if k.Key == nil {
-			return protoreflect.Value{}, fmt.Errorf("invalid list schema field path does not have a list at the end %s", fieldPath)
+		if len(k.Key) == 0 {
+			return protoreflect.Value{}, fmt.Errorf("invalid list data field path %s: does not have key values populated", fieldPath)
 		}
 
 		// Find the parts of the path that are not the list -- we assume that this is 2 elements since
@@ -759,30 +759,23 @@ func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath
 		// TODO(robjs): Currently, this may report incorrectly in an uncompressed schema, but we don't have
 		// a signal to indicate this. One needs to be added to the generated protobufs.
 		keyPath := &gpb.Path{
-			Elem: append(protoPrefix.Elem, absPath.Elem[len(protoPrefix.Elem):len(protoPrefix.Elem)+2]...),
+			Elem: append(append([]*gpb.PathElem{}, protoPrefix.Elem...), absPath.Elem[len(protoPrefix.Elem):len(protoPrefix.Elem)+2]...),
 		}
-		keys = append(keys, k.Key)
-		keyPaths = append(keyPaths, keyPath)
-	}
-
-	le := m.ProtoReflect().NewField(fd).List()
-	seen := []map[string]string{}
-	for i, key := range keys {
-		// Don't try and unmarshal a key that we have already looked at, since there may be multiple paths
-		// that are under the same list member. We map all children of a particular list key when we see it
-		// for the first time.
-		var done bool
-		for _, s := range seen {
-			if reflect.DeepEqual(s, key) {
-				done = true
+		var alreadySeen bool
+		for _, ek := range keys {
+			if reflect.DeepEqual(ek, k.Key) {
+				alreadySeen = true
 				break
 			}
 		}
-		if done {
-			continue
+		if !alreadySeen {
+			keys = append(keys, k.Key)
+			keyPaths = append(keyPaths, keyPath)
 		}
-		seen = append(seen, key)
+	}
 
+	le := m.ProtoReflect().NewField(fd).List()
+	for i, key := range keys {
 		listElemChildren, err := findChildren(vals, valPrefix, keyPaths[i], false, false)
 		if err != nil {
 			return protoreflect.Value{}, fmt.Errorf("logic error, error returned from extracting list member children, %v", err)
@@ -797,6 +790,13 @@ func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath
 		// don't change the message whilst iterating which causes us to revisit that field. We set the values in
 		// the childMsgTarget message.
 		var retErr error
+
+		// Store the key values that we received, to make sure that they are mapped during iteration
+		// through the protobuf fields.
+		remainingKeys := map[string]bool{}
+		for n := range key {
+			remainingKeys[n] = true
+		}
 		unpopRange{childMsgEmpty}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
 			// We have one field that is a message in a key message, which is the payload. The remaining fields are the keys.
 			switch fd.Kind() {
@@ -821,6 +821,11 @@ func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath
 					keyName = p.Elem[len(p.Elem)-1].Name
 					break
 				}
+				if key[keyName] == "" {
+					retErr = fmt.Errorf("field %s, missing key %s, got keys: %v", fd.FullName(), keyName, key)
+					return false
+				}
+				remainingKeys[keyName] = false
 				pv, err := listKeyAsProtoValue(fd, key[keyName])
 				if err != nil {
 					retErr = fmt.Errorf("field %s, %v", fd.FullName(), err)
@@ -834,6 +839,17 @@ func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath
 		if retErr != nil {
 			return protoreflect.Value{}, fmt.Errorf("field %s, %v", fd.FullName(), retErr)
 		}
+
+		unmappedKeys := []string{}
+		for k, v := range remainingKeys {
+			if v {
+				unmappedKeys = append(unmappedKeys, k)
+			}
+		}
+		if len(unmappedKeys) != 0 {
+			return protoreflect.Value{}, fmt.Errorf("field %s, received additional keys that are not in the schema, %v", fd.FullName(), unmappedKeys)
+		}
+
 		le.Append(protoreflect.ValueOfMessage(childMsgTarget))
 	}
 
@@ -853,7 +869,7 @@ func listKeyAsProtoValue(fd protoreflect.FieldDescriptor, val string) (protorefl
 	case protoreflect.StringKind:
 		return protoreflect.ValueOfString(val), nil
 	default:
-		return protoreflect.Value{}, fmt.Errorf("invalid kind %v", fd.Kind())
+		return protoreflect.Value{}, fmt.Errorf("unsupported or invalid kind %v", fd.Kind())
 	}
 }
 
