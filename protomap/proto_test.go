@@ -480,13 +480,6 @@ func TestProtoFromPaths(t *testing.T) {
 		},
 		wantErrSubstring: "got non-string value for string field",
 	}, {
-		desc:    "not a wrapper message",
-		inProto: &epb.ExampleMessage{},
-		inVals: map[*gpb.Path]interface{}{
-			mustPath("/message"): &gpb.Path{},
-		},
-		wantErrSubstring: "unimplemented",
-	}, {
 		desc:    "unknown field",
 		inProto: &epb.ExampleMessage{},
 		inVals: map[*gpb.Path]interface{}{
@@ -603,12 +596,19 @@ func TestProtoFromPaths(t *testing.T) {
 			Description: &wpb.StringValue{Value: "interface-42"},
 		},
 	}, {
-		desc:    "invalid message with no annotation on one of its other fields",
+		desc:    "invalid message with unsupported field",
 		inProto: &epb.InvalidMessage{},
 		inVals: map[*gpb.Path]interface{}{
 			mustPath("three"): "str",
 		},
-		wantErrSubstring: "received field with invalid annotation",
+		wantErrSubstring: "map fields are not supported",
+	}, {
+		desc:    "missing annotation",
+		inProto: &epb.InvalidAnnotationMessage{},
+		inVals: map[*gpb.Path]any{
+			mustPath("three"): "str",
+		},
+		wantErrSubstring: "invalid annotation",
 	}, {
 		desc:    "invalid message with bad field type",
 		inProto: &epb.BadMessageKeyTwo{},
@@ -701,6 +701,34 @@ func TestProtoFromPaths(t *testing.T) {
 		},
 		wantProto: &epb.Interface{
 			Description: &wpb.StringValue{Value: "value"},
+		},
+	}, {
+		desc:    "child message",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/message/str"): "hello",
+		},
+		wantProto: &epb.ExampleMessage{
+			Ex: &epb.ExampleMessageChild{
+				Str: &wpb.StringValue{Value: "hello"},
+			},
+		},
+	}, {
+		desc:    "nested children",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/nested/one"):       "one",
+			mustPath("/nested/child/one"): "one",
+			mustPath("/nested/child/two"): "two",
+		},
+		wantProto: &epb.ExampleMessage{
+			Nested: &epb.ExampleNestedMessage{
+				One: &wpb.StringValue{Value: "one"},
+				Child: &epb.ExampleNestedGrandchild{
+					One: &wpb.StringValue{Value: "one"},
+					Two: &wpb.StringValue{Value: "two"},
+				},
+			},
 		},
 	}}
 

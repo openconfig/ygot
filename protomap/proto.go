@@ -536,6 +536,10 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, opt ...Unma
 		return fmt.Errorf("invalid protobuf message prefix supplied in options, %v", err)
 	}
 
+	return protoFromPathsInternal(p, vals, valPrefix, protoPrefix, hasIgnoreExtraPaths(opt))
+}
+
+func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, protoPrefix *gpb.Path, ignoreExtras bool) error {
 	schemaPath := func(p *gpb.Path) *gpb.Path {
 		np := proto.Clone(p).(*gpb.Path)
 		for _, e := range np.Elem {
@@ -544,81 +548,143 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, opt ...Unma
 		return np
 	}
 
-	// directCh is a map between the absolute schema path for a particular value, and
-	// the value specified.
-	directCh := map[*gpb.Path]interface{}{}
-	for p, v := range vals {
-		absPath := &gpb.Path{
-			Elem: append(append([]*gpb.PathElem{}, schemaPath(valPrefix).Elem...), p.Elem...),
-		}
+	findChildren := func(vals map[*gpb.Path]any, valPrefix *gpb.Path, protoPrefix *gpb.Path, directOnly, mustBeChildren bool) (map[*gpb.Path]any, error) {
+		// directCh is a map between the absolute schema path for a particular value, and
+		// the value specified.
+		directCh := map[*gpb.Path]interface{}{}
+		for p, v := range vals {
+			absPath := &gpb.Path{
+				Elem: append(append([]*gpb.PathElem{}, schemaPath(valPrefix).Elem...), p.Elem...),
+			}
 
-		if !util.PathMatchesPathElemPrefix(absPath, protoPrefix) {
-			return fmt.Errorf("invalid path provided, absolute paths must be used, %s does not have prefix %s", absPath, protoPrefix)
-		}
+			if !util.PathMatchesPathElemPrefix(absPath, protoPrefix) {
+				if mustBeChildren {
+					return nil, fmt.Errorf("invalid path provided, absolute paths must be used, %s does not have prefix %s", absPath, protoPrefix)
+				}
+				continue
+			}
 
-		// make the path absolute, and a schema path.
-		pp := util.TrimGNMIPathElemPrefix(absPath, protoPrefix)
+			// make the path absolute, and a schema path.
+			pp := util.TrimGNMIPathElemPrefix(absPath, protoPrefix)
 
-		if len(pp.GetElem()) == 1 {
-			directCh[pp] = v
-		}
-		// TODO(robjs): it'd be good to have something here that tells us whether we are in
-		// a compressed schema. Potentially we should add something to the generated protobuf
-		// as a fileoption that would give us this indication.
-		if len(pp.Elem) == 2 {
-			if pp.Elem[len(pp.Elem)-2].Name == "config" || pp.Elem[len(pp.Elem)-2].Name == "state" {
+			switch directOnly {
+			case true:
+				if len(pp.GetElem()) == 1 {
+					directCh[pp] = v
+				}
+				// TODO(robjs): it'd be good to have something here that tells us whether we are in
+				// a compressed schema. Potentially we should add something to the generated protobuf
+				// as a fileoption that would give us this indication.
+				if len(pp.Elem) == 2 {
+					if pp.Elem[len(pp.Elem)-2].Name == "config" || pp.Elem[len(pp.Elem)-2].Name == "state" {
+						directCh[pp] = v
+					}
+				}
+			case false:
 				directCh[pp] = v
 			}
 		}
+		return directCh, nil
+	}
+
+	// It is safe for us to call findChldren setting mustBeChildren to true since we are in one of two cases:
+	//
+	//  * the first iteration through the function, at which point we expect that vals can only
+	//    contain paths that are descendents of this path.
+	//  * a subsequent iteration, at which point we are called with the subtree that corresponds to
+	//    the protobuf that was handed into this function.
+	directCh, err := findChildren(vals, valPrefix, protoPrefix, true, true)
+	if err != nil {
+		return err
 	}
 
 	mapped := map[*gpb.Path]bool{}
+	// Clone so we don't change something we're iterating.
+	origM := proto.Clone(p).ProtoReflect()
 	m := p.ProtoReflect()
 	var rangeErr error
-	unpopRange{m}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+	unpopRange{origM}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
 		annotatedPath, err := annotatedSchemaPath(fd)
 		if err != nil {
 			rangeErr = err
 			return false
 		}
 
-		for _, ap := range annotatedPath {
-			if !util.PathMatchesPathElemPrefix(ap, protoPrefix) {
-				rangeErr = fmt.Errorf("annotation %s does not match the supplied prefix %s", ap, protoPrefix)
-				return false
-			}
-			trimmedAP := util.TrimGNMIPathElemPrefix(ap, protoPrefix)
-			for chp, chv := range directCh {
-				if proto.Equal(trimmedAP, chp) {
-					switch fd.Kind() {
-					case protoreflect.MessageKind:
-						v, isWrap, err := makeWrapper(m, fd, chv)
-						if err != nil {
-							rangeErr = err
+		if len(directCh) != 0 {
+			for _, ap := range annotatedPath {
+				if !util.PathMatchesPathElemPrefix(ap, protoPrefix) {
+					rangeErr = fmt.Errorf("annotation %s does not match the supplied prefix %s", ap, protoPrefix)
+					return false
+				}
+				trimmedAP := util.TrimGNMIPathElemPrefix(ap, protoPrefix)
+
+				// Map the values that we have that a direct children of this message.
+				for chp, chv := range directCh {
+					if proto.Equal(trimmedAP, chp) {
+						switch fd.Kind() {
+						case protoreflect.MessageKind:
+							v, isWrap, err := makeWrapper(m, fd, chv)
+							if err != nil {
+								rangeErr = err
+								return false
+							}
+							// Only handle wrapper messages here, other embedded messages are covered by
+							// checking the field type below (since we must handle cases where there are
+							// indirect children).
+							if isWrap {
+								mapped[chp] = true
+								m.Set(fd, protoreflect.ValueOfMessage(v))
+							}
+						case protoreflect.EnumKind:
+							v, err := enumValue(fd, chv)
+							if err != nil {
+								rangeErr = err
+								return false
+							}
+							mapped[chp] = true
+							m.Set(fd, v)
+						default:
+							rangeErr = fmt.Errorf("unknown field kind %s for %s", fd.Kind(), fd.FullName())
 							return false
 						}
-						if !isWrap {
-							// TODO(robjs): recurse into the message if it wasn't a wrapper
-							// type.
-							rangeErr = fmt.Errorf("unimplemented: child messages, field %s", fd.FullName())
-							return false
-						}
-						mapped[chp] = true
-						m.Set(fd, protoreflect.ValueOfMessage(v))
-					case protoreflect.EnumKind:
-						v, err := enumValue(fd, chv)
-						if err != nil {
-							rangeErr = err
-							return false
-						}
-						mapped[chp] = true
-						m.Set(fd, v)
-					default:
-						rangeErr = fmt.Errorf("unknown field kind %s for %s", fd.Kind(), fd.FullName())
-						return false
 					}
 				}
 			}
+		}
+
+		// If we find a message field, then we need to recurse into it to check whether there were paths that match
+		// its children.
+		if fd.Kind() == protoreflect.MessageKind {
+			switch {
+			case fd.IsList():
+				// TODO(robjs): Support mapping these fields -- currently we silently drop them for backwards compatibility.
+			case fd.IsMap():
+				rangeErr = fmt.Errorf("map fields are not supported in mapped protobufs at field %s", fd.FullName())
+				return false
+			case isWrapper(m, fd):
+				return true
+			default:
+				childMsg := m.NewField(fd).Message()
+				np := proto.Clone(valPrefix).(*gpb.Path)
+				np.Elem = append(np.Elem, util.TrimGNMIPathElemPrefix(annotatedPath[0], protoPrefix).Elem...)
+
+				// There may be paths that are not direct descendents, so do not error. Return indirect children too.
+				children, err := findChildren(vals, valPrefix, np, false, false)
+				if err != nil {
+					rangeErr = fmt.Errorf("logic error, findChildren returned an error")
+					return false
+				}
+				if len(children) == 0 {
+					return true
+				}
+
+				if err := protoFromPathsInternal(childMsg.Interface(), children, np, np, ignoreExtras); err != nil {
+					rangeErr = err
+					return false
+				}
+				m.Set(fd, protoreflect.ValueOfMessage(childMsg))
+			}
+
 		}
 		return true
 	})
@@ -627,7 +693,7 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, opt ...Unma
 		return rangeErr
 	}
 
-	if !hasIgnoreExtraPaths(opt) {
+	if !ignoreExtras {
 		for chp := range directCh {
 			if !mapped[chp] {
 				return fmt.Errorf("did not map path %s to a proto field", chp)
@@ -722,6 +788,17 @@ func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val 
 		return (&wpb.BytesValue{Value: bv}).ProtoReflect(), true, nil
 	default:
 		return nil, false, nil
+	}
+}
+
+// isWrapper returns true if the field fd of the message msg is a ywrapper protobuf type.
+func isWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor) bool {
+	newV := msg.NewField(fd)
+	switch newV.Message().Interface().(type) {
+	case *wpb.StringValue, *wpb.UintValue, *wpb.BytesValue, *wpb.BoolValue, *wpb.Decimal64Value, *wpb.IntValue:
+		return true
+	default:
+		return false
 	}
 }
 
