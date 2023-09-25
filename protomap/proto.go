@@ -595,8 +595,12 @@ func findChildren(vals map[*gpb.Path]any, valPrefix *gpb.Path, protoPrefix *gpb.
 }
 
 func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, protoPrefix *gpb.Path, ignoreExtras bool) error {
-	// It is an error if we get called with values that aren't at least indirect children at this point.
-	// For this iteration we want only the direct children.
+	// It is safe for us to call findChldren setting mustBeChildren to true since we are in one of two cases:
+	//
+	//  * the first iteration through the function, at which point we expect that vals can only
+	//    contain paths that are descendents of this path.
+	//  * a subsequent iteration, at which point we are called with the subtree that corresponds to
+	//    the protobuf that was handed into this function.
 	directCh, err := findChildren(vals, valPrefix, protoPrefix, true, true)
 	if err != nil {
 		return err
@@ -682,10 +686,9 @@ func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, 
 			case fd.IsMap():
 				rangeErr = fmt.Errorf("map fields are not supported in mapped protobufs at field %s", fd.FullName())
 				return false
+			case isWrapper(m, fd):
+				return true
 			default:
-				if isWrapper(m, fd) {
-					return true
-				}
 				childMsg := m.NewField(fd).Message()
 				np := proto.Clone(valPrefix).(*gpb.Path)
 				np.Elem = append(np.Elem, util.TrimGNMIPathElemPrefix(annotatedPath[0], protoPrefix).Elem...)
@@ -964,7 +967,7 @@ func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val 
 func isWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor) bool {
 	newV := msg.NewField(fd)
 	switch newV.Message().Interface().(type) {
-	case *wpb.StringValue, *wpb.UintValue, *wpb.BytesValue, *wpb.BoolValue:
+	case *wpb.StringValue, *wpb.UintValue, *wpb.BytesValue, *wpb.BoolValue, *wpb.Decimal64Value, *wpb.IntValue:
 		return true
 	default:
 		return false
