@@ -824,7 +824,7 @@ func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath
 					keyName = p.Elem[len(p.Elem)-1].Name
 					break
 				}
-				if key[keyName] == "" {
+				if _, ok := key[keyName]; !ok {
 					retErr = fmt.Errorf("field %s, missing key %s, got keys: %v", fd.FullName(), keyName, key)
 					return false
 				}
