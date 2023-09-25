@@ -157,9 +157,9 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 	}, {
 		desc: "map next-hop-group",
 		inPaths: map[*gpb.Path]interface{}{
-			mustPath("next-hops/next-hop[index=1]/index"):        mustValue(t, 1),
-			mustPath("next-hops/next-hop[index=1]/state/index"):  mustValue(t, 1),
-			mustPath("next-hops/next-hop[index=1]/state/weight"): mustValue(t, 1),
+			mustPath("next-hops/next-hop[index=1]/index"):        mustValue(t, uint64(1)),
+			mustPath("next-hops/next-hop[index=1]/state/index"):  mustValue(t, uint64(1)),
+			mustPath("next-hops/next-hop[index=1]/state/weight"): mustValue(t, uint64(1)),
 		},
 		inProto: &gribi_aft.Afts_NextHopGroup{},
 		inPrefix: &gpb.Path{
@@ -172,15 +172,45 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 			}},
 		},
 		wantProto: &gribi_aft.Afts_NextHopGroup{
-			// Currently this error is ignored for backwards compatibility with other
-			// messages where there are repeated fields that are not covered.
-			/*	NextHop: []*gribi_aft.Afts_NextHopGroup_NextHopKey{{
-					Index: 1,
-					NextHop: &gribi_aft.Afts_NextHopGroup_NextHop{
-						Weight: &wpb.UintValue{Value: 1},
-					},
-				}},
-			*/
+			NextHop: []*gribi_aft.Afts_NextHopGroup_NextHopKey{{
+				Index: 1,
+				NextHop: &gribi_aft.Afts_NextHopGroup_NextHop{
+					Weight: &wpb.UintValue{Value: 1},
+				},
+			}},
+		},
+	}, {
+		desc: "multiple NHGs",
+		inPaths: map[*gpb.Path]interface{}{
+			mustPath("next-hops/next-hop[index=1]/index"):        mustValue(t, uint64(1)),
+			mustPath("next-hops/next-hop[index=1]/state/index"):  mustValue(t, uint64(1)),
+			mustPath("next-hops/next-hop[index=1]/state/weight"): mustValue(t, uint64(1)),
+			mustPath("next-hops/next-hop[index=2]/index"):        mustValue(t, uint64(2)),
+			mustPath("next-hops/next-hop[index=2]/state/index"):  mustValue(t, uint64(2)),
+			mustPath("next-hops/next-hop[index=2]/state/weight"): mustValue(t, uint64(2)),
+		},
+		inProto: &gribi_aft.Afts_NextHopGroup{},
+		inPrefix: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "afts",
+			}, {
+				Name: "next-hop-groups",
+			}, {
+				Name: "next-hop-group",
+			}},
+		},
+		wantProto: &gribi_aft.Afts_NextHopGroup{
+			NextHop: []*gribi_aft.Afts_NextHopGroup_NextHopKey{{
+				Index: 1,
+				NextHop: &gribi_aft.Afts_NextHopGroup_NextHop{
+					Weight: &wpb.UintValue{Value: 1},
+				},
+			}, {
+				Index: 2,
+				NextHop: &gribi_aft.Afts_NextHopGroup_NextHop{
+					Weight: &wpb.UintValue{Value: 2},
+				},
+			}},
 		},
 	}, {
 		desc: "embedded field in next-hop",
@@ -208,7 +238,10 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 				return
 			}
 
-			if diff := cmp.Diff(tt.inProto, tt.wantProto, protocmp.Transform()); diff != "" {
+			if diff := cmp.Diff(tt.inProto, tt.wantProto,
+				protocmp.Transform(),
+				protocmp.SortRepeatedFields(&gribi_aft.Afts_NextHopGroup{}, "next_hop"),
+			); diff != "" {
 				t.Fatalf("did not get expected protobuf, diff(-got,+want):\n%s", diff)
 			}
 		})
