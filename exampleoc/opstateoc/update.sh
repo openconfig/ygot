@@ -32,6 +32,7 @@ go run ../../generator/generator.go -path=public,deps -output_file=oc.go \
   public/release/models/optical-transport/openconfig-terminal-device.yang \
   public/release/models/optical-transport/openconfig-transport-line-protection.yang \
   public/release/models/platform/openconfig-platform.yang \
+  public/release/models/bgp/openconfig-bgp-policy.yang \
   public/release/models/policy/openconfig-routing-policy.yang \
   public/release/models/lacp/openconfig-lacp.yang \
   public/release/models/system/openconfig-system.yang \

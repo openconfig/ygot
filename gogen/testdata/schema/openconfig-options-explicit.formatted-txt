@@ -357,5 +357,8 @@ func initΛEnumTypes(){
 	"/parent/child/config/three": []reflect.Type{
 		reflect.TypeOf((E_Child_Three)(0)),
 	},
+	"/parent/child/state/three": []reflect.Type{
+		reflect.TypeOf((E_Child_Three)(0)),
+	},
   }
 }

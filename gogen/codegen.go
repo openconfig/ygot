@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
-	"strings"
 
 	"github.com/openconfig/ygot/internal/igenutil"
 	"github.com/openconfig/ygot/util"
@@ -275,7 +274,7 @@ func (cg *CodeGenerator) Generate(yangFiles, includePaths []string) (*GeneratedC
 			field := dir.Fields[fn]
 
 			// Strip the module name from the path.
-			schemaPath := util.SlicePathToString(append([]string{""}, strings.Split(field.YANGDetails.Path, "/")[2:]...))
+			schemaPath := field.YANGDetails.SchemaPath
 			switch {
 			case field.LangType == nil:
 				// This is a directory, so we continue.
@@ -303,6 +302,11 @@ func (cg *CodeGenerator) Generate(yangFiles, includePaths []string) (*GeneratedC
 				sort.Slice(enumTypeMap[schemaPath], func(i, j int) bool {
 					return field.LangType.UnionTypes[enumTypeMap[schemaPath][i]].Index < field.LangType.UnionTypes[enumTypeMap[schemaPath][j]].Index
 				})
+			}
+			if v, ok := enumTypeMap[schemaPath]; ok {
+				if shadowPath := field.YANGDetails.ShadowSchemaPath; shadowPath != "" {
+					enumTypeMap[shadowPath] = v
+				}
 			}
 		}
 	}

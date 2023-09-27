@@ -50,9 +50,199 @@ func TestSet(t *testing.T) {
 		inPath           *gpb.Path
 		inValue          *gpb.TypedValue
 		inOpts           []ytypes.SetNodeOpt
+		inGetOpts        []ytypes.GetNodeOpt
 		wantErrSubstring string
 		wantNode         *ytypes.TreeNode
 	}{{
+		desc:     "set-on-union-with-invalid-string-but-valid-enum",
+		inSchema: mustSchema(exampleoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "routing-policy",
+			}, {
+				Name: "policy-definitions",
+			}, {
+				Name: "policy-definition",
+				Key: map[string]string{
+					"name": "test",
+				},
+			}, {
+				Name: "statements",
+			}, {
+				Name: "statement",
+				Key: map[string]string{
+					"name": "test-stmt",
+				},
+			}, {
+				Name: "actions",
+			}, {
+				Name: "bgp-actions",
+			}, {
+				Name: "set-community",
+			}, {
+				Name: "inline",
+			}, {
+				Name: "config",
+			}, {
+				Name: "communities",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{{
+						Value: &gpb.TypedValue_StringVal{StringVal: "openconfig-bgp-types:NO_ADVERTISE"},
+					}},
+				},
+			},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "routing-policy",
+				}, {
+					Name: "policy-definitions",
+				}, {
+					Name: "policy-definition",
+					Key: map[string]string{
+						"name": "test",
+					},
+				}, {
+					Name: "statements",
+				}, {
+					Name: "statement",
+					Key: map[string]string{
+						"name": "test-stmt",
+					},
+				}, {
+					Name: "actions",
+				}, {
+					Name: "bgp-actions",
+				}, {
+					Name: "set-community",
+				}, {
+					Name: "inline",
+				}, {
+					Name: "config",
+				}, {
+					Name: "communities",
+				}},
+			},
+			Data: []exampleoc.RoutingPolicy_PolicyDefinition_Statement_Actions_BgpActions_SetCommunity_Inline_Communities_Union{exampleoc.BgpTypes_BGP_WELL_KNOWN_STD_COMMUNITY_NO_ADVERTISE},
+		},
+	}, {
+		desc:     "set-on-union-with-invalid-string-but-valid-enum-json-container",
+		inSchema: mustSchema(opstateoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "routing-policy",
+			}, {
+				Name: "policy-definitions",
+			}, {
+				Name: "policy-definition",
+				Key: map[string]string{
+					"name": "foo",
+				},
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_JsonIetfVal{
+				JsonIetfVal: []byte("{\n  \"openconfig-routing-policy:state\": {\n    \"name\": \"foo\"\n  },\n  \"openconfig-routing-policy:name\": \"foo\",\n  \"openconfig-routing-policy:statements\": {\n    \"statement\": [\n      {\n        \"actions\": {\n          \"openconfig-bgp-policy:bgp-actions\": {\n            \"set-community\": {\n              \"state\": {\n                \"method\": \"INLINE\"\n              },\n              \"inline\": {\n                \"state\": {\n                  \"communities\": [\n                    \"openconfig-bgp-types:NO_ADVERTISE\"\n                  ]\n                }\n              }\n            }\n          }\n        },\n        \"state\": {\n          \"name\": \"foo-stmt\"\n        },\n        \"name\": \"foo-stmt\"\n      }\n    ]\n  }\n}"),
+			},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "routing-policy",
+				}, {
+					Name: "policy-definitions",
+				}, {
+					Name: "policy-definition",
+					Key: map[string]string{
+						"name": "foo",
+					},
+				}, {
+					Name: "statements",
+				}, {
+					Name: "statement",
+					Key: map[string]string{
+						"name": "foo-stmt",
+					},
+				}, {
+					Name: "actions",
+				}, {
+					Name: "bgp-actions",
+				}, {
+					Name: "set-community",
+				}, {
+					Name: "inline",
+				}, {
+					Name: "state",
+				}, {
+					Name: "communities",
+				}},
+			},
+			Data: []opstateoc.RoutingPolicy_PolicyDefinition_Statement_Actions_BgpActions_SetCommunity_Inline_Communities_Union{opstateoc.OpenconfigBgpTypes_BGP_WELL_KNOWN_STD_COMMUNITY_NO_ADVERTISE},
+		},
+	}, {
+		desc:     "set-on-union-with-invalid-string-but-valid-enum-json-container-shadow-path",
+		inSchema: mustSchema(opstateoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "routing-policy",
+			}, {
+				Name: "policy-definitions",
+			}, {
+				Name: "policy-definition",
+				Key: map[string]string{
+					"name": "foo",
+				},
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_JsonIetfVal{
+				JsonIetfVal: []byte("{\n  \"openconfig-routing-policy:config\": {\n    \"name\": \"foo\"\n  },\n  \"openconfig-routing-policy:name\": \"foo\",\n  \"openconfig-routing-policy:statements\": {\n    \"statement\": [\n      {\n        \"actions\": {\n          \"openconfig-bgp-policy:bgp-actions\": {\n            \"set-community\": {\n              \"config\": {\n                \"method\": \"INLINE\"\n              },\n              \"inline\": {\n                \"config\": {\n                  \"communities\": [\n                    \"openconfig-bgp-types:NO_ADVERTISE\"\n                  ]\n                }\n              }\n            }\n          }\n        },\n        \"config\": {\n          \"name\": \"foo-stmt\"\n        },\n        \"name\": \"foo-stmt\"\n      }\n    ]\n  }\n}"),
+			},
+		},
+		inOpts:    []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}, &ytypes.PreferShadowPath{}},
+		inGetOpts: []ytypes.GetNodeOpt{&ytypes.PreferShadowPath{}},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "routing-policy",
+				}, {
+					Name: "policy-definitions",
+				}, {
+					Name: "policy-definition",
+					Key: map[string]string{
+						"name": "foo",
+					},
+				}, {
+					Name: "statements",
+				}, {
+					Name: "statement",
+					Key: map[string]string{
+						"name": "foo-stmt",
+					},
+				}, {
+					Name: "actions",
+				}, {
+					Name: "bgp-actions",
+				}, {
+					Name: "set-community",
+				}, {
+					Name: "inline",
+				}, {
+					Name: "config",
+				}, {
+					Name: "communities",
+				}},
+			},
+			Data: []opstateoc.RoutingPolicy_PolicyDefinition_Statement_Actions_BgpActions_SetCommunity_Inline_Communities_Union{opstateoc.OpenconfigBgpTypes_BGP_WELL_KNOWN_STD_COMMUNITY_NO_ADVERTISE},
+		},
+	}, {
 		desc:     "set leafref with mismatched name - compressed schema",
 		inSchema: mustSchema(exampleoc.Schema),
 		inPath: &gpb.Path{
@@ -390,7 +580,7 @@ func TestSet(t *testing.T) {
 				return
 			}
 
-			got, err := ytypes.GetNode(tt.inSchema.RootSchema(), tt.inSchema.Root, tt.wantNode.Path)
+			got, err := ytypes.GetNode(tt.inSchema.RootSchema(), tt.inSchema.Root, tt.wantNode.Path, tt.inGetOpts...)
 			if err != nil {
 				t.Fatalf("cannot perform get, %v", err)
 			}

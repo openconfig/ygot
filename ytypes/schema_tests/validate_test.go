@@ -846,3 +846,18 @@ func diffJSON(a, b []byte) (string, error) {
 
 	return testutil.GenerateUnifiedDiff(strings.Join(asv, "\n"), strings.Join(bsv, "\n"))
 }
+
+func TestValidateRestrictionsWithinUnion(t *testing.T) {
+	b4outPolicy := &oc.RoutingPolicy_PolicyDefinition_Statement_OrderedMap{}
+
+	stmt, err := b4outPolicy.AppendNew("stmt1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	stmt.GetOrCreateActions().GetOrCreateBgpActions().GetOrCreateSetCommunity().GetOrCreateInline().Communities = []oc.RoutingPolicy_PolicyDefinition_Statement_Actions_BgpActions_SetCommunity_Inline_Communities_Union{oc.BgpTypes_BGP_WELL_KNOWN_STD_COMMUNITY_NO_ADVERTISE}
+	stmt.GetOrCreateActions().GetOrCreateBgpActions().GetOrCreateSetCommunity().Method = oc.SetCommunity_Method_INLINE
+
+	if err := stmt.ΛValidate(); err != nil {
+		t.Fatal(err)
+	}
+}
