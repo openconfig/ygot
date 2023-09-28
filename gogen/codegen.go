@@ -273,7 +273,6 @@ func (cg *CodeGenerator) Generate(yangFiles, includePaths []string) (*GeneratedC
 		for _, fn := range dir.OrderedFieldNames() {
 			field := dir.Fields[fn]
 
-			// Strip the module name from the path.
 			schemaPath := field.YANGDetails.SchemaPath
 			switch {
 			case field.LangType == nil:
