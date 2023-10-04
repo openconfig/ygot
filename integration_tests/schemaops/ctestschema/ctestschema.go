@@ -322,6 +322,9 @@ func (s *Device) AppendOrderedList(v *OrderedList) error {
 // is nil, or the specified key is not present in the list, nil is returned
 // such that Get* methods may be safely chained.
 func (s *Device) GetOrderedList(Key string) *OrderedList {
+	if s == nil {
+		return nil
+	}
 	key := Key
 	return s.OrderedList.Get(key)
 }
@@ -342,7 +345,7 @@ type OrderedList_OrderedMap struct {
 }
 
 // IsYANGOrderedList ensures that OrderedList_OrderedMap implements the
-// ygot.GoOrderedList interface.
+// ygot.GoOrderedMap interface.
 func (*OrderedList_OrderedMap) IsYANGOrderedList() {}
 
 // init initializes any uninitialized values.
@@ -481,6 +484,9 @@ func (s *Device) AppendOrderedMultikeyedList(v *OrderedMultikeyedList) error {
 // is nil, or the specified key is not present in the list, nil is returned
 // such that Get* methods may be safely chained.
 func (s *Device) GetOrderedMultikeyedList(Key1 string, Key2 uint64) *OrderedMultikeyedList {
+	if s == nil {
+		return nil
+	}
 	key := OrderedMultikeyedList_Key{
 		Key1: Key1,
 		Key2: Key2,
@@ -507,7 +513,7 @@ type OrderedMultikeyedList_OrderedMap struct {
 }
 
 // IsYANGOrderedList ensures that OrderedMultikeyedList_OrderedMap implements the
-// ygot.GoOrderedList interface.
+// ygot.GoOrderedMap interface.
 func (*OrderedMultikeyedList_OrderedMap) IsYANGOrderedList() {}
 
 // init initializes any uninitialized values.
@@ -782,6 +788,9 @@ func (s *OrderedList) AppendOrderedList(v *OrderedList_OrderedList) error {
 // is nil, or the specified key is not present in the list, nil is returned
 // such that Get* methods may be safely chained.
 func (s *OrderedList) GetOrderedList(Key string) *OrderedList_OrderedList {
+	if s == nil {
+		return nil
+	}
 	key := Key
 	return s.OrderedList.Get(key)
 }
@@ -802,7 +811,7 @@ type OrderedList_OrderedList_OrderedMap struct {
 }
 
 // IsYANGOrderedList ensures that OrderedList_OrderedList_OrderedMap implements the
-// ygot.GoOrderedList interface.
+// ygot.GoOrderedMap interface.
 func (*OrderedList_OrderedList_OrderedMap) IsYANGOrderedList() {}
 
 // init initializes any uninitialized values.

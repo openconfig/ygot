@@ -877,6 +877,9 @@ func (s *Tstruct) AppendListWithKey(v *Tstruct_ListWithKey) error {
 // is nil, or the specified key is not present in the list, nil is returned
 // such that Get* methods may be safely chained.
 func (s *Tstruct) GetListWithKey(KeyLeaf string) *Tstruct_ListWithKey {
+	if s == nil {
+		return nil
+	}
 	key := KeyLeaf
 	return s.ListWithKey.Get(key)
 }
