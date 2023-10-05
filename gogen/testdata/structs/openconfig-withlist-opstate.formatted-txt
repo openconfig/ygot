@@ -223,6 +223,9 @@ func (s *Model) AppendSingleKeyOrdered(v *Model_SingleKeyOrdered) error {
 // is nil, or the specified key is not present in the list, nil is returned
 // such that Get* methods may be safely chained.
 func (s *Model) GetSingleKeyOrdered(Key string) *Model_SingleKeyOrdered {
+	if s == nil {
+		return nil
+	}
 	key := Key
 	return s.SingleKeyOrdered.Get(key)
 }

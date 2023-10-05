@@ -94,6 +94,9 @@ func (s *{{ .ParentStructName }}) Get{{ .ListFieldName }}(
 	{{- if ne (inc $i) $length -}}, {{ end -}}
   {{- end -}}
   ) *{{ .ListTypeName }} {
+	if s == nil {
+		return nil
+	}
 	{{ if gt (len .Keys) 1 -}}
 	key := {{ .KeyName }}{
 		{{- range $key := .Keys }}
