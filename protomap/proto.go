@@ -1064,7 +1064,7 @@ func makeUnionLeafList(msg protoreflect.Message, fd protoreflect.FieldDescriptor
 	for i := 0; i < inputVal.Len(); i++ {
 		protoListElem := newV.List().NewElement()
 		inputElem := inputVal.Index(i)
-		fmt.Printf("running loop with %v\n", inputElem.Elem())
+
 		unpopRange{protoListElem.Message()}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
 			if inputElem.Kind() != reflect.Interface {
 				retErr = fmt.Errorf("invalid input type for leaf-list of unions, %T, expect []any", inputElem.Interface())
@@ -1102,8 +1102,6 @@ func makeUnionLeafList(msg protoreflect.Message, fd protoreflect.FieldDescriptor
 			return protoreflect.ValueOf(nil), retErr
 		}
 	}
-
-	fmt.Printf("%d\n", newV.List().Len())
 
 	return newV, nil
 }
