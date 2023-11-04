@@ -224,6 +224,36 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 				SrcIp: &wpb.StringValue{Value: "1.1.1.1"},
 			},
 		},
+	}, {
+		desc: "pushed mpls label stack",
+		inPaths: map[*gpb.Path]interface{}{
+			mustPath("state/pushed-mpls-label-stack"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_LeaflistVal{
+					LeaflistVal: &gpb.ScalarArray{
+						Element: []*gpb.TypedValue{
+							mustValue(t, 20),
+							mustValue(t, 30),
+							mustValue(t, 40),
+							mustValue(t, 50),
+						},
+					},
+				},
+			},
+		},
+		inProto:  &gribi_aft.Afts_NextHop{},
+		inPrefix: mustPath("afts/next-hops/next-hop"),
+		wantProto: &gribi_aft.Afts_NextHop{
+			PushedMplsLabelStack: []*gribi_aft.Afts_NextHop_PushedMplsLabelStackUnion{{
+				PushedMplsLabelStackUint64: 20,
+			}, {
+				PushedMplsLabelStackUint64: 30,
+			}, {
+				PushedMplsLabelStackUint64: 40,
+			}, {
+				PushedMplsLabelStackUint64: 50,
+			}},
+		},
+		wantErr: true, // Currently this is unhandled but was causing a panic, check that it doesn't panic.
 	}}
 
 	for _, tt := range tests {
