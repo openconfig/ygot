@@ -651,8 +651,13 @@ func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, 
 								mapped[chp] = true
 								m.Set(fd, v)
 							case leaflistunion:
-								rangeErr = fmt.Errorf("%s: unhandled leaf-list of unions", fd.FullName())
-								return false
+								v, err := makeUnionLeafList(m, fd, chv)
+								if err != nil {
+									rangeErr = err
+									return false
+								}
+								mapped[chp] = true
+								m.Set(fd, v)
 							default:
 								v, isWrap, err := makeWrapper(m, fd, chv)
 								if err != nil {
@@ -997,6 +1002,108 @@ func isWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor) bool {
 	default:
 		return false
 	}
+}
+
+// makeUnionLeafList makes a protoreflect.Value corresponding to the leaf-list field fd of message m, containing
+// the values within chv, which is checked to be either a slice of Go inbuilt values, or gNMI TypedValue
+// protobufs. It returns an error if the leaf-list cannot be created.
+func makeUnionLeafList(msg protoreflect.Message, fd protoreflect.FieldDescriptor, chv any) (protoreflect.Value, error) {
+	newV := msg.NewField(fd)
+
+	inputVal := reflect.ValueOf(chv)
+	switch {
+	case inputVal.Kind() != reflect.Slice && !util.IsValueStructPtr(inputVal):
+		return protoreflect.ValueOf(nil), fmt.Errorf("invalid value %v (%T) for a leaf-list of unions", chv, chv)
+	case util.IsValueStructPtr(inputVal):
+		tv, ok := inputVal.Interface().(*gpb.TypedValue)
+		if !ok {
+			return protoreflect.ValueOf(nil), fmt.Errorf("invalid struct type in slice %v (%T) for a leaf-list of unions", chv, inputVal.Elem().Interface())
+		}
+
+		for _, inputVal := range tv.GetLeaflistVal().GetElement() {
+			protoListElem := newV.List().NewElement()
+			var retErr error
+			unpopRange{protoListElem.Message()}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+				switch ee := inputVal.GetValue().(type) {
+				case *gpb.TypedValue_StringVal:
+					if fd.Kind() == protoreflect.StringKind {
+						protoListElem.Message().Set(fd, protoreflect.ValueOfString(ee.StringVal))
+						newV.List().Append(protoListElem)
+						return false
+					}
+					if fd.Kind() == protoreflect.EnumKind {
+						ev, err := enumValue(fd, ee.StringVal)
+						if err != nil {
+							retErr = err
+							return false
+						}
+						protoListElem.Message().Set(fd, ev)
+						newV.List().Append(protoListElem)
+						return false
+					}
+				case *gpb.TypedValue_UintVal:
+					if fd.Kind() == protoreflect.Uint64Kind {
+						protoListElem.Message().Set(fd, protoreflect.ValueOfUint64(ee.UintVal))
+						newV.List().Append(protoListElem)
+						return false
+					}
+				default:
+					// TODO(robjs): implement type handling for other TypedValues.
+				}
+				return true
+			})
+			if retErr != nil {
+				return protoreflect.ValueOf(nil), retErr
+			}
+		}
+		return newV, nil
+	}
+	var retErr error
+	for i := 0; i < inputVal.Len(); i++ {
+		protoListElem := newV.List().NewElement()
+		inputElem := inputVal.Index(i)
+		fmt.Printf("running loop with %v\n", inputElem.Elem())
+		unpopRange{protoListElem.Message()}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+			if inputElem.Kind() != reflect.Interface {
+				retErr = fmt.Errorf("invalid input type for leaf-list of unions, %T, expect []any", inputElem.Interface())
+				return false
+			}
+
+			switch inputElem.Elem().Kind() {
+			case reflect.String:
+				if fd.Kind() == protoreflect.StringKind {
+					protoListElem.Message().Set(fd, protoreflect.ValueOfString(inputElem.Elem().String()))
+					newV.List().Append(protoListElem)
+					return false
+				}
+				if fd.Kind() == protoreflect.EnumKind {
+					v, err := enumValue(fd, inputElem.Interface())
+					if err != nil {
+						retErr = err
+						return false
+					}
+					protoListElem.Message().Set(fd, v)
+					newV.List().Append(protoListElem)
+					return false
+				}
+			case reflect.Uint64:
+				if fd.Kind() == protoreflect.Uint64Kind {
+					protoListElem.Message().Set(fd, protoreflect.ValueOfUint64(inputElem.Elem().Uint()))
+					newV.List().Append(protoListElem)
+					return false
+				}
+			}
+
+			return true
+		})
+		if retErr != nil {
+			return protoreflect.ValueOf(nil), retErr
+		}
+	}
+
+	fmt.Printf("%d\n", newV.List().Len())
+
+	return newV, nil
 }
 
 // makeSimpleLeafList makes a repeated value of wrapper protobufs for the field fd of the message msg containing

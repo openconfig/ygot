@@ -1199,23 +1199,116 @@ func TestProtoFromPaths(t *testing.T) {
 		},
 		wantErrSubstring: "unhandled leaf-list value",
 	}, {
-		// TODO(robjs): implement handling for leaf-lists of unions.
-		desc:    "leaf-list - unions - currently unhandled",
+		desc:    "leaf-list - unions - enum and uint",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/leaflist-union-b"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_LeaflistVal{
+					LeaflistVal: &gpb.ScalarArray{
+						Element: []*gpb.TypedValue{{
+							Value: &gpb.TypedValue_StringVal{StringVal: "VAL_ONE"},
+						}, {
+							Value: &gpb.TypedValue_UintVal{UintVal: 1},
+						}},
+					},
+				},
+			},
+		},
+		wantProto: &epb.ExampleMessage{
+			LeaflistUnionB: []*epb.ExampleUnionUnambiguous{{
+				Enum: epb.ExampleEnum_ENUM_VALONE,
+			}, {
+				Uint: 1,
+			}},
+		},
+	}, {
+		desc:    "leaf-list - unions - uint and string",
 		inProto: &epb.ExampleMessage{},
 		inVals: map[*gpb.Path]any{
 			mustPath("/leaflist-union"): &gpb.TypedValue{
 				Value: &gpb.TypedValue_LeaflistVal{
 					LeaflistVal: &gpb.ScalarArray{
 						Element: []*gpb.TypedValue{{
-							Value: &gpb.TypedValue_StringVal{StringVal: "hello"},
+							Value: &gpb.TypedValue_StringVal{StringVal: "hi mars!"},
 						}, {
-							Value: &gpb.TypedValue_IntVal{IntVal: 1},
+							Value: &gpb.TypedValue_UintVal{UintVal: 1},
 						}},
 					},
 				},
 			},
 		},
-		wantErrSubstring: "unhandled leaf-list of unions",
+		wantProto: &epb.ExampleMessage{
+			LeaflistUnion: []*epb.ExampleUnion{{
+				Str: "hi mars!",
+			}, {
+				Uint: 1,
+			}},
+		},
+	}, {
+		desc:    "leaf-list - unions - wrong type of input",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/leaflist-union"): "fish",
+		},
+		wantErrSubstring: "invalid value",
+	}, {
+		desc:    "leaf-list - unions - slice of non-typed values",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/leaflist-union"): &gpb.Notification{},
+		},
+		wantErrSubstring: "invalid struct type",
+	}, {
+		desc:    "leaf-list - unions - currently unhandled type",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/leaflist-union"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_LeaflistVal{
+					LeaflistVal: &gpb.ScalarArray{
+						Element: []*gpb.TypedValue{{
+							Value: &gpb.TypedValue_IntVal{IntVal: 42},
+						}},
+					},
+				},
+			},
+		},
+		wantErrSubstring: "unhandled type",
+	}, {
+		desc:    "leaf-list - unions - slice input",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/leaflist-union"): []any{"hello", "world", uint64(1)},
+		},
+		wantProto: &epb.ExampleMessage{
+			LeaflistUnion: []*epb.ExampleUnion{{
+				Str: "hello",
+			}, {
+				Str: "world",
+			}, {
+				Uint: 1,
+			}},
+		},
+	}, {
+		desc:    "leaf-list - unions - slice input - enum",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/leaflist-union-b"): []any{uint64(1), "VAL_ONE"},
+		},
+		wantProto: &epb.ExampleMessage{
+			LeaflistUnionB: []*epb.ExampleUnionUnambiguous{{
+				Uint: 1,
+			}, {
+				Enum: epb.ExampleEnum_ENUM_VALONE,
+			}},
+		},
+	}, {
+		// TODO(robjs): support unions within fields directly.
+		desc:    "union",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/union"): "fish",
+		},
+		wantErrSubstring: `did not map path elem:{name:"union"}`,
 	}}
 
 	for _, tt := range tests {
