@@ -1049,6 +1049,8 @@ func makeUnionLeafList(msg protoreflect.Message, fd protoreflect.FieldDescriptor
 					}
 				default:
 					// TODO(robjs): implement type handling for other TypedValues.
+					retErr = fmt.Errorf("unhandled type %T in leaf-list of unions", ee)
+					return false
 				}
 				return true
 			})
