@@ -1245,6 +1245,25 @@ func TestProtoFromPaths(t *testing.T) {
 			}},
 		},
 	}, {
+		desc:    "leaf-list - unions - mix of invalid and valid types",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/leaflist-union"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_LeaflistVal{
+					LeaflistVal: &gpb.ScalarArray{
+						Element: []*gpb.TypedValue{{
+							Value: &gpb.TypedValue_StringVal{StringVal: "hi mars!"},
+						}, {
+							Value: &gpb.TypedValue_UintVal{UintVal: 1},
+						}, {
+							Value: &gpb.TypedValue_BoolVal{BoolVal: true},
+						}},
+					},
+				},
+			},
+		},
+		wantErrSubstring: "invalid type *gnmi.TypedValue_BoolVal",
+	}, {
 		desc:    "leaf-list - unions - wrong type of input",
 		inProto: &epb.ExampleMessage{},
 		inVals: map[*gpb.Path]any{
@@ -1289,6 +1308,20 @@ func TestProtoFromPaths(t *testing.T) {
 			}},
 		},
 	}, {
+		desc:    "leaf-list - unions - mix of valid and unhandled types",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/leaflist-union"): []any{"hello", "world", uint64(1), float64(1.0)},
+		},
+		wantErrSubstring: "unhandled type float64",
+	}, {
+		desc:    "leaf-list - unions - mix of valid and invalid types",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/leaflist-union"): []any{"hello", "world", uint64(1), true},
+		},
+		wantErrSubstring: "invalid type bool for value true",
+	}, {
 		desc:    "leaf-list - unions - slice input - enum",
 		inProto: &epb.ExampleMessage{},
 		inVals: map[*gpb.Path]any{
@@ -1299,6 +1332,42 @@ func TestProtoFromPaths(t *testing.T) {
 				Uint: 1,
 			}, {
 				Enum: epb.ExampleEnum_ENUM_VALONE,
+			}},
+		},
+	}, {
+		desc:    "leaf-list unions with bool in - slice",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/leaflist-union-c"): []any{true, false},
+		},
+		wantProto: &epb.ExampleMessage{
+			LeaflistUnionC: []*epb.ExampleUnionTwo{{
+				B: true,
+			}, {
+				B: false,
+			}},
+		},
+	}, {
+		desc:    "leaf-list unions with bool in - typed value",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]any{
+			mustPath("/leaflist-union-c"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_LeaflistVal{
+					LeaflistVal: &gpb.ScalarArray{
+						Element: []*gpb.TypedValue{{
+							Value: &gpb.TypedValue_BoolVal{BoolVal: true},
+						}, {
+							Value: &gpb.TypedValue_BoolVal{BoolVal: false},
+						}},
+					},
+				},
+			},
+		},
+		wantProto: &epb.ExampleMessage{
+			LeaflistUnionC: []*epb.ExampleUnionTwo{{
+				B: true,
+			}, {
+				B: false,
 			}},
 		},
 	}, {

@@ -1022,13 +1022,17 @@ func makeUnionLeafList(msg protoreflect.Message, fd protoreflect.FieldDescriptor
 
 		for _, inputVal := range tv.GetLeaflistVal().GetElement() {
 			protoListElem := newV.List().NewElement()
-			var retErr error
+			var (
+				retErr  error
+				handled bool
+			)
 			unpopRange{protoListElem.Message()}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
 				switch ee := inputVal.GetValue().(type) {
 				case *gpb.TypedValue_StringVal:
 					if fd.Kind() == protoreflect.StringKind {
 						protoListElem.Message().Set(fd, protoreflect.ValueOfString(ee.StringVal))
 						newV.List().Append(protoListElem)
+						handled = true
 						return false
 					}
 					if fd.Kind() == protoreflect.EnumKind {
@@ -1039,12 +1043,21 @@ func makeUnionLeafList(msg protoreflect.Message, fd protoreflect.FieldDescriptor
 						}
 						protoListElem.Message().Set(fd, ev)
 						newV.List().Append(protoListElem)
+						handled = true
 						return false
 					}
 				case *gpb.TypedValue_UintVal:
 					if fd.Kind() == protoreflect.Uint64Kind {
 						protoListElem.Message().Set(fd, protoreflect.ValueOfUint64(ee.UintVal))
 						newV.List().Append(protoListElem)
+						handled = true
+						return false
+					}
+				case *gpb.TypedValue_BoolVal:
+					if fd.Kind() == protoreflect.BoolKind {
+						protoListElem.Message().Set(fd, protoreflect.ValueOfBool(ee.BoolVal))
+						newV.List().Append(protoListElem)
+						handled = true
 						return false
 					}
 				default:
@@ -1057,13 +1070,20 @@ func makeUnionLeafList(msg protoreflect.Message, fd protoreflect.FieldDescriptor
 			if retErr != nil {
 				return protoreflect.ValueOf(nil), retErr
 			}
+			if !handled {
+				return protoreflect.ValueOf(nil), fmt.Errorf("invalid type %T for value %v in union", inputVal.GetValue(), inputVal)
+			}
 		}
 		return newV, nil
 	}
-	var retErr error
+
 	for i := 0; i < inputVal.Len(); i++ {
 		protoListElem := newV.List().NewElement()
 		inputElem := inputVal.Index(i)
+		var (
+			retErr  error
+			handled bool
+		)
 
 		unpopRange{protoListElem.Message()}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
 			if inputElem.Kind() != reflect.Interface {
@@ -1076,6 +1096,7 @@ func makeUnionLeafList(msg protoreflect.Message, fd protoreflect.FieldDescriptor
 				if fd.Kind() == protoreflect.StringKind {
 					protoListElem.Message().Set(fd, protoreflect.ValueOfString(inputElem.Elem().String()))
 					newV.List().Append(protoListElem)
+					handled = true
 					return false
 				}
 				if fd.Kind() == protoreflect.EnumKind {
@@ -1086,20 +1107,35 @@ func makeUnionLeafList(msg protoreflect.Message, fd protoreflect.FieldDescriptor
 					}
 					protoListElem.Message().Set(fd, v)
 					newV.List().Append(protoListElem)
+					handled = true
 					return false
 				}
 			case reflect.Uint64:
 				if fd.Kind() == protoreflect.Uint64Kind {
 					protoListElem.Message().Set(fd, protoreflect.ValueOfUint64(inputElem.Elem().Uint()))
 					newV.List().Append(protoListElem)
+					handled = true
 					return false
 				}
+			case reflect.Bool:
+				if fd.Kind() == protoreflect.BoolKind {
+					protoListElem.Message().Set(fd, protoreflect.ValueOfBool(inputElem.Elem().Bool()))
+					newV.List().Append(protoListElem)
+					handled = true
+					return false
+				}
+			default:
+				retErr = fmt.Errorf("unhandled type %T for union", inputElem.Interface())
+				return false
 			}
 
 			return true
 		})
 		if retErr != nil {
 			return protoreflect.ValueOf(nil), retErr
+		}
+		if !handled {
+			return protoreflect.ValueOf(nil), fmt.Errorf("invalid type %T for value %v in union", inputElem.Interface(), inputElem.Interface())
 		}
 	}
 
@@ -1205,9 +1241,9 @@ func makeSimpleLeafList(msg protoreflect.Message, fd protoreflect.FieldDescripto
 			return protoreflect.ValueOf(nil), fmt.Errorf("invalid type %T (value: %v) for repeated byte field", lv, lv)
 		}
 		return newV, nil
+	default:
+		return protoreflect.ValueOf(nil), fmt.Errorf("unhandled leaf-list value, %v", chv)
 	}
-
-	return protoreflect.ValueOf(nil), fmt.Errorf("unhandled leaf-list value, %v", chv)
 }
 
 // enumValue returns the concrete implementation of the enumeration with the yang_name annotation set

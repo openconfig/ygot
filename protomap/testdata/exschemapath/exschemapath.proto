@@ -60,6 +60,7 @@ message ExampleMessage {
     // TODO(robjs): support union fields, this needs a new annotation.
     BasicUnion union = 22 [(yext.schemapath) = "/union"];
     repeated ExampleUnionUnambiguous leaflist_union_b = 23 [(yext.schemapath) = "/leaflist-union-b", (yext.leaflistunion) = true];
+    repeated ExampleUnionTwo leaflist_union_c = 24 [(yext.schemapath) = "/leaflist-union-c", (yext.leaflistunion) = true];
 }
 
 message ExampleNestedMessage {
@@ -81,6 +82,11 @@ message ExampleUnion {
     string str = 1 [(yext.schemapath) = "/leaflist-union"];
     uint64 uint = 2 [(yext.schemapath) = "/leaflist-union"];
     ExampleEnum enum = 3 [(yext.schemapath) = "/leaflist-union"];
+}
+
+message ExampleUnionTwo {
+    bool b = 1 [(yext.schemapath) = "/leaflist-union-c"];
+    float f = 2 [(yext.schemapath) = "/leaflist-union-c"];
 }
 
 message ExampleUnionUnambiguous {
