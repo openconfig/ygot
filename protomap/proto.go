@@ -955,6 +955,9 @@ func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val 
 		wasTypedVal = true
 	}
 
+	// TODO(robjs): Support wpb.IntValue and wpb.BoolValue and add corresponding
+	// tests.
+
 	newV := msg.NewField(fd)
 	switch newV.Message().Interface().(type) {
 	case *wpb.StringValue:
@@ -975,7 +978,6 @@ func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val 
 			}
 			nsv = uint64(iv)
 		}
-
 		return (&wpb.UintValue{Value: nsv}).ProtoReflect(), true, nil
 	case *wpb.BytesValue:
 		bv, ok := val.([]byte)
