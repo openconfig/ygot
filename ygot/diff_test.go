@@ -1599,6 +1599,50 @@ func TestDiff(t *testing.T) {
 	}
 }
 
+func TestFormatDiff(t *testing.T) {
+	tests := []struct {
+		desc    string
+		inNotif *gnmipb.Notification
+		want    string
+	}{{
+		desc: "basic",
+		inNotif: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "floatval",
+				}},
+			}},
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "int-val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{10}},
+			}},
+		},
+		want: `deleted: /floatval
+new/updated /int-val: int_val:10`,
+	}, {
+		desc:    "empty",
+		inNotif: &gnmipb.Notification{},
+		want:    `no diff`,
+	}, {
+		desc:    "nil",
+		inNotif: nil,
+		want:    `<nil> Notification`,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got := FormatDiff(tt.inNotif)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("(-want, +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestLeastSpecificPath(t *testing.T) {
 	tests := []struct {
 		name string

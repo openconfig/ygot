@@ -495,7 +495,7 @@ func Diff(original, modified GoStruct, opts ...DiffOpt) (*gnmipb.Notification, e
 // versions of the program.
 func FormatDiff(n *gnmipb.Notification) string {
 	if n == nil {
-		return "<nil> notification"
+		return "<nil> Notification"
 	}
 	var build strings.Builder
 	for _, d := range n.Delete {
