@@ -942,7 +942,7 @@ func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val 
 	// If this field was a repeated then it could be a typed value -- but this is handled
 	// separately, thus we simply return false here.
 	if fd.IsList() {
-		return nil, false, nil
+		return nil, false, fmt.Errorf("%s: unexpectedly got a protobuf repeated field in makeWrapper, logic error", fd.FullName())
 	}
 
 	var wasTypedVal bool
