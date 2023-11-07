@@ -231,10 +231,10 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 				Value: &gpb.TypedValue_LeaflistVal{
 					LeaflistVal: &gpb.ScalarArray{
 						Element: []*gpb.TypedValue{
-							mustValue(t, 20),
-							mustValue(t, 30),
-							mustValue(t, 40),
-							mustValue(t, 50),
+							mustValue(t, uint64(20)),
+							mustValue(t, uint64(30)),
+							mustValue(t, uint64(40)),
+							mustValue(t, uint64(50)),
 						},
 					},
 				},
@@ -253,7 +253,6 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 				PushedMplsLabelStackUint64: 50,
 			}},
 		},
-		wantErr: true, // Currently this is unhandled but was causing a panic, check that it doesn't panic.
 	}}
 
 	for _, tt := range tests {
