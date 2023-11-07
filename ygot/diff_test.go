@@ -1576,6 +1576,9 @@ func TestDiff(t *testing.T) {
 		t.Run(tt.desc+"Diff", func(t *testing.T) {
 			got, err := Diff(tt.inOrig, tt.inMod, tt.inOpts...)
 			testDiffSingleNotif(t, "Diff", got, err)
+			if diffout := FormatDiff(got); diffout == "" {
+				t.Errorf("FormatDiff returned empty")
+			}
 		})
 		t.Run(tt.desc+"DiffWithAtomic", func(t *testing.T) {
 			var got *gnmipb.Notification
@@ -1589,6 +1592,9 @@ func TestDiff(t *testing.T) {
 				t.Fatalf("Got multiple Notifications for DiffWithAtomic: %d, this is not expected.", len(gots))
 			}
 			testDiffSingleNotif(t, "DiffWithAtomic", got, err)
+			if diffout := FormatDiff(got); diffout == "" {
+				t.Errorf("FormatDiff returned empty")
+			}
 		})
 	}
 }
