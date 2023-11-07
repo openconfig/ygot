@@ -8,7 +8,6 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/gnmi/value"
 	"github.com/openconfig/ygot/protomap"
-	"github.com/openconfig/ygot/protomap/integration_tests/testdata/gribi_aft"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
 	"google.golang.org/protobuf/proto"
@@ -16,6 +15,7 @@ import (
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	wpb "github.com/openconfig/ygot/proto/ywrapper"
+	aftpb "github.com/openconfig/ygot/protomap/integration_tests/testdata/gribi_aft"
 )
 
 func mustPath(p string) *gpb.Path {
@@ -34,10 +34,10 @@ func TestGRIBIAFT(t *testing.T) {
 		wantErr   bool
 	}{{
 		desc: "IPv4 Entry with key",
-		inProto: &gribi_aft.Afts{
-			Ipv4Entry: []*gribi_aft.Afts_Ipv4EntryKey{{
+		inProto: &aftpb.Afts{
+			Ipv4Entry: []*aftpb.Afts_Ipv4EntryKey{{
 				Prefix:    "1.0.0.0/24",
-				Ipv4Entry: &gribi_aft.Afts_Ipv4Entry{},
+				Ipv4Entry: &aftpb.Afts_Ipv4Entry{},
 			}},
 		},
 		wantPaths: map[*gpb.Path]interface{}{
@@ -46,26 +46,26 @@ func TestGRIBIAFT(t *testing.T) {
 		},
 	}, {
 		desc: "IPv4 Entry with nil prefix",
-		inProto: &gribi_aft.Afts{
-			Ipv4Entry: []*gribi_aft.Afts_Ipv4EntryKey{{}},
+		inProto: &aftpb.Afts{
+			Ipv4Entry: []*aftpb.Afts_Ipv4EntryKey{{}},
 		},
 		wantErr: true,
 	}, {
 		desc: "IPv4 Entry with nil list member",
-		inProto: &gribi_aft.Afts{
-			Ipv4Entry: []*gribi_aft.Afts_Ipv4EntryKey{{
+		inProto: &aftpb.Afts{
+			Ipv4Entry: []*aftpb.Afts_Ipv4EntryKey{{
 				Prefix: "2.2.2.2/32",
 			}},
 		},
 		wantErr: true,
 	}, {
 		desc: "MPLS label entry - oneof key",
-		inProto: &gribi_aft.Afts{
-			LabelEntry: []*gribi_aft.Afts_LabelEntryKey{{
-				Label: &gribi_aft.Afts_LabelEntryKey_LabelUint64{
+		inProto: &aftpb.Afts{
+			LabelEntry: []*aftpb.Afts_LabelEntryKey{{
+				Label: &aftpb.Afts_LabelEntryKey_LabelUint64{
 					LabelUint64: 32,
 				},
-				LabelEntry: &gribi_aft.Afts_LabelEntry{},
+				LabelEntry: &aftpb.Afts_LabelEntry{},
 			}},
 		},
 		wantPaths: map[*gpb.Path]interface{}{
@@ -74,11 +74,11 @@ func TestGRIBIAFT(t *testing.T) {
 		},
 	}, {
 		desc: "NH entry with label stack",
-		inProto: &gribi_aft.Afts{
-			NextHop: []*gribi_aft.Afts_NextHopKey{{
+		inProto: &aftpb.Afts{
+			NextHop: []*aftpb.Afts_NextHopKey{{
 				Index: 1,
-				NextHop: &gribi_aft.Afts_NextHop{
-					PushedMplsLabelStack: []*gribi_aft.Afts_NextHop_PushedMplsLabelStackUnion{{
+				NextHop: &aftpb.Afts_NextHop{
+					PushedMplsLabelStack: []*aftpb.Afts_NextHop_PushedMplsLabelStackUnion{{
 						PushedMplsLabelStackUint64: 42,
 					}, {
 						PushedMplsLabelStackUint64: 84,
@@ -93,13 +93,13 @@ func TestGRIBIAFT(t *testing.T) {
 		},
 	}, {
 		desc: "NHG entry",
-		inProto: &gribi_aft.Afts{
-			NextHopGroup: []*gribi_aft.Afts_NextHopGroupKey{{
+		inProto: &aftpb.Afts{
+			NextHopGroup: []*aftpb.Afts_NextHopGroupKey{{
 				Id: 1,
-				NextHopGroup: &gribi_aft.Afts_NextHopGroup{
-					NextHop: []*gribi_aft.Afts_NextHopGroup_NextHopKey{{
+				NextHopGroup: &aftpb.Afts_NextHopGroup{
+					NextHop: []*aftpb.Afts_NextHopGroup_NextHopKey{{
 						Index: 1,
-						NextHop: &gribi_aft.Afts_NextHopGroup_NextHop{
+						NextHop: &aftpb.Afts_NextHopGroup_NextHop{
 							Weight: &wpb.UintValue{Value: 1},
 						},
 					}},
@@ -149,9 +149,9 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 		inPaths: map[*gpb.Path]interface{}{
 			mustPath("state/entry-metadata"): mustValue(t, []byte{1, 2, 3}),
 		},
-		inProto:  &gribi_aft.Afts_Ipv4Entry{},
+		inProto:  &aftpb.Afts_Ipv4Entry{},
 		inPrefix: mustPath("afts/ipv4-unicast/ipv4-entry"),
-		wantProto: &gribi_aft.Afts_Ipv4Entry{
+		wantProto: &aftpb.Afts_Ipv4Entry{
 			EntryMetadata: &wpb.BytesValue{Value: []byte{1, 2, 3}},
 		},
 	}, {
@@ -161,7 +161,7 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 			mustPath("next-hops/next-hop[index=1]/state/index"):  mustValue(t, uint64(1)),
 			mustPath("next-hops/next-hop[index=1]/state/weight"): mustValue(t, uint64(1)),
 		},
-		inProto: &gribi_aft.Afts_NextHopGroup{},
+		inProto: &aftpb.Afts_NextHopGroup{},
 		inPrefix: &gpb.Path{
 			Elem: []*gpb.PathElem{{
 				Name: "afts",
@@ -171,10 +171,10 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 				Name: "next-hop-group",
 			}},
 		},
-		wantProto: &gribi_aft.Afts_NextHopGroup{
-			NextHop: []*gribi_aft.Afts_NextHopGroup_NextHopKey{{
+		wantProto: &aftpb.Afts_NextHopGroup{
+			NextHop: []*aftpb.Afts_NextHopGroup_NextHopKey{{
 				Index: 1,
-				NextHop: &gribi_aft.Afts_NextHopGroup_NextHop{
+				NextHop: &aftpb.Afts_NextHopGroup_NextHop{
 					Weight: &wpb.UintValue{Value: 1},
 				},
 			}},
@@ -189,7 +189,7 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 			mustPath("next-hops/next-hop[index=2]/state/index"):  mustValue(t, uint64(2)),
 			mustPath("next-hops/next-hop[index=2]/state/weight"): mustValue(t, uint64(2)),
 		},
-		inProto: &gribi_aft.Afts_NextHopGroup{},
+		inProto: &aftpb.Afts_NextHopGroup{},
 		inPrefix: &gpb.Path{
 			Elem: []*gpb.PathElem{{
 				Name: "afts",
@@ -199,15 +199,15 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 				Name: "next-hop-group",
 			}},
 		},
-		wantProto: &gribi_aft.Afts_NextHopGroup{
-			NextHop: []*gribi_aft.Afts_NextHopGroup_NextHopKey{{
+		wantProto: &aftpb.Afts_NextHopGroup{
+			NextHop: []*aftpb.Afts_NextHopGroup_NextHopKey{{
 				Index: 1,
-				NextHop: &gribi_aft.Afts_NextHopGroup_NextHop{
+				NextHop: &aftpb.Afts_NextHopGroup_NextHop{
 					Weight: &wpb.UintValue{Value: 1},
 				},
 			}, {
 				Index: 2,
-				NextHop: &gribi_aft.Afts_NextHopGroup_NextHop{
+				NextHop: &aftpb.Afts_NextHopGroup_NextHop{
 					Weight: &wpb.UintValue{Value: 2},
 				},
 			}},
@@ -217,10 +217,10 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 		inPaths: map[*gpb.Path]interface{}{
 			mustPath("ip-in-ip/state/src-ip"): mustValue(t, "1.1.1.1"),
 		},
-		inProto:  &gribi_aft.Afts_NextHop{},
+		inProto:  &aftpb.Afts_NextHop{},
 		inPrefix: mustPath("afts/next-hops/next-hop"),
-		wantProto: &gribi_aft.Afts_NextHop{
-			IpInIp: &gribi_aft.Afts_NextHop_IpInIp{
+		wantProto: &aftpb.Afts_NextHop{
+			IpInIp: &aftpb.Afts_NextHop_IpInIp{
 				SrcIp: &wpb.StringValue{Value: "1.1.1.1"},
 			},
 		},
@@ -240,10 +240,10 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 				},
 			},
 		},
-		inProto:  &gribi_aft.Afts_NextHop{},
+		inProto:  &aftpb.Afts_NextHop{},
 		inPrefix: mustPath("afts/next-hops/next-hop"),
-		wantProto: &gribi_aft.Afts_NextHop{
-			PushedMplsLabelStack: []*gribi_aft.Afts_NextHop_PushedMplsLabelStackUnion{{
+		wantProto: &aftpb.Afts_NextHop{
+			PushedMplsLabelStack: []*aftpb.Afts_NextHop_PushedMplsLabelStackUnion{{
 				PushedMplsLabelStackUint64: 20,
 			}, {
 				PushedMplsLabelStackUint64: 30,
@@ -269,7 +269,7 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 
 			if diff := cmp.Diff(tt.inProto, tt.wantProto,
 				protocmp.Transform(),
-				protocmp.SortRepeatedFields(&gribi_aft.Afts_NextHopGroup{}, "next_hop"),
+				protocmp.SortRepeatedFields(&aftpb.Afts_NextHopGroup{}, "next_hop"),
 			); diff != "" {
 				t.Fatalf("did not get expected protobuf, diff(-got,+want):\n%s", diff)
 			}
