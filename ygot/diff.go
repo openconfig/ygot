@@ -24,6 +24,7 @@ import (
 	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/ygot/internal/yreflect"
 	"github.com/openconfig/ygot/util"
+	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
@@ -486,6 +487,41 @@ func Diff(original, modified GoStruct, opts ...DiffOpt) (*gnmipb.Notification, e
 	default:
 		return nil, fmt.Errorf("internal error: Diff expected a single Notification but got multiple")
 	}
+}
+
+// FormatDiff formats the output of ygot.Diff as a multiline string. This
+// function is only intended for human consumption and ignores errors. Do not
+// depend on the output being stable. It may change over time across different
+// versions of the program.
+func FormatDiff(n *gnmipb.Notification) string {
+	if n == nil {
+		return "<nil> Notification"
+	}
+	var build strings.Builder
+	for _, d := range n.Delete {
+		path, err := PathToString(d)
+		if err != nil {
+			path = prototext.Format(d)
+		}
+		if build.Len() != 0 {
+			build.WriteRune('\n')
+		}
+		build.WriteString(fmt.Sprintf("deleted: %s", path))
+	}
+	for _, u := range n.Update {
+		path, err := PathToString(u.GetPath())
+		if err != nil {
+			path = prototext.Format(u.GetPath())
+		}
+		if build.Len() != 0 {
+			build.WriteRune('\n')
+		}
+		build.WriteString(fmt.Sprintf("new/updated %s: %v", path, u.GetVal()))
+	}
+	if build.Len() == 0 {
+		return "no diff"
+	}
+	return build.String()
 }
 
 // DiffWithAtomic takes an original and modified GoStruct, which must be of the same
