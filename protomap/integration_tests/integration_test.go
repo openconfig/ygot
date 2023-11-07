@@ -224,6 +224,35 @@ func TestGRIBIAFTToStruct(t *testing.T) {
 				SrcIp: &wpb.StringValue{Value: "1.1.1.1"},
 			},
 		},
+	}, {
+		desc: "pushed mpls label stack",
+		inPaths: map[*gpb.Path]interface{}{
+			mustPath("state/pushed-mpls-label-stack"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_LeaflistVal{
+					LeaflistVal: &gpb.ScalarArray{
+						Element: []*gpb.TypedValue{
+							mustValue(t, uint64(20)),
+							mustValue(t, uint64(30)),
+							mustValue(t, uint64(40)),
+							mustValue(t, uint64(50)),
+						},
+					},
+				},
+			},
+		},
+		inProto:  &gribi_aft.Afts_NextHop{},
+		inPrefix: mustPath("afts/next-hops/next-hop"),
+		wantProto: &gribi_aft.Afts_NextHop{
+			PushedMplsLabelStack: []*gribi_aft.Afts_NextHop_PushedMplsLabelStackUnion{{
+				PushedMplsLabelStackUint64: 20,
+			}, {
+				PushedMplsLabelStackUint64: 30,
+			}, {
+				PushedMplsLabelStackUint64: 40,
+			}, {
+				PushedMplsLabelStackUint64: 50,
+			}},
+		},
 	}}
 
 	for _, tt := range tests {

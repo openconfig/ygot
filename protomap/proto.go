@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"strings"
 
+	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -618,6 +619,11 @@ func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, 
 			return false
 		}
 
+		leaflist, leaflistunion, err := annotatedYANGFieldInfo(fd)
+		if err != nil {
+			rangeErr = fmt.Errorf("cannot extract field information for %s, %v", fd.FullName(), err)
+		}
+
 		if len(directCh) != 0 {
 			for _, ap := range annotatedPath {
 				trimmedPrefix := schemaPath(protoPrefix)
@@ -632,17 +638,39 @@ func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, 
 					if proto.Equal(trimmedAP, chp) {
 						switch fd.Kind() {
 						case protoreflect.MessageKind:
-							v, isWrap, err := makeWrapper(m, fd, chv)
-							if err != nil {
-								rangeErr = err
-								return false
-							}
-							// Only handle wrapper messages here, other embedded messages are covered by
-							// checking the field type below (since we must handle cases where there are
-							// indirect children).
-							if isWrap {
+							// If this is is a leaf-list or a leaf-list of union values, then we
+							// need to handle it like a scalar field rather than recursing into
+							// the child messages.
+							switch {
+							case leaflist:
+								v, err := makeSimpleLeafList(m, fd, chv)
+								if err != nil {
+									rangeErr = err
+									return false
+								}
 								mapped[chp] = true
-								m.Set(fd, protoreflect.ValueOfMessage(v))
+								m.Set(fd, v)
+							case leaflistunion:
+								v, err := makeUnionLeafList(m, fd, chv)
+								if err != nil {
+									rangeErr = err
+									return false
+								}
+								mapped[chp] = true
+								m.Set(fd, v)
+							default:
+								v, isWrap, err := makeWrapper(m, fd, chv)
+								if err != nil {
+									rangeErr = err
+									return false
+								}
+								// Only handle wrapper messages here, other embedded messages are covered by
+								// checking the field type below (since we must handle cases where there are
+								// indirect children).
+								if isWrap {
+									mapped[chp] = true
+									m.Set(fd, protoreflect.ValueOfMessage(v))
+								}
 							}
 						case protoreflect.EnumKind:
 							v, err := enumValue(fd, chv)
@@ -666,13 +694,9 @@ func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, 
 		if fd.Kind() == protoreflect.MessageKind {
 			switch {
 			case fd.IsList():
-				leaflist, leaflistunion, err := annotatedYANGFieldInfo(fd)
-				if err != nil {
-					rangeErr = fmt.Errorf("cannot extract field information for %s, %v", fd.FullName(), err)
-				}
 				switch {
 				case leaflist, leaflistunion:
-					// TODO(robjs): Support these fields, silently dropped for backwards compatibility.
+					// These fields are handled earlier as individual fields above, thus, do nothing here.
 				default:
 					// This is a YANG list field which is a repeated within a protobuf. We need to extract the
 					// keys from this message and create a list in the entry.
@@ -920,6 +944,12 @@ func hasValuePathPrefix(opts []UnmapOpt) (*gpb.Path, error) {
 // type of payload is provided for the message. The second, boolean, return argument specifies whether
 // the message provided was a known wrapper type.
 func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val interface{}) (protoreflect.Message, bool, error) {
+	// If this field was a repeated then it could be a typed value -- but this is handled
+	// separately, thus we simply return false here.
+	if fd.IsList() {
+		return nil, false, fmt.Errorf("%s: unexpectedly got a protobuf repeated field in makeWrapper, logic error", fd.FullName())
+	}
+
 	var wasTypedVal bool
 	if tv, ok := val.(*gpb.TypedValue); ok {
 		pv, err := value.ToScalar(tv)
@@ -929,6 +959,9 @@ func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val 
 		val = pv
 		wasTypedVal = true
 	}
+
+	// TODO(robjs): Support wpb.IntValue and wpb.BoolValue and add corresponding
+	// tests.
 
 	newV := msg.NewField(fd)
 	switch newV.Message().Interface().(type) {
@@ -950,7 +983,6 @@ func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val 
 			}
 			nsv = uint64(iv)
 		}
-
 		return (&wpb.UintValue{Value: nsv}).ProtoReflect(), true, nil
 	case *wpb.BytesValue:
 		bv, ok := val.([]byte)
@@ -971,6 +1003,248 @@ func isWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+// makeUnionLeafList makes a protoreflect.Value corresponding to the leaf-list field fd of message m, containing
+// the values within chv, which is checked to be either a slice of Go inbuilt values, or gNMI TypedValue
+// protobufs. It returns an error if the leaf-list cannot be created.
+func makeUnionLeafList(msg protoreflect.Message, fd protoreflect.FieldDescriptor, chv any) (protoreflect.Value, error) {
+	newV := msg.NewField(fd)
+
+	inputVal := reflect.ValueOf(chv)
+	switch {
+	case inputVal.Kind() != reflect.Slice && !util.IsValueStructPtr(inputVal):
+		return protoreflect.ValueOf(nil), fmt.Errorf("invalid value %v (%T) for a leaf-list of unions", chv, chv)
+	case util.IsValueStructPtr(inputVal):
+		tv, ok := inputVal.Interface().(*gpb.TypedValue)
+		if !ok {
+			return protoreflect.ValueOf(nil), fmt.Errorf("invalid struct type in slice %v (%T) for a leaf-list of unions", chv, inputVal.Elem().Interface())
+		}
+
+		for _, inputVal := range tv.GetLeaflistVal().GetElement() {
+			protoListElem := newV.List().NewElement()
+			var (
+				retErr  error
+				handled bool
+			)
+			unpopRange{protoListElem.Message()}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+				switch ee := inputVal.GetValue().(type) {
+				case *gpb.TypedValue_StringVal:
+					if fd.Kind() == protoreflect.StringKind {
+						protoListElem.Message().Set(fd, protoreflect.ValueOfString(ee.StringVal))
+						newV.List().Append(protoListElem)
+						handled = true
+						return false
+					}
+					if fd.Kind() == protoreflect.EnumKind {
+						ev, err := enumValue(fd, ee.StringVal)
+						if err != nil {
+							retErr = err
+							return false
+						}
+						protoListElem.Message().Set(fd, ev)
+						newV.List().Append(protoListElem)
+						handled = true
+						return false
+					}
+				case *gpb.TypedValue_UintVal:
+					if fd.Kind() == protoreflect.Uint64Kind {
+						protoListElem.Message().Set(fd, protoreflect.ValueOfUint64(ee.UintVal))
+						newV.List().Append(protoListElem)
+						handled = true
+						return false
+					}
+				case *gpb.TypedValue_BoolVal:
+					if fd.Kind() == protoreflect.BoolKind {
+						protoListElem.Message().Set(fd, protoreflect.ValueOfBool(ee.BoolVal))
+						newV.List().Append(protoListElem)
+						handled = true
+						return false
+					}
+				default:
+					// TODO(robjs): implement type handling for other TypedValues.
+					retErr = fmt.Errorf("unhandled type %T in leaf-list of unions", ee)
+					return false
+				}
+				return true
+			})
+			if retErr != nil {
+				return protoreflect.ValueOf(nil), retErr
+			}
+			if !handled {
+				return protoreflect.ValueOf(nil), fmt.Errorf("invalid type %T for value %v in union", inputVal.GetValue(), inputVal)
+			}
+		}
+		return newV, nil
+	}
+
+	for i := 0; i < inputVal.Len(); i++ {
+		protoListElem := newV.List().NewElement()
+		inputElem := inputVal.Index(i)
+		var (
+			retErr  error
+			handled bool
+		)
+
+		unpopRange{protoListElem.Message()}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+			if inputElem.Kind() != reflect.Interface {
+				retErr = fmt.Errorf("invalid input type for leaf-list of unions, %T, expect []any", inputElem.Interface())
+				return false
+			}
+
+			switch inputElem.Elem().Kind() {
+			case reflect.String:
+				if fd.Kind() == protoreflect.StringKind {
+					protoListElem.Message().Set(fd, protoreflect.ValueOfString(inputElem.Elem().String()))
+					newV.List().Append(protoListElem)
+					handled = true
+					return false
+				}
+				if fd.Kind() == protoreflect.EnumKind {
+					v, err := enumValue(fd, inputElem.Interface())
+					if err != nil {
+						retErr = err
+						return false
+					}
+					protoListElem.Message().Set(fd, v)
+					newV.List().Append(protoListElem)
+					handled = true
+					return false
+				}
+			case reflect.Uint64:
+				if fd.Kind() == protoreflect.Uint64Kind {
+					protoListElem.Message().Set(fd, protoreflect.ValueOfUint64(inputElem.Elem().Uint()))
+					newV.List().Append(protoListElem)
+					handled = true
+					return false
+				}
+			case reflect.Bool:
+				if fd.Kind() == protoreflect.BoolKind {
+					protoListElem.Message().Set(fd, protoreflect.ValueOfBool(inputElem.Elem().Bool()))
+					newV.List().Append(protoListElem)
+					handled = true
+					return false
+				}
+			default:
+				retErr = fmt.Errorf("unhandled type %T for union", inputElem.Interface())
+				return false
+			}
+
+			return true
+		})
+		if retErr != nil {
+			return protoreflect.ValueOf(nil), retErr
+		}
+		if !handled {
+			return protoreflect.ValueOf(nil), fmt.Errorf("invalid type %T for value %v in union", inputElem.Interface(), inputElem.Interface())
+		}
+	}
+
+	return newV, nil
+}
+
+// makeSimpleLeafList makes a repeated value of wrapper protobufs for the field fd of the message msg containing
+// the values in chv. It returns an error if the type is unhandled.
+func makeSimpleLeafList(msg protoreflect.Message, fd protoreflect.FieldDescriptor, chv any) (protoreflect.Value, error) {
+	if tv, ok := chv.(*gpb.TypedValue); ok {
+		if len(tv.GetLeaflistVal().GetElement()) == 0 {
+			return protoreflect.ValueOf(nil), fmt.Errorf("invalid leaf-list value, does not include a scalar array, %s", prototext.Format(tv))
+		}
+	}
+	// If this is not a union, then we need to return a list field that contains
+	// a slice of wrapper values for the specified type.
+	newV := msg.NewField(fd)
+	elem := newV.List().NewElement()
+	switch elem.Message().Interface().(type) {
+	case *wpb.StringValue:
+		// This is a repeated of strings.
+		switch lv := chv.(type) {
+		case *gpb.TypedValue:
+			for _, v := range lv.GetLeaflistVal().GetElement() {
+				if vf, ok := v.GetValue().(*gpb.TypedValue_StringVal); !ok {
+					return protoreflect.ValueOf(nil), fmt.Errorf("wrong typed value set got %T and expected string", vf)
+				}
+				newV.List().Append(protoreflect.ValueOf((&wpb.StringValue{Value: v.GetStringVal()}).ProtoReflect()))
+			}
+		case []string:
+			for _, v := range lv {
+				newV.List().Append(protoreflect.ValueOf((&wpb.StringValue{Value: v}).ProtoReflect()))
+			}
+		default:
+			return protoreflect.ValueOf(nil), fmt.Errorf("invalid type %T (value: %v) for repeated string field", lv, lv)
+		}
+		return newV, nil
+	case *wpb.UintValue:
+		switch lv := chv.(type) {
+		case *gpb.TypedValue:
+			for _, v := range lv.GetLeaflistVal().GetElement() {
+				if vf, ok := v.GetValue().(*gpb.TypedValue_UintVal); !ok {
+					return protoreflect.ValueOf(nil), fmt.Errorf("wrong typed value set got %T and expected uint", vf)
+				}
+				newV.List().Append(protoreflect.ValueOf((&wpb.UintValue{Value: v.GetUintVal()}).ProtoReflect()))
+			}
+		case []uint64:
+			for _, v := range lv {
+				newV.List().Append(protoreflect.ValueOf((&wpb.UintValue{Value: v}).ProtoReflect()))
+			}
+		default:
+			return protoreflect.ValueOf(nil), fmt.Errorf("invalid type %T (value: %v) for repeated uint field", lv, lv)
+		}
+		return newV, nil
+	case *wpb.BoolValue:
+		switch lv := chv.(type) {
+		case *gpb.TypedValue:
+			for _, v := range lv.GetLeaflistVal().GetElement() {
+				if vf, ok := v.GetValue().(*gpb.TypedValue_BoolVal); !ok {
+					return protoreflect.ValueOf(nil), fmt.Errorf("wrong typed value set got %T and expected bool", vf)
+				}
+				newV.List().Append(protoreflect.ValueOf((&wpb.BoolValue{Value: v.GetBoolVal()}).ProtoReflect()))
+			}
+		case []bool:
+			for _, v := range lv {
+				newV.List().Append(protoreflect.ValueOf((&wpb.BoolValue{Value: v}).ProtoReflect()))
+			}
+		default:
+			return protoreflect.ValueOf(nil), fmt.Errorf("invalid type %T (value: %v) for repeated bool field", lv, lv)
+		}
+		return newV, nil
+	case *wpb.IntValue:
+		switch lv := chv.(type) {
+		case *gpb.TypedValue:
+			for _, v := range lv.GetLeaflistVal().GetElement() {
+				if vf, ok := v.GetValue().(*gpb.TypedValue_IntVal); !ok {
+					return protoreflect.ValueOf(nil), fmt.Errorf("wrong typed value set got %T and expected int", vf)
+				}
+				newV.List().Append(protoreflect.ValueOf((&wpb.IntValue{Value: v.GetIntVal()}).ProtoReflect()))
+			}
+		case []int64:
+			for _, v := range lv {
+				newV.List().Append(protoreflect.ValueOf((&wpb.IntValue{Value: v}).ProtoReflect()))
+			}
+		default:
+			return protoreflect.ValueOf(nil), fmt.Errorf("invalid type %T (value: %v) for repeated int field", lv, lv)
+		}
+		return newV, nil
+	case *wpb.BytesValue:
+		switch lv := chv.(type) {
+		case *gpb.TypedValue:
+			for _, v := range lv.GetLeaflistVal().GetElement() {
+				if vf, ok := v.GetValue().(*gpb.TypedValue_BytesVal); !ok {
+					return protoreflect.ValueOf(nil), fmt.Errorf("wrong typed value set got %T and expected bytes", vf)
+				}
+				newV.List().Append(protoreflect.ValueOf((&wpb.BytesValue{Value: v.GetBytesVal()}).ProtoReflect()))
+			}
+		case [][]byte:
+			for _, v := range lv {
+				newV.List().Append(protoreflect.ValueOf((&wpb.BytesValue{Value: v}).ProtoReflect()))
+			}
+		default:
+			return protoreflect.ValueOf(nil), fmt.Errorf("invalid type %T (value: %v) for repeated byte field", lv, lv)
+		}
+		return newV, nil
+	default:
+		return protoreflect.ValueOf(nil), fmt.Errorf("unhandled leaf-list value, %v", chv)
 	}
 }
 
