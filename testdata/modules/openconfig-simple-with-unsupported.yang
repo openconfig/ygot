@@ -17,6 +17,9 @@ module openconfig-simple {
     leaf four {
       type binary;
     }
+    anyxml xml-data {
+      description "updated stuff";
+    }
   }
 
   container parent {

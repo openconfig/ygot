@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"sort"
 
+	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
@@ -295,7 +296,7 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 				nd.YANGDetails.OrderedByUser = field.ListAttr.OrderedByUser
 			case util.IsAnydata(field):
 				nd.Type = AnyDataNode
-			default:
+			case field.IsContainer():
 				nd.Type = ContainerNode
 				// TODO(wenovus):
 				// a presence container is an unimplemented keyword in goyang.
@@ -307,6 +308,12 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 						return nil, fmt.Errorf("unable to retrieve presence statement, expected non-nil *yang.Value, got %v", dir.Entry.Extra["presence"][0])
 					}
 				}
+			default:
+				if opts.ParseOptions.IgnoreUnsupportedStatements {
+					log.Infof("Unsupported field type (%v) ignored: %s", field.Kind, field.Path())
+					continue
+				}
+				return nil, fmt.Errorf("unsupported field type (%v) at: %s", field.Kind, field.Path())
 			}
 
 			nd.Flags = langMapper.PopulateFieldFlags(*nd, field)
