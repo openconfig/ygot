@@ -864,6 +864,10 @@ func copyMapField(dstField, srcField reflect.Value, accessPath string, opts ...M
 	errs.Separator = "\n"
 	for _, k := range srcField.MapKeys() {
 		v := srcField.MapIndex(k)
+		if v.IsNil() {
+			errs.Add(fmt.Errorf("map key %v, got nil value", k.Interface()))
+			continue
+		}
 		d := reflect.New(v.Elem().Type())
 		if _, ok := dstKeys[k.Interface()]; ok {
 			d = dstField.MapIndex(k)

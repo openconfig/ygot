@@ -1617,6 +1617,15 @@ func TestCopyStruct(t *testing.T) {
 		wantDst: &copyTest{
 			StructMap: map[copyMapKey]*copyTest{},
 		},
+	}, {
+		name: "string map with explicit nil value",
+		inSrc: &copyTest{
+			StringMap: map[string]*copyTest{
+				"fish": nil,
+			},
+		},
+		inDst:   &copyTest{},
+		wantErr: true,
 	}}
 
 	for _, tt := range tests {
