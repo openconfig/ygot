@@ -2777,6 +2777,43 @@ func TestConstructJSON(t *testing.T) {
 			},
 		},
 	}, {
+		name: "union example - bool",
+		in: &exampleBgpNeighbor{
+			TransportAddressSimple: testutil.UnionBool(true),
+		},
+		wantIETF: map[string]any{
+			"state": map[string]any{
+				"transport-address-simple": true,
+			},
+		},
+		wantInternal: map[string]any{
+			"state": map[string]any{
+				"transport-address-simple": testutil.UnionBool(true),
+			},
+		},
+	}, {
+		name: "union example - empty true",
+		in: &exampleBgpNeighbor{
+			TransportAddressSimple: testutil.YANGEmpty(true),
+		},
+		wantIETF: map[string]any{
+			"state": map[string]any{
+				"transport-address-simple": []any{nil},
+			},
+		},
+		wantInternal: map[string]any{
+			"state": map[string]any{
+				"transport-address-simple": true,
+			},
+		},
+	}, {
+		name: "union example - empty",
+		in: &exampleBgpNeighbor{
+			TransportAddressSimple: testutil.YANGEmpty(false),
+		},
+		wantIETF:     map[string]any{},
+		wantInternal: map[string]any{},
+	}, {
 		name: "union example - enum",
 		in: &exampleBgpNeighbor{
 			TransportAddressSimple: EnumTestVALONE,
@@ -4180,6 +4217,43 @@ func TestMarshal7951(t *testing.T) {
 			Str: String("test-string"),
 		},
 		want: `{"str":"test-string"}`,
+	}, {
+		desc: "simple GoStruct union fields",
+		in: &renderExample{
+			UnionValSimple: testBinary,
+			UnionLeafListSimple: []exampleUnion{
+				testBinary,
+				EnumTestVALTWO,
+				testutil.UnionInt64(42),
+				testutil.UnionFloat64(3.14),
+				testutil.UnionString("hello"),
+			},
+		},
+		want: `{"union-list-simple":["` + base64testStringEncoded + `","VAL_TWO","42","3.14","hello"],"union-val-simple":"` + base64testStringEncoded + `"}`,
+	}, {
+		desc: "simple GoStruct string union field",
+		in:   exampleUnion(testutil.UnionString("test-string")),
+		want: `"test-string"`,
+	}, {
+		desc: "simple GoStruct int64 union field",
+		in:   exampleUnion(testutil.UnionInt64(42)),
+		want: `"42"`,
+	}, {
+		desc: "simple GoStruct uint32 union field",
+		in:   exampleUnion(testutil.UnionUint32(42)),
+		want: `42`,
+	}, {
+		desc: "simple GoStruct empty union field",
+		in:   exampleUnion(testutil.YANGEmpty(true)),
+		want: `[null]`,
+	}, {
+		desc: "simple GoStruct bool union field",
+		in:   exampleUnion(testutil.UnionBool(true)),
+		want: `true`,
+	}, {
+		desc: "simple GoStruct enum union field",
+		in:   exampleUnion(EnumTestVALONE),
+		want: `"VAL_ONE"`,
 	}, {
 		desc: "nil GoStruct",
 		in:   (*renderExample)(nil),

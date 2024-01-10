@@ -98,6 +98,7 @@ func (Binary) Is_UnionLeafTypeSimple()      {}
 func (UnionString) IsExampleUnion()       {}
 func (UnionFloat64) IsExampleUnion()      {}
 func (UnionInt64) IsExampleUnion()        {}
+func (UnionUint32) IsExampleUnion()       {}
 func (UnionBool) IsExampleUnion()         {}
 func (YANGEmpty) IsExampleUnion()         {}
 func (Binary) IsExampleUnion()            {}
