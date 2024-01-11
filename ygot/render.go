@@ -859,7 +859,7 @@ func EncodeTypedValue(val any, enc gnmipb.Encoding, opts ...EncodeTypedValueOpt)
 		if err != nil {
 			return nil, fmt.Errorf("cannot marshal enum, %v", err)
 		}
-		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{en}}, nil
+		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: en}}, nil
 	}
 
 	vv := reflect.ValueOf(val)
@@ -871,9 +871,9 @@ func EncodeTypedValue(val any, enc gnmipb.Encoding, opts ...EncodeTypedValueOpt)
 		return nil, fmt.Errorf("cannot represent field value %v as TypedValue", val)
 	case vv.Type().Name() == BinaryTypeName:
 		// This is a binary type which is defined as a []byte, so we encode it as the bytes.
-		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{vv.Bytes()}}, nil
+		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{BytesVal: vv.Bytes()}}, nil
 	case vv.Type().Name() == EmptyTypeName:
-		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{vv.Bool()}}, nil
+		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{BoolVal: vv.Bool()}}, nil
 	case vv.Kind() == reflect.Slice:
 		sval, err := leaflistToSlice(vv, false)
 		if err != nil {
@@ -884,7 +884,7 @@ func EncodeTypedValue(val any, enc gnmipb.Encoding, opts ...EncodeTypedValueOpt)
 		if err != nil {
 			return nil, err
 		}
-		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{arr}}, nil
+		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{LeaflistVal: arr}}, nil
 	case util.IsValueStructPtr(vv):
 		nv, err := unwrapUnionInterfaceValue(vv, false)
 		if err != nil {
@@ -893,7 +893,7 @@ func EncodeTypedValue(val any, enc gnmipb.Encoding, opts ...EncodeTypedValueOpt)
 		vv = reflect.ValueOf(nv)
 		// Apart from binary, all other possible union subtypes are scalars or typedefs of scalars.
 		if vv.Type().Name() == BinaryTypeName {
-			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{vv.Bytes()}}, nil
+			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{BytesVal: vv.Bytes()}}, nil
 		}
 	case util.IsValuePtr(vv):
 		vv = vv.Elem()
@@ -1593,6 +1593,15 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 
 	prependModuleNameIref := args.rfc7951Config != nil && (args.rfc7951Config.AppendModuleName || args.rfc7951Config.PrependModuleNameIdentityref)
 
+	// When jsonValue is called using the output of reflect.ValueOf()
+	// instead of reflect.StructField, any interface type is lost through
+	// re-packing to the empty interface (any). This means the Kind of a
+	// union field is no longer the union type, but its underlying concrete
+	// type. This flag is used to detect failures during unmarshalling that
+	// may be due to this issue, which will be handled later assuming that
+	// the given type is named using one of the ygot-generated union names.
+	var mightBeUnion bool
+
 	switch field.Kind() {
 	case reflect.Map:
 		var err error
@@ -1663,6 +1672,10 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 		// For output, we map the enumerated value to the string name of the enum.
 		v, set, err := enumFieldToString(field, prependModuleNameIref)
 		if err != nil {
+			if _, ok := unionSingletonUnderlyingTypes[field.Type().Name()]; ok {
+				mightBeUnion = true
+				break
+			}
 			return nil, err
 		}
 
@@ -1692,6 +1705,15 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 				return nil, err
 			}
 			return value, nil
+		case field.Elem().Kind() == reflect.Bool && field.Elem().Type().Name() == EmptyTypeName:
+			switch {
+			case args.jType == RFC7951 && field.Elem().Bool():
+				return []any{nil}, nil
+			case field.Elem().Bool():
+				return true, nil
+			default:
+				return nil, nil
+			}
 		default:
 			if value, err = resolveUnionVal(field.Elem().Interface(), prependModuleNameIref); err != nil {
 				return nil, err
@@ -1704,14 +1726,39 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 		// A non-pointer field of type boolean is an empty leaf within the YANG schema.
 		// For RFC7951 this is represented as a null JSON array (i.e., [null]). For internal
 		// JSON if the leaf is present and set, it is rendered as 'true', or as nil otherwise.
-		switch {
-		case args.jType == RFC7951 && field.Type().Name() == EmptyTypeName && field.Bool():
-			value = []any{nil}
-		case field.Bool():
-			value = true
+		if field.Type().Name() == EmptyTypeName {
+			switch {
+			case args.jType == RFC7951 && field.Bool():
+				value = []any{nil}
+			case field.Bool():
+				value = true
+			}
+		} else {
+			if _, ok := unionSingletonUnderlyingTypes[field.Type().Name()]; ok {
+				mightBeUnion = true
+				break
+			}
 		}
 	default:
-		return nil, fmt.Errorf("got unexpected field type, was: %v", field.Kind())
+		mightBeUnion = true
+	}
+
+	if mightBeUnion {
+		underlyingType, ok := unionSingletonUnderlyingTypes[field.Type().Name()]
+		if !ok {
+			return nil, fmt.Errorf("got unexpected field type, was: %v (%s)", field.Kind(), field.Type().Name())
+		}
+
+		if !field.Type().ConvertibleTo(underlyingType) {
+			return nil, fmt.Errorf("ygot internal error: union type %q inconvertible to underlying type %q", field.Type().Name(), underlyingType)
+		}
+		var err error
+		if value, err = resolveUnionVal(field.Interface(), prependModuleNameIref); err != nil {
+			return nil, err
+		}
+		if args.jType == RFC7951 {
+			value = writeIETFScalarJSON(value)
+		}
 	}
 
 	if errs.Err() != nil {
