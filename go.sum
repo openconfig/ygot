@@ -173,8 +173,8 @@ github.com/openconfig/gnmi v0.10.0/go.mod h1:Y9os75GmSkhHw2wX8sMsxfI7qRGAEcDh8NT
 github.com/openconfig/goyang v0.0.0-20200115183954-d0a48929f0ea/go.mod h1:dhXaV0JgHJzdrHi2l+w0fZrwArtXL7jEFoiqLEdmkvU=
 github.com/openconfig/goyang v0.2.2/go.mod h1:vX61x01Q46AzbZUzG617vWqh/cB+aisc+RrNkXRd3W8=
 github.com/openconfig/goyang v0.2.9/go.mod h1:vX61x01Q46AzbZUzG617vWqh/cB+aisc+RrNkXRd3W8=
-github.com/openconfig/goyang v1.4.4 h1:ee0bbD60eQIjqrzH5S8yjneA6kA36UdxitokeL3+SGg=
-github.com/openconfig/goyang v1.4.4/go.mod h1:sdNZi/wdTZyLNBNfgLzmmbi7kISm7FskMDKKzMY+x1M=
+github.com/openconfig/goyang v1.4.5 h1:+s3p3MeiPQ/QNsC5DL3MXhCp5cv4dag3vlGKCtszsRU=
+github.com/openconfig/goyang v1.4.5/go.mod h1:sdNZi/wdTZyLNBNfgLzmmbi7kISm7FskMDKKzMY+x1M=
 github.com/openconfig/gribi v0.1.1-0.20210423184541-ce37eb4ba92f/go.mod h1:OoH46A2kV42cIXGyviYmAlGmn6cHjGduyC2+I9d/iVs=
 github.com/openconfig/gribi v1.0.0 h1:xMwEg0mBD+21mOxuFOw0d9dBKuIPwJEhMUUeUulZdLg=
 github.com/openconfig/gribi v1.0.0/go.mod h1:VFqGH2ZPFIfnKTimP4/AQB4OK0eySW5muJNFxXAwP6k=
