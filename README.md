@@ -186,6 +186,23 @@ if err := oc.Unmarshal([]byte(json), loadd); err != nil {
 
 Currently, only the `RFC7951` format of JSON is supported for unmarshalling, the `Internal` format supported by ygot is not yet supported.
 
+### Interacting with gNMI Server(s) via ygot GoStructs
+
+While ygot provides Go types for structuring YANG data, the process of
+interacting with a gNMI server is often cumbersome:
+
+1. Marshalling a GoStruct to JSON.
+2. Creating a gNMI `SetRequest` or `SubscribeRequest` object.
+3. Processing the `SubscribeResponse` stream and accumulating per-path errors.
+4. Unmarshalling the response from scalar protobufs or JSON to a GoStruct.
+
+If this applies to you, refer to [ygnmi](https://github.com/openconfig/ygnmi)
+for a ygot-based tool that generates not only the same ygot GoStructs, but also
+helpers for each GoStruct and leaf. ygnmi is used by
+[Ondatra](https://github.com/openconfig/ondatra) to create its [gNMI test
+library](https://github.com/openconfig/ondatra/tree/main/gnmi) used in
+[featureprofiles](This too://github.com/openconfig/featureprofiles).
+
 ## For Developers
  * [Contributing](CONTRIBUTING.md) - how to contribute to ygot.
  * [Contributors](docs/CONTRIBUTORS.md) - Folks who have contributed to ygot, thanks very much!
