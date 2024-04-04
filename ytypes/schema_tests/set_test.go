@@ -132,6 +132,84 @@ func TestSet(t *testing.T) {
 			Data: []exampleoc.RoutingPolicy_PolicyDefinition_Statement_Actions_BgpActions_SetCommunity_Inline_Communities_Union{exampleoc.BgpTypes_BGP_WELL_KNOWN_STD_COMMUNITY_NO_ADVERTISE},
 		},
 	}, {
+		desc:     "set-on-union-with-invalid-string-but-valid-enum-no-module",
+		inSchema: mustSchema(exampleoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "routing-policy",
+			}, {
+				Name: "policy-definitions",
+			}, {
+				Name: "policy-definition",
+				Key: map[string]string{
+					"name": "test",
+				},
+			}, {
+				Name: "statements",
+			}, {
+				Name: "statement",
+				Key: map[string]string{
+					"name": "test-stmt",
+				},
+			}, {
+				Name: "actions",
+			}, {
+				Name: "bgp-actions",
+			}, {
+				Name: "set-community",
+			}, {
+				Name: "inline",
+			}, {
+				Name: "config",
+			}, {
+				Name: "communities",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{{
+						Value: &gpb.TypedValue_StringVal{StringVal: "NO_ADVERTISE"},
+					}},
+				},
+			},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "routing-policy",
+				}, {
+					Name: "policy-definitions",
+				}, {
+					Name: "policy-definition",
+					Key: map[string]string{
+						"name": "test",
+					},
+				}, {
+					Name: "statements",
+				}, {
+					Name: "statement",
+					Key: map[string]string{
+						"name": "test-stmt",
+					},
+				}, {
+					Name: "actions",
+				}, {
+					Name: "bgp-actions",
+				}, {
+					Name: "set-community",
+				}, {
+					Name: "inline",
+				}, {
+					Name: "config",
+				}, {
+					Name: "communities",
+				}},
+			},
+			Data: []exampleoc.RoutingPolicy_PolicyDefinition_Statement_Actions_BgpActions_SetCommunity_Inline_Communities_Union{exampleoc.BgpTypes_BGP_WELL_KNOWN_STD_COMMUNITY_NO_ADVERTISE},
+		},
+	}, {
 		desc:     "set-on-union-with-invalid-string-but-valid-enum-json-container",
 		inSchema: mustSchema(opstateoc.Schema),
 		inPath: &gpb.Path{
