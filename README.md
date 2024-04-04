@@ -198,10 +198,11 @@ interacting with a gNMI server is often cumbersome:
 
 If this applies to you, refer to [ygnmi](https://github.com/openconfig/ygnmi)
 for a ygot-based tool that generates not only the same ygot GoStructs, but also
-helpers for each GoStruct and leaf. ygnmi is used by
-[Ondatra](https://github.com/openconfig/ondatra) to create its [gNMI test
-library](https://github.com/openconfig/ondatra/tree/main/gnmi) used in
-[featureprofiles](This too://github.com/openconfig/featureprofiles).
+helpers for each GoStruct and leaf [example
+code](https://github.com/openconfig/ygnmi/blob/3863fe4d5757372579da234636b064f933205ab8/ygnmi/example_test.go#L266).
+ygnmi is used by [Ondatra](https://github.com/openconfig/ondatra) to create its
+[gNMI test library](https://github.com/openconfig/ondatra/tree/main/gnmi) used
+in [featureprofiles](This too://github.com/openconfig/featureprofiles).
 
 ## For Developers
  * [Contributing](CONTRIBUTING.md) - how to contribute to ygot.
