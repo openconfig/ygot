@@ -9,7 +9,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/kr/pretty v0.3.1
 	github.com/kylelemons/godebug v1.1.0
-	github.com/openconfig/gnmi v0.10.0
+	github.com/openconfig/gnmi v0.11.0
 	github.com/openconfig/goyang v1.4.5
 	github.com/openconfig/gribi v1.0.0
 	github.com/pmezard/go-difflib v1.0.0
