@@ -38,6 +38,16 @@ func mustSchema(fn func() (*ytypes.Schema, error)) *ytypes.Schema {
 	return s
 }
 
+func TestGetOrCreateMap(t *testing.T) {
+	root := &exampleoc.Device{}
+	m := root.GetOrCreateInterfaceMap()
+	name := "foo"
+	m[name] = &exampleoc.Interface{Name: ygot.String(name)}
+	if root.GetInterface(name) == nil {
+		t.Errorf("must not be nil")
+	}
+}
+
 func TestSet(t *testing.T) {
 	invalidSchemaDueToMissingKeyField := mustSchema(exampleoc.Schema)
 	invalidRoot := invalidSchemaDueToMissingKeyField.Root.(*exampleoc.Device)

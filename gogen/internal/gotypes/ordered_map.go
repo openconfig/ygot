@@ -33,6 +33,17 @@ type RoutingPolicy_PolicyDefinition struct {
 	Statement *RoutingPolicy_PolicyDefinition_Statement_OrderedMap
 }
 
+// GetOrCreateStatementMap returns the ordered map field
+// Statement from RoutingPolicy_PolicyDefinition.
+//
+// It initializes the field if not already initialized.
+func (s *RoutingPolicy_PolicyDefinition) GetOrCreateStatementMap() *RoutingPolicy_PolicyDefinition_Statement_OrderedMap {
+	if s.Statement == nil {
+		s.Statement = &RoutingPolicy_PolicyDefinition_Statement_OrderedMap{}
+	}
+	return s.Statement
+}
+
 // AppendNewStatement appends a new policy statement with the given key.
 func (s *RoutingPolicy_PolicyDefinition) AppendNewStatement(key string) (*RoutingPolicy_PolicyDefinition_Statement, error) {
 	if s.Statement == nil {
