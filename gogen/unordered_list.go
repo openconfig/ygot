@@ -198,10 +198,10 @@ func (t *{{ .Receiver }}) Get{{ .ListName }}(
 }
 `)
 
-	// goGetOrCreateListTemplate defines a template for a function that, for a
+	// goGetOrCreateListElementTemplate defines a template for a function that, for a
 	// particular list key, gets an existing map value, or creates it if it doesn't
 	// exist.
-	goGetOrCreateListTemplate = mustMakeTemplate("getOrCreateList", `
+	goGetOrCreateListElementTemplate = mustMakeTemplate("getOrCreateListElement", `
 // GetOrCreate{{ .ListName }} retrieves the value with the specified keys from
 // the receiver {{ .Receiver }}. If the entry does not exist, then it is created.
 // It returns the existing or new list member.
@@ -239,6 +239,36 @@ func (t *{{ .Receiver }}) GetOrCreate{{ .ListName }}(
 		panic(fmt.Sprintf("GetOrCreate{{ .ListName }} got unexpected error: %v", err))
 	}
 	return v
+}
+`)
+
+	// goGetOrCreateListTemplate defines a template for a function that
+	// returns the current list. It also creates it if it doesn't exist.
+	goGetOrCreateListTemplate = mustMakeTemplate("getOrCreateList", `
+// GetOrCreate{{ .ListName }}Map returns the list (map) from {{ .Receiver }}.
+//
+// It initializes the field if not already initialized.
+func (t *{{ .Receiver }}) GetOrCreate{{ .ListName }}Map() {{ if ne .KeyStruct "" -}}
+		map[{{ .KeyStruct }}]*{{ .ListType }}
+		{{- else }}
+			{{- $listName := .ListName -}}
+			{{- $listType := .ListType -}}
+			{{- range $key := .Keys -}}
+		map[{{ $key.Type }}]*{{ $listType }}
+			{{- end }}
+		{{- end }} {
+	if t.{{ .ListName }} == nil {
+		{{- if ne .KeyStruct "" }}
+		t.{{ .ListName }} = make(map[{{ .KeyStruct }}]*{{ .ListType }})
+		{{- else }}
+			{{- $listName := .ListName -}}
+			{{- $listType := .ListType -}}
+			{{- range $key := .Keys }}
+		t.{{ $listName }} = make(map[{{ $key.Type }}]*{{ $listType }})
+			{{- end }}
+		{{- end }}
+	}
+	return t.{{ .ListName }}
 }
 `)
 
@@ -423,7 +453,10 @@ func (t *{{ .Receiver }}) ΛListKeyMap() (map[string]interface{}, error) {
 // The generated function is written to the supplied buffer, using the method
 // argument to determine the list's characteristics in the template.
 func generateGetOrCreateList(buf *bytes.Buffer, method *generatedGoListMethod) error {
-	return goGetOrCreateListTemplate.Execute(buf, method)
+	if err := goGetOrCreateListTemplate.Execute(buf, method); err != nil {
+		return err
+	}
+	return goGetOrCreateListElementTemplate.Execute(buf, method)
 }
 
 // generateListGetter generates a getter function for members of the a YANG list
