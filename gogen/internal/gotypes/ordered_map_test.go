@@ -240,3 +240,12 @@ func TestOrderedMapFromParent(t *testing.T) {
 		},
 	})
 }
+
+func TestOrderedMapFromParentGetOrCreate(t *testing.T) {
+	p := &RoutingPolicy_PolicyDefinition{}
+
+	p.GetOrCreateStatementMap()
+	if p.Statement == nil {
+		t.Errorf("Statement must be initialized")
+	}
+}

@@ -38,6 +38,16 @@ func mustSchema(fn func() (*ytypes.Schema, error)) *ytypes.Schema {
 	return s
 }
 
+func TestGetOrCreateMap(t *testing.T) {
+	root := &exampleoc.Device{}
+	m := root.GetOrCreateInterfaceMap()
+	name := "foo"
+	m[name] = &exampleoc.Interface{Name: ygot.String(name)}
+	if root.GetInterface(name) == nil {
+		t.Errorf("must not be nil")
+	}
+}
+
 func TestSet(t *testing.T) {
 	invalidSchemaDueToMissingKeyField := mustSchema(exampleoc.Schema)
 	invalidRoot := invalidSchemaDueToMissingKeyField.Root.(*exampleoc.Device)
@@ -92,6 +102,84 @@ func TestSet(t *testing.T) {
 				LeaflistVal: &gpb.ScalarArray{
 					Element: []*gpb.TypedValue{{
 						Value: &gpb.TypedValue_StringVal{StringVal: "openconfig-bgp-types:NO_ADVERTISE"},
+					}},
+				},
+			},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "routing-policy",
+				}, {
+					Name: "policy-definitions",
+				}, {
+					Name: "policy-definition",
+					Key: map[string]string{
+						"name": "test",
+					},
+				}, {
+					Name: "statements",
+				}, {
+					Name: "statement",
+					Key: map[string]string{
+						"name": "test-stmt",
+					},
+				}, {
+					Name: "actions",
+				}, {
+					Name: "bgp-actions",
+				}, {
+					Name: "set-community",
+				}, {
+					Name: "inline",
+				}, {
+					Name: "config",
+				}, {
+					Name: "communities",
+				}},
+			},
+			Data: []exampleoc.RoutingPolicy_PolicyDefinition_Statement_Actions_BgpActions_SetCommunity_Inline_Communities_Union{exampleoc.BgpTypes_BGP_WELL_KNOWN_STD_COMMUNITY_NO_ADVERTISE},
+		},
+	}, {
+		desc:     "set-on-union-with-invalid-string-but-valid-enum-no-module",
+		inSchema: mustSchema(exampleoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "routing-policy",
+			}, {
+				Name: "policy-definitions",
+			}, {
+				Name: "policy-definition",
+				Key: map[string]string{
+					"name": "test",
+				},
+			}, {
+				Name: "statements",
+			}, {
+				Name: "statement",
+				Key: map[string]string{
+					"name": "test-stmt",
+				},
+			}, {
+				Name: "actions",
+			}, {
+				Name: "bgp-actions",
+			}, {
+				Name: "set-community",
+			}, {
+				Name: "inline",
+			}, {
+				Name: "config",
+			}, {
+				Name: "communities",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{{
+						Value: &gpb.TypedValue_StringVal{StringVal: "NO_ADVERTISE"},
 					}},
 				},
 			},

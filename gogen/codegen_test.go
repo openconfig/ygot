@@ -28,6 +28,8 @@ const (
 
 var updateGolden = flag.Bool("update_golden", false, "Update golden files")
 
+//go:generate go test -run TestSimpleStructs -args -update_golden
+
 // yangTestCase describs a test case for which code generation is performed
 // through Goyang's API, it provides the input set of parameters in a way that
 // can be reused across tests.
@@ -1183,6 +1185,12 @@ func TestSimpleStructs(t *testing.T) {
 			}
 
 			if tt.wantSchemaFile != "" {
+				if *updateGolden {
+					if err := os.WriteFile(tt.wantSchemaFile, []byte(string(gotGeneratedCode.RawJSONSchema)), 0644); err != nil {
+						panic(err)
+					}
+				}
+
 				wantSchema, rferr := os.ReadFile(tt.wantSchemaFile)
 				if rferr != nil {
 					t.Fatalf("%s: os.ReadFile(%q) error: %v", tt.name, tt.wantSchemaFile, rferr)
@@ -1199,6 +1207,12 @@ func TestSimpleStructs(t *testing.T) {
 				}
 			}
 
+			if *updateGolden {
+				if err := os.WriteFile(tt.wantStructsCodeFile, []byte(gotCode), 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+
 			wantCodeBytes, rferr := os.ReadFile(tt.wantStructsCodeFile)
 			if rferr != nil {
 				t.Fatalf("%s: os.ReadFile(%q) error: %v", tt.name, tt.wantStructsCodeFile, rferr)
@@ -1207,11 +1221,6 @@ func TestSimpleStructs(t *testing.T) {
 			wantCode := string(wantCodeBytes)
 
 			if gotCode != wantCode {
-				if *updateGolden {
-					if err := os.WriteFile(tt.wantStructsCodeFile, []byte(gotCode), 0644); err != nil {
-						t.Fatal(err)
-					}
-				}
 				// Use difflib to generate a unified diff between the
 				// two code snippets such that this is simpler to debug
 				// in the test output.
