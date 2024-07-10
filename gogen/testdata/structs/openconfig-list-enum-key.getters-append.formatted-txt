@@ -222,6 +222,16 @@ func (t *OpenconfigListEnumKey_Top_MultiKey) NewEkm(K1 E_OpenconfigListEnumKey_T
 	return t.Ekm[key], nil
 }
 
+// GetOrCreateEkmMap returns the list (map) from OpenconfigListEnumKey_Top_MultiKey.
+//
+// It initializes the field if not already initialized.
+func (t *OpenconfigListEnumKey_Top_MultiKey) GetOrCreateEkmMap() map[OpenconfigListEnumKey_Top_MultiKey_Ekm_Key]*OpenconfigListEnumKey_Top_MultiKey_Ekm {
+	if t.Ekm == nil {
+		t.Ekm = make(map[OpenconfigListEnumKey_Top_MultiKey_Ekm_Key]*OpenconfigListEnumKey_Top_MultiKey_Ekm)
+	}
+	return t.Ekm
+}
+
 // GetOrCreateEkm retrieves the value with the specified keys from
 // the receiver OpenconfigListEnumKey_Top_MultiKey. If the entry does not exist, then it is created.
 // It returns the existing or new list member.
@@ -507,6 +517,16 @@ func (t *OpenconfigListEnumKey_Top_SingleKey) NewEks(K E_OpenconfigListEnumKey_T
 	}
 
 	return t.Eks[key], nil
+}
+
+// GetOrCreateEksMap returns the list (map) from OpenconfigListEnumKey_Top_SingleKey.
+//
+// It initializes the field if not already initialized.
+func (t *OpenconfigListEnumKey_Top_SingleKey) GetOrCreateEksMap() map[E_OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K]*OpenconfigListEnumKey_Top_SingleKey_Eks {
+	if t.Eks == nil {
+		t.Eks = make(map[E_OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K]*OpenconfigListEnumKey_Top_SingleKey_Eks)
+	}
+	return t.Eks
 }
 
 // GetOrCreateEks retrieves the value with the specified keys from

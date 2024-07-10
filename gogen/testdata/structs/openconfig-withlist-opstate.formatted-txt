@@ -197,6 +197,17 @@ func (t *Model) RenameSingleKey(oldK, newK string) error {
 	return nil
 }
 
+// GetOrCreateSingleKeyOrderedMap returns the ordered map field
+// SingleKeyOrdered from Model.
+//
+// It initializes the field if not already initialized.
+func (s *Model) GetOrCreateSingleKeyOrderedMap() *Model_SingleKeyOrdered_OrderedMap {
+	if s.SingleKeyOrdered == nil {
+		s.SingleKeyOrdered = &Model_SingleKeyOrdered_OrderedMap{}
+	}
+	return s.SingleKeyOrdered
+}
+
 // AppendNewSingleKeyOrdered creates a new entry in the SingleKeyOrdered
 // ordered map of the Model struct. The keys of the list are
 // populated from the input arguments.

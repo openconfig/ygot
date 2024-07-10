@@ -50,6 +50,17 @@ func OrderedMapTypeName(listElemTypeName string) string {
 
 var (
 	goOrderedMapParentMethodsTemplate = mustMakeTemplate("orderedMapParentMethods", `
+// GetOrCreate{{ .ListFieldName }}Map returns the ordered map field
+// {{ .ListFieldName }} from {{ .ParentStructName }}.
+//
+// It initializes the field if not already initialized.
+func (s *{{ .ParentStructName }}) GetOrCreate{{ .ListFieldName }}Map() *{{ .StructName }} {
+	if s.{{ .ListFieldName }} == nil {
+		s.{{ .ListFieldName }} = &{{ .StructName }}{}
+	}
+	return s.{{ .ListFieldName }}
+}
+
 // AppendNew{{ .ListFieldName }} creates a new entry in the {{ .ListFieldName }}
 // ordered map of the {{ .ParentStructName }} struct. The keys of the list are
 // populated from the input arguments.
