@@ -1,6 +1,5 @@
 ![Go](https://github.com/openconfig/ygot/workflows/Go/badge.svg?branch=master)
 [![Coverage Status](https://coveralls.io/repos/github/openconfig/ygot/badge.svg?branch=master)](https://coveralls.io/github/openconfig/ygot?branch=master)
-[![Go releases supported](https://img.shields.io/badge/Go-1.18%2B-blue)](https://golang.org/project/#release)
 [![Go Reference](https://pkg.go.dev/badge/github.com/openconfig/ygot.svg)](https://pkg.go.dev/github.com/openconfig/ygot)
 
 ![#ygot](docs/img/ygot.png)
@@ -17,7 +16,7 @@ Whilst ygot is designed to work with any YANG module, for OpenConfig modules, it
 **Note**: This is not an official Google product.
 
 ## Getting Started with ygot
-Current support for `ygot` is for the [latest 3 Go releases](https://golang.org/project/#release).
+Current support for `ygot` matches that of Go, which is the [latest 2 Go releases](https://go.dev/doc/devel/release).
 
 `ygot` consists of a number of parts, `generator` which is a binary using the `ygen` library to generate Go code from a set of YANG modules. `ygot` which provides helper methods for the `ygen`-produced structs - for example, rendering to JSON, or gNMI notifications - and `ytypes` which provides validation of the contents of `ygen` structs against the YANG schema.
 
