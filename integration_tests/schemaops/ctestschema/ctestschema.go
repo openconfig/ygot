@@ -214,6 +214,16 @@ func (t *Device) RenameUnorderedList(oldK, newK string) error {
 	return nil
 }
 
+// GetOrCreateUnorderedListMap returns the list (map) from Device.
+//
+// It initializes the field if not already initialized.
+func (t *Device) GetOrCreateUnorderedListMap() map[string]*UnorderedList {
+	if t.UnorderedList == nil {
+		t.UnorderedList = make(map[string]*UnorderedList)
+	}
+	return t.UnorderedList
+}
+
 // GetOrCreateUnorderedList retrieves the value with the specified keys from
 // the receiver Device. If the entry does not exist, then it is created.
 // It returns the existing or new list member.
@@ -294,6 +304,17 @@ func (t *Device) GetOtherData() *OtherData {
 		return t.OtherData
 	}
 	return nil
+}
+
+// GetOrCreateOrderedListMap returns the ordered map field
+// OrderedList from Device.
+//
+// It initializes the field if not already initialized.
+func (s *Device) GetOrCreateOrderedListMap() *OrderedList_OrderedMap {
+	if s.OrderedList == nil {
+		s.OrderedList = &OrderedList_OrderedMap{}
+	}
+	return s.OrderedList
 }
 
 // AppendNewOrderedList creates a new entry in the OrderedList
@@ -456,6 +477,17 @@ func (o *OrderedList_OrderedMap) AppendNew(Key string) (*OrderedList, error) {
 	o.init()
 	o.valueMap[key] = newElement
 	return newElement, nil
+}
+
+// GetOrCreateOrderedMultikeyedListMap returns the ordered map field
+// OrderedMultikeyedList from Device.
+//
+// It initializes the field if not already initialized.
+func (s *Device) GetOrCreateOrderedMultikeyedListMap() *OrderedMultikeyedList_OrderedMap {
+	if s.OrderedMultikeyedList == nil {
+		s.OrderedMultikeyedList = &OrderedMultikeyedList_OrderedMap{}
+	}
+	return s.OrderedMultikeyedList
 }
 
 // AppendNewOrderedMultikeyedList creates a new entry in the OrderedMultikeyedList
@@ -760,6 +792,17 @@ func (t *OrderedList) GetValue() string {
 		return "default-value"
 	}
 	return *t.Value
+}
+
+// GetOrCreateOrderedListMap returns the ordered map field
+// OrderedList from OrderedList.
+//
+// It initializes the field if not already initialized.
+func (s *OrderedList) GetOrCreateOrderedListMap() *OrderedList_OrderedList_OrderedMap {
+	if s.OrderedList == nil {
+		s.OrderedList = &OrderedList_OrderedList_OrderedMap{}
+	}
+	return s.OrderedList
 }
 
 // AppendNewOrderedList creates a new entry in the OrderedList

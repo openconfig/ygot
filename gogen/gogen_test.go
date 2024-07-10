@@ -851,6 +851,17 @@ type Tstruct struct {
 func (*Tstruct) IsYANGGoStruct() {}
 `,
 			methods: `
+// GetOrCreateListWithKeyMap returns the ordered map field
+// ListWithKey from Tstruct.
+//
+// It initializes the field if not already initialized.
+func (s *Tstruct) GetOrCreateListWithKeyMap() *Tstruct_ListWithKey_OrderedMap {
+	if s.ListWithKey == nil {
+		s.ListWithKey = &Tstruct_ListWithKey_OrderedMap{}
+	}
+	return s.ListWithKey
+}
+
 // AppendNewListWithKey creates a new entry in the ListWithKey
 // ordered map of the Tstruct struct. The keys of the list are
 // populated from the input arguments.
@@ -1548,6 +1559,16 @@ func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*Tstruct_L
 	return t.ListWithKey[key], nil
 }
 
+// GetOrCreateListWithKeyMap returns the list (map) from Tstruct.
+//
+// It initializes the field if not already initialized.
+func (t *Tstruct) GetOrCreateListWithKeyMap() map[Tstruct_ListWithKey_Key]*Tstruct_ListWithKey {
+	if t.ListWithKey == nil {
+		t.ListWithKey = make(map[Tstruct_ListWithKey_Key]*Tstruct_ListWithKey)
+	}
+	return t.ListWithKey
+}
+
 // GetOrCreateListWithKey retrieves the value with the specified keys from
 // the receiver Tstruct. If the entry does not exist, then it is created.
 // It returns the existing or new list member.
@@ -1766,6 +1787,16 @@ func (t *Tstruct) NewListWithKey(KeyLeaf string) (*Tstruct_ListWithKey, error){
 	}
 
 	return t.ListWithKey[key], nil
+}
+
+// GetOrCreateListWithKeyMap returns the list (map) from Tstruct.
+//
+// It initializes the field if not already initialized.
+func (t *Tstruct) GetOrCreateListWithKeyMap() map[string]*Tstruct_ListWithKey {
+	if t.ListWithKey == nil {
+		t.ListWithKey = make(map[string]*Tstruct_ListWithKey)
+	}
+	return t.ListWithKey
 }
 
 // GetOrCreateListWithKey retrieves the value with the specified keys from
