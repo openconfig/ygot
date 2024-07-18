@@ -16,7 +16,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -55,9 +55,9 @@ func TestProtoGenerate(t *testing.T) {
 
 		want := &ocpb.Device{}
 
-		wantStr, err := ioutil.ReadFile(filepath.Join("testdata", tt.wantTextProto))
+		wantStr, err := os.ReadFile(filepath.Join("testdata", tt.wantTextProto))
 		if err != nil {
-			t.Errorf("%s: ioutil.ReadFile(testdata/%s): could not read file, got: %v, want: nil", tt.name, tt.wantTextProto, err)
+			t.Errorf("%s: os.ReadFile(testdata/%s): could not read file, got: %v, want: nil", tt.name, tt.wantTextProto, err)
 		}
 
 		if err := prototext.Unmarshal(wantStr, want); err != nil {

@@ -1,13 +1,12 @@
 package genutil
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 )
 
 func TestOpenSyncFile(t *testing.T) {
-	dir, err := ioutil.TempDir(".", "ygot-test-")
+	dir, err := os.MkdirTemp(".", "ygot-test-")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -18,7 +17,7 @@ func TestOpenSyncFile(t *testing.T) {
 	file.WriteString("42")
 	SyncFile(file)
 
-	bytes, err := ioutil.ReadFile(filename)
+	bytes, err := os.ReadFile(filename)
 	if err != nil {
 		t.Fatal(err)
 	}

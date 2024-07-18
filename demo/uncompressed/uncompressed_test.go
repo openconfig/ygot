@@ -16,7 +16,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -63,9 +63,9 @@ func TestUncompressedDemo(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		want, ioerr := ioutil.ReadFile(filepath.Join(TestRoot, tt.wantFile))
+		want, ioerr := os.ReadFile(filepath.Join(TestRoot, tt.wantFile))
 		if ioerr != nil {
-			t.Errorf("%s: ioutil.ReadFile(%s/%s): error reading file, got: %v, want: nil", tt.name, TestRoot, tt.wantFile, ioerr)
+			t.Errorf("%s: os.ReadFile(%s/%s): error reading file, got: %v, want: nil", tt.name, TestRoot, tt.wantFile, ioerr)
 			continue
 		}
 

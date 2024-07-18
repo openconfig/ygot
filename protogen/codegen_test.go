@@ -3,7 +3,7 @@ package protogen
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -449,9 +449,9 @@ func TestGenerateProto3(t *testing.T) {
 			wantPkgs := sortedPkgNames(tt.wantOutputFiles)
 			for _, pkg := range wantPkgs {
 				wantFile := tt.wantOutputFiles[pkg]
-				wantCodeBytes, err := ioutil.ReadFile(wantFile)
+				wantCodeBytes, err := os.ReadFile(wantFile)
 				if err != nil {
-					t.Errorf("%s: ioutil.ReadFile(%v): could not read file for package %s", tt.name, wantFile, pkg)
+					t.Errorf("%s: os.ReadFile(%v): could not read file for package %s", tt.name, wantFile, pkg)
 					return
 				}
 

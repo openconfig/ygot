@@ -15,7 +15,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -66,9 +66,9 @@ func TestBGPDemo(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		want, ioerr := ioutil.ReadFile(filepath.Join(TestRoot, tt.wantFile))
+		want, ioerr := os.ReadFile(filepath.Join(TestRoot, tt.wantFile))
 		if ioerr != nil {
-			t.Fatalf("TestBGPDemo %s: ioutil.ReadFile(%s/%s): could not open file: %v", tt.name, TestRoot, tt.wantFile, ioerr)
+			t.Fatalf("TestBGPDemo %s: os.ReadFile(%s/%s): could not open file: %v", tt.name, TestRoot, tt.wantFile, ioerr)
 		}
 
 		if diff := pretty.Compare(tt.got, string(want)); diff != "" {

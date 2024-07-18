@@ -1,7 +1,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -50,9 +50,9 @@ func TestRenderToGNMINotifications(t *testing.T) {
 			continue
 		}
 
-		wantData, err := ioutil.ReadFile(tt.wantProtoFile)
+		wantData, err := os.ReadFile(tt.wantProtoFile)
 		if err != nil {
-			t.Errorf("%s: ioutil.ReadFile(%v): could not read protobuf testdata file", tt.name, tt.wantProtoFile)
+			t.Errorf("%s: os.ReadFile(%v): could not read protobuf testdata file", tt.name, tt.wantProtoFile)
 		}
 
 		want := &gnmipb.Notification{}
