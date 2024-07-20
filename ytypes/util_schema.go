@@ -324,6 +324,7 @@ func schemaToStructFieldName(schema *yang.Entry, parent interface{}, preferShado
 		if err != nil {
 			return "", nil, err
 		}
+
 		if hasRelativePath(schema, p) {
 			return fieldName, schema, nil
 		}

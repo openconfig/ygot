@@ -15,6 +15,8 @@
 package validate
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -609,6 +611,135 @@ func TestSet(t *testing.T) {
 		inOpts:           []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
 		wantErrSubstring: "failed to unmarshal",
 	}, {
+		desc:     "set of a leaf in prefer opstate, without prefer shadow path",
+		inSchema: mustSchema(opstateoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "system",
+			}, {
+				Name: "config",
+			}, {
+				Name: "hostname",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_StringVal{
+				StringVal: "hello world",
+			},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNode: &ytypes.TreeNode{
+			Data: &opstateoc.Device{
+				System: &opstateoc.System{
+					// Not set because we set the compressed-out version.
+				},
+			},
+		},
+	}, {
+		desc:     "set of a leaf in prefer opstate, with prefer shadow path",
+		inSchema: mustSchema(opstateoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "system",
+			}, {
+				Name: "config",
+			}, {
+				Name: "hostname",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_StringVal{
+				StringVal: "hello world",
+			},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}, &ytypes.PreferShadowPath{}},
+		wantNode: &ytypes.TreeNode{
+			Data: &opstateoc.Device{
+				System: &opstateoc.System{
+					Hostname: ygot.String("hello world"),
+				},
+			},
+		},
+	}, {
+		desc:     "set of a leaf-list in prefer opstate",
+		inSchema: mustSchema(opstateoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "system",
+			}, {
+				Name: "dns",
+			}, {
+				Name: "config",
+			}, {
+				Name: "search",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{{
+						Value: &gpb.TypedValue_StringVal{
+							StringVal: "hello",
+						},
+					}, {
+						Value: &gpb.TypedValue_StringVal{
+							StringVal: "world",
+						},
+					}},
+				},
+			},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNode: &ytypes.TreeNode{
+			Data: &opstateoc.Device{
+				System: &opstateoc.System{
+					Dns: &opstateoc.System_Dns{
+						// Not set because we are still preferring the 'state' version over the 'config' version.
+					},
+				},
+			},
+		},
+	}, {
+		desc:     "set of a leaf-list in prefer opstate, with prefer shadow path",
+		inSchema: mustSchema(opstateoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "system",
+			}, {
+				Name: "dns",
+			}, {
+				Name: "config",
+			}, {
+				Name: "search",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{{
+						Value: &gpb.TypedValue_StringVal{
+							StringVal: "hello",
+						},
+					}, {
+						Value: &gpb.TypedValue_StringVal{
+							StringVal: "world",
+						},
+					}},
+				},
+			},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}, &ytypes.PreferShadowPath{}},
+		wantNode: &ytypes.TreeNode{
+			Data: &opstateoc.Device{
+				System: &opstateoc.System{
+					Dns: &opstateoc.System_Dns{
+						// Set because we asked to prefer the 'config' version over the state version.
+						Search: []string{"hello", "world"},
+					},
+				},
+			},
+		},
+	}, {
 		// This test case is not expecting an error since we expect
 		// ygot to be able to traverse using the key specified in the
 		// map as a fallback when the key values in the list element is
@@ -687,4 +818,12 @@ func TestSet(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFish(t *testing.T) {
+	sch := mustSchema(opstateoc.Schema)
+	fmt.Printf("%+v\n", sch.SchemaTree["System_Dns"])
+
+	js, _ := json.MarshalIndent(sch.SchemaTree["System_Dns"], "", "  ")
+	fmt.Printf("%s\n", js)
 }

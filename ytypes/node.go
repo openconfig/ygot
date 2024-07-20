@@ -200,7 +200,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 				switch {
 				case cschema == nil:
 					return nil, status.Errorf(codes.InvalidArgument, "could not find schema for path %v", np)
-				case !cschema.IsLeaf():
+				case !cschema.IsLeaf() && !cschema.IsLeafList():
 					return nil, status.Errorf(codes.InvalidArgument, "shadow path traverses a non-leaf node, this is not allowed, path: %v", np)
 				default:
 					return []*TreeNode{{
@@ -240,20 +240,25 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 					// root must be the reference of container leaf/leaf list belongs to.
 					var val interface{}
 					var encoding Encoding
+
+					// Check before we type assert to avoid a panic.
+					_, isTypedValue := args.val.(*gpb.TypedValue)
 					switch {
-					case args.val.(*gpb.TypedValue).GetJsonIetfVal() != nil:
+					case isTypedValue && args.val.(*gpb.TypedValue).GetJsonIetfVal() != nil:
 						encoding = JSONEncoding
 						if err := json.Unmarshal(args.val.(*gpb.TypedValue).GetJsonIetfVal(), &val); err != nil {
 							return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v; %v", ft.Name, root, args.val, err)
 						}
-					case args.val.(*gpb.TypedValue).GetJsonVal() != nil:
+					case isTypedValue && args.val.(*gpb.TypedValue).GetJsonVal() != nil:
 						return nil, status.Errorf(codes.InvalidArgument, "json_val format is deprecated, please use json_ietf_val")
-					case args.tolerateJSONInconsistenciesForVal:
+					case isTypedValue && args.tolerateJSONInconsistenciesForVal:
 						encoding = gNMIEncodingWithJSONTolerance
 						val = args.val
-					default:
+					case isTypedValue:
 						encoding = GNMIEncoding
 						val = args.val
+					default:
+						return nil, status.Errorf(codes.InvalidArgument, "invalid input data received, type %T", args.val)
 					}
 					var opts []UnmarshalOpt
 					if args.preferShadowPath {

@@ -1879,6 +1879,66 @@ func (e *ExampleAnnotation) UnmarshalJSON([]byte) error {
 	return fmt.Errorf("unimplemented")
 }
 
+type ConfigStateContainer struct {
+	Int32Leaf     *int32  `path:"state/int32-leaf" shadow-path:"config/int32-leaf"`
+	Int32LeafList []int32 `path:"state/int32-leaflist" shadow-path:"config/int32-leaflist"`
+}
+
+type ConfigStateRoot struct {
+	Child *ConfigStateContainer `path:"config-state"`
+}
+
+func configStateContainerParentSchema() *yang.Entry {
+	sch := &yang.Entry{
+		Name: "",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"config-state": {
+				Name: "config-state",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"config": {
+						Name: "config",
+						Kind: yang.DirectoryEntry,
+						Dir: map[string]*yang.Entry{
+							"int32-leaf": {
+								Name: "int32-leaf",
+								Kind: yang.LeafEntry,
+								Type: &yang.YangType{Kind: yang.Yint32},
+							},
+							"int32-leaflist": {
+								Name:     "int32-leaflist",
+								Kind:     yang.LeafEntry,
+								ListAttr: yang.NewDefaultListAttr(),
+								Type:     &yang.YangType{Kind: yang.Yint32},
+							},
+						},
+					},
+					"state": {
+						Name: "state",
+						Kind: yang.DirectoryEntry,
+						Dir: map[string]*yang.Entry{
+							"int32-leaf": {
+								Name: "int32-leaf",
+								Kind: yang.LeafEntry,
+								Type: &yang.YangType{Kind: yang.Yint32},
+							},
+							"int32-leaflist": {
+								Name:     "int32-leaflist",
+								Kind:     yang.LeafEntry,
+								ListAttr: yang.NewDefaultListAttr(),
+								Type:     &yang.YangType{Kind: yang.Yint32},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	addParents(sch)
+	return sch
+}
+
 func TestSetNode(t *testing.T) {
 	tests := []struct {
 		inDesc           string
@@ -2010,6 +2070,97 @@ func TestSetNode(t *testing.T) {
 						Int32LeafName: ygot.Int32(42),
 					},
 				},
+			},
+		},
+		{
+			inDesc:     "success setting leaf-list field",
+			inSchema:   configStateContainerParentSchema(),
+			inParentFn: func() interface{} { return &ConfigStateRoot{} },
+			inPath:     mustPath("/config-state/state/int32-leaflist"),
+			inVal: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{{
+						Value: &gpb.TypedValue_IntVal{IntVal: 42},
+					}, {
+						Value: &gpb.TypedValue_IntVal{IntVal: 43},
+					}},
+				},
+			}},
+			inOpts:   []SetNodeOpt{&InitMissingElements{}},
+			wantLeaf: []int32{42, 43},
+			wantParent: &ConfigStateRoot{
+				Child: &ConfigStateContainer{
+					Int32LeafList: []int32{42, 43},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting leaf-list field, with prefer shadow paths (path is shadow path)",
+			inSchema:   configStateContainerParentSchema(),
+			inParentFn: func() interface{} { return &ConfigStateRoot{} },
+			inPath:     mustPath("/config-state/config/int32-leaflist"),
+			inVal: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{{
+						Value: &gpb.TypedValue_IntVal{IntVal: 42},
+					}, {
+						Value: &gpb.TypedValue_IntVal{IntVal: 43},
+					}},
+				},
+			}},
+			inOpts:   []SetNodeOpt{&InitMissingElements{}, &PreferShadowPath{}},
+			wantLeaf: []int32{42, 43},
+			wantParent: &ConfigStateRoot{
+				Child: &ConfigStateContainer{
+					Int32LeafList: []int32{42, 43},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting leaf-list field (path is not shadow path)",
+			inSchema:   configStateContainerParentSchema(),
+			inParentFn: func() interface{} { return &ConfigStateRoot{} },
+			inPath:     mustPath("/config-state/state/int32-leaflist"),
+			inVal: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{{
+						Value: &gpb.TypedValue_IntVal{IntVal: 42},
+					}, {
+						Value: &gpb.TypedValue_IntVal{IntVal: 43},
+					}},
+				},
+			}},
+			inOpts:   []SetNodeOpt{&InitMissingElements{}},
+			wantLeaf: []int32{42, 43},
+			wantParent: &ConfigStateRoot{
+				Child: &ConfigStateContainer{
+					Int32LeafList: []int32{42, 43},
+				},
+			},
+		},
+		{
+			inDesc:     "success setting leaf-list field, without prefer shadow paths (path is shadow path)",
+			inSchema:   configStateContainerParentSchema(),
+			inParentFn: func() interface{} { return &ConfigStateRoot{} },
+			inPath:     mustPath("/config-state/config/int32-leaflist"),
+			inVal: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{{
+						Value: &gpb.TypedValue_IntVal{IntVal: 42},
+					}, {
+						Value: &gpb.TypedValue_IntVal{IntVal: 43},
+					}},
+				},
+			}},
+			inOpts: []SetNodeOpt{&InitMissingElements{}},
+			// In this case, we've said "please do not prefer shadow paths" - i.e., just use whatever the path
+			// annotation tells you. We should have a no-op here -- since we were given a shadow path
+			// that we didn't want to unmarshal.
+			wantLeaf: nil,
+			// But, hey, we said that we should initialise missing elements, so we do mutate the parent, just
+			// not with the leaf-list value.
+			wantParent: &ConfigStateRoot{
+				Child: &ConfigStateContainer{},
 			},
 		},
 		{
@@ -2650,6 +2801,34 @@ func TestSetNode(t *testing.T) {
 					},
 				},
 			},
+		},
+		{
+			inDesc:   "bug reproduction: avoid panic with invalid input type",
+			inSchema: containerWithStringKey(),
+			inParentFn: func() interface{} {
+				return &ContainerStruct1{
+					StructKeyList: map[string]*ListElemStruct1{
+						"forty-two": {
+							Key1:  ygot.String("forty-two"),
+							Outer: &OuterContainerType1{},
+						},
+					},
+				}
+			},
+			inPath: mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/string-leaf-field"),
+			inOpts: []SetNodeOpt{&InitMissingElements{}},
+			inVal:  "hello",
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{},
+						},
+					},
+				},
+			},
+			wantErrSubstring: "invalid input data",
 		},
 	}
 
