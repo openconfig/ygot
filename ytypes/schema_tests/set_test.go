@@ -15,8 +15,6 @@
 package validate
 
 import (
-	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -818,12 +816,4 @@ func TestSet(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestFish(t *testing.T) {
-	sch := mustSchema(opstateoc.Schema)
-	fmt.Printf("%+v\n", sch.SchemaTree["System_Dns"])
-
-	js, _ := json.MarshalIndent(sch.SchemaTree["System_Dns"], "", "  ")
-	fmt.Printf("%s\n", js)
 }
