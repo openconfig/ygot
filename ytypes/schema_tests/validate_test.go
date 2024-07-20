@@ -19,7 +19,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -733,17 +733,17 @@ func TestUnmarshal(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 
-			j, err := ioutil.ReadFile(filepath.Join(testRoot, "testdata", tt.jsonFilePath))
+			j, err := os.ReadFile(filepath.Join(testRoot, "testdata", tt.jsonFilePath))
 			if err != nil {
-				t.Errorf("%s: ioutil.ReadFile(%s): could not open file: %v", tt.desc, tt.jsonFilePath, err)
+				t.Errorf("%s: os.ReadFile(%s): could not open file: %v", tt.desc, tt.jsonFilePath, err)
 				return
 			}
 
 			wantj := j
 			if tt.outjsonFilePath != "" {
-				rj, err := ioutil.ReadFile(filepath.Join(testRoot, "testdata", tt.outjsonFilePath))
+				rj, err := os.ReadFile(filepath.Join(testRoot, "testdata", tt.outjsonFilePath))
 				if err != nil {
-					t.Errorf("%s: ioutil.ReadFile(%s): could not open file: %v", tt.desc, tt.outjsonFilePath, err)
+					t.Errorf("%s: os.ReadFile(%s): could not open file: %v", tt.desc, tt.outjsonFilePath, err)
 				}
 				wantj = rj
 			}

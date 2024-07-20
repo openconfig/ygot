@@ -15,7 +15,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -62,9 +62,9 @@ func TestOpticalDemoJSON(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		want, err := ioutil.ReadFile(filepath.Join(TestRoot, "testdata", tt.wantFile))
+		want, err := os.ReadFile(filepath.Join(TestRoot, "testdata", tt.wantFile))
 		if err != nil {
-			t.Errorf("ioutil.ReadFile(%s/testdata/%s): could not open file: %v", TestRoot, tt.wantFile, err)
+			t.Errorf("os.ReadFile(%s/testdata/%s): could not open file: %v", TestRoot, tt.wantFile, err)
 			continue
 		}
 		if diff := pretty.Compare(tt.got, string(want)); diff != "" {
