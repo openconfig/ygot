@@ -359,7 +359,7 @@ func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}, 
 
 	fieldName, _, err := schemaToStructFieldName(inSchema, parent, hasPreferShadowPath(opts))
 	if err != nil {
-		return err
+		return fmt.Errorf("unmarshal failed: %v", err)
 	}
 
 	schema, err := util.ResolveIfLeafRef(inSchema)
