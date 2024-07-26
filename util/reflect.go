@@ -482,7 +482,7 @@ func ChildSchemaPreferShadow(schema *yang.Entry, f reflect.StructField) (*yang.E
 func childSchema(schema *yang.Entry, f reflect.StructField, preferShadowPath bool) (*yang.Entry, error) {
 	pathTag, _ := f.Tag.Lookup("path")
 	shadowPathTag, _ := f.Tag.Lookup("shadow-path")
-	DbgSchema("childSchema for schema %s, field %s, path tag %s, shadow-path tag\n", schema.Name, f.Name, pathTag, shadowPathTag)
+	DbgSchema("childSchema for schema %s, field %s, path tag %s, shadow-path tag %s\n", schema.Name, f.Name, pathTag, shadowPathTag)
 	p, err := relativeSchemaPath(f, preferShadowPath)
 	if err != nil {
 		return nil, err
