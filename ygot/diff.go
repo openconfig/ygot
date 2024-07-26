@@ -53,9 +53,34 @@ func joingNMIPaths(parent *gnmipb.Path, child *gnmipb.Path) *gnmipb.Path {
 
 // pathSpec is a wrapper type used to store a set of gNMI paths to which
 // a value within a GoStruct corresponds to.
+//
+// NOTE: Once Equal() is called, no more changes must be made to pathSpec;
+// otherwise, future calls to Equal() will give the incorrect result.
 type pathSpec struct {
 	// gNMIPaths is the set of gNMI paths that the path represents.
 	gNMIPaths []*gnmipb.Path
+	// gNMIPathStrs is the set of gNMI paths that the path represents as strings.
+	gNMIPathStrs map[string]struct{}
+}
+
+func (p *pathSpec) populateStrs() {
+	if p == nil {
+		return
+	}
+
+	if p.gNMIPathStrs != nil {
+		return
+	}
+
+	p.gNMIPathStrs = map[string]struct{}{}
+	for _, path := range p.gNMIPaths {
+		str, err := PathToString(path)
+		if err != nil {
+			p.gNMIPathStrs = nil
+			return
+		}
+		p.gNMIPathStrs[str] = struct{}{}
+	}
 }
 
 // Equal compares two pathSpecs, returning true if all paths within the pathSpec
@@ -63,6 +88,13 @@ type pathSpec struct {
 func (p *pathSpec) Equal(o *pathSpec) bool {
 	if p == nil || o == nil {
 		return p == o
+	}
+
+	p.populateStrs()
+	o.populateStrs()
+
+	if p.gNMIPathStrs != nil && o.gNMIPathStrs != nil {
+		return reflect.DeepEqual(p.gNMIPathStrs, o.gNMIPathStrs)
 	}
 
 	for _, path := range p.gNMIPaths {

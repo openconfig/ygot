@@ -17,6 +17,7 @@
 package schematest
 
 import (
+	"fmt"
 	"io/ioutil"
 	"reflect"
 	"testing"
@@ -681,8 +682,11 @@ func TestNotificationOutput(t *testing.T) {
 	}
 }
 
-func getBenchmarkDevice() *exampleoc.Device {
-	intfs := []string{"eth0", "eth1", "eth2", "eth3"}
+func getBenchmarkDevice(n int) *exampleoc.Device {
+	var intfs []string
+	for i := 0; i < n; i++ {
+		intfs = append(intfs, fmt.Sprintf("eth%d", i))
+	}
 	d := &exampleoc.Device{}
 	for _, intf := range intfs {
 		d.GetOrCreateInterface(intf)
@@ -693,7 +697,7 @@ func getBenchmarkDevice() *exampleoc.Device {
 }
 
 func BenchmarkNotificationOutput(b *testing.B) {
-	d := getBenchmarkDevice()
+	d := getBenchmarkDevice(4)
 	b.ResetTimer()
 	for i := 0; i != b.N; i++ {
 		if _, err := ygot.TogNMINotifications(d, 0, ygot.GNMINotificationsConfig{
@@ -705,7 +709,7 @@ func BenchmarkNotificationOutput(b *testing.B) {
 }
 
 func BenchmarkNotificationOutputElement(b *testing.B) {
-	d := getBenchmarkDevice()
+	d := getBenchmarkDevice(4)
 	b.ResetTimer()
 	for i := 0; i != b.N; i++ {
 		if _, err := ygot.TogNMINotifications(d, 0, ygot.GNMINotificationsConfig{
@@ -713,5 +717,13 @@ func BenchmarkNotificationOutputElement(b *testing.B) {
 		}); err != nil {
 			b.Fatalf("cannot marshal input to gNMI Notifications, %v", err)
 		}
+	}
+}
+
+func BenchmarkDiff(b *testing.B) {
+	d1 := getBenchmarkDevice(1000)
+	d2 := getBenchmarkDevice(500)
+	for n := 0; n != b.N; n++ {
+		ygot.Diff(d1, d2)
 	}
 }
