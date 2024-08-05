@@ -17,7 +17,7 @@
 package schematest
 
 import (
-	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 
@@ -511,7 +511,7 @@ func TestJSONOutput(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			want, err := ioutil.ReadFile(tt.wantFile)
+			want, err := os.ReadFile(tt.wantFile)
 			if err != nil {
 				t.Fatalf("cannot read wantfile, %v", err)
 			}
@@ -575,7 +575,7 @@ func TestMarshal7951(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			want, err := ioutil.ReadFile(tt.wantFile)
+			want, err := os.ReadFile(tt.wantFile)
 			if err != nil {
 				t.Fatalf("cannot read wantfile, %v", err)
 			}
@@ -653,7 +653,7 @@ func TestNotificationOutput(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			wantTxtpb, err := ioutil.ReadFile(tt.wantTextpb)
+			wantTxtpb, err := os.ReadFile(tt.wantTextpb)
 			if err != nil {
 				t.Fatalf("could not read textproto, %v", err)
 			}

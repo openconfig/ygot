@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 
 	"github.com/openconfig/goyang/pkg/yang"
 )
@@ -33,7 +33,7 @@ func GzipToSchema(gzj []byte) (map[string]*yang.Entry, error) {
 	}
 	defer gzr.Close()
 
-	s, err := ioutil.ReadAll(gzr)
+	s, err := io.ReadAll(gzr)
 	if err != nil {
 		return nil, err
 	}

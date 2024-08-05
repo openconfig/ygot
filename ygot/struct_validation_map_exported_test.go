@@ -16,7 +16,7 @@ package ygot_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -292,9 +292,9 @@ func TestEmitJSON(t *testing.T) {
 				return
 			}
 
-			wantJSON, ioerr := ioutil.ReadFile(tt.wantJSONPath)
+			wantJSON, ioerr := os.ReadFile(tt.wantJSONPath)
 			if ioerr != nil {
-				t.Fatalf("%s: ioutil.ReadFile(%s): could not open file: %v", tt.name, tt.wantJSONPath, ioerr)
+				t.Fatalf("%s: os.ReadFile(%s): could not open file: %v", tt.name, tt.wantJSONPath, ioerr)
 			}
 			strJSON := strings.TrimRight(string(wantJSON), "\n")
 
