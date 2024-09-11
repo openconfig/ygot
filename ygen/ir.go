@@ -468,6 +468,8 @@ type ParsedDirectory struct {
 	//
 	// https://github.com/openconfig/public/blob/master/release/models/openconfig-extensions.yang#L154
 	CompressedTelemetryAtomic bool
+	// PresenceContainer indicates that this container is a YANG presence container
+	PresenceContainer bool
 }
 
 // OrderedFieldNames returns the YANG name of all fields belonging to the
