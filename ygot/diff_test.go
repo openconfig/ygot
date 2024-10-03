@@ -1602,7 +1602,55 @@ func TestDiff(t *testing.T) {
 				},
 			}},
 		},
-	}}
+	}, {
+		desc:   "presence container delete presence",
+		inOrig: &basicStructPresenceWithStruct{StructField: &basicStructThree{}},
+		inMod:  &basicStructPresenceWithStruct{},
+		inOpts: []DiffOpt{&WithRespectPresenceContainers{}},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "struct-value",
+				}},
+			}},
+		},
+	}, {
+		desc:   "presence container diff update to add presence",
+		inOrig: &basicStructPresenceWithStruct{},
+		inMod:  &basicStructPresenceWithStruct{StructField: &basicStructThree{}},
+		inOpts: []DiffOpt{&WithRespectPresenceContainers{}},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "struct-value",
+					}},
+				},
+				Val: nil,
+			}},
+		},
+	}, {
+		desc:   "presencecontainer should explicitly be deleted",
+		inOrig: &basicStructPresenceWithStruct{StructField: &basicStructThree{StringValue: String("foo")}},
+		inMod:  &basicStructPresenceWithStruct{},
+		inOpts: []DiffOpt{&WithRespectPresenceContainers{}},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{
+				{Elem: []*gnmipb.PathElem{{Name: "struct-value"}}},
+				{Elem: []*gnmipb.PathElem{{Name: "struct-value"}, {Name: "third-string-value"}}},
+				{Elem: []*gnmipb.PathElem{{Name: "struct-value"}, {Name: "config"}, {Name: "third-string-value"}}},
+			}},
+	}, {
+		desc:   "presencecontainer without diff opt should NOT explicitly be deleted",
+		inOrig: &basicStructPresenceWithStruct{StructField: &basicStructThree{StringValue: String("foo")}},
+		inMod:  &basicStructPresenceWithStruct{},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{
+				{Elem: []*gnmipb.PathElem{{Name: "struct-value"}, {Name: "third-string-value"}}},
+				{Elem: []*gnmipb.PathElem{{Name: "struct-value"}, {Name: "config"}, {Name: "third-string-value"}}},
+			}},
+	},
+	}
 
 	for _, tt := range tests {
 		testDiffSingleNotif := func(t *testing.T, funcName string, got *gnmipb.Notification, err error) {
