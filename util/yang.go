@@ -92,7 +92,7 @@ func IsRoot(e *yang.Entry) bool {
 // IsConfigState returns true if the entry is an entity that represents a
 // container called config or state.
 func IsConfigState(e *yang.Entry) bool {
-	return e.IsDir() && (e.Name == "config" || e.Name == "state")
+	return e.IsDir() && (e.Name == "config" || e.Name == "state" || e.Name == "volatile")
 }
 
 // IsChoiceOrCase returns true if the entry is either a 'case' or a 'choice'
