@@ -6,7 +6,7 @@ toolchain go1.22.4
 
 require (
 	github.com/derekparker/trie v0.0.0-20221221181808-1424fce0c981
-	github.com/golang/glog v1.2.1
+	github.com/golang/glog v1.2.4
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.6.0
 	github.com/kr/pretty v0.3.1
