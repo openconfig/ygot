@@ -114,6 +114,13 @@ func parseField(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[
 		}
 	}
 
+	// Handle enum values by using the enum value option extension to convert value to string.
+	if fd.Kind() == protoreflect.EnumKind {
+		po := fd.Enum().Values().ByNumber(val.(protoreflect.EnumNumber)).Options().(*descriptorpb.EnumValueOptions)
+		ex := proto.GetExtension(po, yextpb.E_YangName).(string)
+		val = ex
+	}
+
 	// Handle cases where there is >1 path specified for a field based on
 	// path compression.
 	for _, path := range annotatedPath {

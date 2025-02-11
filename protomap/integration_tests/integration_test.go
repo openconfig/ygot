@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/gnmi/value"
+	"github.com/openconfig/gribi/v1/proto/gribi_aft/enums"
 	"github.com/openconfig/ygot/protomap"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
@@ -90,6 +91,23 @@ func TestGRIBIAFT(t *testing.T) {
 			mustPath("afts/next-hops/next-hop[index=1]/state/pushed-mpls-label-stack"): []interface{}{uint64(42), uint64(84)},
 			mustPath("afts/next-hops/next-hop[index=1]/index"):                         uint64(1),
 			mustPath("afts/next-hops/next-hop[index=1]/state/index"):                   uint64(1),
+		},
+	}, {
+		desc: "NH entry with enum",
+		inProto: &aftpb.Afts{
+			NextHop: []*aftpb.Afts_NextHopKey{{
+				Index: 1,
+				NextHop: &aftpb.Afts_NextHop{
+					IpAddress:         &wpb.StringValue{Value: "127.0.0.1"},
+					EncapsulateHeader: enums.OpenconfigAftTypesEncapsulationHeaderType_OPENCONFIGAFTTYPESENCAPSULATIONHEADERTYPE_IPV4,
+				},
+			}},
+		},
+		wantPaths: map[*gpb.Path]interface{}{
+			mustPath("afts/next-hops/next-hop[index=1]/state/ip-address"):         "127.0.0.1",
+			mustPath("afts/next-hops/next-hop[index=1]/index"):                    uint64(1),
+			mustPath("afts/next-hops/next-hop[index=1]/state/index"):              uint64(1),
+			mustPath("afts/next-hops/next-hop[index=1]/state/encapsulate-header"): "IPV4",
 		},
 	}, {
 		desc: "NHG entry",
