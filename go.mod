@@ -1,8 +1,7 @@
 module github.com/openconfig/ygot
 
 go 1.21
-
-toolchain go1.22.4
+toolchain go1.22.5
 
 require (
 	github.com/derekparker/trie v0.0.0-20221221181808-1424fce0c981
@@ -18,8 +17,8 @@ require (
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.19.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
-	google.golang.org/grpc v1.65.0
-	google.golang.org/protobuf v1.34.1
+	google.golang.org/grpc v1.70.0
+	google.golang.org/protobuf v1.35.2
 )
 
 require (
@@ -43,7 +42,7 @@ require (
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20241202173237-19429a94021a // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
