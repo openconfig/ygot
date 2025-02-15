@@ -393,33 +393,31 @@ func (genCode GeneratedPathCode) String() string {
 // output files can be roughly controlled.
 func (genCode GeneratedPathCode) SplitFiles(fileN int) ([]string, error) {
 	structN := len(genCode.Structs)
-	if fileN < 1 || fileN > structN {
+	if fileN < 1 {
 		return nil, fmt.Errorf("requested %d files, but must be between 1 and %d (number of structs)", fileN, structN)
 	}
 
-	files := make([]string, 0, fileN)
+	files := []string{}
 	structsPerFile := int(math.Ceil(float64(structN) / float64(fileN)))
-	// Empty files could appear with certain structN/fileN combinations due
-	// to the ceiling numbers being used for structsPerFile.
-	// e.g. 4/3 gives two files of two structs.
-	// This is a little more complex, but spreads out the structs more evenly.
-	// If we instead use the floor number, and put all remainder structs in
-	// the last file, we might double the last file's number of structs if we get unlucky.
-	// e.g. 99/10 assigns 18 structs to the last file.
-	emptyFiles := fileN - int(math.Ceil(float64(structN)/float64(structsPerFile)))
-	var gotCode strings.Builder
-	gotCode.WriteString(genCode.CommonHeader)
+
+	fileContent := [][]string{}
+	structs := []string{}
 	for i, gotStruct := range genCode.Structs {
-		gotCode.WriteString(gotStruct.String())
-		// The last file contains the remainder of the structs.
-		if i == structN-1 || (i+1)%structsPerFile == 0 {
-			files = append(files, gotCode.String())
-			gotCode.Reset()
-			gotCode.WriteString(genCode.CommonHeader)
+		if i != 0 && i%structsPerFile == 0 {
+			fileContent = append(fileContent, structs)
+			structs = []string{}
 		}
+		structs = append(structs, gotStruct.String())
 	}
-	for i := 0; i != emptyFiles; i++ {
-		files = append(files, genCode.CommonHeader)
+	fileContent = append(fileContent, structs)
+	var gotCode strings.Builder
+	for _, f := range fileContent {
+		gotCode.WriteString(genCode.CommonHeader)
+		for _, s := range f {
+			gotCode.WriteString(s)
+		}
+		files = append(files, gotCode.String())
+		gotCode.Reset()
 	}
 
 	return files, nil
