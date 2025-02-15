@@ -205,6 +205,41 @@ func FindPathElemPrefix(paths []*gpb.Path) *gpb.Path {
 	}
 }
 
+// pathElemMatchesQuery returns true if the given concrete (no wildcard)
+// PathElem is a possible gNMI telemetry name match for the reference PathElem.
+// In particular, it matches wildcards for names and list keys, but *not* "...".
+// See https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-path-conventions.md
+func pathElemMatchesQuery(elem, refElem *gpb.PathElem) bool {
+	if elem == nil || refElem == nil {
+		return elem == nil && refElem == nil
+	}
+
+	if refElem.Name != "*" && elem.Name != refElem.Name {
+		return false
+	}
+
+	for k, ref := range refElem.Key {
+		if v, ok := elem.Key[k]; !ok || (ref != "*" && v != ref) {
+			return false
+		}
+	}
+	return true
+}
+
+// PathElemsMatchQuery returns true if the given concrete (no wildcard)
+// PathElem path slice is a possible gNMI telemetry path match for the
+// reference PathElem path slice.
+// In particular, it matches wildcards for names and list keys, but *not* "...".
+// See https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-path-conventions.md
+func PathElemsMatchQuery(elems, refElems []*gpb.PathElem) bool {
+	for i := 0; i != len(elems) && i != len(refElems); i++ {
+		if !pathElemMatchesQuery(elems[i], refElems[i]) {
+			return false
+		}
+	}
+	return len(refElems) <= len(elems)
+}
+
 // PopGNMIPath returns the supplied GNMI path with the first path element
 // removed. If the path is empty, it returns an empty path.
 func PopGNMIPath(path *gpb.Path) *gpb.Path {

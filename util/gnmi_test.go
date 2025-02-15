@@ -964,6 +964,111 @@ func TestFindPathElemPrefix(t *testing.T) {
 	}
 }
 
+func mustPathElem(s string) []*gpb.PathElem {
+	p, err := stringToStructuredPath(s)
+	if err != nil {
+		panic(err)
+	}
+	return p.Elem
+}
+
+func TestPathElemsMatchQuery(t *testing.T) {
+	tests := []struct {
+		desc               string
+		inRefElems         []*gpb.PathElem
+		inMatchingElems    [][]*gpb.PathElem
+		inNonMatchingElems [][]*gpb.PathElem
+	}{{
+		desc:       "no-wildcard, non-list path",
+		inRefElems: mustPathElem("/alpha/bravo/charlie"),
+		inMatchingElems: [][]*gpb.PathElem{
+			mustPathElem("/alpha/bravo/charlie"),
+			mustPathElem("/alpha/bravo/charlie/delta"),
+			mustPathElem("/alpha/bravo/charlie/echo"),
+		},
+		inNonMatchingElems: [][]*gpb.PathElem{
+			mustPathElem("/alpha/bravo/delta"),
+			mustPathElem("/alpha/bravo/delta/charlie"),
+			mustPathElem("/alpha/bravo/delta/echo"),
+		},
+	}, {
+		desc:       "wildcard, non-list path",
+		inRefElems: mustPathElem("/alpha/*/charlie"),
+		inMatchingElems: [][]*gpb.PathElem{
+			mustPathElem("/alpha/bravo/charlie"),
+			mustPathElem("/alpha/zulu/charlie/delta"),
+			mustPathElem("/alpha/yankee/charlie/echo"),
+		},
+		inNonMatchingElems: [][]*gpb.PathElem{
+			mustPathElem("/alpha/bravo/delta"),
+			mustPathElem("/alpha/zulu/delta/charlie"),
+			mustPathElem("/bravo/yankee/charlie/echo"),
+		},
+	}, {
+		desc:       "no-wildcard, list path",
+		inRefElems: mustPathElem("/alpha/bravo[key=value]/charlie"),
+		inMatchingElems: [][]*gpb.PathElem{
+			mustPathElem("/alpha/bravo[key=value]/charlie"),
+			mustPathElem("/alpha/bravo[key=value]/charlie/delta"),
+		},
+		inNonMatchingElems: [][]*gpb.PathElem{
+			mustPathElem("/alpha/bravo[key=value2]/charlie"),
+			mustPathElem("/alpha/bravo[key=value2]/charlie/echo"),
+			mustPathElem("/alpha/bravo/charlie"),
+			mustPathElem("/alpha/bravo/charlie/echo"),
+		},
+	}, {
+		desc:       "wildcard, list path",
+		inRefElems: mustPathElem("/alpha/bravo[key=*]/charlie"),
+		inMatchingElems: [][]*gpb.PathElem{
+			mustPathElem("/alpha/bravo[key=value]/charlie"),
+			mustPathElem("/alpha/bravo[key=value]/charlie/delta"),
+			mustPathElem("/alpha/bravo[key=value2]/charlie"),
+			mustPathElem("/alpha/bravo[key=value2]/charlie/echo"),
+		},
+		inNonMatchingElems: [][]*gpb.PathElem{
+			mustPathElem("/alpha/bravo/charlie"),
+			mustPathElem("/alpha/bravo/charlie/foxtrot"),
+			mustPathElem("/alpha/bravo/charlie"),
+			mustPathElem("/alpha/bravo/charlie/echo"),
+		},
+	}, {
+		desc:       "multi-wildcard, list path",
+		inRefElems: mustPathElem("/alpha[asn=15169]/bravo[key=*]/*/delta[name=*]/echo"),
+		inMatchingElems: [][]*gpb.PathElem{
+			mustPathElem("/alpha[asn=15169]/bravo[key=tincan][key2=kale]/charlie[k=v]/delta[name=lamp]/echo[a=b]/"),
+			mustPathElem("/alpha[asn=15169]/bravo[key=tincan]/charlie/delta[name=lamp]/echo/"),
+			mustPathElem("/alpha[asn=15169]/bravo[key=tincan]/whiskey/delta[name=lamp]/echo/"),
+			mustPathElem("/alpha[asn=15169]/bravo[key=tincan]/charlie/delta[name=lamp]/echo/a[name=bulb]/b/c"),
+			mustPathElem("/alpha[asn=15169]/bravo[key=tincan]/charlie/delta[name=lamp]/echo/f[name=bulb]"),
+		},
+		inNonMatchingElems: [][]*gpb.PathElem{
+			mustPathElem("/alpha[asn=30]/bravo[key=tincan]/charlie/delta[name=lamp]/echo/b/c[name=bulb]/d"),
+			mustPathElem("/alpha[asn=15169]/bravo/charlie/delta[name=lamp]/echo/f[name=bulb]"),
+			mustPathElem("/quebec[asn=15169]/bravo/charlie/delta[name=lamp]/echo/f[name=bulb]"),
+			mustPathElem("/alpha[password=15169]/bravo[key=tincan]/charlie/delta[name=lamp]/echo/"),
+			mustPathElem("/alpha/bravo[key=tincan]/charlie/delta[name=lamp]/echo/f[name=bulb]"),
+			mustPathElem("/alpha/bravo[key=tincan]/charlie/delta[name=lamp]/echo/f[name=bulb]"),
+			mustPathElem("/alpha[asn=15169]/bravo[key=tincan]/charlie/delta/echo/f[name=bulb]"),
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			for _, matchElems := range tt.inMatchingElems {
+				if !PathElemsMatchQuery(matchElems, tt.inRefElems) {
+					t.Errorf("unexpected non-matching result for %v\nreference path elems: %v", matchElems, tt.inRefElems)
+				}
+			}
+			for _, nonMatchElems := range tt.inNonMatchingElems {
+				if PathElemsMatchQuery(nonMatchElems, tt.inRefElems) {
+					t.Errorf("unexpected matching result for %v\nreference path elems: %v", nonMatchElems, tt.inRefElems)
+				}
+			}
+		})
+	}
+}
+
 func TestFindModelData(t *testing.T) {
 	tests := []struct {
 		name             string
