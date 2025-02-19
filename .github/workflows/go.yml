@@ -24,7 +24,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v5.3
         with:
           go-version: ${{ matrix.go }}
         id: go
@@ -124,9 +124,9 @@ jobs:
 
     steps:
       - name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v5.3
         with:
-          go-version: '1.x'
+          go-version: '1.24'
         id: go
 
       - name: Install required static analysis tools
