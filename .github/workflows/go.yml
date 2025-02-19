@@ -126,7 +126,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.x'
+          go-version: '1.24'
         id: go
 
       - name: Install required static analysis tools
