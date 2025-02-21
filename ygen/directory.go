@@ -193,6 +193,16 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 			}
 		default:
 			pd.Type = Container
+			if len(dir.Entry.Extra["presence"]) > 0 {
+				if v := dir.Entry.Extra["presence"][0].(*yang.Value); v != nil {
+					pd.PresenceContainer = true
+				} else {
+					return nil, fmt.Errorf(
+						"unable to retrieve presence statement, expected non-nil *yang.Value, got %v",
+						dir.Entry.Extra["presence"][0],
+					)
+				}
+			}
 		}
 
 		for i, entry := 0, dir.Entry; ; i++ {

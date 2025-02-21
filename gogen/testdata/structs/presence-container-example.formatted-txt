@@ -152,6 +152,9 @@ func (*PresenceContainerExample_Parent_Child) ΛBelongingModule() string {
 	return "presence-container-example"
 }
 
+// IsPresence returns nothing, but indicates that the receiver is a presence container. 
+func (t *PresenceContainerExample_Parent_Child) IsPresence() {}
+
 // PresenceContainerExample_Parent_Child_Config represents the /presence-container-example/parent/child/config YANG schema element.
 type PresenceContainerExample_Parent_Child_Config struct {
 	Four	Binary	`path:"four" module:"presence-container-example"`

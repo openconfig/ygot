@@ -839,6 +839,12 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 	]", i, i)
 }
 `)
+	// presenceMethodTemplate provides a template to output a method
+	// indicating this is a presence container
+	presenceMethodTemplate = mustMakeTemplate("presenceMethodTemplate", `
+// IsPresence returns nothing, but indicates that the receiver is a presence container. 
+func (t *{{ .StructName }}) IsPresence() {}
+`)
 )
 
 // writeGoHeader outputs the package header, including the package name and
@@ -1401,6 +1407,14 @@ func writeGoStruct(targetStruct *ygen.ParsedDirectory, goStructElements map[stri
 
 	if err := generateBelongingModuleFunction(&methodBuf, structDef); err != nil {
 		errs = append(errs, err)
+	}
+
+	if goOpts.AddYangPresence {
+		if targetStruct.PresenceContainer {
+			if err := presenceMethodTemplate.Execute(&methodBuf, structDef); err != nil {
+				errs = append(errs, err)
+			}
+		}
 	}
 
 	return GoStructCodeSnippet{

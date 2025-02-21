@@ -196,6 +196,18 @@ type basicStructThree struct {
 	StringValue *string `path:"third-string-value|config/third-string-value"`
 }
 
+type basicStructPresence struct {
+	StringValue *string `path:"string-value" yangPresence:"true"`
+}
+
+func (*basicStructPresence) IsYANGGoStruct() {}
+
+type basicStructPresenceWithStruct struct {
+	StructField *basicStructThree `path:"struct-value" yangPresence:"true"`
+}
+
+func (*basicStructPresenceWithStruct) IsYANGGoStruct() {}
+
 func TestNodeValuePath(t *testing.T) {
 	cmplx := complex(float64(1), float64(2))
 	tests := []struct {
@@ -624,7 +636,44 @@ func TestFindSetLeaves(t *testing.T) {
 				}},
 			}: String("baz"),
 		},
-	}}
+	}, {
+		desc:     "struct with presence container",
+		inStruct: &basicStructPresence{StringValue: String("foo")},
+		inOpts:   []DiffOpt{&WithRespectPresenceContainers{}},
+		want: map[*pathSpec]interface{}{
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{{Name: "string-value"}},
+				}},
+			}: nil,
+		},
+	}, {
+		desc:     "struct with presence container but no diff opt",
+		inStruct: &basicStructPresence{StringValue: String("foo")},
+		want: map[*pathSpec]interface{}{
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{{Name: "string-value"}},
+				}},
+			}: String("foo"),
+		},
+	}, {
+		desc:     "struct with presence container, empty struct as value",
+		inStruct: &basicStructPresenceWithStruct{StructField: &basicStructThree{}},
+		inOpts:   []DiffOpt{&WithRespectPresenceContainers{}},
+		want: map[*pathSpec]interface{}{
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{{Name: "struct-value"}},
+				}},
+			}: nil,
+		},
+	}, {
+		desc:     "struct with presence container, empty struct as a value and no diff opt should be ignored",
+		inStruct: &basicStructPresenceWithStruct{StructField: &basicStructThree{}},
+		want:     map[*pathSpec]interface{}{},
+	},
+	}
 
 	for _, tt := range tests {
 		got, err := findSetLeaves(tt.inStruct, false, tt.inOpts...)
@@ -1553,7 +1602,55 @@ func TestDiff(t *testing.T) {
 				},
 			}},
 		},
-	}}
+	}, {
+		desc:   "presence container delete presence",
+		inOrig: &basicStructPresenceWithStruct{StructField: &basicStructThree{}},
+		inMod:  &basicStructPresenceWithStruct{},
+		inOpts: []DiffOpt{&WithRespectPresenceContainers{}},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "struct-value",
+				}},
+			}},
+		},
+	}, {
+		desc:   "presence container diff update to add presence",
+		inOrig: &basicStructPresenceWithStruct{},
+		inMod:  &basicStructPresenceWithStruct{StructField: &basicStructThree{}},
+		inOpts: []DiffOpt{&WithRespectPresenceContainers{}},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "struct-value",
+					}},
+				},
+				Val: nil,
+			}},
+		},
+	}, {
+		desc:   "presencecontainer should explicitly be deleted",
+		inOrig: &basicStructPresenceWithStruct{StructField: &basicStructThree{StringValue: String("foo")}},
+		inMod:  &basicStructPresenceWithStruct{},
+		inOpts: []DiffOpt{&WithRespectPresenceContainers{}},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{
+				{Elem: []*gnmipb.PathElem{{Name: "struct-value"}}},
+				{Elem: []*gnmipb.PathElem{{Name: "struct-value"}, {Name: "third-string-value"}}},
+				{Elem: []*gnmipb.PathElem{{Name: "struct-value"}, {Name: "config"}, {Name: "third-string-value"}}},
+			}},
+	}, {
+		desc:   "presencecontainer without diff opt should NOT explicitly be deleted",
+		inOrig: &basicStructPresenceWithStruct{StructField: &basicStructThree{StringValue: String("foo")}},
+		inMod:  &basicStructPresenceWithStruct{},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{
+				{Elem: []*gnmipb.PathElem{{Name: "struct-value"}, {Name: "third-string-value"}}},
+				{Elem: []*gnmipb.PathElem{{Name: "struct-value"}, {Name: "config"}, {Name: "third-string-value"}}},
+			}},
+	},
+	}
 
 	for _, tt := range tests {
 		testDiffSingleNotif := func(t *testing.T, funcName string, got *gnmipb.Notification, err error) {

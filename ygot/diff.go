@@ -254,6 +254,8 @@ func findSetLeaves(s GoStruct, orderedMapAsLeaf bool, opts ...DiffOpt) (map[*pat
 			return
 		}
 
+		isYangPresence := hasRespectPresenceContainers(opts) != nil && util.IsYangPresence(ni.StructField)
+
 		var sp [][]string
 		if pathOpt != nil && pathOpt.PreferShadowPath {
 			// Try the shadow-path tag first to see if it exists.
@@ -313,9 +315,10 @@ func findSetLeaves(s GoStruct, orderedMapAsLeaf bool, opts ...DiffOpt) (map[*pat
 		// Ignore structs unless it is an ordered map and we're
 		// treating it as a leaf (since it is assumed to be
 		// telemetry-atomic in order to preserve ordering of entries).
-		if (!isOrderedMap || !orderedMapAsLeaf) && util.IsValueStructPtr(ni.FieldValue) {
+		if util.IsValueStructPtr(ni.FieldValue) && (!isOrderedMap || !orderedMapAsLeaf) && !isYangPresence {
 			return
 		}
+
 		if isOrderedMap && orderedMap.Len() == 0 {
 			return
 		}
@@ -335,7 +338,15 @@ func findSetLeaves(s GoStruct, orderedMapAsLeaf bool, opts ...DiffOpt) (map[*pat
 		}
 
 		outs := out.(map[*pathSpec]interface{})
-		outs[vp] = ival
+		if isYangPresence {
+			// If the current field is tagged as a presence container,
+			// we set it's value to `nil` instead of returning earlier.
+			// This is because empty presence containers has a meaning,
+			// unlike a normal container.
+			outs[vp] = nil
+		} else {
+			outs[vp] = ival
+		}
 
 		if isOrderedMap && orderedMapAsLeaf {
 			// We treat the ordered map as a leaf, so don't
@@ -421,6 +432,24 @@ func hasIgnoreAdditions(opts []DiffOpt) *IgnoreAdditions {
 		switch v := o.(type) {
 		case *IgnoreAdditions:
 			return v
+		}
+	}
+	return nil
+}
+
+// The RespectPresenceContainers DiffOpt indicates that presence containers
+// should be respected in the diff output.
+// This option was added to ensure we do not break backward compatibility.
+type WithRespectPresenceContainers struct{}
+
+func (*WithRespectPresenceContainers) IsDiffOpt() {}
+
+// hasIgnoreAdditions returns the first IgnoreAdditions from an opts slice, or
+// nil if there isn't one.
+func hasRespectPresenceContainers(opts []DiffOpt) *WithRespectPresenceContainers {
+	for _, o := range opts {
+		if rp, ok := o.(*WithRespectPresenceContainers); ok {
+			return rp
 		}
 	}
 	return nil
