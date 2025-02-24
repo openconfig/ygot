@@ -8,7 +8,7 @@ require (
 	github.com/derekparker/trie v0.0.0-20230829180723-39f4de51ef7d
 	github.com/golang/glog v1.2.4
 	github.com/golang/protobuf v1.5.4
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.7.0
 	github.com/kr/pretty v0.3.1
 	github.com/kylelemons/godebug v1.1.0
 	github.com/openconfig/gnmi v0.13.0
