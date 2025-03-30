@@ -444,7 +444,7 @@ type WithRespectPresenceContainers struct{}
 
 func (*WithRespectPresenceContainers) IsDiffOpt() {}
 
-// hasIgnoreAdditions returns the first IgnoreAdditions from an opts slice, or
+// hasRespectPresenceContainers returns the first WithRespectPresenceContainers from an opts slice, or
 // nil if there isn't one.
 func hasRespectPresenceContainers(opts []DiffOpt) *WithRespectPresenceContainers {
 	for _, o := range opts {
