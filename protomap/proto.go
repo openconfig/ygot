@@ -722,7 +722,15 @@ func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, 
 			default:
 				childMsg := m.NewField(fd).Message()
 				np := proto.Clone(valPrefix).(*gpb.Path)
-				np.Elem = append(np.Elem, util.TrimGNMIPathElemPrefix(annotatedPath[0], protoPrefix).Elem...)
+				ap := annotatedPath[0]
+				// Check if the path is already property prefixed
+				if len(protoPrefix.Elem) > 0 && len(ap.Elem) > 0 &&	proto.Equal(schemaPath(&gpb.Path{Elem: ap.Elem[:len(protoPrefix.Elem)]}), schemaPath(protoPrefix)) {
+					childPath := &gpb.Path{Elem: ap.Elem[len(protoPrefix.Elem):]}
+					np.Elem = append(np.Elem, childPath.Elem...)
+				} else {
+					trimmed := util.TrimGNMIPathElemPrefix(ap, protoPrefix)
+					np.Elem = append(np.Elem, trimmed.Elem...)
+				}
 
 				// There may be paths that are not direct descendents, so do not error. Return indirect children too.
 				children, err := findChildren(vals, valPrefix, np, false, false)
