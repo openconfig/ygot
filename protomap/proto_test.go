@@ -1378,6 +1378,19 @@ func TestProtoFromPaths(t *testing.T) {
 			mustPath("/union"): "fish",
 		},
 		wantErrSubstring: `did not map path elem:{name:"union"}`,
+	}, {
+		desc:    "nested list with complex keys - preserve keys when trimming path",
+		inProto: &epb.Subinterface{},
+		inVals: map[*gpb.Path]any{
+			mustPath("config/description"): "subint-description",
+		},
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("interfaces/interface/subinterfaces/subinterface")),
+			ValuePathPrefix(mustPath("interfaces/interface[name=eth0]/subinterfaces/subinterface[index=42]")),
+		},
+		wantProto: &epb.Subinterface{
+			Description: &wpb.StringValue{Value: "subint-description"},
+		},
 	}}
 
 	for _, tt := range tests {

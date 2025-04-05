@@ -929,6 +929,209 @@ func TestTrimGNMIPathElemPrefix(t *testing.T) {
 	}
 }
 
+func TestGNMIPathToSchemaPath(t *testing.T) {
+	tests := []struct {
+		name string
+		in   *gpb.Path
+		want *gpb.Path
+	}{{
+		name: "nil path",
+		in:   nil,
+		want: nil,
+	}, {
+		name: "empty path",
+		in:   &gpb.Path{},
+		want: &gpb.Path{},
+	}, {
+		name: "path with no keys",
+		in: &gpb.Path{
+			Elem: []*gpb.PathElem{
+				{Name: "one"},
+				{Name: "two"},
+			},
+		},
+		want: &gpb.Path{
+			Elem: []*gpb.PathElem{
+				{Name: "one"},
+				{Name: "two"},
+			},
+		},
+	}, {
+		name: "path with keys",
+		in: &gpb.Path{
+			Elem: []*gpb.PathElem{
+				{Name: "interfaces", Key: map[string]string{"name": "eth0"}},
+				{Name: "config"},
+			},
+		},
+		want: &gpb.Path{
+			Elem: []*gpb.PathElem{
+				{Name: "interfaces"},
+				{Name: "config"},
+			},
+		},
+	}, {
+		name: "path with multiple keys",
+		in: &gpb.Path{
+			Elem: []*gpb.PathElem{
+				{Name: "interfaces", Key: map[string]string{"name": "eth0"}},
+				{Name: "subinterfaces", Key: map[string]string{"index": "0"}},
+				{Name: "config"},
+			},
+		},
+		want: &gpb.Path{
+			Elem: []*gpb.PathElem{
+				{Name: "interfaces"},
+				{Name: "subinterfaces"},
+				{Name: "config"},
+			},
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := util.GNMIPathToSchemaPath(tt.in)
+			if diff := cmp.Diff(tt.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("GNMIPathToSchemaPath(%v) returned unexpected diff (-want, +got):\n%s", tt.in, diff)
+			}
+		})
+	}
+}
+
+func TestTrimGNMIPathElemPrefixKeyAware(t *testing.T) {
+	tests := []struct {
+		desc     string
+		inPath   *gpb.Path
+		inPrefix *gpb.Path
+		want     *gpb.Path
+	}{{
+		desc:   "nil prefix",
+		inPath: &gpb.Path{Elem: []*gpb.PathElem{{Name: "a"}, {Name: "b"}}},
+		want:   &gpb.Path{Elem: []*gpb.PathElem{{Name: "a"}, {Name: "b"}}},
+	}, {
+		desc:     "empty prefix",
+		inPath:   &gpb.Path{Elem: []*gpb.PathElem{{Name: "a"}, {Name: "b"}}},
+		inPrefix: &gpb.Path{},
+		want:     &gpb.Path{Elem: []*gpb.PathElem{{Name: "a"}, {Name: "b"}}},
+	}, {
+		desc:     "prefix longer than path",
+		inPath:   &gpb.Path{Elem: []*gpb.PathElem{{Name: "a"}}},
+		inPrefix: &gpb.Path{Elem: []*gpb.PathElem{{Name: "a"}, {Name: "b"}}},
+		want:     &gpb.Path{Elem: []*gpb.PathElem{{Name: "a"}}},
+	}, {
+		desc:     "normal prefix without keys",
+		inPath:   &gpb.Path{Elem: []*gpb.PathElem{{Name: "a"}, {Name: "b"}, {Name: "c"}}},
+		inPrefix: &gpb.Path{Elem: []*gpb.PathElem{{Name: "a"}, {Name: "b"}}},
+		want:     &gpb.Path{Elem: []*gpb.PathElem{{Name: "c"}}},
+	}, {
+		desc: "prefix with keys matches path with keys",
+		inPath: &gpb.Path{Elem: []*gpb.PathElem{
+			{Name: "interfaces", Key: map[string]string{"name": "eth0"}},
+			{Name: "config"},
+			{Name: "description"},
+		}},
+		inPrefix: &gpb.Path{Elem: []*gpb.PathElem{
+			{Name: "interfaces", Key: map[string]string{"name": "eth0"}},
+			{Name: "config"},
+		}},
+		want: &gpb.Path{Elem: []*gpb.PathElem{{Name: "description"}}},
+	}, {
+		desc: "prefix with diff key values still matches as schema path",
+		inPath: &gpb.Path{Elem: []*gpb.PathElem{
+			{Name: "interfaces", Key: map[string]string{"name": "eth0"}},
+			{Name: "config"},
+			{Name: "description"},
+		}},
+		inPrefix: &gpb.Path{Elem: []*gpb.PathElem{
+			{Name: "interfaces", Key: map[string]string{"name": "eth1"}},
+			{Name: "config"},
+		}},
+		want: &gpb.Path{Elem: []*gpb.PathElem{{Name: "description"}}},
+	}, {
+		desc: "prefix with no keys matches path with keys",
+		inPath: &gpb.Path{Elem: []*gpb.PathElem{
+			{Name: "interfaces", Key: map[string]string{"name": "eth0"}},
+			{Name: "config"},
+			{Name: "description"},
+		}},
+		inPrefix: &gpb.Path{Elem: []*gpb.PathElem{
+			{Name: "interfaces"},
+			{Name: "config"},
+		}},
+		want: &gpb.Path{Elem: []*gpb.PathElem{{Name: "description"}}},
+	}, {
+		desc: "demonstrates bug fix (outer structure match even with keys)",
+		inPath: &gpb.Path{Elem: []*gpb.PathElem{
+			{Name: "interfaces", Key: map[string]string{"name": "eth0"}},
+			{Name: "encap-headers", Key: map[string]string{"index": "11"}},
+			{Name: "mpls"},
+			{Name: "label-stack"},
+		}},
+		inPrefix: &gpb.Path{Elem: []*gpb.PathElem{
+			{Name: "interfaces"},
+			{Name: "encap-headers"},
+		}},
+		want: &gpb.Path{Elem: []*gpb.PathElem{
+			{Name: "mpls"},
+			{Name: "label-stack"},
+		}},
+	}, {
+		desc: "non-matching prefix returns original path",
+		inPath: &gpb.Path{Elem: []*gpb.PathElem{
+			{Name: "interfaces", Key: map[string]string{"name": "eth0"}},
+			{Name: "config"},
+		}},
+		inPrefix: &gpb.Path{Elem: []*gpb.PathElem{
+			{Name: "different-prefix"},
+		}},
+		want: &gpb.Path{Elem: []*gpb.PathElem{
+			{Name: "interfaces", Key: map[string]string{"name": "eth0"}},
+			{Name: "config"},
+		}},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got := util.TrimGNMIPathElemPrefixKeyAware(tt.inPath, tt.inPrefix)
+			if diff := cmp.Diff(tt.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("TrimGNMIPathElemPrefixKeyAware(%v, %v) returned unexpected diff (-want, +got):\n%s",
+					tt.inPath, tt.inPrefix, diff)
+			}
+		})
+	}
+}
+
+func TestCompareTrimFunctions(t *testing.T) {
+	// This test demonstrates the difference between the original TrimGNMIPathElemPrefix
+	// and the new key-aware version by showing a case where they behave differently
+	path := &gpb.Path{Elem: []*gpb.PathElem{
+		{Name: "interfaces", Key: map[string]string{"name": "eth0"}},
+		{Name: "config"},
+		{Name: "description"},
+	}}
+
+	prefix := &gpb.Path{Elem: []*gpb.PathElem{
+		{Name: "interfaces", Key: map[string]string{"name": "eth1"}}, // Note different key value
+		{Name: "config"},
+	}}
+
+	trimResultWithoutKeyAware := util.TrimGNMIPathElemPrefix(path, prefix)
+	keyAwareTrimResult := util.TrimGNMIPathElemPrefixKeyAware(path, prefix)
+
+	// Original trim should not trim because keys don't match exactly
+	if !proto.Equal(trimResultWithoutKeyAware, path) {
+		t.Errorf("Original trim did not preserve path with different keys: got %v, want %v",
+			trimResultWithoutKeyAware, path)
+	}
+
+	// Key-aware trim should trim because schema paths match after removing keys
+	wantTrimmed := &gpb.Path{Elem: []*gpb.PathElem{{Name: "description"}}}
+	if !proto.Equal(keyAwareTrimResult, wantTrimmed) {
+		t.Errorf("Key-aware trim did not correctly trim path: got %v, want %v",
+			keyAwareTrimResult, wantTrimmed)
+	}
+}
+
 func TestFindPathElemPrefix(t *testing.T) {
 	tests := []struct {
 		name    string

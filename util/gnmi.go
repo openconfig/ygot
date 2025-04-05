@@ -180,6 +180,9 @@ func TrimGNMIPathElemPrefix(path, prefix *gpb.Path) *gpb.Path {
 
 // GNMIPathToSchemaPath converts the path p into a schema path by removing all of the keys within the path.
 func GNMIPathToSchemaPath(p *gpb.Path) *gpb.Path {
+	if p == nil {
+		return nil
+	}
 	np := proto.Clone(p).(*gpb.Path)
 	for _, e := range np.Elem {
 		e.Key = nil
@@ -191,7 +194,7 @@ func GNMIPathToSchemaPath(p *gpb.Path) *gpb.Path {
 // Unlike TrimGNMIPathElemPrefix, this function compares paths as schema paths (without keys) to
 // determine the prefix relationship, which ensures correct handling when keys are present.
 func TrimGNMIPathElemPrefixKeyAware(path, prefix *gpb.Path) *gpb.Path {
-	if prefix == nil || len(prefix.Elem) == 0 || len(path.Elem) < len(prefix.Elem) {
+	if path == nil || prefix == nil || len(prefix.Elem) == 0 || len(path.Elem) < len(prefix.Elem) {
 		return path
 	}
 
