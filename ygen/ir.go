@@ -312,6 +312,9 @@ type IR struct {
 	// fakeroot stores the fake root's AST node for creating a serialized
 	// version of the AST if needed.
 	fakeroot *yang.Entry
+
+	UseModuleNameAsPathOrigin bool
+	PathOriginName string
 }
 
 // OrderedDirectoryPaths returns the absolute YANG paths of all ParsedDirectory
