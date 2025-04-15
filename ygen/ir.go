@@ -314,7 +314,7 @@ type IR struct {
 	fakeroot *yang.Entry
 
 	UseModuleNameAsPathOrigin bool
-	PathOriginName string
+	PathOriginName		  string
 }
 
 // OrderedDirectoryPaths returns the absolute YANG paths of all ParsedDirectory
