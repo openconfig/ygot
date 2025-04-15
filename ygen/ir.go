@@ -313,8 +313,12 @@ type IR struct {
 	// version of the AST if needed.
 	fakeroot *yang.Entry
 
+	// UseModuleNameAsPathOrigin specifies whether the YANG module name is
+	// set to the origin for generated gNMI paths.
 	UseModuleNameAsPathOrigin bool
-	PathOriginName		  string
+
+	// PathOriginName specifies the orign name for generated gNMI paths.
+	PathOriginName string
 }
 
 // OrderedDirectoryPaths returns the absolute YANG paths of all ParsedDirectory
