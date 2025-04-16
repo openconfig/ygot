@@ -80,7 +80,7 @@ func (r *PathTranslator) PathElem(p []string) ([]*gnmipb.PathElem, error) {
 	// When keys are consumed, they are set as true in "used" slice.
 	used := make([]bool, len(p))
 
-	// Keeps the path elements seeen so far by appending with a separator.
+	// Keeps the path elements seen so far by appending with a separator.
 	var pathSoFar string
 
 	var res []*gnmipb.PathElem
@@ -113,4 +113,28 @@ func (r *PathTranslator) PathElem(p []string) ([]*gnmipb.PathElem, error) {
 	}
 
 	return res, nil
+}
+
+// SetWildcardKeys sets the keys of the given path elements based on stored rewrite rules,
+// with the value set to "*". Elems are modified in place.
+// It returns true if the path has been updated, and an error if any of the elems already has keys.
+func (r *PathTranslator) SetWildcardKeys(elems []*gnmipb.PathElem) (bool, error) {
+	var pathSoFar string
+	var updated bool
+	for _, elem := range elems {
+		pathSoFar = pathSoFar + separator + elem.GetName()
+		keyNames, ok := r.rules[pathSoFar]
+		if !ok {
+			continue
+		}
+		if elem.GetKey() != nil {
+			return false, fmt.Errorf("path %v already has keys", elems)
+		}
+		elem.Key = map[string]string{}
+		for _, key := range keyNames {
+			elem.Key[key] = "*"
+		}
+		updated = true
+	}
+	return updated, nil
 }
