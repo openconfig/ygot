@@ -178,6 +178,34 @@ func TrimGNMIPathElemPrefix(path, prefix *gpb.Path) *gpb.Path {
 	return out
 }
 
+// GNMIPathToSchemaPath converts the path p into a schema path by removing all of the keys within the path.
+func GNMIPathToSchemaPath(p *gpb.Path) *gpb.Path {
+	if p == nil {
+		return nil
+	}
+	np := proto.Clone(p).(*gpb.Path)
+	for _, e := range np.Elem {
+		e.Key = nil
+	}
+	return np
+}
+
+// TrimGNMIPathElemPrefixKeyAware trims the prefix from a path while properly handling keys.
+// Unlike TrimGNMIPathElemPrefix, this function compares paths as schema paths (without keys) to
+// determine the prefix relationship, which ensures correct handling when keys are present.
+func TrimGNMIPathElemPrefixKeyAware(path, prefix *gpb.Path) *gpb.Path {
+	if path == nil || prefix == nil || len(prefix.Elem) == 0 || len(path.Elem) < len(prefix.Elem) {
+		return path
+	}
+
+	pathPrefix := &gpb.Path{Elem: path.Elem[:len(prefix.Elem)]}
+	if !proto.Equal(GNMIPathToSchemaPath(pathPrefix), GNMIPathToSchemaPath(prefix)) {
+		return path
+	}
+
+	return &gpb.Path{Elem: path.Elem[len(prefix.Elem):]}
+}
+
 // FindPathElemPrefix finds the longest common prefix of the paths specified.
 func FindPathElemPrefix(paths []*gpb.Path) *gpb.Path {
 	var prefix *gpb.Path

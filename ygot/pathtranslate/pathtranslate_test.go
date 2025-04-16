@@ -245,3 +245,164 @@ func TestPathElem(t *testing.T) {
 		})
 	}
 }
+
+func TestSetWildcardKeys(t *testing.T) {
+	schemas := []*yang.Entry{
+		{Name: "root"},
+		{
+			Name: "simpleKeyedList",
+			Key:  "k1",
+			Parent: &yang.Entry{
+				Name: "simpleKeyedLists",
+				Parent: &yang.Entry{
+					Name: "b",
+					Parent: &yang.Entry{
+						Name:   "a",
+						Parent: &yang.Entry{Name: "root"},
+					},
+				},
+			},
+		},
+		{
+			Name: "structKeyedList",
+			Key:  "k1 k2 k3",
+			Parent: &yang.Entry{Name: "structKeyedLists",
+				Parent: &yang.Entry{
+					Name: "simpleKeyedList",
+					Key:  "k1",
+					Parent: &yang.Entry{
+						Name: "simpleKeyedLists",
+						Parent: &yang.Entry{
+							Name: "b",
+							Parent: &yang.Entry{
+								Name:   "a",
+								Parent: &yang.Entry{Name: "root"},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		inDesc           string
+		path             []*gnmipb.PathElem
+		wantPath         []*gnmipb.PathElem
+		wantUpdated      bool
+		wantErrSubstring string
+	}{
+		{
+			inDesc:      "success empty path",
+			path:        []*gnmipb.PathElem{},
+			wantPath:    []*gnmipb.PathElem{},
+			wantUpdated: false,
+		},
+		{
+			inDesc: "success path with no keyed list(note, it doesn't exist in schema)",
+			path: []*gnmipb.PathElem{
+				{Name: "a"},
+				{Name: "b"},
+			},
+			wantPath: []*gnmipb.PathElem{
+				{Name: "a"},
+				{Name: "b"},
+			},
+			wantUpdated: false,
+		},
+		{
+			inDesc: "success path with keyed list at the end",
+			path: []*gnmipb.PathElem{
+				{Name: "a"},
+				{Name: "b"},
+				{Name: "simpleKeyedLists"},
+				{Name: "simpleKeyedList"},
+			},
+			wantPath: []*gnmipb.PathElem{
+				{Name: "a"},
+				{Name: "b"},
+				{Name: "simpleKeyedLists"},
+				{Name: "simpleKeyedList", Key: map[string]string{"k1": "*"}},
+			},
+			wantUpdated: true,
+		},
+		{
+			inDesc: "success path with keyed list followed by arbitrary elements",
+			path: []*gnmipb.PathElem{
+				{Name: "a"},
+				{Name: "b"},
+				{Name: "simpleKeyedLists"},
+				{Name: "simpleKeyedList"},
+				{Name: "arbitrary1"},
+				{Name: "arbitrary2"},
+			},
+			wantPath: []*gnmipb.PathElem{
+				{Name: "a"},
+				{Name: "b"},
+				{Name: "simpleKeyedLists"},
+				{Name: "simpleKeyedList", Key: map[string]string{"k1": "*"}},
+				{Name: "arbitrary1"},
+				{Name: "arbitrary2"},
+			},
+			wantUpdated: true,
+		},
+		{
+			inDesc: "success path with struct keyed list",
+			path: []*gnmipb.PathElem{
+				{Name: "a"},
+				{Name: "b"},
+				{Name: "simpleKeyedLists"},
+				{Name: "simpleKeyedList"},
+				{Name: "structKeyedLists"},
+				{Name: "structKeyedList"},
+			},
+			wantPath: []*gnmipb.PathElem{
+				{Name: "a"},
+				{Name: "b"},
+				{Name: "simpleKeyedLists"},
+				{Name: "simpleKeyedList", Key: map[string]string{"k1": "*"}},
+				{Name: "structKeyedLists"},
+				{Name: "structKeyedList", Key: map[string]string{"k1": "*", "k2": "*", "k3": "*"}},
+			},
+			wantUpdated: true,
+		},
+		{
+			inDesc: "fail when input path already has keys",
+			path: []*gnmipb.PathElem{
+				{Name: "a"},
+				{Name: "b"},
+				{Name: "simpleKeyedLists"},
+				{Name: "simpleKeyedList", Key: map[string]string{"k1": "key1"}},
+				{Name: "arbitrary"},
+			},
+			wantPath: []*gnmipb.PathElem{
+				{Name: "a"},
+				{Name: "b"},
+				{Name: "simpleKeyedLists"},
+				{Name: "simpleKeyedList", Key: map[string]string{"k1": "key1"}},
+				{Name: "arbitrary"},
+			},
+			wantUpdated:      false,
+			wantErrSubstring: "already has keys",
+		},
+	}
+	r, err := NewPathTranslator(schemas)
+	if err != nil {
+		t.Errorf("failed to create path translator; %v", r)
+	}
+	for _, tc := range tests {
+		t.Run(tc.inDesc, func(t *testing.T) {
+			updated, err := r.SetWildcardKeys(tc.path)
+			if diff := errdiff.Substring(err, tc.wantErrSubstring); diff != "" {
+				t.Errorf("diff: %v", diff)
+				return
+			}
+			if updated != tc.wantUpdated {
+				t.Errorf("got matched %v, want %v", updated, tc.wantUpdated)
+			}
+			if !cmp.Equal(tc.path, tc.wantPath, cmp.Comparer(proto.Equal)) {
+				t.Errorf("got %v, want %v", tc.path, tc.wantPath)
+			}
+		})
+	}
+}

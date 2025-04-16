@@ -540,7 +540,7 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, opt ...Unma
 	if err != nil {
 		return fmt.Errorf("invalid value prefix supplied, %v", err)
 	}
-	valPrefix = schemaPath(valPrefix)
+	valPrefix = util.GNMIPathToSchemaPath(valPrefix)
 
 	protoPrefix, err := hasProtoMsgPrefix(opt)
 	if err != nil {
@@ -548,15 +548,6 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, opt ...Unma
 	}
 
 	return protoFromPathsInternal(p, vals, valPrefix, protoPrefix, hasIgnoreExtraPaths(opt))
-}
-
-// schemaPath converts the path p into a schema path by removing all of the keys within the path.
-func schemaPath(p *gpb.Path) *gpb.Path {
-	np := proto.Clone(p).(*gpb.Path)
-	for _, e := range np.Elem {
-		e.Key = nil
-	}
-	return np
 }
 
 // findChildren returns the entries from the vals map that correspond to children of the specified protoPrefix path.
@@ -633,7 +624,7 @@ func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, 
 
 		if len(directCh) != 0 {
 			for _, ap := range annotatedPath {
-				trimmedPrefix := schemaPath(protoPrefix)
+				trimmedPrefix := util.GNMIPathToSchemaPath(protoPrefix)
 				if !util.PathMatchesPathElemPrefix(ap, trimmedPrefix) {
 					rangeErr = fmt.Errorf("annotation %s does not match the supplied prefix %s", ap, protoPrefix)
 					return false
@@ -722,7 +713,10 @@ func protoFromPathsInternal(p proto.Message, vals map[*gpb.Path]any, valPrefix, 
 			default:
 				childMsg := m.NewField(fd).Message()
 				np := proto.Clone(valPrefix).(*gpb.Path)
-				np.Elem = append(np.Elem, util.TrimGNMIPathElemPrefix(annotatedPath[0], protoPrefix).Elem...)
+				ap := annotatedPath[0]
+
+				trimmed := util.TrimGNMIPathElemPrefixKeyAware(ap, protoPrefix)
+				np.Elem = append(np.Elem, trimmed.Elem...)
 
 				// There may be paths that are not direct descendents, so do not error. Return indirect children too.
 				children, err := findChildren(vals, valPrefix, np, false, false)
@@ -777,7 +771,7 @@ func createListField(m proto.Message, fd protoreflect.FieldDescriptor, fieldPath
 		}
 		// Since the fieldPath is a schema path, then we need to compare just schema paths
 		// to avoid comparing the keys.
-		if !util.PathMatchesPathElemPrefix(schemaPath(absPath), schemaPath(fieldPath)) {
+		if !util.PathMatchesPathElemPrefix(util.GNMIPathToSchemaPath(absPath), util.GNMIPathToSchemaPath(fieldPath)) {
 			continue
 		}
 		// The key of the list is in the last element of the absolute path in the values map (the values
