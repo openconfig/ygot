@@ -185,13 +185,11 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 	}
 
 	return &IR{
-		Directories:               dirDets,
-		Enums:                     enumDefinitionMap,
-		ModelData:                 mdef.modelData,
-		opts:                      opts,
-		fakeroot:                  rootEntry,
-		parsedModules:             mdef.modules,
-		UseModuleNameAsPathOrigin: opts.UseModuleNameAsPathOrigin,
-		PathOriginName:            opts.PathOriginName,
+		Directories:   dirDets,
+		Enums:         enumDefinitionMap,
+		ModelData:     mdef.modelData,
+		opts:          opts,
+		fakeroot:      rootEntry,
+		parsedModules: mdef.modules,
 	}, nil
 }
