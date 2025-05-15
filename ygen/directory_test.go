@@ -836,7 +836,7 @@ func TestGetOrderedDirDetailsPathOrigin(t *testing.T) {
 		inSchemaTree: &yangschema.Tree{},
 		inOpts:       IROptions{},
 		wantPathOriginName: map[string]string{
-			"/a-module/a-container/field-a": "",
+			"/a-module/a-container/field-a": "openconfig",
 		},
 	}}
 
@@ -872,7 +872,7 @@ func getPathOriginNames(dirs map[string]*ParsedDirectory) map[string]string {
 	origins := make(map[string]string)
 	for path, dir := range dirs {
 		for _, field := range dir.Fields {
-			origins[path] = field.PathOriginName
+			origins[path] = field.YANGDetails.Origin
 			break // The PathOriginName of the first field in each ParsedDirectory is verified.
 		}
 	}

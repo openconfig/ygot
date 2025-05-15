@@ -279,10 +279,13 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 			// If IROptions.PathOriginName has a value, the value is set to the Origin of the node.
 			// Else if IROptions.UseModuleNameAsPathOrigin of the node is true,
 			// YANG module name is set to the Origin of the node.
+			// Else "openconfig" is set to the Origin of the node.
 			if opts.PathOriginName != "" {
-				nd.PathOriginName = opts.PathOriginName
+				nd.YANGDetails.Origin = opts.PathOriginName
 			} else if opts.UseModuleNameAsPathOrigin {
-				nd.PathOriginName = nd.YANGDetails.RootElementModule
+				nd.YANGDetails.Origin = nd.YANGDetails.BelongingModule
+			} else {
+				nd.YANGDetails.Origin = "openconfig"
 			}
 
 			switch {

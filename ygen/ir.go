@@ -588,8 +588,6 @@ type NodeDetails struct {
 	// Specifically, this field is set by the
 	// LangMapperExt.PopulateFieldFlags function.
 	Flags map[string]string
-	// PathOriginName specifies the origin name for the generated gNMI path.
-	PathOriginName string
 }
 
 // NodeType describes the different types of node that can
@@ -711,6 +709,8 @@ type YANGNodeDetails struct {
 	// statement in YANG:
 	// https://datatracker.ietf.org/doc/html/rfc7950#section-7.21.1
 	ConfigFalse bool
+	// Origin specifies the origin name for the generated gNMI path.
+	Origin string
 }
 
 // EnumeratedValueType is used to indicate the source YANG type
