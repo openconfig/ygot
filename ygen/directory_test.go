@@ -708,27 +708,27 @@ func TestFindMapPaths(t *testing.T) {
 
 type mockLangMapper struct{}
 
-func (*mockLangMapper) FieldName(e *yang.Entry) (string, error) { return "", nil }
+func (*mockLangMapper) FieldName(_ *yang.Entry) (string, error) { return "", nil }
 
-func (*mockLangMapper) DirectoryName(e *yang.Entry, complessBehavior genutil.CompressBehaviour) (string, error) {
+func (*mockLangMapper) DirectoryName(_ *yang.Entry, _ genutil.CompressBehaviour) (string, error) {
 	return "", nil
 }
 
-func (*mockLangMapper) KeyLeafType(e *yang.Entry, opts IROptions) (*MappedType, error) {
+func (*mockLangMapper) KeyLeafType(_ *yang.Entry, _ IROptions) (*MappedType, error) {
 	return nil, nil
 }
 
-func (*mockLangMapper) LeafType(e *yang.Entry, opts IROptions) (*MappedType, error) { return nil, nil }
+func (*mockLangMapper) LeafType(_ *yang.Entry, _ IROptions) (*MappedType, error) { return nil, nil }
 
-func (*mockLangMapper) PackageName(e *yang.Entry, compressBehavior genutil.CompressBehaviour, nested bool) (string, error) {
+func (*mockLangMapper) PackageName(_ *yang.Entry, _ genutil.CompressBehaviour, _ bool) (string, error) {
 	return "", nil
 }
 
-func (*mockLangMapper) InjectEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums bool, enumOrgPrefixesToTrim []string) error {
+func (*mockLangMapper) InjectEnumSet(_ map[string]*yang.Entry, _, _, _, _, _, _ bool, _ []string) error {
 	return nil
 }
 
-func (*mockLangMapper) InjectSchemaTree(entries []*yang.Entry) error { return nil }
+func (*mockLangMapper) InjectSchemaTree(_ []*yang.Entry) error { return nil }
 
 func (*mockLangMapper) PopulateEnumFlags(EnumeratedYANGType, *yang.YangType) map[string]string {
 	return nil
@@ -836,7 +836,7 @@ func TestGetOrderedDirDetailsPathOrigin(t *testing.T) {
 		inSchemaTree: &yangschema.Tree{},
 		inOpts:       IROptions{},
 		wantPathOriginName: map[string]string{
-			"/a-module/a-container/field-a": "openconfig",
+			"/a-module/a-container/field-a": "",
 		},
 	}}
 

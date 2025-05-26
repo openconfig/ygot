@@ -57,7 +57,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							SchemaPath:        "/model",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type:                    ygen.ContainerNode,
 						LangType:                nil,
@@ -79,7 +78,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							LeafrefTargetPath: "",
 							PresenceStatement: ygot.String("This is an example presence container"),
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type:                    ygen.ContainerNode,
 						LangType:                nil,
@@ -125,7 +123,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							SchemaPath:        "/model/anydata-leaf",
 							LeafrefTargetPath: "",
 							Description:       "some anydata leaf",
-							Origin:            "openconfig",
 						},
 						Type:                    ygen.AnyDataNode,
 						LangType:                nil,
@@ -146,7 +143,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							SchemaPath:        "/model/dateref",
 							LeafrefTargetPath: "/openconfig-complex/model/a/single-key/config/dates",
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
@@ -171,7 +167,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							SchemaPath:        "/model/b/multi-key",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type:                    ygen.ListNode,
 						LangType:                nil,
@@ -192,7 +187,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							SchemaPath:        "/model/a/single-key",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type:                    ygen.ListNode,
 						LangType:                nil,
@@ -211,7 +205,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							Path:              "/openconfig-complex/model/c/unkeyed-list",
 							SchemaPath:        "/model/c/unkeyed-list",
 							ConfigFalse:       true,
-							Origin:            "openconfig",
 						},
 						Type:              ygen.ListNode,
 						MappedPaths:       [][]string{{"", "model", "c", "unkeyed-list"}},
@@ -243,7 +236,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/dates",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type: ygen.LeafListNode,
 						LangType: &ygen.MappedType{
@@ -269,7 +261,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/dates-with-defaults",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type: ygen.LeafListNode,
 						LangType: &ygen.MappedType{
@@ -295,7 +286,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/iref",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
@@ -338,7 +328,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/iref2",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
@@ -381,7 +370,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/key",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
@@ -449,7 +437,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/leaf-default-override",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
@@ -501,7 +488,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/simple-union-enum",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
@@ -553,7 +539,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/singleton-union-enum",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
@@ -596,7 +581,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/typedef-enum",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
@@ -639,7 +623,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							ShadowSchemaPath:  "/model/a/single-key/state/typedef-union-enum",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
@@ -727,7 +710,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							ShadowSchemaPath:  "/model/b/multi-key/state/key1",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type:     ygen.LeafNode,
 						LangType: &ygen.MappedType{NativeType: "ywrapper.UintValue"},
@@ -779,7 +761,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							ShadowSchemaPath:  "/model/b/multi-key/state/key2",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Origin:            "openconfig",
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
@@ -864,7 +845,6 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 							Path:              "/openconfig-complex/model/c/unkeyed-list/field",
 							SchemaPath:        "/model/c/unkeyed-list/field",
 							ConfigFalse:       true,
-							Origin:            "openconfig",
 						},
 						Type:              ygen.LeafNode,
 						LangType:          &ygen.MappedType{NativeType: "ywrapper.BytesValue"},
@@ -1091,7 +1071,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent",
 								LeafrefTargetPath: "",
 								Description:       "I am a parent container\nthat has 4 children.",
-								Origin:            "openconfig",
 							},
 							Type:                    ygen.ContainerNode,
 							MappedPaths:             [][]string{{"parent"}},
@@ -1111,7 +1090,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Origin:            "openconfig",
 							},
 							Type:                    ygen.ContainerNode,
 							MappedPaths:             [][]string{{"remote-container"}},
@@ -1140,7 +1118,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Origin:            "openconfig",
 							},
 							Type:                    ygen.ContainerNode,
 							LangType:                nil,
@@ -1172,7 +1149,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/config",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Origin:            "openconfig",
 							},
 							Type:              1,
 							MappedPaths:       [][]string{{"config"}},
@@ -1190,7 +1166,6 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 								ConfigFalse:       true,
-								Origin:            "openconfig",
 							},
 							Type:              1,
 							MappedPaths:       [][]string{{"state"}},
@@ -1221,7 +1196,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/config/four",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Origin:            "openconfig",
 							},
 							Type: 3,
 							LangType: &ygen.MappedType{
@@ -1248,7 +1222,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/config/one",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Origin:            "openconfig",
 							},
 							Type: 3,
 							LangType: &ygen.MappedType{
@@ -1275,7 +1248,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/parent/child/config/three",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Origin:            "openconfig",
 							},
 							Type: 3,
 							LangType: &ygen.MappedType{
@@ -1316,7 +1288,6 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 								ConfigFalse:       true,
-								Origin:            "openconfig",
 							},
 							Type: 3,
 							LangType: &ygen.MappedType{
@@ -1344,7 +1315,6 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 								ConfigFalse:       true,
-								Origin:            "openconfig",
 							},
 							Type: 3,
 							LangType: &ygen.MappedType{
@@ -1372,7 +1342,6 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 								ConfigFalse:       true,
-								Origin:            "openconfig",
 							},
 							Type: 3,
 							LangType: &ygen.MappedType{
@@ -1401,7 +1370,6 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 								ConfigFalse:       true,
-								Origin:            "openconfig",
 							},
 							Type: 3,
 							LangType: &ygen.MappedType{
@@ -1429,7 +1397,6 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 								ConfigFalse:       true,
-								Origin:            "openconfig",
 							},
 							Type: 3,
 							LangType: &ygen.MappedType{
@@ -1469,7 +1436,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container/config",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Origin:            "openconfig",
 							},
 							Type:              1,
 							MappedPaths:       [][]string{{"config"}},
@@ -1487,7 +1453,6 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 								ConfigFalse:       true,
-								Origin:            "openconfig",
 							},
 							Type:              1,
 							MappedPaths:       [][]string{{"state"}},
@@ -1518,7 +1483,6 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/remote-container/config/a-leaf",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Origin:            "openconfig",
 							},
 							Type: 3,
 							LangType: &ygen.MappedType{
@@ -1558,7 +1522,6 @@ func TestGenerateIR(t *testing.T) {
 								LeafrefTargetPath: "",
 								Description:       "",
 								ConfigFalse:       true,
-								Origin:            "openconfig",
 							},
 							Type: 3,
 							LangType: &ygen.MappedType{
