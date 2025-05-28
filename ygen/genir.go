@@ -53,6 +53,13 @@ type IROptions struct {
 	// to true.
 	// NOTE: This flag will be removed by v1 release.
 	AppendEnumSuffixForSimpleUnionEnums bool
+
+	// UseModuleNameAsPathOrigin specifies whether the YANG module name is
+	// set to the origin for generated gNMI paths when producing the IR.
+	UseModuleNameAsPathOrigin bool
+
+	// PathOriginName specifies the orign name for generated gNMI paths when producing the IR.
+	PathOriginName string
 }
 
 // GenerateIR creates the ygen intermediate representation for a set of

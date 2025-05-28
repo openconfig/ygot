@@ -15,11 +15,14 @@
 package ygen
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/genutil"
+	"github.com/openconfig/ygot/yangschema"
 )
 
 // errToString returns the string representation of err and the empty string if
@@ -701,4 +704,177 @@ func TestFindMapPaths(t *testing.T) {
 			}
 		})
 	}
+}
+
+type mockLangMapper struct{}
+
+func (*mockLangMapper) FieldName(_ *yang.Entry) (string, error) { return "", nil }
+
+func (*mockLangMapper) DirectoryName(_ *yang.Entry, _ genutil.CompressBehaviour) (string, error) {
+	return "", nil
+}
+
+func (*mockLangMapper) KeyLeafType(_ *yang.Entry, _ IROptions) (*MappedType, error) {
+	return nil, nil
+}
+
+func (*mockLangMapper) LeafType(_ *yang.Entry, _ IROptions) (*MappedType, error) { return nil, nil }
+
+func (*mockLangMapper) PackageName(_ *yang.Entry, _ genutil.CompressBehaviour, _ bool) (string, error) {
+	return "", nil
+}
+
+func (*mockLangMapper) InjectEnumSet(_ map[string]*yang.Entry, _, _, _, _, _, _ bool, _ []string) error {
+	return nil
+}
+
+func (*mockLangMapper) InjectSchemaTree(_ []*yang.Entry) error { return nil }
+
+func (*mockLangMapper) PopulateEnumFlags(EnumeratedYANGType, *yang.YangType) map[string]string {
+	return nil
+}
+
+func (*mockLangMapper) PopulateFieldFlags(NodeDetails, *yang.Entry) map[string]string { return nil }
+
+func (*mockLangMapper) setEnumSet(*enumSet) {}
+
+func (*mockLangMapper) setSchemaTree(*yangschema.Tree) {}
+
+func TestGetOrderedDirDetailsPathOrigin(t *testing.T) {
+	ms := compileModules(t, map[string]string{
+		"a-module": `
+			module a-module {
+				prefix "m";
+				namespace "urn:m";
+
+				container a-container {
+					leaf field-a {
+						type string;
+					}
+				}
+
+				container b-container {
+					container config {
+						leaf field-b {
+							type string;
+						}
+					}
+					container state {
+						leaf field-b {
+							type string;
+						}
+					}
+
+					container c-container {
+						leaf field-d {
+							type string;
+						}
+					}
+				}
+			}
+		`,
+	})
+
+	tests := []struct {
+		name                string
+		inDirectory         map[string]*Directory
+		inSchemaTree        *yangschema.Tree
+		inOpts              IROptions
+		wantPathOriginName  map[string]string
+		wantErr             bool
+		wantErrorSubstrings []string
+	}{{
+		name: "PathOriginName is set",
+		inDirectory: map[string]*Directory{
+			"/a-module/a-container": {
+				Name:  "AContainer",
+				Entry: findEntry(t, ms, "a-module", "a-container/field-a"),
+				Fields: map[string]*yang.Entry{
+					"field-a": findEntry(t, ms, "a-module", "a-container/field-a"),
+				},
+				Path: []string{"", "a-module", "a-container"},
+			},
+		},
+		inSchemaTree: &yangschema.Tree{},
+		inOpts: IROptions{
+			PathOriginName: "explicit-origin",
+		},
+		wantPathOriginName: map[string]string{
+			"/a-module/a-container/field-a": "explicit-origin",
+		},
+	}, {
+		name: "UseModuleNameAsPathOrigin is true",
+		inDirectory: map[string]*Directory{
+			"/a-module/a-container": {
+				Name:  "AContainer",
+				Entry: findEntry(t, ms, "a-module", "a-container/field-a"),
+				Fields: map[string]*yang.Entry{
+					"field-a": findEntry(t, ms, "a-module", "a-container/field-a"),
+				},
+				Path: []string{"", "a-module", "a-container"},
+			},
+		},
+		inSchemaTree: &yangschema.Tree{},
+		inOpts: IROptions{
+			UseModuleNameAsPathOrigin: true,
+		},
+		wantPathOriginName: map[string]string{
+			"/a-module/a-container/field-a": "a-module",
+		},
+	}, {
+		name: "PathOriginName and UseModuleNameAsPathOrigin are not set",
+		inDirectory: map[string]*Directory{
+			"/a-module/a-container": {
+				Name:  "AContainer",
+				Entry: findEntry(t, ms, "a-module", "a-container/field-a"),
+				Fields: map[string]*yang.Entry{
+					"field-a": findEntry(t, ms, "a-module", "a-container/field-a"),
+				},
+				Path: []string{"", "a-module", "a-container"},
+			},
+		},
+		inSchemaTree: &yangschema.Tree{},
+		inOpts:       IROptions{},
+		wantPathOriginName: map[string]string{
+			"/a-module/a-container/field-a": "",
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			langMapper := &mockLangMapper{}
+			got, err := getOrderedDirDetails(langMapper, tt.inDirectory, tt.inSchemaTree, tt.inOpts)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("getOrderedDirDetails() got no error, want error containing: %v", tt.wantErrorSubstrings)
+				}
+				for _, want := range tt.wantErrorSubstrings {
+					if !strings.Contains(err.Error(), want) {
+						t.Errorf("getOrderedDirDetails() got error: %v, want error containing: %q", err, want)
+					}
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("getOrderedDirDetails() unexpected error: %v", err)
+			}
+
+			if diff := cmp.Diff(tt.wantPathOriginName, getPathOriginNames(got)); diff != "" {
+				t.Errorf("getOrderedDirDetails() PathOriginName mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func getPathOriginNames(dirs map[string]*ParsedDirectory) map[string]string {
+	origins := make(map[string]string)
+	for path, dir := range dirs {
+		for _, field := range dir.Fields {
+			origins[path] = field.YANGDetails.Origin
+			break // The PathOriginName of the first field in each ParsedDirectory is verified.
+		}
+	}
+	return origins
 }

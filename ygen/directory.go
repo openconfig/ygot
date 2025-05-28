@@ -276,6 +276,19 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 			if hasShadowField {
 				nd.YANGDetails.ShadowSchemaPath = util.SchemaTreePathNoModule(shadowField)
 			}
+			// If IROptions.PathOriginName has a value, the value is set to the Origin of the node.
+			// Else if IROptions.UseModuleNameAsPathOrigin of the node is true,
+			// YANG module name is set to the Origin of the node.
+			// Else "" is set to the Origin of the node.
+			switch {
+			case opts.PathOriginName != "":
+				nd.YANGDetails.Origin = opts.PathOriginName
+			case opts.UseModuleNameAsPathOrigin:
+				nd.YANGDetails.Origin = nd.YANGDetails.BelongingModule
+			default:
+				// TODO: read the origin from the relevant YANG extension.
+				nd.YANGDetails.Origin = ""
+			}
 
 			switch {
 			case field.IsLeaf(), field.IsLeafList():
