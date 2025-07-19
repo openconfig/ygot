@@ -27,11 +27,12 @@ import (
 // into Go code from a YANG schema.
 func TestFindMappableEntities(t *testing.T) {
 	tests := []struct {
-		name                          string        // name is an identifier for the test.
-		in                            *yang.Entry   // in is the yang.Entry corresponding to the YANG root element.
-		inSkipModules                 []string      // inSkipModules is a slice of strings indicating modules to be skipped.
-		inModules                     []*yang.Entry // inModules is the set of modules that the code generation is for.
-		inIgnoreUnsupportedStatements bool          // inIgnoreUnsupportedStatements determines whether unsupported statements should error out.
+		name                          string             // name is an identifier for the test.
+		in                            *yang.Entry        // in is the yang.Entry corresponding to the YANG root element.
+		inSkipModules                 []string           // inSkipModules is a slice of strings indicating modules to be skipped.
+		inModules                     []*yang.Entry      // inModules is the set of modules that the code generation is for.
+		inIgnoreUnsupportedStatements bool               // inIgnoreUnsupportedStatements determines whether unsupported statements should error out.
+		transformOpts                 TransformationOpts // transformOpts contains transformation options like SkipDeprecated/SkipObsolete
 		// wantCompressed is a map keyed by the string "structs" or "enums" which contains a slice
 		// of the YANG identifiers for the corresponding mappable entities that should be
 		// found. wantCompressed is the set that are expected when compression is enabled.
@@ -395,6 +396,106 @@ func TestFindMappableEntities(t *testing.T) {
 		wantUncompressed: map[string][]string{
 			"structs": {"container"},
 			"enums":   {"choice-case-container-leaf", "choice-case2-leaf", "direct"}},
+	}, {
+		name: "no-filtering",
+		in: &yang.Entry{
+			Name: "module",
+			Kind: yang.DirectoryEntry,
+			Dir: map[string]*yang.Entry{
+				"deprecated-container": {
+					Name:   "deprecated-container",
+					Kind:   yang.DirectoryEntry,
+					Parent: &yang.Entry{Name: "module"},
+					Node: &yang.Container{
+						Status: &yang.Value{Name: "deprecated"},
+					},
+				},
+			},
+		},
+		transformOpts: TransformationOpts{},
+		wantCompressed: map[string][]string{
+			"structs": {"deprecated-container"},
+			"enums":   {},
+		},
+		wantUncompressed: map[string][]string{
+			"structs": {"deprecated-container"},
+			"enums":   {},
+		},
+	}, {
+		name: "skip-deprecated",
+		in: &yang.Entry{
+			Name: "module",
+			Kind: yang.DirectoryEntry,
+			Dir: map[string]*yang.Entry{
+				"deprecated-container": {
+					Name:   "deprecated-container",
+					Kind:   yang.DirectoryEntry,
+					Parent: &yang.Entry{Name: "module"},
+					Node: &yang.Container{
+						Status: &yang.Value{Name: "deprecated"},
+					},
+				},
+			},
+		},
+		transformOpts: TransformationOpts{SkipDeprecated: true},
+		wantCompressed: map[string][]string{
+			"structs": {},
+			"enums":   {},
+		},
+		wantUncompressed: map[string][]string{
+			"structs": {},
+			"enums":   {},
+		},
+	}, {
+		name: "skip-obsolete-with-deprecated",
+		in: &yang.Entry{
+			Name: "module",
+			Kind: yang.DirectoryEntry,
+			Dir: map[string]*yang.Entry{
+				"deprecated-container": {
+					Name:   "deprecated-container",
+					Kind:   yang.DirectoryEntry,
+					Parent: &yang.Entry{Name: "module"},
+					Node: &yang.Container{
+						Status: &yang.Value{Name: "deprecated"},
+					},
+				},
+			},
+		},
+		transformOpts: TransformationOpts{SkipObsolete: true},
+		wantCompressed: map[string][]string{
+			"structs": {"deprecated-container"},
+			"enums":   {},
+		},
+		wantUncompressed: map[string][]string{
+			"structs": {"deprecated-container"},
+			"enums":   {},
+		},
+	}, {
+		name: "skip-obsolete-actual",
+		in: &yang.Entry{
+			Name: "module",
+			Kind: yang.DirectoryEntry,
+			Dir: map[string]*yang.Entry{
+				"obsolete-container": {
+					Name:   "obsolete-container",
+					Kind:   yang.DirectoryEntry,
+					Parent: &yang.Entry{Name: "module"},
+					Node: &yang.Container{
+						Status: &yang.Value{Name: "obsolete"},
+					},
+				},
+			},
+		},
+		transformOpts: TransformationOpts{SkipObsolete: true},
+		wantCompressed: map[string][]string{
+			"structs": {},
+			"enums":   {},
+		},
+		wantUncompressed: map[string][]string{
+			"structs": {},
+			"enums":   {},
+		},
 	}}
 
 	for _, tt := range tests {
@@ -407,7 +508,7 @@ func TestFindMappableEntities(t *testing.T) {
 			structs := make(map[string]*yang.Entry)
 			enums := make(map[string]*yang.Entry)
 
-			errs := findMappableEntities(tt.in, structs, enums, tt.inSkipModules, compress, tt.inIgnoreUnsupportedStatements, tt.inModules)
+			errs := findMappableEntities(tt.in, structs, enums, tt.inSkipModules, compress, tt.inIgnoreUnsupportedStatements, tt.inModules, tt.transformOpts)
 
 			var err error
 			switch {

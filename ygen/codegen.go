@@ -36,6 +36,48 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+// isDeprecated checks if a YANG node has status "deprecated".
+func isDeprecated(node yang.Node) bool {
+	if node == nil {
+		return false
+	}
+	var status *yang.Value
+	switch n := node.(type) {
+	case *yang.Container:
+		status = n.Status
+	case *yang.Leaf:
+		status = n.Status
+	case *yang.LeafList:
+		status = n.Status
+	case *yang.List:
+		status = n.Status
+	case *yang.Typedef:
+		status = n.Status
+	}
+	return status != nil && status.Name == "deprecated"
+}
+
+// isObsolete checks if a YANG node has status "obsolete".
+func isObsolete(node yang.Node) bool {
+	if node == nil {
+		return false
+	}
+	var status *yang.Value
+	switch n := node.(type) {
+	case *yang.Container:
+		status = n.Status
+	case *yang.Leaf:
+		status = n.Status
+	case *yang.LeafList:
+		status = n.Status
+	case *yang.List:
+		status = n.Status
+	case *yang.Typedef:
+		status = n.Status
+	}
+	return status != nil && status.Name == "obsolete"
+}
+
 // ParseOpts contains parsing configuration for a given schema.
 type ParseOpts struct {
 	// IgnoreUnsupportedStatements ignores unsupported YANG statements when
@@ -112,6 +154,12 @@ type TransformationOpts struct {
 	// EnumerationsUseUnderscores specifies whether enumeration names
 	// should use underscores between path segments.
 	EnumerationsUseUnderscores bool
+	// SkipDeprecated specifies whether YANG fields with status "deprecated"
+	// should be excluded from the generated code output.
+	SkipDeprecated bool
+	// SkipObsolete specifies whether YANG fields with status "obsolete"
+	// should be excluded from the generated code output.
+	SkipObsolete bool
 }
 
 // yangEnum represents an enumerated type in YANG that is to be output in the
@@ -236,7 +284,7 @@ func mappedDefinitions(yangFiles, includePaths []string, opts IROptions) (*mappe
 		// Need to transform the AST based on compression behaviour.
 		genutil.TransformEntry(module, opts.TransformationOptions.CompressBehaviour)
 
-		errs = append(errs, findMappableEntities(module, dirs, enums, opts.ParseOptions.ExcludeModules, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), opts.ParseOptions.IgnoreUnsupportedStatements, modules)...)
+		errs = append(errs, findMappableEntities(module, dirs, enums, opts.ParseOptions.ExcludeModules, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), opts.ParseOptions.IgnoreUnsupportedStatements, modules, opts.TransformationOptions)...)
 		if module == nil {
 			errs = append(errs, errors.New("found a nil module in the returned module set"))
 			continue
@@ -301,7 +349,7 @@ func mappedDefinitions(yangFiles, includePaths []string, opts IROptions) (*mappe
 // mapped with path compression enabled. The set of modules that the current code generation
 // is processing is specified by the modules slice. This function returns slice of errors
 // encountered during processing.
-func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[string]*yang.Entry, excludeModules []string, compressPaths, ignoreUnsupportedStatements bool, modules []*yang.Entry) util.Errors {
+func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[string]*yang.Entry, excludeModules []string, compressPaths, ignoreUnsupportedStatements bool, modules []*yang.Entry, transformOpts TransformationOpts) util.Errors {
 	// Skip entities who are defined within a module that we have been instructed
 	// not to generate code for.
 	for _, s := range excludeModules {
@@ -314,6 +362,16 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 
 	var errs util.Errors
 	for _, ch := range util.Children(e) {
+		// Skip children with deprecated status if SkipDeprecated is enabled
+		if transformOpts.SkipDeprecated && isDeprecated(ch.Node) {
+			continue // skip this entity
+		}
+
+		// Skip children with obsolete status if SkipObsolete is enabled
+		if transformOpts.SkipObsolete && isObsolete(ch.Node) {
+			continue // skip this entity
+		}
+
 		switch {
 		case ch.IsLeaf(), ch.IsLeafList():
 			// Leaves are not mapped as directories so do not map them unless we find
@@ -326,12 +384,12 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 			// If this is a config or state container and we are compressing paths
 			// then we do not want to map this container - but we do want to map its
 			// children.
-			errs = util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, ignoreUnsupportedStatements, modules))
+			errs = util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, ignoreUnsupportedStatements, modules, transformOpts))
 		case util.HasOnlyChild(ch) && util.Children(ch)[0].IsList() && compressPaths:
 			// This is a surrounding container for a list, and we are compressing
 			// paths, so we don't want to map it but again we do want to map its
 			// children.
-			errs = util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, ignoreUnsupportedStatements, modules))
+			errs = util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, ignoreUnsupportedStatements, modules, transformOpts))
 		case util.IsChoiceOrCase(ch):
 			// Don't map for a choice or case node itself, and rather skip over it.
 			// However, we must walk each branch to find the first container that
@@ -351,12 +409,12 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 				if gch.IsContainer() || gch.IsList() {
 					dirs[fmt.Sprintf("%s/%s", ch.Parent.Path(), gch.Name)] = gch
 				}
-				errs = util.AppendErrs(errs, findMappableEntities(gch, dirs, enums, excludeModules, compressPaths, ignoreUnsupportedStatements, modules))
+				errs = util.AppendErrs(errs, findMappableEntities(gch, dirs, enums, excludeModules, compressPaths, ignoreUnsupportedStatements, modules, transformOpts))
 			}
 		case ch.IsContainer(), ch.IsList():
 			dirs[ch.Path()] = ch
 			// Recurse down the tree.
-			errs = util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, ignoreUnsupportedStatements, modules))
+			errs = util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, ignoreUnsupportedStatements, modules, transformOpts))
 		case ch.Kind == yang.AnyDataEntry:
 			continue
 		default:

@@ -709,6 +709,8 @@ type YANGNodeDetails struct {
 	// statement in YANG:
 	// https://datatracker.ietf.org/doc/html/rfc7950#section-7.21.1
 	ConfigFalse bool
+	// Origin specifies the origin name for the generated gNMI path.
+	Origin string
 }
 
 // EnumeratedValueType is used to indicate the source YANG type
