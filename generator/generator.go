@@ -80,6 +80,8 @@ var (
 	enumOrgPrefixesToTrim                []string
 	ignoreUnsupportedStatements          = flag.Bool("ignore_unsupported", false, "If set to true, unsupported YANG statements are ignored.")
 	ignoreDeviateNotsupported            = flag.Bool("ignore_deviate_notsupported", false, "If set to true, 'deviate not-supported' YANG statements are ignored, thus target nodes are retained in the generated code.")
+	skipDeprecated                       = flag.Bool("skip_deprecated", false, "If set to true, YANG fields with status 'deprecated' are excluded from the generated code.")
+	skipObsolete                         = flag.Bool("skip_obsolete", false, "If set to true, YANG fields with status 'obsolete' are excluded from the generated code.")
 
 	// Flags used for GoStruct generation only.
 	generateFakeRoot        = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. By default the fake root entity is named Device, its name can be controlled with the fakeroot_name flag.")
@@ -351,6 +353,8 @@ func main() {
 					EnumOrgPrefixesToTrim:                enumOrgPrefixesToTrim,
 					UseDefiningModuleForTypedefEnumNames: *useDefiningModuleForTypedefEnumNames,
 					EnumerationsUseUnderscores:           true,
+					SkipDeprecated:                       *skipDeprecated,
+					SkipObsolete:                         *skipObsolete,
 				},
 			},
 			gogen.GoOpts{

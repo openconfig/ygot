@@ -221,6 +221,17 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 		pd.Fields = make(map[string]*NodeDetails, len(dir.Fields))
 		for _, fn := range GetOrderedFieldNames(dir) {
 			field := dir.Fields[fn]
+
+			// Skip fields with deprecated status if SkipDeprecated is enabled
+			if opts.TransformationOptions.SkipDeprecated && isDeprecated(field.Node) {
+				continue // skip this field
+			}
+
+			// Skip fields with obsolete status if SkipObsolete is enabled
+			if opts.TransformationOptions.SkipObsolete && isObsolete(field.Node) {
+				continue // skip this field
+			}
+
 			shadowField, hasShadowField := dir.ShadowedFields[fn]
 
 			mp, mm, err := findMapPaths(dir, fn, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), false, opts.AbsoluteMapPaths)
@@ -275,6 +286,19 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 			}
 			if hasShadowField {
 				nd.YANGDetails.ShadowSchemaPath = util.SchemaTreePathNoModule(shadowField)
+			}
+			// If IROptions.PathOriginName has a value, the value is set to the Origin of the node.
+			// Else if IROptions.UseModuleNameAsPathOrigin of the node is true,
+			// YANG module name is set to the Origin of the node.
+			// Else "" is set to the Origin of the node.
+			switch {
+			case opts.PathOriginName != "":
+				nd.YANGDetails.Origin = opts.PathOriginName
+			case opts.UseModuleNameAsPathOrigin:
+				nd.YANGDetails.Origin = nd.YANGDetails.BelongingModule
+			default:
+				// TODO: read the origin from the relevant YANG extension.
+				nd.YANGDetails.Origin = ""
 			}
 
 			switch {
