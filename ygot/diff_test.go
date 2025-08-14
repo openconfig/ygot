@@ -20,16 +20,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/kylelemons/godebug/pretty"
-	"github.com/openconfig/ygot/testutil"
-	"github.com/openconfig/ygot/util"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/testing/protocmp"
+	"google3/third_party/golang/cmp/cmp"
+	"google3/third_party/golang/cmp/cmpopts/cmpopts"
+	"google3/third_party/golang/godebug/pretty/pretty"
+	"google3/third_party/golang/protobuf/v2/proto/proto"
+	"google3/third_party/golang/protobuf/v2/testing/protocmp/protocmp"
+	"google3/third_party/golang/ygot/testutil/testutil"
+	"google3/third_party/golang/ygot/util/util"
 
-	"github.com/openconfig/gnmi/errdiff"
-	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
+	"google3/third_party/openconfig/gnmi/errdiff/errdiff"
+	gnmipb "google3/third_party/openconfig/gnmi/proto/gnmi/gnmi_go_proto"
 )
 
 func TestSchemaPathToGNMIPath(t *testing.T) {
@@ -1678,5 +1678,145 @@ func TestLeastSpecificPath(t *testing.T) {
 		if diff := cmp.Diff(tt.want, got); diff != "" {
 			t.Errorf("%s: leastSpecificPath(%v): did not get expected value, (-want, +got):\n%s", tt.name, tt.in, diff)
 		}
+	}
+}
+
+type TestDiffDeleteStruct struct {
+	Leaf       *string                               `path:"leaf"`
+	LeafList   []string                              `path:"leaf-list"`
+	OrderedMap map[string]*TestDiffDeleteStructChild `path:"ordered-map" ordered-by:"user"`
+}
+
+type TestDiffDeleteStructChild struct {
+	ChildLeaf *string `path:"child-leaf"`
+}
+
+func (*TestDiffDeleteStruct) IsYANGGoStruct() {}
+
+func (*TestDiffDeleteStructChild) IsYANGGoStruct() {}
+
+func (t *TestDiffDeleteStruct) ΛListKeyMap() (map[string]any, error) {
+	return nil, nil
+}
+
+func (t *TestDiffDeleteStructChild) ΛListKeyMap() (map[string]any, error) {
+	return nil, nil
+}
+
+func TestDiffDeleteWithUpdateLeafList(t *testing.T) {
+	tests := []struct {
+		name     string
+		original *TestDiffDeleteStruct
+		modified *TestDiffDeleteStruct
+		opts     []DiffOpt
+		want     *gnmipb.Notification
+		wantErr  bool
+	}{{
+		name: "delete leaf list",
+		original: &TestDiffDeleteStruct{
+			LeafList: []string{"a", "b"},
+		},
+		modified: &TestDiffDeleteStruct{
+			LeafList: []string{"b", "c"},
+		},
+		opts: []DiffOpt{&DiffPathOpt{DeleteWithUpdateLeafList: true}},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{
+				{Elem: []*gnmipb.PathElem{{Name: "leaf-list"}}},
+			},
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Elem: []*gnmipb.PathElem{{Name: "leaf-list"}}},
+				Val: &gnmipb.TypedValue{
+					Value: &gnmipb.TypedValue_LeaflistVal{
+						LeaflistVal: &gnmipb.ScalarArray{
+							Element: []*gnmipb.TypedValue{
+								{Value: &gnmipb.TypedValue_StringVal{StringVal: "b"}},
+								{Value: &gnmipb.TypedValue_StringVal{StringVal: "c"}},
+							},
+						},
+					},
+				},
+			}},
+		},
+	}, {
+		name: "no delete leaf list",
+		original: &TestDiffDeleteStruct{
+			LeafList: []string{"a", "b"},
+		},
+		modified: &TestDiffDeleteStruct{
+			LeafList: []string{"b", "c"},
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Elem: []*gnmipb.PathElem{{Name: "leaf-list"}}},
+				Val: &gnmipb.TypedValue{
+					Value: &gnmipb.TypedValue_LeaflistVal{
+						LeaflistVal: &gnmipb.ScalarArray{
+							Element: []*gnmipb.TypedValue{
+								{Value: &gnmipb.TypedValue_StringVal{StringVal: "b"}},
+								{Value: &gnmipb.TypedValue_StringVal{StringVal: "c"}},
+							},
+						},
+					},
+				},
+			}},
+		},
+	}, {
+		name: "no change leaf list",
+		original: &TestDiffDeleteStruct{
+			LeafList: []string{"a", "b"},
+		},
+		modified: &TestDiffDeleteStruct{
+			LeafList: []string{"a", "b"},
+		},
+		opts: []DiffOpt{&DiffPathOpt{DeleteWithUpdateLeafList: true}},
+		want: &gnmipb.Notification{},
+	}, {
+		name:     "add leaf list",
+		original: &TestDiffDeleteStruct{},
+		modified: &TestDiffDeleteStruct{
+			LeafList: []string{"b", "c"},
+		},
+		opts: []DiffOpt{&DiffPathOpt{DeleteWithUpdateLeafList: true}},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Elem: []*gnmipb.PathElem{{Name: "leaf-list"}}},
+				Val: &gnmipb.TypedValue{
+					Value: &gnmipb.TypedValue_LeaflistVal{
+						LeaflistVal: &gnmipb.ScalarArray{
+							Element: []*gnmipb.TypedValue{
+								{Value: &gnmipb.TypedValue_StringVal{StringVal: "b"}},
+								{Value: &gnmipb.TypedValue_StringVal{StringVal: "c"}},
+							},
+						},
+					},
+				},
+			}},
+		},
+	}, {
+		name: "delete leaf list",
+		original: &TestDiffDeleteStruct{
+			LeafList: []string{"a", "b"},
+		},
+		modified: &TestDiffDeleteStruct{},
+		opts:     []DiffOpt{&DiffPathOpt{DeleteWithUpdateLeafList: true}},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{
+				{Elem: []*gnmipb.PathElem{{Name: "leaf-list"}}},
+			},
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := Diff(tt.original, tt.modified, tt.opts...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Diff() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if diff := cmp.Diff(tt.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("Diff() returned unexpected diff (-want +got):\n%s", diff)
+			}
+		})
 	}
 }
