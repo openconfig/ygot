@@ -20,16 +20,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/kylelemons/godebug/pretty"
-	"github.com/openconfig/ygot/testutil"
-	"github.com/openconfig/ygot/util"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/testing/protocmp"
+	"google3/third_party/golang/cmp/cmp"
+	"google3/third_party/golang/cmp/cmpopts/cmpopts"
+	"google3/third_party/golang/godebug/pretty/pretty"
+	"google3/third_party/golang/protobuf/v2/proto/proto"
+	"google3/third_party/golang/protobuf/v2/testing/protocmp/protocmp"
+	"google3/third_party/golang/ygot/testutil/testutil"
+	"google3/third_party/golang/ygot/util/util"
 
-	"github.com/openconfig/gnmi/errdiff"
-	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
+	"google3/third_party/openconfig/gnmi/errdiff/errdiff"
+	gnmipb "google3/third_party/openconfig/gnmi/proto/gnmi/gnmi_go_proto"
 )
 
 func TestSchemaPathToGNMIPath(t *testing.T) {

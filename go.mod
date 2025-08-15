@@ -11,7 +11,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/kr/pretty v0.3.1
 	github.com/kylelemons/godebug v1.1.0
-	github.com/openconfig/gnmi v0.13.0
+	github.com/openconfig/gnmi v0.14.1
 	github.com/openconfig/goyang v1.6.0
 	github.com/openconfig/gribi v1.0.0
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2

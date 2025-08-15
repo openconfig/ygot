@@ -878,3 +878,160 @@ func getPathOriginNames(dirs map[string]*ParsedDirectory) map[string]string {
 	}
 	return origins
 }
+
+func TestGetOrderedDirDetailsStatusFiltering(t *testing.T) {
+	ms := compileModules(t, map[string]string{
+		"status-module": `
+			module status-module {
+				prefix "s";
+				namespace "urn:s";
+
+				container test-container {
+					leaf normal-field {
+						type string;
+					}
+					leaf deprecated-field {
+						status deprecated;
+						type string;
+					}
+					leaf obsolete-field {
+						status obsolete;
+						type string;
+					}
+				}
+			}
+		`,
+	})
+
+	containerEntry := findEntry(t, ms, "status-module", "test-container")
+	normalField := findEntry(t, ms, "status-module", "test-container/normal-field")
+	deprecatedField := findEntry(t, ms, "status-module", "test-container/deprecated-field")
+	obsoleteField := findEntry(t, ms, "status-module", "test-container/obsolete-field")
+
+	tests := []struct {
+		name              string
+		inDirectory       map[string]*Directory
+		inOpts            IROptions
+		wantFieldNames    []string
+		wantMissingFields []string
+	}{{
+		name: "no status filtering",
+		inDirectory: map[string]*Directory{
+			"/status-module/test-container": {
+				Name:  "TestContainer",
+				Entry: containerEntry,
+				Fields: map[string]*yang.Entry{
+					"normal-field":     normalField,
+					"deprecated-field": deprecatedField,
+					"obsolete-field":   obsoleteField,
+				},
+				Path: []string{"", "status-module", "test-container"},
+			},
+		},
+		inOpts: IROptions{
+			TransformationOptions: TransformationOpts{},
+		},
+		wantFieldNames:    []string{"normal-field", "deprecated-field", "obsolete-field"},
+		wantMissingFields: []string{},
+	}, {
+		name: "skip deprecated fields",
+		inDirectory: map[string]*Directory{
+			"/status-module/test-container": {
+				Name:  "TestContainer",
+				Entry: containerEntry,
+				Fields: map[string]*yang.Entry{
+					"normal-field":     normalField,
+					"deprecated-field": deprecatedField,
+					"obsolete-field":   obsoleteField,
+				},
+				Path: []string{"", "status-module", "test-container"},
+			},
+		},
+		inOpts: IROptions{
+			TransformationOptions: TransformationOpts{SkipDeprecated: true},
+		},
+		wantFieldNames:    []string{"normal-field", "obsolete-field"},
+		wantMissingFields: []string{"deprecated-field"},
+	}, {
+		name: "skip obsolete fields",
+		inDirectory: map[string]*Directory{
+			"/status-module/test-container": {
+				Name:  "TestContainer",
+				Entry: containerEntry,
+				Fields: map[string]*yang.Entry{
+					"normal-field":     normalField,
+					"deprecated-field": deprecatedField,
+					"obsolete-field":   obsoleteField,
+				},
+				Path: []string{"", "status-module", "test-container"},
+			},
+		},
+		inOpts: IROptions{
+			TransformationOptions: TransformationOpts{SkipObsolete: true},
+		},
+		wantFieldNames:    []string{"normal-field", "deprecated-field"},
+		wantMissingFields: []string{"obsolete-field"},
+	}, {
+		name: "skip both deprecated and obsolete fields",
+		inDirectory: map[string]*Directory{
+			"/status-module/test-container": {
+				Name:  "TestContainer",
+				Entry: containerEntry,
+				Fields: map[string]*yang.Entry{
+					"normal-field":     normalField,
+					"deprecated-field": deprecatedField,
+					"obsolete-field":   obsoleteField,
+				},
+				Path: []string{"", "status-module", "test-container"},
+			},
+		},
+		inOpts: IROptions{
+			TransformationOptions: TransformationOpts{SkipDeprecated: true, SkipObsolete: true},
+		},
+		wantFieldNames:    []string{"normal-field"},
+		wantMissingFields: []string{"deprecated-field", "obsolete-field"},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			langMapper := &mockLangMapper{}
+			got, err := getOrderedDirDetails(langMapper, tt.inDirectory, &yangschema.Tree{}, tt.inOpts)
+			if err != nil {
+				t.Fatalf("getOrderedDirDetails() unexpected error: %v", err)
+			}
+
+			// Check that the expected fields are present
+			for _, dirPath := range []string{"/status-module/test-container"} {
+				dir, ok := got[dirPath]
+				if !ok {
+					t.Fatalf("getOrderedDirDetails() missing directory: %s", dirPath)
+				}
+
+				// Verify expected fields are present
+				for _, fieldName := range tt.wantFieldNames {
+					if _, ok := dir.Fields[fieldName]; !ok {
+						t.Errorf("getOrderedDirDetails() missing expected field: %s", fieldName)
+					}
+				}
+
+				// Verify unwanted fields are not present
+				for _, fieldName := range tt.wantMissingFields {
+					if _, ok := dir.Fields[fieldName]; ok {
+						t.Errorf("getOrderedDirDetails() contains field that should be filtered: %s", fieldName)
+					}
+				}
+
+				// Verify total field count matches expectations
+				expectedCount := len(tt.wantFieldNames)
+				if len(dir.Fields) != expectedCount {
+					var actualFields []string
+					for name := range dir.Fields {
+						actualFields = append(actualFields, name)
+					}
+					t.Errorf("getOrderedDirDetails() field count mismatch: got %d fields %v, want %d fields %v",
+						len(dir.Fields), actualFields, expectedCount, tt.wantFieldNames)
+				}
+			}
+		})
+	}
+}

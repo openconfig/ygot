@@ -221,6 +221,17 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 		pd.Fields = make(map[string]*NodeDetails, len(dir.Fields))
 		for _, fn := range GetOrderedFieldNames(dir) {
 			field := dir.Fields[fn]
+
+			// Skip fields with deprecated status if SkipDeprecated is enabled
+			if opts.TransformationOptions.SkipDeprecated && isDeprecated(field.Node) {
+				continue // skip this field
+			}
+
+			// Skip fields with obsolete status if SkipObsolete is enabled
+			if opts.TransformationOptions.SkipObsolete && isObsolete(field.Node) {
+				continue // skip this field
+			}
+
 			shadowField, hasShadowField := dir.ShadowedFields[fn]
 
 			mp, mm, err := findMapPaths(dir, fn, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), false, opts.AbsoluteMapPaths)
