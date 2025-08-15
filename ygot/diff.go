@@ -20,14 +20,14 @@ import (
 	"sort"
 	"strings"
 
-	"google3/third_party/golang/godebug/pretty/pretty"
-	"google3/third_party/golang/protobuf/v2/encoding/prototext/prototext"
-	"google3/third_party/golang/protobuf/v2/proto/proto"
-	"google3/third_party/golang/ygot/internal/yreflect/yreflect"
-	"google3/third_party/golang/ygot/util/util"
-	"google3/third_party/openconfig/gnmi/errlist/errlist"
+	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errlist"
+	"github.com/openconfig/ygot/internal/yreflect"
+	"github.com/openconfig/ygot/util"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 
-	gnmipb "google3/third_party/openconfig/gnmi/proto/gnmi/gnmi_go_proto"
+	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 // schemaPathTogNMIPath takes an input schema path represented as a slice of
