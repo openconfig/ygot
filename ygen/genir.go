@@ -119,7 +119,7 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 			TypeName: enum.entry.Type.Name,
 		}
 		if _, ok := enumDefinitionMap[enum.id]; ok {
-			return nil, util.AppendErr(errs, fmt.Errorf("Enumeration already created: "+et.Name))
+			return nil, util.AppendErr(errs, fmt.Error("Enumeration already created: "+et.Name))
 		}
 
 		if defaultValue, ok := enum.entry.SingleDefaultValue(); ok {
