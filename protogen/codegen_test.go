@@ -466,7 +466,7 @@ func TestGenerateProto3(t *testing.T) {
 				// Write the returned struct out to a buffer to compare with the
 				// testdata file.
 				var gotCodeBuf bytes.Buffer
-				fmt.Fprintf(&gotCodeBuf, gotPkg.Header)
+				fmt.Fprint(&gotCodeBuf, gotPkg.Header)
 
 				for _, gotMsg := range gotPkg.Messages {
 					fmt.Fprintf(&gotCodeBuf, "%s\n", gotMsg)
@@ -504,7 +504,7 @@ func TestGenerateProto3(t *testing.T) {
 					if !ok {
 						t.Fatalf("%s: cg.Generate(%v, %v): did not find expected package %s in output, got: %#v, want key: %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg, protoPkgs(gotProto.Packages), pkg)
 					}
-					fmt.Fprintf(&gotCodeBuf, gotPkg.Header)
+					fmt.Fprint(&gotCodeBuf, gotPkg.Header)
 					for _, gotMsg := range gotPkg.Messages {
 						fmt.Fprintf(&gotCodeBuf, "%s\n", gotMsg)
 					}

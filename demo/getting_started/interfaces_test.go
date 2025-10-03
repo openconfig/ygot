@@ -76,18 +76,18 @@ func TestGenerateCode(t *testing.T) {
 		}
 
 		var b bytes.Buffer
-		fmt.Fprintf(&b, got.CommonHeader)
-		fmt.Fprintf(&b, got.OneOffHeader)
+		fmt.Fprint(&b, got.CommonHeader)
+		fmt.Fprint(&b, got.OneOffHeader)
 		for _, s := range got.Structs {
-			fmt.Fprintf(&b, s.String())
+			fmt.Fprint(&b, s.String())
 		}
 
 		for _, e := range got.Enums {
-			fmt.Fprintf(&b, e)
+			fmt.Fprint(&b, e)
 		}
 
-		fmt.Fprintf(&b, got.EnumMap)
-		fmt.Fprintf(&b, got.JSONSchemaCode)
+		fmt.Fprint(&b, got.EnumMap)
+		fmt.Fprint(&b, got.JSONSchemaCode)
 
 		// Parse the generated code using the Go parser and check whether any errors
 		// are returned.
