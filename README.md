@@ -1,4 +1,4 @@
-![Go](https://github.com/openconfig/ygot/workflows/Go/badge.svg?branch=master)
+[![Build Status](https://github.com/openconfig/ygot/actions/workflows/go.yml/badge.svg?branch=master)](https://github.com/openconfig/ygot/actions/workflows/go.yml?query=branch%3Amaster)
 [![Coverage Status](https://coveralls.io/repos/github/openconfig/ygot/badge.svg?branch=master)](https://coveralls.io/github/openconfig/ygot?branch=master)
 [![Go Reference](https://pkg.go.dev/badge/github.com/openconfig/ygot.svg)](https://pkg.go.dev/github.com/openconfig/ygot)
 
