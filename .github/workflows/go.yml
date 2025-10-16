@@ -24,7 +24,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go }}
         id: go
@@ -35,7 +35,7 @@ jobs:
           go install golang.org/x/tools/cmd/goimports@latest
 
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: go/src/github.com/openconfig/ygot
 
@@ -124,7 +124,7 @@ jobs:
 
     steps:
       - name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.25'
         id: go
@@ -135,7 +135,7 @@ jobs:
           go install honnef.co/go/tools/cmd/staticcheck@latest
 
       - name: Check out ygot code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Get dependencies
         run: |
