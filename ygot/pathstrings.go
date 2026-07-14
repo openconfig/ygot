@@ -145,7 +145,8 @@ func elemToString(name string, kv map[string]string) (string, error) {
 	sort.Strings(keys)
 
 	for _, k := range keys {
-		v := strings.Replace(kv[k], `=`, `\=`, -1)
+		v := strings.Replace(kv[k], `\`, `\\`, -1)
+		v = strings.Replace(v, `=`, `\=`, -1)
 		v = strings.Replace(v, `]`, `\]`, -1)
 		name = fmt.Sprintf("%s[%s=%s]", name, k, v)
 	}

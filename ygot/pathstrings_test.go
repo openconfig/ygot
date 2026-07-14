@@ -76,6 +76,12 @@ func TestPathToString(t *testing.T) {
 		}},
 		want: "/a[a=b]/b[c=d][e=f]/g",
 	}, {
+		name: "path with backslash in key value",
+		in: &gnmipb.Path{Elem: []*gnmipb.PathElem{
+			{Name: "a", Key: map[string]string{"k": `b\c`}},
+		}},
+		want: `/a[k=b\\c]`,
+	}, {
 		name: "structured path with empty element",
 		in: &gnmipb.Path{Elem: []*gnmipb.PathElem{
 			{Name: "a", Key: map[string]string{"a": "b"}},
@@ -218,7 +224,7 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:                `name [name=[\\\]] example from specification`,
 		in:                  `/interfaces/interface[name=[\\\]]`,
-		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", `interface[name=[\\]]`}},
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", `interface[name=[\\\]]`}},
 		wantStructuredPath: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{
 				{Name: "interfaces"},
