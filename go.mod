@@ -5,7 +5,6 @@ go 1.25.0
 toolchain go1.25.3
 
 require (
-	github.com/derekparker/trie v0.0.0-20230829180723-39f4de51ef7d
 	github.com/golang/glog v1.2.5
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.7.0
