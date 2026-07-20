@@ -17,10 +17,11 @@ package gnmidiff
 
 import (
 	"fmt"
+	"maps"
 	"reflect"
+	"slices"
 	"strings"
 
-	"github.com/derekparker/trie"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
 
@@ -122,8 +123,8 @@ func minimalSetRequestIntent(req *gpb.SetRequest, schema *ytypes.Schema) (setReq
 		Deletes: map[string]struct{}{},
 		Updates: map[string]interface{}{},
 	}
-	// NOTE: This simple trie will not work if we intend to check conflicts with wildcard deletion paths.
-	t := trie.New()
+	// NOTE: This simple prefix match will not work if we intend to check conflicts with wildcard deletion paths.
+	deletePaths := make([]string, 0, len(req.Delete)+len(req.Replace))
 	for _, gPath := range req.Delete {
 		path, err := fullPathStr(prefix, gPath)
 		if err != nil {
@@ -133,7 +134,7 @@ func minimalSetRequestIntent(req *gpb.SetRequest, schema *ytypes.Schema) (setReq
 			return setRequestIntent{}, fmt.Errorf("gnmidiff: conflicting replaces in SetRequest: %v", path)
 		}
 		intent.Deletes[path] = struct{}{}
-		t.Add(path, nil)
+		deletePaths = append(deletePaths, path)
 	}
 	for _, upd := range req.Replace {
 		path, err := fullPathStr(prefix, upd.Path)
@@ -144,16 +145,17 @@ func minimalSetRequestIntent(req *gpb.SetRequest, schema *ytypes.Schema) (setReq
 			return setRequestIntent{}, fmt.Errorf("gnmidiff: conflicting replaces in SetRequest: %v", path)
 		}
 		intent.Deletes[path] = struct{}{}
-		t.Add(path, nil)
+		deletePaths = append(deletePaths, path)
 
 		if err := intent.populateUpdate(path, upd.GetVal(), schema, true); err != nil {
 			return setRequestIntent{}, err
 		}
 	}
 
+	slices.Sort(deletePaths)
 	// Do prefix match to check for conflicting replace paths.
-	for _, path := range t.Keys() {
-		if matches := t.PrefixSearch(path + "/"); len(matches) >= 1 {
+	for _, path := range deletePaths {
+		if matches := prefixSearch(deletePaths, path); len(matches) >= 1 {
 			return setRequestIntent{}, fmt.Errorf("gnmidiff: conflicting replaces in SetRequest: %v, %v", path, matches)
 		}
 	}
@@ -169,14 +171,11 @@ func minimalSetRequestIntent(req *gpb.SetRequest, schema *ytypes.Schema) (setReq
 		}
 	}
 
-	t = trie.New()
-	for path := range intent.Updates {
-		t.Add(path, nil)
-	}
-
 	// Do prefix match to check for conflicting update paths.
-	for _, path := range t.Keys() {
-		if matches := t.PrefixSearch(path + "/"); len(matches) >= 1 {
+	updatePaths := slices.Collect(maps.Keys(intent.Updates))
+	slices.Sort(updatePaths)
+	for _, path := range updatePaths {
+		if matches := prefixSearch(updatePaths, path); len(matches) >= 1 {
 			return setRequestIntent{}, fmt.Errorf("gnmidiff: bad SetRequest, there are leaf updates that have a prefix match: %v, %v", path, matches)
 		}
 	}

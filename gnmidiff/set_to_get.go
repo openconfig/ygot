@@ -2,9 +2,10 @@ package gnmidiff
 
 import (
 	"fmt"
+	"maps"
 	"reflect"
+	"slices"
 
-	"github.com/derekparker/trie"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ytypes"
 )
@@ -82,13 +83,11 @@ func DiffSetRequestToNotifications(setreq *gpb.SetRequest, notifs []*gpb.Notific
 		delete(updates, pathA)
 	}
 
-	t := trie.New()
-	for pathB, vB := range updates {
-		t.Add(pathB, vB)
-	}
+	updatePaths := slices.Collect(maps.Keys(updates))
+	slices.Sort(updatePaths)
 	for delPath := range setIntent.Deletes {
 		// TODO: handle wildcards in delete paths (if applicable).
-		for _, extraPath := range t.PrefixSearch(delPath + "/") {
+		for _, extraPath := range prefixSearch(updatePaths, delPath) {
 			diff.ExtraUpdates[extraPath] = updates[extraPath]
 		}
 	}
