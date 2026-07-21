@@ -294,6 +294,14 @@ func extractKV(in string) (string, map[string]string, error) {
 		inEscape = false
 	}
 
+	if inKey {
+		return "", nil, fmt.Errorf("received an unterminated key in element %s", in)
+	}
+
+	if inEscape {
+		return "", nil, fmt.Errorf("received a trailing escape character in element %s", in)
+	}
+
 	if len(keys) == 0 {
 		name = buf.String()
 	}
