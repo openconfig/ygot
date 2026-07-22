@@ -262,32 +262,38 @@ func SanitizedPattern(t *yang.YangType) ([]string, bool) {
 // at the head or tail of the expression. See
 // https://www.w3.org/TR/2004/REC-xmlschema-2-20041028/#regexs for details.
 func fixYangRegexp(pattern string) string {
+	if pattern == "" {
+		return ""
+	}
+
+	// Drop anchors that the pattern already carries, they are re-added
+	// around the whole expression below. Keeping them in place would let a
+	// top-level alternation associate with only one of them, so that
+	// e.g. "^a|b" would match any string starting with "a".
+	pattern = strings.TrimPrefix(pattern, "^")
+	if trailingCharIsAnchor(pattern) {
+		pattern = pattern[:len(pattern)-1]
+	}
+
 	var buf bytes.Buffer
+	// Parens around the entire expression prevent logical subexpressions
+	// associating with the leading/trailing ^ / $.
+	buf.WriteString("^(")
+
 	var inEscape bool
 	var prevChar rune
-	addParens := false
-
-	for i, ch := range pattern {
-		if i == 0 && ch != '^' {
-			buf.WriteRune('^')
-			// Add parens around entire expression to prevent logical
-			// subexpressions associating with leading/trailing ^ / $.
-			buf.WriteRune('(')
-			addParens = true
-		}
-
+	for _, ch := range pattern {
 		switch ch {
 		case '$':
-			// Dollar signs need to be escaped unless they are at
-			// the end of the pattern, or are already escaped.
-			if !inEscape && i != len(pattern)-1 {
+			// Dollar signs need to be escaped unless they are
+			// already escaped.
+			if !inEscape {
 				buf.WriteRune('\\')
 			}
 		case '^':
 			// Carets need to be escaped unless they are already
-			// escaped, indicating set negation ([^.*]) or at the
-			// start of the string.
-			if !inEscape && prevChar != '[' && i != 0 {
+			// escaped, or indicate set negation ([^.*]).
+			if !inEscape && prevChar != '[' {
 				buf.WriteRune('\\')
 			}
 		}
@@ -297,23 +303,28 @@ func fixYangRegexp(pattern string) string {
 		// char and if so, then enter escape.
 		inEscape = !inEscape && ch == '\\'
 
-		if i == len(pattern)-1 && addParens && ch == '$' {
-			buf.WriteRune(')')
-		}
-
 		buf.WriteRune(ch)
-
-		if i == len(pattern)-1 && ch != '$' {
-			if addParens {
-				buf.WriteRune(')')
-			}
-			buf.WriteRune('$')
-		}
 
 		prevChar = ch
 	}
 
+	buf.WriteString(")$")
+
 	return buf.String()
+}
+
+// trailingCharIsAnchor reports whether pattern ends in an unescaped '$', i.e.
+// a '$' that is acting as an anchor rather than matching a literal dollar
+// sign.
+func trailingCharIsAnchor(pattern string) bool {
+	if !strings.HasSuffix(pattern, "$") {
+		return false
+	}
+	backslashes := 0
+	for i := len(pattern) - 2; i >= 0 && pattern[i] == '\\'; i-- {
+		backslashes++
+	}
+	return backslashes%2 == 0
 }
 
 // IsConfig takes a yang.Entry and traverses up the tree to find the config

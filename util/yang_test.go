@@ -99,7 +99,21 @@ func TestSanitizedPattern(t *testing.T) {
 		in: &yang.YangType{
 			Pattern: []string{``, `^abc`, `^abc$`, `abc$`, `a$b^c[^d]\\\ne`},
 		},
-		want:        []string{``, `^abc$`, `^abc$`, `^(abc)$`, `^(a\$b\^c[^d]\\\ne)$`},
+		want:        []string{``, `^(abc)$`, `^(abc)$`, `^(abc)$`, `^(a\$b\^c[^d]\\\ne)$`},
+		wantIsPOSIX: false,
+	}, {
+		desc: "Pattern with alternation and pre-existing anchors",
+		in: &yang.YangType{
+			Pattern: []string{`^a|b`, `^a|b$`, `a|b$`},
+		},
+		want:        []string{`^(a|b)$`, `^(a|b)$`, `^(a|b)$`},
+		wantIsPOSIX: false,
+	}, {
+		desc: "Pattern ending in an escaped dollar sign",
+		in: &yang.YangType{
+			Pattern: []string{`abc\$`, `abc\\$`},
+		},
+		want:        []string{`^(abc\$)$`, `^(abc\\)$`},
 		wantIsPOSIX: false,
 	}}
 

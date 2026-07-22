@@ -253,7 +253,7 @@ func TestValidate(t *testing.T) {
 				LeafThree: ygot.String("fish"),
 			},
 			wantErr: `pointed-to value with path ../leaf-one from field LeafTwo value two (string ptr) schema /device/leaf-two is empty set
-/leaf-three: schema "leaf-three": "fish" does not match regular expression pattern "^a.*$"`, // Check that there is an error
+/leaf-three: schema "leaf-three": "fish" does not match regular expression pattern "^(a.*)$"`, // Check that there is an error
 			wantErrLen: 2,
 		},
 		{

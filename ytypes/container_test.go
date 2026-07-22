@@ -251,7 +251,7 @@ func TestValidateContainer(t *testing.T) {
 				},
 			},
 			// Should just get one error back with the error, not two.
-			wantErr: `/child-list: schema "bad-leaf": "fish" does not match regular expression pattern "^a.*$"`,
+			wantErr: `/child-list: schema "bad-leaf": "fish" does not match regular expression pattern "^(a.*)$"`,
 		},
 	}
 
