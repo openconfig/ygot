@@ -1123,6 +1123,20 @@ func TestSimpleStructs(t *testing.T) {
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/presence-container-example.formatted-txt"),
+	}, {
+		name:    "skip obsolete list keys test",
+		inFiles: []string{filepath.Join(datapath, "skip-obsolete-test.yang")},
+		inConfig: CodeGenerator{
+			IROptions: ygen.IROptions{
+				TransformationOptions: ygen.TransformationOpts{
+					SkipObsolete: true,
+				},
+			},
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
+		},
+		wantErrSubstring: "did not find type for key obsolete-key",
 	}}
 
 	for _, tt := range tests {
