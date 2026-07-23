@@ -496,6 +496,12 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 			json:    `{"struct-list" : { "leaf-field" : 42 } }`,
 			wantErr: `unmarshalList for schema struct-list: jsonList map[leaf-field:42] (map): got type map[string]interface {}, expect []interface{}`,
 		},
+		{
+			desc:    "list element is not an object",
+			schema:  containerWithLeafListSchema,
+			json:    `{"struct-list" : [ 42 ] }`,
+			wantErr: `unmarshalList for schema struct-list: got list element type float64, expect map[string]interface{}`,
+		},
 	}
 
 	var jsonTree interface{}
