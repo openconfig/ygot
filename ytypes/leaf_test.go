@@ -1380,6 +1380,16 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			wantErr: `error parsing forty-two for schema decimal-leaf: strconv.ParseFloat: parsing "forty-two": invalid syntax`,
 		},
 		{
+			desc:    "decimal NaN",
+			json:    `{"decimal-leaf" : "NaN"}`,
+			wantErr: `error parsing NaN for schema decimal-leaf: decimal64 value must be finite`,
+		},
+		{
+			desc:    "decimal Inf",
+			json:    `{"decimal-leaf" : "Inf"}`,
+			wantErr: `error parsing Inf for schema decimal-leaf: decimal64 value must be finite`,
+		},
+		{
 			desc: "empty valid type",
 			json: `{"empty-leaf": [null]}`,
 			want: LeafContainerStruct{EmptyLeaf: true},
