@@ -17,6 +17,7 @@ package ytypes
 import (
 	"encoding/base64"
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 
@@ -273,6 +274,9 @@ func stringToKeyType(schema *yang.Entry, parent interface{}, fieldName string, v
 		floatV, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v: %v", value, ykind, err)
+		}
+		if math.IsInf(floatV, 0) || math.IsNaN(floatV) {
+			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v: value must be finite", value, ykind)
 		}
 		return reflect.ValueOf(floatV), nil
 	case yang.Yenum, yang.Yidentityref:
