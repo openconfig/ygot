@@ -835,6 +835,13 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 			if v.DecimalVal == nil {
 				return nil, fmt.Errorf("received DecimalVal is nil -- this is invalid")
 			}
+			// A YANG decimal64 has at most 18 fraction digits, so a larger
+			// precision is invalid. Reject it before the exponentiation below,
+			// which otherwise builds an unbounded big.Int from the untrusted
+			// Precision field.
+			if p := v.DecimalVal.Precision; p > 18 {
+				return nil, fmt.Errorf("decimal64 precision %d is out of range, must be at most 18", p)
+			}
 			prec := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(v.DecimalVal.Precision)), nil)
 			// Second return value indicates whether returned float64 value exactly
 			// represents the division. We don't want to fail unmarshalling as float64
