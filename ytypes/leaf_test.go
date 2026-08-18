@@ -2096,6 +2096,17 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			wantVal: &LeafContainerStruct{DecimalLeaf: ygot.Float64(0.42)},
 		},
 		{
+			desc:     "fail gNMI Decimal64 with out-of-range precision",
+			inSchema: typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_DecimalVal{
+					//lint:ignore SA1019 We still need to tolerate unmarshalling decimal_val and float_val.
+					DecimalVal: &gpb.Decimal64{Digits: 42, Precision: 19},
+				},
+			},
+			wantErr: "decimal64 precision 19 is out of range",
+		},
+		{
 			desc:     "fail gNMI nil Decimal64 value",
 			inSchema: typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
 			inVal: &gpb.TypedValue{
