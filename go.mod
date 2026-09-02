@@ -1,8 +1,8 @@
 module github.com/openconfig/ygot
 
-go 1.25.0
+go 1.26.0
 
-toolchain go1.25.3
+toolchain go1.27.1
 
 require (
 	github.com/golang/glog v1.2.5
@@ -14,11 +14,11 @@ require (
 	github.com/openconfig/goyang v1.6.3
 	github.com/openconfig/gribi v1.9.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
-	golang.org/x/exp v0.0.0-20251009144603-d2f985daa21b
+	golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa
 	google.golang.org/grpc v1.76.0
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.12
 )
 
 require (
