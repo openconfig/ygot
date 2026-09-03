@@ -918,6 +918,11 @@ func marshalStructOrOrderedList(s any, enc gnmipb.Encoding, cfg *RFC7951JSONConf
 	if reflect.ValueOf(s).IsNil() {
 		return nil, nil
 	}
+	// A presence container might not be empty, but we should still
+	// treat it as such
+	if _, ok := s.(PresenceContainer); ok {
+		return nil, nil
+	}
 
 	var (
 		j     any
