@@ -339,10 +339,12 @@ func findSetLeaves(s GoStruct, orderedMapAsLeaf bool, opts ...DiffOpt) (map[*pat
 
 		outs := out.(map[*pathSpec]interface{})
 		if isYangPresence {
-			// If the current field is tagged as a presence container,
-			// we set it's value to `nil` instead of returning earlier.
-			// This is because empty presence containers has a meaning,
-			// unlike a normal container.
+			// The field is a presence container, so ival is a non-nil
+			// pointer to the container's struct. Its existence is
+			// meaningful in itself (unlike a normal container), so
+			// record the path with a nil value rather than the struct,
+			// which would otherwise be skipped above. Leaves within
+			// the container are still walked and recorded separately.
 			outs[vp] = nil
 		} else {
 			outs[vp] = ival
@@ -437,11 +439,18 @@ func hasIgnoreAdditions(opts []DiffOpt) *IgnoreAdditions {
 	return nil
 }
 
-// The RespectPresenceContainers DiffOpt indicates that presence containers
-// should be respected in the diff output.
-// This option was added to ensure we do not break backward compatibility.
+// WithRespectPresenceContainers is a DiffOpt that indicates that YANG presence
+// containers should be treated as values in the diff output. When set, a
+// presence container that exists in the modified struct but not the original
+// is emitted as an update with a nil value, and one that exists in the
+// original but not the modified struct is emitted as a delete of the
+// container path itself, in addition to any leaves within it.
+//
+// This is an opt-in behaviour to retain backwards compatibility with callers
+// that expect presence containers to be treated like ordinary containers.
 type WithRespectPresenceContainers struct{}
 
+// IsDiffOpt marks WithRespectPresenceContainers as a diff option.
 func (*WithRespectPresenceContainers) IsDiffOpt() {}
 
 // hasRespectPresenceContainers returns the first WithRespectPresenceContainers from an opts slice, or

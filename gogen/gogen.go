@@ -841,10 +841,11 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 	]", i, i)
 }
 `)
-	// presenceMethodTemplate provides a template to output a method
-	// indicating this is a presence container
+	// presenceMethodTemplate provides a template to output a marker method
+	// indicating that the generated struct represents a YANG presence
+	// container, such that it implements the ygot.PresenceContainer interface.
 	presenceMethodTemplate = mustMakeTemplate("presenceMethodTemplate", `
-// IsPresence returns nothing, but indicates that the receiver is a presence container. 
+// IsPresence returns nothing, but indicates that the receiver is a presence container.
 func (t *{{ .StructName }}) IsPresence() {}
 `)
 )
@@ -1411,11 +1412,9 @@ func writeGoStruct(targetStruct *ygen.ParsedDirectory, goStructElements map[stri
 		errs = append(errs, err)
 	}
 
-	if goOpts.AddYangPresence {
-		if targetStruct.PresenceContainer {
-			if err := presenceMethodTemplate.Execute(&methodBuf, structDef); err != nil {
-				errs = append(errs, err)
-			}
+	if goOpts.AddYangPresence && targetStruct.PresenceContainer {
+		if err := presenceMethodTemplate.Execute(&methodBuf, structDef); err != nil {
+			errs = append(errs, err)
 		}
 	}
 
