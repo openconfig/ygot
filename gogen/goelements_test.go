@@ -17,6 +17,7 @@ package gogen
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -1549,6 +1550,14 @@ func TestYangDefaultValueToGo(t *testing.T) {
 		}
 	}
 
+	// collidingEnumType is used by a regression test for
+	// https://github.com/openconfig/ygot/issues/1083: "SPEED.1" and
+	// "SPEED-1" both sanitise to "SPEED_1", and must not resolve to the
+	// same generated Go identifier.
+	collidingEnumType := yang.NewEnumType()
+	collidingEnumType.Set("SPEED.1", 0)
+	collidingEnumType.Set("SPEED-1", 1)
+
 	tests := []struct {
 		name      string
 		inType    *yang.YangType
@@ -2299,6 +2308,45 @@ func TestYangDefaultValueToGo(t *testing.T) {
 		},
 		inValue:  "RED-BLUE",
 		want:     "BaseModule_EnumerationLeaf_RED_BLUE",
+		wantKind: yang.Yenum,
+	}, {
+		// Regression test for https://github.com/openconfig/ygot/issues/1083.
+		name: "enumeration, first of two colliding values keeps its plain sanitised name",
+		inCtx: &yang.Entry{
+			Name: "enumeration-leaf",
+			Type: &yang.YangType{
+				Name: "enumeration",
+				Kind: yang.Yenum,
+				Enum: collidingEnumType,
+			},
+			Parent: &yang.Entry{Name: "base-module"},
+			Node: &yang.Identity{
+				Parent: &yang.Module{Name: "base-module"},
+			},
+		},
+		inValue:  "SPEED.1",
+		want:     "BaseModule_EnumerationLeaf_SPEED_1",
+		wantKind: yang.Yenum,
+	}, {
+		// Regression test for https://github.com/openconfig/ygot/issues/1083:
+		// this must resolve to exactly the same disambiguated identifier
+		// that genGoEnumeratedTypes would generate for "SPEED-1" when
+		// defining the enumerated Go type's constants.
+		name: "enumeration, second of two colliding values is disambiguated",
+		inCtx: &yang.Entry{
+			Name: "enumeration-leaf",
+			Type: &yang.YangType{
+				Name: "enumeration",
+				Kind: yang.Yenum,
+				Enum: collidingEnumType,
+			},
+			Parent: &yang.Entry{Name: "base-module"},
+			Node: &yang.Identity{
+				Parent: &yang.Module{Name: "base-module"},
+			},
+		},
+		inValue:  "SPEED-1",
+		want:     "BaseModule_EnumerationLeaf_SPEED_1_",
 		wantKind: yang.Yenum,
 	}, {
 		name: "enumeration in union with string as the second union type",
@@ -3260,6 +3308,94 @@ func TestGoLeafDefaults(t *testing.T) {
 			got := goLeafDefaults(tt.inLeaf, tt.inType)
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Fatalf("did not get expected default, (-want, +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// TestGenerateGoDefaultValueLeafrefToCollidingEnum is a regression test for
+// https://github.com/openconfig/ygot/issues/1083: a leafref whose target is
+// an enumeration containing colliding values ("SPEED.1" and "SPEED-1") must
+// still resolve its default value correctly when simpleUnions is false (the
+// legacy/wrapper-union default path, which calls goLeafDefaults). Previously
+// that path tried to resolve the enumerated type directly from the leafref
+// leaf's own YangType (Kind Yleafref, not Yenum/Yidentityref), so it could
+// never find the enumerated type and this case failed; the fix is for
+// generateGoDefaultValue to rely on yangDefaultValueToGo's own leafref
+// resolution instead, for any mapped type that is enumerated.
+func TestGenerateGoDefaultValueLeafrefToCollidingEnum(t *testing.T) {
+	collidingEnumType := yang.NewEnumType()
+	collidingEnumType.Set("SPEED.1", 0)
+	collidingEnumType.Set("SPEED-1", 1)
+
+	bParent := &yang.Entry{Name: "a", Parent: &yang.Entry{Name: "module"}}
+	speedLeaf := &yang.Entry{
+		Name: "speed",
+		Type: &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Enum: collidingEnumType},
+		Parent: &yang.Entry{
+			Name:   "b",
+			Parent: bParent,
+		},
+		Node: &yang.Identity{Parent: &yang.Module{Name: "base-module"}},
+	}
+	moduleTree := []*yang.Entry{{
+		Name: "a",
+		Dir: map[string]*yang.Entry{
+			"b": {
+				Name:   "b",
+				Dir:    map[string]*yang.Entry{"speed": speedLeaf},
+				Parent: bParent,
+			},
+		},
+		Parent: &yang.Entry{Name: "module"},
+	}}
+
+	speedRef := &yang.Entry{
+		Name:    "speed-ref",
+		Default: []string{"SPEED-1"},
+		Type:    &yang.YangType{Kind: yang.Yleafref, Name: "leafref", Path: "../speed"},
+		Parent: &yang.Entry{
+			Name:   "b",
+			Parent: bParent,
+		},
+	}
+
+	for _, simpleUnions := range []bool{true, false} {
+		t.Run(fmt.Sprintf("simpleUnions=%v", simpleUnions), func(t *testing.T) {
+			s := NewGoLangMapper(simpleUnions)
+
+			enumMap := enumMapFromEntries(moduleTree)
+			if err := s.InjectEnumSet(enumMap, false, false, false, true, true, true, nil); err != nil {
+				t.Fatalf("InjectEnumSet: %v", err)
+			}
+			if err := s.InjectSchemaTree(moduleTree); err != nil {
+				t.Fatalf("InjectSchemaTree: %v", err)
+			}
+
+			mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: speedRef.Type, contextEntry: speedRef}, false, false, false, true, nil)
+			if err != nil {
+				t.Fatalf("yangTypeToGoType: got unexpected error: %v", err)
+			}
+			if !mtype.IsEnumeratedValue {
+				t.Fatalf("yangTypeToGoType: expected leafref to enum to resolve to an enumerated mapped type, got: %+v", mtype)
+			}
+
+			got, err := generateGoDefaultValue(speedRef, mtype, s, false, false, false, true, nil, simpleUnions)
+			if err != nil {
+				t.Fatalf("generateGoDefaultValue: got unexpected error: %v", err)
+			}
+			if got == nil {
+				t.Fatalf("generateGoDefaultValue: got nil default value")
+			}
+
+			// "SPEED-1" is the second of two colliding values ("SPEED.1"
+			// and "SPEED-1" both sanitise to "SPEED_1"), so it must
+			// resolve to the disambiguated "..._SPEED_1_" identifier --
+			// the same one genGoEnumeratedTypes would generate for it at
+			// the enum's definition site.
+			want := fmt.Sprintf("%s_SPEED_1_", strings.TrimPrefix(mtype.NativeType, goEnumPrefix))
+			if *got != want {
+				t.Errorf("generateGoDefaultValue: got %q, want %q", *got, want)
 			}
 		})
 	}
