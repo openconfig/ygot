@@ -358,6 +358,16 @@ func TestStringToPath(t *testing.T) {
 		wantSliceErr:      "received an unescaped [ in key of element bar",
 		wantStructuredErr: "received an unescaped [ in key of element bar",
 	}, {
+		name:              "unterminated key",
+		in:                `/foo/bar[baz=bat`,
+		wantSliceErr:      "received an unterminated key in element bar[baz=bat",
+		wantStructuredErr: "received an unterminated key in element bar[baz=bat",
+	}, {
+		name:              "unterminated key with escaped ]",
+		in:                `/foo/bar[baz=bat\]`,
+		wantSliceErr:      `received an unterminated key in element bar[baz=bat\]`,
+		wantStructuredErr: `received an unterminated key in element bar[baz=bat\]`,
+	}, {
 		name:              "element with unescaped ]",
 		in:                `/foo/bar]`,
 		wantSliceErr:      "received an unescaped ] when not in a key for element bar",
@@ -485,6 +495,18 @@ func TestPathToSchemaPath(t *testing.T) {
 			Element: []string{"interfaces", "interface[name=eth0]", "config", "description"},
 		},
 		want: "/interfaces/interface/config/description",
+	}, {
+		name: "element path with an unterminated predicate",
+		inPath: &gnmipb.Path{
+			Element: []string{"interfaces", "interface[name=eth0"},
+		},
+		wantErrSubstring: "received an unterminated key in element interface[name=eth0",
+	}, {
+		name: "element path with a trailing escape character",
+		inPath: &gnmipb.Path{
+			Element: []string{"interfaces", `interface\`},
+		},
+		wantErrSubstring: `received a trailing escape character in element interface\`,
 	}, {
 		name: "elem path with no keys",
 		inPath: &gnmipb.Path{
