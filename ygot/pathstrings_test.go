@@ -105,6 +105,20 @@ func TestPathToString(t *testing.T) {
 			}},
 		},
 		want: "/one/two/three", // should have the element type, not elem.
+	}, {
+		name: "key value with repeated slash is preserved",
+		in: &gnmipb.Path{Elem: []*gnmipb.PathElem{
+			{Name: "a", Key: map[string]string{"k": "x//y"}},
+			{Name: "b"},
+		}},
+		want: "/a[k=x//y]/b",
+	}, {
+		name: "key value with dot segments is preserved",
+		in: &gnmipb.Path{Elem: []*gnmipb.PathElem{
+			{Name: "a", Key: map[string]string{"k": "p/../q"}},
+			{Name: "b"},
+		}},
+		want: "/a[k=p/../q]/b",
 	}}
 
 	for _, tt := range tests {
