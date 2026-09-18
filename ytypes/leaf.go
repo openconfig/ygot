@@ -17,6 +17,7 @@ package ytypes
 import (
 	"encoding/base64"
 	"fmt"
+	"math"
 	"math/big"
 	"reflect"
 	"strconv"
@@ -741,6 +742,9 @@ func sanitizeJSON(parent interface{}, schema *yang.Entry, fieldName string, valu
 		floatV, err := strconv.ParseFloat(value.(string), 64)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing %v for schema %s: %v", value, schema.Name, err)
+		}
+		if math.IsInf(floatV, 0) || math.IsNaN(floatV) {
+			return nil, fmt.Errorf("error parsing %v for schema %s: decimal64 value must be finite", value, schema.Name)
 		}
 
 		return floatV, nil

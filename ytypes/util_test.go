@@ -683,6 +683,13 @@ func TestStringToKeyType(t *testing.T) {
 		in:               "I am a float?",
 		wantErrSubstring: "unable to convert",
 	}, {
+		name:             "invalid: non-finite float",
+		inSchema:         listSchema.Dir["decimal64Key"],
+		inParent:         &allKeysListStruct{},
+		inFieldName:      "Decimal64Key",
+		in:               "Inf",
+		wantErrSubstring: "value must be finite",
+	}, {
 		name:             "invalid: too big for int8",
 		inSchema:         listSchema.Dir["int8Key"],
 		inParent:         &allKeysListStruct{},
