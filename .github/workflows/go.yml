@@ -1,5 +1,7 @@
 name: Go
 
+permissions: {}
+
 on:
   push:
     branches: [ master ]
