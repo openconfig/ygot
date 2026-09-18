@@ -132,7 +132,7 @@ jobs:
       - name: Install required static analysis tools
         run: |
           go install github.com/mattn/goveralls@latest
-          go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
+          go install honnef.co/go/tools/cmd/staticcheck@ff63afafc529279f454e02f1d060210bd4263951
 
       - name: Check out ygot code
         uses: actions/checkout@v7
