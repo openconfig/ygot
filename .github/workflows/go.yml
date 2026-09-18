@@ -18,13 +18,13 @@ jobs:
 
     steps:
       - name: Install protobuf
-        uses: arduino/setup-protoc@v3
+        uses: arduino/setup-protoc@c65c819552d16ad3c9b72d9dfd5ba5237b9c906b
         with:
           version: '3.x'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
           go-version: ${{ matrix.go }}
         id: go
@@ -35,7 +35,7 @@ jobs:
           go install golang.org/x/tools/cmd/goimports@latest
 
       - name: Check out code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           path: go/src/github.com/openconfig/ygot
 
@@ -114,7 +114,7 @@ jobs:
 
       - name: Make sure exampleoc doesn't error or panic
         run: |
-          go install golang.org/x/tools/cmd/stringer@latest
+          go install golang.org/x/tools/cmd/stringer@014f87ff5c01915bc90f4f11a6bb8aea3e0edbd7
           go generate ./...
         working-directory: go/src/github.com/openconfig/ygot
 
@@ -124,18 +124,18 @@ jobs:
 
     steps:
       - name: Install Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
           go-version: '1.25'
         id: go
 
       - name: Install required static analysis tools
         run: |
-          go install github.com/mattn/goveralls@latest
+          go install github.com/mattn/goveralls@b03136803f261ccad7d5a40b19b25870a394578f
           go install honnef.co/go/tools/cmd/staticcheck@ff63afafc529279f454e02f1d060210bd4263951
 
       - name: Check out ygot code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Get dependencies
         run: |
@@ -165,7 +165,7 @@ jobs:
           done
 
       - name: Submit coverage
-        uses: shogo82148/actions-goveralls@v1
+        uses: shogo82148/actions-goveralls@b03136803f261ccad7d5a40b19b25870a394578f
         with:
           path-to-profile: concatenated.coverprofile
 
