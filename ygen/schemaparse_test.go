@@ -15,7 +15,10 @@
 package ygen
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
+	"io"
 	"reflect"
 	"strings"
 	"testing"
@@ -293,29 +296,37 @@ func TestWriteGzippedByteSlice(t *testing.T) {
 	tests := []struct {
 		name    string
 		inBytes []byte
-		want    []byte
 		wantErr bool
 	}{{
 		name:    "simple string test",
 		inBytes: []byte("test"),
-		want:    []byte{31, 139, 8, 0, 0, 0, 0, 0, 2, 255, 42, 73, 45, 46, 1, 0, 0, 0, 255, 255, 1, 0, 0, 255, 255, 12, 126, 127, 216, 4, 0, 0, 0},
 	}, {
 		name:    "mixed input test",
 		inBytes: []byte{0x42, 0x32, 0x26},
-		want:    []byte{31, 139, 8, 0, 0, 0, 0, 0, 2, 255, 114, 50, 82, 3, 0, 0, 0, 255, 255, 1, 0, 0, 255, 255, 48, 81, 34, 179, 3, 0, 0, 0},
 	}}
 
 	for _, tt := range tests {
 		got, err := WriteGzippedByteSlice(tt.inBytes)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: WriteGzippedByteSlice(%v): got unexpected error: %v, wantErr: %v", tt.name, tt.inBytes, err, tt.wantErr)
+			continue
+		}
 		if err != nil {
-			if !tt.wantErr {
-				t.Errorf("%s: WriteGzippedByteSlice(%v): got unexpected error: %v", tt.name, tt.inBytes, err)
-			}
 			continue
 		}
 
-		if diff := cmp.Diff(tt.want, got); diff != "" {
-			t.Errorf("%s: WriteGzippedByteSlice(%v): did not get expected output, (-want, +got):\n%s", tt.name, tt.inBytes, diff)
+		zr, err := gzip.NewReader(bytes.NewReader(got))
+		if err != nil {
+			t.Errorf("%s: gzip.NewReader: got unexpected error: %v", tt.name, err)
+			continue
+		}
+		decompressed, err := io.ReadAll(zr)
+		if err != nil {
+			t.Errorf("%s: io.ReadAll: got unexpected error: %v", tt.name, err)
+			continue
+		}
+		if diff := cmp.Diff(tt.inBytes, decompressed); diff != "" {
+			t.Errorf("%s: decompressed bytes did not match input (-want, +got):\n%s", tt.name, diff)
 		}
 	}
 }
