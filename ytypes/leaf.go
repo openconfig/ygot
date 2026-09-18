@@ -17,6 +17,7 @@ package ytypes
 import (
 	"encoding/base64"
 	"fmt"
+	"math"
 	"math/big"
 	"reflect"
 	"strconv"
@@ -742,6 +743,9 @@ func sanitizeJSON(parent interface{}, schema *yang.Entry, fieldName string, valu
 		if err != nil {
 			return nil, fmt.Errorf("error parsing %v for schema %s: %v", value, schema.Name, err)
 		}
+		if math.IsInf(floatV, 0) || math.IsNaN(floatV) {
+			return nil, fmt.Errorf("error parsing %v for schema %s: decimal64 value must be finite", value, schema.Name)
+		}
 
 		return floatV, nil
 
@@ -834,6 +838,13 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 		case *gpb.TypedValue_DecimalVal:
 			if v.DecimalVal == nil {
 				return nil, fmt.Errorf("received DecimalVal is nil -- this is invalid")
+			}
+			// A YANG decimal64 has at most 18 fraction digits, so a larger
+			// precision is invalid. Reject it before the exponentiation below,
+			// which otherwise builds an unbounded big.Int from the untrusted
+			// Precision field.
+			if p := v.DecimalVal.Precision; p > 18 {
+				return nil, fmt.Errorf("decimal64 precision %d is out of range, must be at most 18", p)
 			}
 			prec := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(v.DecimalVal.Precision)), nil)
 			// Second return value indicates whether returned float64 value exactly

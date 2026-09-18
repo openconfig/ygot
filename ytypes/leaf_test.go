@@ -1380,6 +1380,16 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			wantErr: `error parsing forty-two for schema decimal-leaf: strconv.ParseFloat: parsing "forty-two": invalid syntax`,
 		},
 		{
+			desc:    "decimal NaN",
+			json:    `{"decimal-leaf" : "NaN"}`,
+			wantErr: `error parsing NaN for schema decimal-leaf: decimal64 value must be finite`,
+		},
+		{
+			desc:    "decimal Inf",
+			json:    `{"decimal-leaf" : "Inf"}`,
+			wantErr: `error parsing Inf for schema decimal-leaf: decimal64 value must be finite`,
+		},
+		{
 			desc: "empty valid type",
 			json: `{"empty-leaf": [null]}`,
 			want: LeafContainerStruct{EmptyLeaf: true},
@@ -2094,6 +2104,17 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 				},
 			},
 			wantVal: &LeafContainerStruct{DecimalLeaf: ygot.Float64(0.42)},
+		},
+		{
+			desc:     "fail gNMI Decimal64 with out-of-range precision",
+			inSchema: typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_DecimalVal{
+					//lint:ignore SA1019 We still need to tolerate unmarshalling decimal_val and float_val.
+					DecimalVal: &gpb.Decimal64{Digits: 42, Precision: 19},
+				},
+			},
+			wantErr: "decimal64 precision 19 is out of range",
 		},
 		{
 			desc:     "fail gNMI nil Decimal64 value",
