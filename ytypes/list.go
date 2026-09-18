@@ -348,7 +348,10 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 	// in the new list element.
 	for _, le := range jl {
 		var err error
-		jt := le.(map[string]interface{})
+		jt, ok := le.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unmarshalList for schema %s: got list element type %T, expect map[string]interface{}", schema.Name, le)
+		}
 		newVal := reflect.New(listElementType.Elem())
 		util.DbgPrint("creating a new list element val of type %v", newVal.Type())
 		if err := unmarshalStruct(schema, newVal.Interface(), jt, enc, opts...); err != nil {
