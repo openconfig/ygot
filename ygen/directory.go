@@ -193,6 +193,14 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 			}
 		default:
 			pd.Type = Container
+			// TODO(https://github.com/openconfig/goyang/issues/286): update to use
+			// direct yang.Entry field once presence is natively supported in goyang.
+			if len(dir.Entry.Extra["presence"]) > 0 {
+				if v, ok := dir.Entry.Extra["presence"][0].(*yang.Value); !ok || v == nil {
+					return nil, fmt.Errorf("unable to retrieve presence statement, expected non-nil *yang.Value, got %v", dir.Entry.Extra["presence"][0])
+				}
+				pd.PresenceContainer = true
+			}
 		}
 
 		for i, entry := 0, dir.Entry; ; i++ {

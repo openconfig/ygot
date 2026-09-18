@@ -1301,6 +1301,7 @@ func TestGenerateIR(t *testing.T) {
 					DefiningModule:            "openconfig-complex",
 					TelemetryAtomic:           true,
 					CompressedTelemetryAtomic: false,
+					PresenceContainer:         true,
 				},
 				"/openconfig-complex/model": {
 					Name:       "Model",

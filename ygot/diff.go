@@ -254,6 +254,8 @@ func findSetLeaves(s GoStruct, orderedMapAsLeaf bool, opts ...DiffOpt) (map[*pat
 			return
 		}
 
+		isYangPresence := hasRespectPresenceContainers(opts) != nil && util.IsYangPresence(ni.StructField)
+
 		var sp [][]string
 		if pathOpt != nil && pathOpt.PreferShadowPath {
 			// Try the shadow-path tag first to see if it exists.
@@ -313,9 +315,10 @@ func findSetLeaves(s GoStruct, orderedMapAsLeaf bool, opts ...DiffOpt) (map[*pat
 		// Ignore structs unless it is an ordered map and we're
 		// treating it as a leaf (since it is assumed to be
 		// telemetry-atomic in order to preserve ordering of entries).
-		if (!isOrderedMap || !orderedMapAsLeaf) && util.IsValueStructPtr(ni.FieldValue) {
+		if util.IsValueStructPtr(ni.FieldValue) && (!isOrderedMap || !orderedMapAsLeaf) && !isYangPresence {
 			return
 		}
+
 		if isOrderedMap && orderedMap.Len() == 0 {
 			return
 		}
@@ -335,7 +338,17 @@ func findSetLeaves(s GoStruct, orderedMapAsLeaf bool, opts ...DiffOpt) (map[*pat
 		}
 
 		outs := out.(map[*pathSpec]interface{})
-		outs[vp] = ival
+		if isYangPresence {
+			// The field is a presence container, so ival is a non-nil
+			// pointer to the container's struct. Its existence is
+			// meaningful in itself (unlike a normal container), so
+			// record the path with a nil value rather than the struct,
+			// which would otherwise be skipped above. Leaves within
+			// the container are still walked and recorded separately.
+			outs[vp] = nil
+		} else {
+			outs[vp] = ival
+		}
 
 		if isOrderedMap && orderedMapAsLeaf {
 			// We treat the ordered map as a leaf, so don't
@@ -421,6 +434,31 @@ func hasIgnoreAdditions(opts []DiffOpt) *IgnoreAdditions {
 		switch v := o.(type) {
 		case *IgnoreAdditions:
 			return v
+		}
+	}
+	return nil
+}
+
+// WithRespectPresenceContainers is a DiffOpt that indicates that YANG presence
+// containers should be treated as values in the diff output. When set, a
+// presence container that exists in the modified struct but not the original
+// is emitted as an update with a nil value, and one that exists in the
+// original but not the modified struct is emitted as a delete of the
+// container path itself, in addition to any leaves within it.
+//
+// This is an opt-in behaviour to retain backwards compatibility with callers
+// that expect presence containers to be treated like ordinary containers.
+type WithRespectPresenceContainers struct{}
+
+// IsDiffOpt marks WithRespectPresenceContainers as a diff option.
+func (*WithRespectPresenceContainers) IsDiffOpt() {}
+
+// hasRespectPresenceContainers returns the first WithRespectPresenceContainers from an opts slice, or
+// nil if there isn't one.
+func hasRespectPresenceContainers(opts []DiffOpt) *WithRespectPresenceContainers {
+	for _, o := range opts {
+		if rp, ok := o.(*WithRespectPresenceContainers); ok {
+			return rp
 		}
 	}
 	return nil
