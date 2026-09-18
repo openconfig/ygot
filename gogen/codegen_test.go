@@ -2,11 +2,16 @@ package gogen
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -27,6 +32,37 @@ const (
 )
 
 var updateGolden = flag.Bool("update_golden", false, "Update golden files")
+
+// schemaVarRegex matches the generated Go byte slice variable for the gzipped schema.
+// It captures the variable declaration opening in group 1, the hex byte lines in group 2,
+// and the closing brace in group 3.
+var schemaVarRegex = regexp.MustCompile(`(?s)(\t[A-Za-z0-9_]+ = \[\]byte\{)((?:\n\t\t0x[0-9a-fA-F].*)+)(\n\t\})`)
+
+// normaliseSchemaVar replaces the schema byte slice contents with a placeholder
+// such that variations in gzip compression output across Go versions do not
+// cause generated code comparisons to fail.
+func normaliseSchemaVar(code string) string {
+	return schemaVarRegex.ReplaceAllString(code, "${1}\n\t\t// REDACTED_SCHEMA_BYTES${3}")
+}
+
+// parseHexBytes parses a Go byte slice literal into a []byte.
+func parseHexBytes(s string) ([]byte, error) {
+	var out []byte
+	parts := strings.FieldsFunc(s, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n' || r == '\r'
+	})
+	for _, p := range parts {
+		if !strings.HasPrefix(p, "0x") {
+			continue
+		}
+		val, err := strconv.ParseUint(p[2:], 16, 8)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, byte(val))
+	}
+	return out, nil
+}
 
 //go:generate go test -run TestSimpleStructs -args -update_golden
 
@@ -1220,13 +1256,36 @@ func TestSimpleStructs(t *testing.T) {
 
 			wantCode := string(wantCodeBytes)
 
-			if gotCode != wantCode {
+			if normaliseSchemaVar(gotCode) != normaliseSchemaVar(wantCode) {
 				// Use difflib to generate a unified diff between the
 				// two code snippets such that this is simpler to debug
 				// in the test output.
-				diff, _ := testutil.GenerateUnifiedDiff(wantCode, gotCode)
+				diff, _ := testutil.GenerateUnifiedDiff(normaliseSchemaVar(wantCode), normaliseSchemaVar(gotCode))
 				t.Errorf("%s: Generate(%v, %v), Config: %+v, did not return correct code (file: %v), diff:\n%s",
 					tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantStructsCodeFile, diff)
+			}
+
+			if tt.inConfig.GoOptions.GenerateJSONSchema {
+				m := schemaVarRegex.FindStringSubmatch(gotCode)
+				if m == nil {
+					t.Fatalf("%s: could not find schema variable in generated code", tt.name)
+				}
+				gzBytes, err := parseHexBytes(m[2])
+				if err != nil {
+					t.Fatalf("%s: could not parse schema hex bytes: %v", tt.name, err)
+				}
+				zr, err := gzip.NewReader(bytes.NewReader(gzBytes))
+				if err != nil {
+					t.Fatalf("%s: could not create gzip reader for extracted schema: %v", tt.name, err)
+				}
+				decompressed, err := io.ReadAll(zr)
+				if err != nil {
+					t.Fatalf("%s: could not decompress extracted schema bytes: %v", tt.name, err)
+				}
+				if !bytes.Equal(decompressed, gotGeneratedCode.RawJSONSchema) {
+					diff, _ := testutil.GenerateUnifiedDiff(string(gotGeneratedCode.RawJSONSchema), string(decompressed))
+					t.Errorf("%s: decompressed schema did not match RawJSONSchema, diff:\n%s", tt.name, diff)
+				}
 			}
 
 			for i := 0; i < deflakeRuns; i++ {
