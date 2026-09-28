@@ -104,6 +104,7 @@ func protoIR(nestedDirectories bool) *ygen.IR {
 				DefiningModule:            "openconfig-complex",
 				TelemetryAtomic:           true,
 				CompressedTelemetryAtomic: false,
+				PresenceContainer:         true,
 			},
 			"/openconfig-complex/model": {
 				Name:       "Model",
