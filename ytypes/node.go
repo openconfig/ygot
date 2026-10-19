@@ -565,6 +565,7 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 	schemaKeyMap := map[string]string{}
 
 	// Reduce FieldByName calls in the loop and reduce Field calls and tag lookup calls in the loop.
+	singleKeyFieldIdx := -1
 	if util.IsTypeStruct(listKeyT) {
 		for i := 0; i < listKeyT.NumField(); i++ {
 			fieldName := listKeyT.Field(i).Name
@@ -581,6 +582,52 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 
 			schemaKeyMap[fieldName] = schemaKey
 			listKeyFieldNameMap[i] = fieldName
+		}
+	} else if rv.Len() > 0 {
+		isWildcardOrPartial := (len(path.GetElem()[0].GetKey()) == 0 && args.partialKeyMatch) || (args.handleWildcards && path.GetElem()[0].GetKey()[schema.Key] == "*")
+		if !isWildcardOrPartial {
+			pathKey, ok := path.GetElem()[0].GetKey()[schema.Key]
+			if !ok {
+				return nil, status.Errorf(codes.NotFound, "schema key %s is not found in gNMI path %v, root %T", schema.Key, path, root)
+			}
+			if kfv, err := StringToType(listKeyT, pathKey); err == nil {
+				if listElemV := rv.MapIndex(kfv); listElemV.IsValid() {
+					remainingPath := util.PopGNMIPath(path)
+					if args.delete && len(remainingPath.GetElem()) == 0 {
+						rv.SetMapIndex(kfv, reflect.Value{})
+						return nil, nil
+					}
+					nodes, err := retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, path.GetElem()[0]), args)
+					if err != nil {
+						return nil, err
+					}
+					if args.delete && listElemV.Elem().IsZero() {
+						rv.SetMapIndex(kfv, reflect.Value{})
+					}
+					return nodes, nil
+				}
+				if args.modifyRoot {
+					key, err := insertAndGetKey(schema, root, path.GetElem()[0].GetKey())
+					if err != nil {
+						return nil, err
+					}
+					nodes, err := retrieveNode(schema, rv.MapIndex(reflect.ValueOf(key)).Interface(), util.PopGNMIPath(path), appendElem(traversedPath, path.GetElem()[0]), args)
+					if err != nil {
+						return nil, err
+					}
+					return nodes, nil
+				}
+				return nil, nil
+			}
+		}
+		if util.IsTypeStructPtr(listElemT) {
+			elemStructT := listElemT.Elem()
+			for i := 0; i < elemStructT.NumField(); i++ {
+				if p, err := util.RelativeSchemaPath(elemStructT.Field(i)); err == nil && len(p) > 0 && p[len(p)-1] == schema.Key {
+					singleKeyFieldIdx = i
+					break
+				}
+			}
 		}
 	}
 
@@ -612,15 +659,30 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 				return nil, status.Errorf(codes.NotFound, "schema key %s is not found in gNMI path %v, root %T", schema.Key, path, root)
 			}
 
-			kv, err := getKeyValue(listElemV.Elem(), schema.Key)
-			if err != nil {
-				// If the key field is not populated, then fall back to using the key being used in the map.
-				// We're technically operating on a schema-invalid struct, but this could be a
-				// transitory state for the GoStruct.
-				// An example is when there is a batch delete of all paths underneath the list where the
-				// deletion paths are deleted in random order -- in this case we would want to avoid a
-				// deletion error.
-				kv = k.Interface()
+			var kv any
+			if singleKeyFieldIdx >= 0 {
+				fv := listElemV.Elem().Field(singleKeyFieldIdx)
+				if fv.Type().Kind() == reflect.Ptr {
+					if fv.Elem().IsValid() {
+						kv = fv.Elem().Interface()
+					} else {
+						kv = k.Interface()
+					}
+				} else {
+					kv = fv.Interface()
+				}
+			} else {
+				var err error
+				kv, err = getKeyValue(listElemV.Elem(), schema.Key)
+				if err != nil {
+					// If the key field is not populated, then fall back to using the key being used in the map.
+					// We're technically operating on a schema-invalid struct, but this could be a
+					// transitory state for the GoStruct.
+					// An example is when there is a batch delete of all paths underneath the list where the
+					// deletion paths are deleted in random order -- in this case we would want to avoid a
+					// deletion error.
+					kv = k.Interface()
+				}
 			}
 
 			keyAsString, err := ygot.KeyValueAsString(kv)
