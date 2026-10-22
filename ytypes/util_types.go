@@ -170,7 +170,9 @@ func structFieldType(parent interface{}, fieldName string) reflect.Type {
 // the following;
 // - int, int8, int16, int32, int64
 // - uint, uint8, uint16, uint32, uint64
+// - float64
 // - string
+// - bool
 // - GoEnum type
 // Function can be extended to support other types as well. If the given string
 // carries an incompatible or overflowing value for the given type, function
@@ -206,14 +208,23 @@ func StringToType(t reflect.Type, s string) (reflect.Value, error) {
 		// u must be a valid int type of the same length -- it is therefore impossible that
 		// Convert fails here.
 		return reflect.ValueOf(u).Convert(t), nil
+	case reflect.Float64:
+		f, err := strconv.ParseFloat(s, 64)
+		if err != nil {
+			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v", s, t.Kind())
+		}
+		if math.IsInf(f, 0) || math.IsNaN(f) {
+			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v: value must be finite", s, t.Kind())
+		}
+		return reflect.ValueOf(f).Convert(t), nil
 	case reflect.String:
-		return reflect.ValueOf(s), nil
+		return reflect.ValueOf(s).Convert(t), nil
 	case reflect.Bool:
 		switch s {
 		case "true":
-			return reflect.ValueOf(true), nil
+			return reflect.ValueOf(true).Convert(t), nil
 		case "false":
-			return reflect.ValueOf(false), nil
+			return reflect.ValueOf(false).Convert(t), nil
 		}
 		return reflect.ValueOf(nil), fmt.Errorf("cannot cast to bool from %q", s)
 	}

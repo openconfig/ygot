@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/internal/yreflect"
@@ -545,7 +546,7 @@ func retrieveNodeOrderedList(schema *yang.Entry, root ygot.GoOrderedMap, path, t
 // Function returns list of nodes, list of schemas and error.
 //
 // TODO(wenbli): Refactor to reuse logic from retrieveNodeOrderedList.
-func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
+func retrieveNodeList(schema *yang.Entry, root any, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
 	rv := reflect.ValueOf(root)
 	switch {
 	case schema.Key == "":
@@ -556,133 +557,294 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 		return nil, status.Errorf(codes.InvalidArgument, "root has type %T, expect map", root)
 	}
 
-	var matches []*TreeNode
-
-	listKeyT := rv.Type().Key()
-	listElemT := rv.Type().Elem()
-
-	listKeyFieldNameMap := map[int]string{}
-	schemaKeyMap := map[string]string{}
-
-	// Reduce FieldByName calls in the loop and reduce Field calls and tag lookup calls in the loop.
-	if util.IsTypeStruct(listKeyT) {
-		for i := 0; i < listKeyT.NumField(); i++ {
-			fieldName := listKeyT.Field(i).Name
-
-			elem, ok := listElemT.Elem().FieldByName(fieldName)
-			if !ok {
-				return nil, status.Errorf(codes.NotFound, "element struct type %v does not contain key field %s", listElemT, fieldName)
-			}
-
-			schemaKey, err := directDescendantSchema(elem)
-			if err != nil {
-				return nil, status.Errorf(codes.Unknown, "unable to get direct descendant schema name for %v: %v", schemaKey, err)
-			}
-
-			schemaKeyMap[fieldName] = schemaKey
-			listKeyFieldNameMap[i] = fieldName
-		}
+	switch {
+	case isWildcardListQuery(schema, rv.Type().Key(), path.GetElem()[0].GetKey(), args):
+		return retrieveNodeListWildcard(schema, root, rv, path, traversedPath, args)
+	default:
+		return retrieveNodeListConcrete(schema, root, rv, path, traversedPath, args)
 	}
+}
 
-	for _, k := range rv.MapKeys() {
-		listElemV := rv.MapIndex(k)
-
-		// Handle lists with a single key.
-		if !util.IsValueStruct(k) {
-			// Handle the special case that we have zero keys specified only when we are handling lists
-			// with partial keys specified.
-			if len(path.GetElem()[0].GetKey()) == 0 && args.partialKeyMatch || (args.handleWildcards && path.GetElem()[0].GetKey()[schema.Key] == "*") {
-				keys, err := ygot.PathKeyFromStruct(listElemV)
-				if err != nil {
-					return nil, status.Errorf(codes.Unknown, "could not get path keys at %v: %v", traversedPath, err)
-				}
-				nodes, err := retrieveNode(schema, listElemV.Interface(), util.PopGNMIPath(path), appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}), args)
-				if err != nil {
-					return nil, err
-				}
-
-				matches = append(matches, nodes...)
-
-				continue
-			}
-
-			// Otherwise, check for equality of the key.
-			pathKey, ok := path.GetElem()[0].GetKey()[schema.Key]
-			if !ok {
-				return nil, status.Errorf(codes.NotFound, "schema key %s is not found in gNMI path %v, root %T", schema.Key, path, root)
-			}
-
-			kv, err := getKeyValue(listElemV.Elem(), schema.Key)
-			if err != nil {
-				// If the key field is not populated, then fall back to using the key being used in the map.
-				// We're technically operating on a schema-invalid struct, but this could be a
-				// transitory state for the GoStruct.
-				// An example is when there is a batch delete of all paths underneath the list where the
-				// deletion paths are deleted in random order -- in this case we would want to avoid a
-				// deletion error.
-				kv = k.Interface()
-			}
-
-			keyAsString, err := ygot.KeyValueAsString(kv)
-			if err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "failed to convert %v to a string, path %v: %v", kv, path, err)
-			}
-			if keyAsString == pathKey {
-				remainingPath := util.PopGNMIPath(path)
-				if args.delete && len(remainingPath.GetElem()) == 0 {
-					rv.SetMapIndex(k, reflect.Value{})
-					return nil, nil
-				}
-				nodes, err := retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, path.GetElem()[0]), args)
-				if err != nil {
-					return nil, err
-				}
-				// If the map element is empty after the
-				// deletion operation is executed, then remove
-				// the map element from the map.
-				if args.delete && listElemV.Elem().IsZero() {
-					rv.SetMapIndex(k, reflect.Value{})
-				}
-				return nodes, nil
+// isWildcardListQuery reports whether the list traversal at the head of path
+// uses wildcard ("*") or partial-key matching rather than a concrete key lookup.
+func isWildcardListQuery(schema *yang.Entry, listKeyT reflect.Type, pathKeys map[string]string, args retrieveNodeArgs) bool {
+	if !args.handleWildcards && !args.partialKeyMatch {
+		return false
+	}
+	if !util.IsTypeStruct(listKeyT) {
+		isOmittedPartial := args.partialKeyMatch && len(pathKeys) == 0
+		isWildcard := args.handleWildcards && pathKeys[schema.Key] == "*"
+		return isOmittedPartial || isWildcard
+	}
+	for _, k := range strings.Fields(schema.Key) {
+		v, ok := pathKeys[k]
+		if !ok {
+			if args.partialKeyMatch {
+				return true
 			}
 			continue
 		}
+		if args.handleWildcards && v == "*" {
+			return true
+		}
+	}
+	return false
+}
 
+// structKeyField holds pre-resolved reflection and schema metadata for a single
+// field of a multi-keyed list's Go key struct.
+type structKeyField struct {
+	name      string
+	schemaKey string
+	fieldType reflect.Type
+}
+
+// structKeyFields resolves the Go field name, YANG schema key name, and Go type
+// for each field of listKeyT, verifying that each field exists on listElemT.
+func structKeyFields(listKeyT, listElemT reflect.Type) ([]structKeyField, error) {
+	fields := make([]structKeyField, 0, listKeyT.NumField())
+	for i := 0; i < listKeyT.NumField(); i++ {
+		kf := listKeyT.Field(i)
+		elem, ok := listElemT.Elem().FieldByName(kf.Name)
+		if !ok {
+			return nil, status.Errorf(codes.NotFound, "element struct type %v does not contain key field %s", listElemT, kf.Name)
+		}
+		schemaKey, err := directDescendantSchema(elem)
+		if err != nil {
+			return nil, status.Errorf(codes.Unknown, "unable to get direct descendant schema name for %v: %v", schemaKey, err)
+		}
+		fields = append(fields, structKeyField{
+			name:      kf.Name,
+			schemaKey: schemaKey,
+			fieldType: kf.Type,
+		})
+	}
+	return fields, nil
+}
+
+// retrieveNodeListElem handles deletion or recursive traversal for a matched
+// list element at mapKey within map rv, pruning the map entry if a descendant
+// deletion leaves the element struct completely zeroed.
+func retrieveNodeListElem(schema *yang.Entry, rv, mapKey, listElemV reflect.Value, elemPath *gpb.PathElem, remainingPath, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
+	if args.delete && len(remainingPath.GetElem()) == 0 {
+		rv.SetMapIndex(mapKey, reflect.Value{})
+		return nil, nil
+	}
+	nodes, err := retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, elemPath), args)
+	if err != nil {
+		return nil, err
+	}
+	// If the map element is empty after the deletion operation is executed,
+	// then remove the map element from the map.
+	if args.delete && listElemV.Elem().IsZero() {
+		rv.SetMapIndex(mapKey, reflect.Value{})
+	}
+	return nodes, nil
+}
+
+// insertAndRetrieveNodeList inserts a new list entry into root for the key(s)
+// at the head of path and continues traversal on the newly created element.
+func insertAndRetrieveNodeList(schema *yang.Entry, root any, rv reflect.Value, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
+	key, err := insertAndGetKey(schema, root, path.GetElem()[0].GetKey())
+	if err != nil {
+		return nil, err
+	}
+	return retrieveNode(schema, rv.MapIndex(reflect.ValueOf(key)).Interface(), util.PopGNMIPath(path), appendElem(traversedPath, path.GetElem()[0]), args)
+}
+
+// retrieveNodeListConcrete retrieves or modifies the single list entry matching
+// the concrete key(s) at the head of path (when no wildcards or partial keys
+// are in use).
+func retrieveNodeListConcrete(schema *yang.Entry, root any, rv reflect.Value, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
+	if rv.Len() == 0 {
+		// When modifyRoot is set (e.g., GetOrCreateNode, or SetNode with
+		// InitMissingElements), retrieveNodeContainer initializes a nil map to an
+		// empty map before calling retrieveNodeList, so insert the new entry
+		// directly. Otherwise, a zero-length map has no list elements to traverse
+		// (even in transitory delete states, an entry remains in the map until
+		// pruned), so return immediately.
+		if args.modifyRoot {
+			return insertAndRetrieveNodeList(schema, root, rv, path, traversedPath, args)
+		}
+		return nil, nil
+	}
+
+	listKeyT := rv.Type().Key()
+	listElemT := rv.Type().Elem()
+	pathKeys := path.GetElem()[0].GetKey()
+	remainingPath := util.PopGNMIPath(path)
+
+	switch {
+	case util.IsTypeStruct(listKeyT):
+		// Multi-keyed list: the Go map key is a generated key struct.
+		keyFields, err := structKeyFields(listKeyT, listElemT)
+		if err != nil {
+			return nil, err
+		}
+		return retrieveNodeListConcreteStructKey(schema, root, rv, keyFields, path, remainingPath, traversedPath, args)
+
+	case util.IsTypeInterface(listKeyT):
+		// Single-keyed list with a multi-type YANG union key: the Go map key is a
+		// union interface whose dynamic concrete type is not known from listKeyT
+		// alone (and in wrapper-union mode is a pointer to a wrapper struct, which
+		// cannot be looked up by value via MapIndex), so match by stringified key.
+		pathKey, ok := pathKeys[schema.Key]
+		if !ok {
+			return nil, status.Errorf(codes.NotFound, "schema key %s is not found in gNMI path %v, root %T", schema.Key, path, root)
+		}
+		for _, k := range rv.MapKeys() {
+			keyAsString, err := ygot.KeyValueAsString(k.Interface())
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "converting key %v to string for path %v: %v", k.Interface(), path, err)
+			}
+			if keyAsString == pathKey {
+				return retrieveNodeListElem(schema, rv, k, rv.MapIndex(k), path.GetElem()[0], remainingPath, traversedPath, args)
+			}
+		}
+		if args.modifyRoot {
+			return insertAndRetrieveNodeList(schema, root, rv, path, traversedPath, args)
+		}
+		return nil, nil
+
+	default:
+		// Single-keyed list with a concrete key type (scalar or GoEnum): convert
+		// the path key string to listKeyT and perform a direct O(1) map lookup.
+		pathKey, ok := pathKeys[schema.Key]
+		if !ok {
+			return nil, status.Errorf(codes.NotFound, "schema key %s is not found in gNMI path %v, root %T", schema.Key, path, root)
+		}
+		kfv, err := StringToType(listKeyT, pathKey)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "converting key %q to %v for schema key %s in path %v: %v", pathKey, listKeyT, schema.Key, path, err)
+		}
+		if listElemV := rv.MapIndex(kfv); listElemV.IsValid() {
+			return retrieveNodeListElem(schema, rv, kfv, listElemV, path.GetElem()[0], remainingPath, traversedPath, args)
+		}
+		if args.modifyRoot {
+			return insertAndRetrieveNodeList(schema, root, rv, path, traversedPath, args)
+		}
+		return nil, nil
+	}
+}
+
+// retrieveNodeListConcreteStructKey looks up or inserts a concrete key in a
+// multi-keyed list. When all fields of the key struct are concrete non-interface
+// types, it constructs the key struct and performs a direct O(1) MapIndex lookup.
+func retrieveNodeListConcreteStructKey(schema *yang.Entry, root any, rv reflect.Value, keyFields []structKeyField, path, remainingPath, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
+	listKeyT := rv.Type().Key()
+	pathKeys := path.GetElem()[0].GetKey()
+
+	keyVal := reflect.New(listKeyT).Elem()
+	hasInterfaceField := false
+	for i, kf := range keyFields {
+		pathKey, ok := pathKeys[kf.schemaKey]
+		if !ok {
+			return nil, status.Errorf(codes.NotFound, "gNMI path %v does not contain a map entry for schema %v, root %T", path, kf.schemaKey, root)
+		}
+		if util.IsTypeInterface(kf.fieldType) {
+			hasInterfaceField = true
+			continue
+		}
+		kfv, err := StringToType(kf.fieldType, pathKey)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "converting key %q to %v for schema key %s in path %v: %v", pathKey, kf.fieldType, kf.schemaKey, path, err)
+		}
+		keyVal.Field(i).Set(kfv)
+	}
+
+	if !hasInterfaceField {
+		if listElemV := rv.MapIndex(keyVal); listElemV.IsValid() {
+			return retrieveNodeListElem(schema, rv, keyVal, listElemV, path.GetElem()[0], remainingPath, traversedPath, args)
+		}
+		if args.modifyRoot {
+			return insertAndRetrieveNodeList(schema, root, rv, path, traversedPath, args)
+		}
+		return nil, nil
+	}
+
+	// At least one field of the key struct is a union interface; compare concrete
+	// fields directly and union interface fields via KeyValueAsString.
+	for _, k := range rv.MapKeys() {
 		match := true
-		for i := 0; i < k.NumField(); i++ {
-			fieldName := listKeyFieldNameMap[i]
-			fieldValue := k.Field(i)
-			if !fieldValue.IsValid() {
-				return nil, status.Errorf(codes.InvalidArgument, "invalid field %s in %T", fieldName, k)
-			}
-
-			schemaKey, ok := schemaKeyMap[fieldName]
-			if !ok {
-				return nil, status.Errorf(codes.Internal, "element struct type %v does not contain key field %s", listElemT, fieldName)
-			}
-
-			pathKey, ok := path.GetElem()[0].GetKey()[schemaKey]
-			// If key isn't found in the path key, treat it as error if partialKeyMatch is set to false.
-			// Otherwise, continue searching other keys of key struct and count the value as match
-			// if other keys are also match.
-			switch {
-			case !ok && !args.partialKeyMatch:
-				return nil, status.Errorf(codes.NotFound, "gNMI path %v does not contain a map entry for schema %v, root %T", path, schemaKey, root)
-			case !ok && args.partialKeyMatch:
-				// If the key wasn't specified, then skip the comparison of value.
+		for i, kf := range keyFields {
+			fv := k.Field(i)
+			if !util.IsTypeInterface(kf.fieldType) {
+				if fv.Interface() != keyVal.Field(i).Interface() {
+					match = false
+					break
+				}
 				continue
 			}
-			keyAsString, err := ygot.KeyValueAsString(fieldValue.Interface())
+			keyAsString, err := ygot.KeyValueAsString(fv.Interface())
 			if err != nil {
-				return nil, status.Errorf(codes.Unknown, "failed to convert the field value to string, field %v: %v", fieldName, err)
+				return nil, status.Errorf(codes.Unknown, "converting field %v value to string: %v", kf.name, err)
 			}
-			if !(args.handleWildcards && pathKey == "*") && pathKey != keyAsString {
+			if keyAsString != pathKeys[kf.schemaKey] {
 				match = false
 				break
 			}
 		}
-
 		if match {
+			return retrieveNodeListElem(schema, rv, k, rv.MapIndex(k), path.GetElem()[0], remainingPath, traversedPath, args)
+		}
+	}
+	if args.modifyRoot {
+		return insertAndRetrieveNodeList(schema, root, rv, path, traversedPath, args)
+	}
+	return nil, nil
+}
+
+// retrieveNodeListWildcard retrieves all list entries matching a wildcard ("*")
+// or partial-key query at the head of path.
+func retrieveNodeListWildcard(schema *yang.Entry, root any, rv reflect.Value, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
+	if rv.Len() == 0 {
+		return nil, nil
+	}
+
+	listKeyT := rv.Type().Key()
+	listElemT := rv.Type().Elem()
+	remainingPath := util.PopGNMIPath(path)
+	var matches []*TreeNode
+
+	switch {
+	case util.IsTypeStruct(listKeyT):
+		keyFields, err := structKeyFields(listKeyT, listElemT)
+		if err != nil {
+			return nil, err
+		}
+		pathKeys := path.GetElem()[0].GetKey()
+		if !args.partialKeyMatch {
+			for _, kf := range keyFields {
+				if _, ok := pathKeys[kf.schemaKey]; !ok {
+					return nil, status.Errorf(codes.NotFound, "gNMI path %v does not contain a map entry for schema %v, root %T", path, kf.schemaKey, root)
+				}
+			}
+		}
+		for _, k := range rv.MapKeys() {
+			match := true
+			for i, kf := range keyFields {
+				pathKey, ok := pathKeys[kf.schemaKey]
+				if !ok {
+					// args.partialKeyMatch is guaranteed true here because missing
+					// keys were already rejected above when !args.partialKeyMatch.
+					continue
+				}
+				if args.handleWildcards && pathKey == "*" {
+					continue
+				}
+				keyAsString, err := ygot.KeyValueAsString(k.Field(i).Interface())
+				if err != nil {
+					return nil, status.Errorf(codes.Unknown, "converting field %v value to string: %v", kf.name, err)
+				}
+				if pathKey != keyAsString {
+					match = false
+					break
+				}
+			}
+			if !match {
+				continue
+			}
+			listElemV := rv.MapIndex(k)
 			keys, err := ygot.PathKeyFromStruct(listElemV)
 			if err != nil {
 				// If the key field is not populated, then fall back to using the key being used in the map.
@@ -695,41 +857,32 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 					return nil, status.Errorf(codes.Unknown, "%v: could not extract from key struct: %v", traversedPath, err)
 				}
 			}
-			remainingPath := util.PopGNMIPath(path)
-			if args.delete && len(remainingPath.GetElem()) == 0 {
-				rv.SetMapIndex(k, reflect.Value{})
-				return nil, nil
-			}
-			nodes, err := retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}), args)
+			nodes, err := retrieveNodeListElem(schema, rv, k, listElemV, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}, remainingPath, traversedPath, args)
 			if err != nil {
 				return nil, err
 			}
-			// If the map element is empty after the
-			// deletion operation is executed, then remove
-			// the map element from the map.
-			if args.delete && listElemV.Elem().IsZero() {
-				rv.SetMapIndex(k, reflect.Value{})
+			matches = append(matches, nodes...)
+		}
+		return matches, nil
+
+	default:
+		// Single-keyed list: isWildcardListQuery guarantees that either the key
+		// was omitted with partialKeyMatch or set to "*" with handleWildcards,
+		// so every element in the map matches at this level.
+		for _, k := range rv.MapKeys() {
+			listElemV := rv.MapIndex(k)
+			keys, err := ygot.PathKeyFromStruct(listElemV)
+			if err != nil {
+				return nil, status.Errorf(codes.Unknown, "could not get path keys at %v: %v", traversedPath, err)
 			}
-
-			if nodes != nil {
-				matches = append(matches, nodes...)
+			nodes, err := retrieveNodeListElem(schema, rv, k, listElemV, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}, remainingPath, traversedPath, args)
+			if err != nil {
+				return nil, err
 			}
+			matches = append(matches, nodes...)
 		}
+		return matches, nil
 	}
-
-	if len(matches) == 0 && args.modifyRoot {
-		key, err := insertAndGetKey(schema, root, path.GetElem()[0].GetKey())
-		if err != nil {
-			return nil, err
-		}
-		nodes, err := retrieveNode(schema, rv.MapIndex(reflect.ValueOf(key)).Interface(), util.PopGNMIPath(path), appendElem(traversedPath, path.GetElem()[0]), args)
-		if err != nil {
-			return nil, err
-		}
-		matches = append(matches, nodes...)
-	}
-
-	return matches, nil
 }
 
 // GetOrCreateNodeOpt defines an interface that can be used to supply arguments to functions using GetOrCreateNode.
