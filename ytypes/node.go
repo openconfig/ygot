@@ -31,6 +31,9 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+// wildcardKey is the gNMI path key value that matches all entries in a list.
+const wildcardKey = "*"
+
 // Type retrieveNodeArgs contains the set of parameters that changes
 // behavior of how retrieveNode works.
 type retrieveNodeArgs struct {
@@ -466,7 +469,7 @@ func retrieveNodeOrderedList(schema *yang.Entry, root ygot.GoOrderedMap, path, t
 				// If the key wasn't specified, then skip the comparison of value.
 				continue
 			}
-			if !(args.handleWildcards && pathKey == "*") && pathKey != key {
+			if !(args.handleWildcards && pathKey == wildcardKey) && pathKey != key {
 				match = false
 				return true
 			}
@@ -567,21 +570,21 @@ func retrieveNodeList(schema *yang.Entry, root any, path, traversedPath *gpb.Pat
 }
 
 // isWildcardListQuery reports whether the list traversal at the head of path
-// utilises wildcard ("*") or partial-key matching rather than a concrete key
-// lookup.
+// utilises wildcard (wildcardKey) or partial-key matching rather than a
+// concrete key lookup.
 func isWildcardListQuery(schema *yang.Entry, listKeyT reflect.Type, pathKeys map[string]string, args retrieveNodeArgs) bool {
 	switch {
 	case !args.handleWildcards && !args.partialKeyMatch:
 		return false
 	case !util.IsTypeStruct(listKeyT):
-		return (args.partialKeyMatch && len(pathKeys) == 0) || (args.handleWildcards && pathKeys[schema.Key] == "*")
+		return (args.partialKeyMatch && len(pathKeys) == 0) || (args.handleWildcards && pathKeys[schema.Key] == wildcardKey)
 	}
 	for _, k := range strings.Fields(schema.Key) {
 		v, ok := pathKeys[k]
 		switch {
 		case !ok && args.partialKeyMatch:
 			return true
-		case ok && args.handleWildcards && v == "*":
+		case ok && args.handleWildcards && v == wildcardKey:
 			return true
 		}
 	}
@@ -772,7 +775,7 @@ func retrieveNodeListWildcard(schema *yang.Entry, root any, rv reflect.Value, pa
 					// !args.partialKeyMatch.
 					continue
 				}
-				if args.handleWildcards && pathKey == "*" {
+				if args.handleWildcards && pathKey == wildcardKey {
 					continue
 				}
 				keyAsString, err := ygot.KeyValueAsString(k.Field(i).Interface())
