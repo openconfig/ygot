@@ -1324,6 +1324,40 @@ func TestGetNode(t *testing.T) {
 	}
 	rootSchema.Dir["state"] = newChildListSchema("state")
 
+	decSchema := decimalListSchema()
+	uSchema := unionKeyListSchema()
+	muSchema := multiUnionKeyListSchema()
+	simpleKeySchemaWithType := func(kind yang.TypeKind) *yang.Entry {
+		return &yang.Entry{
+			Name: "container",
+			Kind: yang.DirectoryEntry,
+			Dir: map[string]*yang.Entry{
+				"config": {
+					Name: "config",
+					Kind: yang.DirectoryEntry,
+					Dir: map[string]*yang.Entry{
+						"simple-key-list": {
+							Name:     "simple-key-list",
+							Kind:     yang.DirectoryEntry,
+							ListAttr: yang.NewDefaultListAttr(),
+							Key:      "key1",
+							Config:   yang.TSTrue,
+							Dir: map[string]*yang.Entry{
+								"key1": {
+									Name: "key1",
+									Kind: yang.LeafEntry,
+									Type: &yang.YangType{Kind: kind},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+	uint32KeySchema := simpleKeySchemaWithType(yang.Yuint32)
+	enumKeySchema := simpleKeySchemaWithType(yang.Yenum)
+
 	tests := []struct {
 		desc             string
 		inSchema         *yang.Entry
@@ -1331,6 +1365,7 @@ func TestGetNode(t *testing.T) {
 		inPath           *gpb.Path
 		inArgs           []GetNodeOpt
 		wantTreeNodes    []*TreeNode
+		wantErrCode      codes.Code
 		wantErrSubstring string
 	}{{
 		desc:     "simple get leaf",
@@ -1848,6 +1883,175 @@ func TestGetNode(t *testing.T) {
 		inPath:           mustPath("/state/childlist[key=one]/child-container/valeur"),
 		inArgs:           []GetNodeOpt{&PreferShadowPath{}},
 		wantErrSubstring: "no match found in *ytypes.listChildContainer",
+	}, {
+		desc:     "empty initialized single-key map returns no nodes",
+		inSchema: containerWithStringKey(),
+		inData: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{},
+		},
+		inPath: mustPath("/config/simple-key-list[key1=forty-two]"),
+	}, {
+		desc:     "empty initialized single-key map with wildcard returns no nodes",
+		inSchema: containerWithStringKey(),
+		inData: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{},
+		},
+		inPath: mustPath("/config/simple-key-list[key1=*]"),
+		inArgs: []GetNodeOpt{&GetHandleWildcards{}},
+	}, {
+		desc:     "empty initialized multi-key map with partial key returns no nodes",
+		inSchema: containerWithMultiKeyedList,
+		inData: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{},
+		},
+		inPath: mustPath("/struct-key-list[key1=forty-two]"),
+		inArgs: []GetNodeOpt{&GetPartialKeyMatch{}},
+	}, {
+		desc:     "invalid uint32 key on populated list fails immediately with InvalidArgument",
+		inSchema: uint32KeySchema,
+		inData: &ContainerStruct2{
+			StructKeyList: map[uint32]*ListElemStruct2{
+				42: {Key1: ygot.Uint32(42)},
+			},
+		},
+		inPath:           mustPath("/config/simple-key-list[key1=INVALID_KEY]"),
+		wantErrCode:      codes.InvalidArgument,
+		wantErrSubstring: `unable to convert "INVALID_KEY" to uint32`,
+	}, {
+		desc:     "invalid enum key on populated list fails immediately with InvalidArgument",
+		inSchema: enumKeySchema,
+		inData: &ContainerEnumKey{
+			StructKeyList: map[EnumType]*ListElemEnumKey{
+				42: {Key1: 42},
+			},
+		},
+		inPath:           mustPath("/config/simple-key-list[key1=INVALID_ENUM]"),
+		wantErrCode:      codes.InvalidArgument,
+		wantErrSubstring: "no enum matching with INVALID_ENUM",
+	}, {
+		desc:     "invalid int32 key on populated multi-key list fails immediately with InvalidArgument",
+		inSchema: containerWithMultiKeyedList,
+		inData: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{Key1: "forty-two", Key2: 42, EnumKey: 42}: {
+					Key1:    ygot.String("forty-two"),
+					Key2:    ygot.Int32(42),
+					EnumKey: 42,
+				},
+			},
+		},
+		inPath:           mustPath("/struct-key-list[key1=forty-two][key2=not-an-int][key3=E_VALUE_FORTY_TWO]"),
+		wantErrCode:      codes.InvalidArgument,
+		wantErrSubstring: `unable to convert "not-an-int" to int32`,
+	}, {
+		desc:     "decimal64 concrete key lookup succeeds",
+		inSchema: decSchema,
+		inData: &containerDecimalKey{
+			DecimalList: map[float64]*decimalListElem{
+				3.14: {Key: ygot.Float64(3.14), Value: ygot.String("pi")},
+				2.71: {Key: ygot.Float64(2.71), Value: ygot.String("e")},
+			},
+		},
+		inPath: mustPath("/decimal-list[key1=3.14]/value"),
+		wantTreeNodes: []*TreeNode{{
+			Path:   mustPath("/decimal-list[key1=3.14]/value"),
+			Schema: decSchema.Dir["decimal-list"].Dir["value"],
+			Data:   ygot.String("pi"),
+		}},
+	}, {
+		desc:     "decimal64 non-finite NaN key fails immediately with InvalidArgument",
+		inSchema: decSchema,
+		inData: &containerDecimalKey{
+			DecimalList: map[float64]*decimalListElem{
+				3.14: {Key: ygot.Float64(3.14), Value: ygot.String("pi")},
+			},
+		},
+		inPath:           mustPath("/decimal-list[key1=NaN]/value"),
+		wantErrCode:      codes.InvalidArgument,
+		wantErrSubstring: "value must be finite",
+	}, {
+		desc:     "wrapper-union single-key concrete lookup hits matching entry",
+		inSchema: uSchema,
+		inData: &containerUnionKey{
+			UnionList: map[testutil.TestUnion]*unionKeyListElem{
+				&Union1String{String: "alpha"}: {Key: &Union1String{String: "alpha"}, Value: ygot.String("v-alpha")},
+				&Union1Int16{Int16: 42}:        {Key: &Union1Int16{Int16: 42}, Value: ygot.String("v-42")},
+			},
+		},
+		inPath: mustPath("/union-list[key1=42]/value"),
+		wantTreeNodes: []*TreeNode{{
+			Path:   mustPath("/union-list[key1=42]/value"),
+			Schema: uSchema.Dir["union-list"].Dir["value"],
+			Data:   ygot.String("v-42"),
+		}},
+	}, {
+		desc:     "wrapper-union single-key concrete lookup misses absent entry",
+		inSchema: uSchema,
+		inData: &containerUnionKey{
+			UnionList: map[testutil.TestUnion]*unionKeyListElem{
+				&Union1String{String: "alpha"}: {Key: &Union1String{String: "alpha"}, Value: ygot.String("v-alpha")},
+			},
+		},
+		inPath: mustPath("/union-list[key1=missing]"),
+	}, {
+		desc:     "wrapper-union single-key wildcard lookup returns all entries",
+		inSchema: uSchema,
+		inData: &containerUnionKey{
+			UnionList: map[testutil.TestUnion]*unionKeyListElem{
+				&Union1String{String: "alpha"}: {Key: &Union1String{String: "alpha"}, Value: ygot.String("v-alpha")},
+				&Union1Int16{Int16: 42}:        {Key: &Union1Int16{Int16: 42}, Value: ygot.String("v-42")},
+			},
+		},
+		inPath: mustPath("/union-list[key1=*]/value"),
+		inArgs: []GetNodeOpt{&GetHandleWildcards{}},
+		wantTreeNodes: []*TreeNode{{
+			Path:   mustPath("/union-list[key1=alpha]/value"),
+			Schema: uSchema.Dir["union-list"].Dir["value"],
+			Data:   ygot.String("v-alpha"),
+		}, {
+			Path:   mustPath("/union-list[key1=42]/value"),
+			Schema: uSchema.Dir["union-list"].Dir["value"],
+			Data:   ygot.String("v-42"),
+		}},
+	}, {
+		desc:     "multi-key struct with union field concrete lookup succeeds",
+		inSchema: muSchema,
+		inData: &containerMultiUnionKey{
+			MultiUnionList: map[multiUnionKeyStruct]*multiUnionKeyListElem{
+				{Key1: "k1", Key2: &Union1Int16{Int16: 7}}: {
+					Key1:  ygot.String("k1"),
+					Key2:  &Union1Int16{Int16: 7},
+					Value: ygot.String("seven"),
+				},
+				{Key1: "k1", Key2: &Union1String{String: "eight"}}: {
+					Key1:  ygot.String("k1"),
+					Key2:  &Union1String{String: "eight"},
+					Value: ygot.String("eight-val"),
+				},
+			},
+		},
+		inPath: mustPath("/multi-union-list[key1=k1][key2=7]/value"),
+		wantTreeNodes: []*TreeNode{{
+			Path:   mustPath("/multi-union-list[key1=k1][key2=7]/value"),
+			Schema: muSchema.Dir["multi-union-list"].Dir["value"],
+			Data:   ygot.String("seven"),
+		}},
+	}, {
+		desc:     "concrete single-key with wildcard and partial-key options uses concrete lookup",
+		inSchema: containerWithStringKey(),
+		inData: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"one": {Key1: ygot.String("one")},
+				"two": {Key1: ygot.String("two")},
+			},
+		},
+		inPath: mustPath("/config/simple-key-list[key1=one]"),
+		inArgs: []GetNodeOpt{&GetHandleWildcards{}, &GetPartialKeyMatch{}},
+		wantTreeNodes: []*TreeNode{{
+			Path:   mustPath("/config/simple-key-list[key1=one]"),
+			Schema: containerWithStringKey().Dir["config"].Dir["simple-key-list"],
+			Data:   &ListElemStruct1{Key1: ygot.String("one")},
+		}},
 	}}
 
 	for _, tt := range tests {
@@ -1855,6 +2059,11 @@ func TestGetNode(t *testing.T) {
 			got, err := GetNode(tt.inSchema, tt.inData, tt.inPath, tt.inArgs...)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("did not get expected error, %s", diff)
+			}
+			if tt.wantErrCode != codes.OK {
+				if gotCode := status.Code(err); gotCode != tt.wantErrCode {
+					t.Errorf("GetNode(%v) status code = %v, want %v (err: %v)", tt.inPath, gotCode, tt.wantErrCode, err)
+				}
 			}
 
 			if err := treeNodesEqual(got, tt.wantTreeNodes); err != nil {
@@ -3805,257 +4014,6 @@ func multiUnionKeyListSchema() *yang.Entry {
 	}
 	root.Dir["multi-union-list"] = list
 	return root
-}
-
-func TestGetNodeListRefactorCases(t *testing.T) {
-	decSchema := decimalListSchema()
-	uSchema := unionKeyListSchema()
-	muSchema := multiUnionKeyListSchema()
-	simpleKeySchemaWithType := func(kind yang.TypeKind) *yang.Entry {
-		return &yang.Entry{
-			Name: "container",
-			Kind: yang.DirectoryEntry,
-			Dir: map[string]*yang.Entry{
-				"config": {
-					Name: "config",
-					Kind: yang.DirectoryEntry,
-					Dir: map[string]*yang.Entry{
-						"simple-key-list": {
-							Name:     "simple-key-list",
-							Kind:     yang.DirectoryEntry,
-							ListAttr: yang.NewDefaultListAttr(),
-							Key:      "key1",
-							Config:   yang.TSTrue,
-							Dir: map[string]*yang.Entry{
-								"key1": {
-									Name: "key1",
-									Kind: yang.LeafEntry,
-									Type: &yang.YangType{Kind: kind},
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-	}
-	uint32KeySchema := simpleKeySchemaWithType(yang.Yuint32)
-	enumKeySchema := simpleKeySchemaWithType(yang.Yenum)
-
-	tests := []struct {
-		desc             string
-		inSchema         *yang.Entry
-		inData           any
-		inPath           *gpb.Path
-		inOpts           []GetNodeOpt
-		wantNodes        []*TreeNode
-		wantErrCode      codes.Code
-		wantErrSubstring string
-	}{
-		{
-			desc:     "empty initialized single-key map returns no nodes",
-			inSchema: containerWithStringKey(),
-			inData: &ContainerStruct1{
-				StructKeyList: map[string]*ListElemStruct1{},
-			},
-			inPath: mustPath("/config/simple-key-list[key1=forty-two]"),
-		},
-		{
-			desc:     "empty initialized single-key map with wildcard returns no nodes",
-			inSchema: containerWithStringKey(),
-			inData: &ContainerStruct1{
-				StructKeyList: map[string]*ListElemStruct1{},
-			},
-			inPath: mustPath("/config/simple-key-list[key1=*]"),
-			inOpts: []GetNodeOpt{&GetHandleWildcards{}},
-		},
-		{
-			desc:     "empty initialized multi-key map with partial key returns no nodes",
-			inSchema: containerWithMultiKeyedList,
-			inData: &ContainerStruct3{
-				StructKeyList: map[KeyStruct]*ListElemStruct3{},
-			},
-			inPath: mustPath("/struct-key-list[key1=forty-two]"),
-			inOpts: []GetNodeOpt{&GetPartialKeyMatch{}},
-		},
-		{
-			desc:     "invalid uint32 key on populated list fails immediately with InvalidArgument",
-			inSchema: uint32KeySchema,
-			inData: &ContainerStruct2{
-				StructKeyList: map[uint32]*ListElemStruct2{
-					42: {Key1: ygot.Uint32(42)},
-				},
-			},
-			inPath:           mustPath("/config/simple-key-list[key1=INVALID_KEY]"),
-			wantErrCode:      codes.InvalidArgument,
-			wantErrSubstring: `unable to convert "INVALID_KEY" to uint32`,
-		},
-		{
-			desc:     "invalid enum key on populated list fails immediately with InvalidArgument",
-			inSchema: enumKeySchema,
-			inData: &ContainerEnumKey{
-				StructKeyList: map[EnumType]*ListElemEnumKey{
-					42: {Key1: 42},
-				},
-			},
-			inPath:           mustPath("/config/simple-key-list[key1=INVALID_ENUM]"),
-			wantErrCode:      codes.InvalidArgument,
-			wantErrSubstring: "no enum matching with INVALID_ENUM",
-		},
-		{
-			desc:     "invalid int32 key on populated multi-key list fails immediately with InvalidArgument",
-			inSchema: containerWithMultiKeyedList,
-			inData: &ContainerStruct3{
-				StructKeyList: map[KeyStruct]*ListElemStruct3{
-					{Key1: "forty-two", Key2: 42, EnumKey: 42}: {
-						Key1:    ygot.String("forty-two"),
-						Key2:    ygot.Int32(42),
-						EnumKey: 42,
-					},
-				},
-			},
-			inPath:           mustPath("/struct-key-list[key1=forty-two][key2=not-an-int][key3=E_VALUE_FORTY_TWO]"),
-			wantErrCode:      codes.InvalidArgument,
-			wantErrSubstring: `unable to convert "not-an-int" to int32`,
-		},
-		{
-			desc:     "decimal64 concrete key lookup succeeds",
-			inSchema: decSchema,
-			inData: &containerDecimalKey{
-				DecimalList: map[float64]*decimalListElem{
-					3.14: {Key: ygot.Float64(3.14), Value: ygot.String("pi")},
-					2.71: {Key: ygot.Float64(2.71), Value: ygot.String("e")},
-				},
-			},
-			inPath: mustPath("/decimal-list[key1=3.14]/value"),
-			wantNodes: []*TreeNode{{
-				Path:   mustPath("/decimal-list[key1=3.14]/value"),
-				Schema: decSchema.Dir["decimal-list"].Dir["value"],
-				Data:   ygot.String("pi"),
-			}},
-		},
-		{
-			desc:     "decimal64 non-finite NaN key fails immediately with InvalidArgument",
-			inSchema: decSchema,
-			inData: &containerDecimalKey{
-				DecimalList: map[float64]*decimalListElem{
-					3.14: {Key: ygot.Float64(3.14), Value: ygot.String("pi")},
-				},
-			},
-			inPath:           mustPath("/decimal-list[key1=NaN]/value"),
-			wantErrCode:      codes.InvalidArgument,
-			wantErrSubstring: "value must be finite",
-		},
-		{
-			desc:     "wrapper-union single-key concrete lookup hits matching entry",
-			inSchema: uSchema,
-			inData: &containerUnionKey{
-				UnionList: map[testutil.TestUnion]*unionKeyListElem{
-					&Union1String{String: "alpha"}: {Key: &Union1String{String: "alpha"}, Value: ygot.String("v-alpha")},
-					&Union1Int16{Int16: 42}:        {Key: &Union1Int16{Int16: 42}, Value: ygot.String("v-42")},
-				},
-			},
-			inPath: mustPath("/union-list[key1=42]/value"),
-			wantNodes: []*TreeNode{{
-				Path:   mustPath("/union-list[key1=42]/value"),
-				Schema: uSchema.Dir["union-list"].Dir["value"],
-				Data:   ygot.String("v-42"),
-			}},
-		},
-		{
-			desc:     "wrapper-union single-key concrete lookup misses absent entry",
-			inSchema: uSchema,
-			inData: &containerUnionKey{
-				UnionList: map[testutil.TestUnion]*unionKeyListElem{
-					&Union1String{String: "alpha"}: {Key: &Union1String{String: "alpha"}, Value: ygot.String("v-alpha")},
-				},
-			},
-			inPath: mustPath("/union-list[key1=missing]"),
-		},
-		{
-			desc:     "wrapper-union single-key wildcard lookup returns all entries",
-			inSchema: uSchema,
-			inData: &containerUnionKey{
-				UnionList: map[testutil.TestUnion]*unionKeyListElem{
-					&Union1String{String: "alpha"}: {Key: &Union1String{String: "alpha"}, Value: ygot.String("v-alpha")},
-					&Union1Int16{Int16: 42}:        {Key: &Union1Int16{Int16: 42}, Value: ygot.String("v-42")},
-				},
-			},
-			inPath: mustPath("/union-list[key1=*]/value"),
-			inOpts: []GetNodeOpt{&GetHandleWildcards{}},
-			wantNodes: []*TreeNode{
-				{
-					Path:   mustPath("/union-list[key1=alpha]/value"),
-					Schema: uSchema.Dir["union-list"].Dir["value"],
-					Data:   ygot.String("v-alpha"),
-				},
-				{
-					Path:   mustPath("/union-list[key1=42]/value"),
-					Schema: uSchema.Dir["union-list"].Dir["value"],
-					Data:   ygot.String("v-42"),
-				},
-			},
-		},
-		{
-			desc:     "multi-key struct with union field concrete lookup succeeds",
-			inSchema: muSchema,
-			inData: &containerMultiUnionKey{
-				MultiUnionList: map[multiUnionKeyStruct]*multiUnionKeyListElem{
-					{Key1: "k1", Key2: &Union1Int16{Int16: 7}}: {
-						Key1:  ygot.String("k1"),
-						Key2:  &Union1Int16{Int16: 7},
-						Value: ygot.String("seven"),
-					},
-					{Key1: "k1", Key2: &Union1String{String: "eight"}}: {
-						Key1:  ygot.String("k1"),
-						Key2:  &Union1String{String: "eight"},
-						Value: ygot.String("eight-val"),
-					},
-				},
-			},
-			inPath: mustPath("/multi-union-list[key1=k1][key2=7]/value"),
-			wantNodes: []*TreeNode{{
-				Path:   mustPath("/multi-union-list[key1=k1][key2=7]/value"),
-				Schema: muSchema.Dir["multi-union-list"].Dir["value"],
-				Data:   ygot.String("seven"),
-			}},
-		},
-		{
-			desc:     "concrete single-key with wildcard and partial-key options uses concrete lookup",
-			inSchema: containerWithStringKey(),
-			inData: &ContainerStruct1{
-				StructKeyList: map[string]*ListElemStruct1{
-					"one": {Key1: ygot.String("one")},
-					"two": {Key1: ygot.String("two")},
-				},
-			},
-			inPath: mustPath("/config/simple-key-list[key1=one]"),
-			inOpts: []GetNodeOpt{&GetHandleWildcards{}, &GetPartialKeyMatch{}},
-			wantNodes: []*TreeNode{{
-				Path:   mustPath("/config/simple-key-list[key1=one]"),
-				Schema: containerWithStringKey().Dir["config"].Dir["simple-key-list"],
-				Data:   &ListElemStruct1{Key1: ygot.String("one")},
-			}},
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.desc, func(t *testing.T) {
-			got, err := GetNode(tc.inSchema, tc.inData, tc.inPath, tc.inOpts...)
-			if diff := errdiff.Substring(err, tc.wantErrSubstring); diff != "" {
-				t.Fatalf("GetNode(%v) unexpected error:\n%s", tc.inPath, diff)
-			}
-			if tc.wantErrSubstring != "" {
-				if gotCode := status.Code(err); gotCode != tc.wantErrCode {
-					t.Errorf("GetNode(%v) status code = %v, want %v (err: %v)", tc.inPath, gotCode, tc.wantErrCode, err)
-				}
-				return
-			}
-			if err := treeNodesEqual(got, tc.wantNodes); err != nil {
-				t.Errorf("GetNode(%v) nodes mismatch: %v", tc.inPath, err)
-			}
-		})
-	}
 }
 
 func TestGetOrCreateNodeUnionKeyList(t *testing.T) {
