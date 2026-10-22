@@ -166,20 +166,19 @@ func structFieldType(parent interface{}, fieldName string) reflect.Type {
 	return ft
 }
 
-// StringToType converts given string to given type which can be one of
-// the following;
+// StringToType converts the supplied string s to the specified reflect.Type t,
+// which may be one of the following:
 // - int, int8, int16, int32, int64
 // - uint, uint8, uint16, uint32, uint64
 // - float64
 // - string
 // - bool
 // - GoEnum type
-// Function can be extended to support other types as well. If the given string
-// carries an incompatible or overflowing value for the given type, function
-// returns error.
-// Note that castToEnumValue returns (nil, nil) if the given string is carrying
-// an invalid enum string. Function checks not only error, but also value in this
-// case.
+//
+// NB: castToEnumValue returns (nil, nil) when s carries an invalid enum name,
+// so both the returned value and error are checked. It returns an error if t is
+// unsupported or if s carries an incompatible, non-finite, or overflowing value
+// for t.
 func StringToType(t reflect.Type, s string) (reflect.Value, error) {
 	if t.Implements(reflect.TypeOf((*ygot.GoEnum)(nil)).Elem()) {
 		i, err := castToEnumValue(t, s)
@@ -213,8 +212,10 @@ func StringToType(t reflect.Type, s string) (reflect.Value, error) {
 		if err != nil {
 			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v", s, t.Kind())
 		}
+		// NB: YANG decimal64 values are strictly finite, and NaN keys break Go map
+		// lookup reflexivity.
 		if math.IsInf(f, 0) || math.IsNaN(f) {
-			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v: value must be finite", s, t.Kind())
+			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v, value must be finite", s, t.Kind())
 		}
 		return reflect.ValueOf(f).Convert(t), nil
 	case reflect.String:

@@ -541,9 +541,10 @@ func retrieveNodeOrderedList(schema *yang.Entry, root ygot.GoOrderedMap, path, t
 	return matches, nil
 }
 
-// retrieveNodeList is an internal function and operates on a map. It returns the nodes matching
-// with keys corresponding to the key supplied in path.
-// Function returns list of nodes, list of schemas and error.
+// retrieveNodeList retrieves or modifies the nodes in the Go map supplied as
+// root matching the list keys at the head of path under schema. It returns an
+// error if schema is unkeyed, path is empty, root is not a map, or key
+// resolution or recursive traversal fails.
 //
 // TODO(wenbli): Refactor to reuse logic from retrieveNodeOrderedList.
 func retrieveNodeList(schema *yang.Entry, root any, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
@@ -566,99 +567,35 @@ func retrieveNodeList(schema *yang.Entry, root any, path, traversedPath *gpb.Pat
 }
 
 // isWildcardListQuery reports whether the list traversal at the head of path
-// uses wildcard ("*") or partial-key matching rather than a concrete key lookup.
+// utilises wildcard ("*") or partial-key matching rather than a concrete key
+// lookup.
 func isWildcardListQuery(schema *yang.Entry, listKeyT reflect.Type, pathKeys map[string]string, args retrieveNodeArgs) bool {
-	if !args.handleWildcards && !args.partialKeyMatch {
+	switch {
+	case !args.handleWildcards && !args.partialKeyMatch:
 		return false
-	}
-	if !util.IsTypeStruct(listKeyT) {
-		isOmittedPartial := args.partialKeyMatch && len(pathKeys) == 0
-		isWildcard := args.handleWildcards && pathKeys[schema.Key] == "*"
-		return isOmittedPartial || isWildcard
+	case !util.IsTypeStruct(listKeyT):
+		return (args.partialKeyMatch && len(pathKeys) == 0) || (args.handleWildcards && pathKeys[schema.Key] == "*")
 	}
 	for _, k := range strings.Fields(schema.Key) {
 		v, ok := pathKeys[k]
-		if !ok {
-			if args.partialKeyMatch {
-				return true
-			}
-			continue
-		}
-		if args.handleWildcards && v == "*" {
+		switch {
+		case !ok && args.partialKeyMatch:
+			return true
+		case ok && args.handleWildcards && v == "*":
 			return true
 		}
 	}
 	return false
 }
 
-// structKeyField holds pre-resolved reflection and schema metadata for a single
-// field of a multi-keyed list's Go key struct.
-type structKeyField struct {
-	name      string
-	schemaKey string
-	fieldType reflect.Type
-}
-
-// structKeyFields resolves the Go field name, YANG schema key name, and Go type
-// for each field of listKeyT, verifying that each field exists on listElemT.
-func structKeyFields(listKeyT, listElemT reflect.Type) ([]structKeyField, error) {
-	fields := make([]structKeyField, 0, listKeyT.NumField())
-	for i := 0; i < listKeyT.NumField(); i++ {
-		kf := listKeyT.Field(i)
-		elem, ok := listElemT.Elem().FieldByName(kf.Name)
-		if !ok {
-			return nil, status.Errorf(codes.NotFound, "element struct type %v does not contain key field %s", listElemT, kf.Name)
-		}
-		schemaKey, err := directDescendantSchema(elem)
-		if err != nil {
-			return nil, status.Errorf(codes.Unknown, "unable to get direct descendant schema name for %v: %v", schemaKey, err)
-		}
-		fields = append(fields, structKeyField{
-			name:      kf.Name,
-			schemaKey: schemaKey,
-			fieldType: kf.Type,
-		})
-	}
-	return fields, nil
-}
-
-// retrieveNodeListElem handles deletion or recursive traversal for a matched
-// list element at mapKey within map rv, pruning the map entry if a descendant
-// deletion leaves the element struct completely zeroed.
-func retrieveNodeListElem(schema *yang.Entry, rv, mapKey, listElemV reflect.Value, elemPath *gpb.PathElem, remainingPath, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
-	if args.delete && len(remainingPath.GetElem()) == 0 {
-		rv.SetMapIndex(mapKey, reflect.Value{})
-		return nil, nil
-	}
-	nodes, err := retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, elemPath), args)
-	if err != nil {
-		return nil, err
-	}
-	// If the map element is empty after the deletion operation is executed,
-	// then remove the map element from the map.
-	if args.delete && listElemV.Elem().IsZero() {
-		rv.SetMapIndex(mapKey, reflect.Value{})
-	}
-	return nodes, nil
-}
-
-// insertAndRetrieveNodeList inserts a new list entry into root for the key(s)
-// at the head of path and continues traversal on the newly created element.
-func insertAndRetrieveNodeList(schema *yang.Entry, root any, rv reflect.Value, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
-	key, err := insertAndGetKey(schema, root, path.GetElem()[0].GetKey())
-	if err != nil {
-		return nil, err
-	}
-	return retrieveNode(schema, rv.MapIndex(reflect.ValueOf(key)).Interface(), util.PopGNMIPath(path), appendElem(traversedPath, path.GetElem()[0]), args)
-}
-
 // retrieveNodeListConcrete retrieves or modifies the single list entry matching
-// the concrete key(s) at the head of path (when no wildcards or partial keys
-// are in use).
+// the concrete key(s) at the head of path when neither wildcards nor partial
+// keys are specified. It returns an error if any required key is missing from
+// path, cannot be converted to its target Go type, or fails recursive traversal.
 func retrieveNodeListConcrete(schema *yang.Entry, root any, rv reflect.Value, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
 	if rv.Len() == 0 {
-		// When modifyRoot is set (e.g., GetOrCreateNode, or SetNode with
-		// InitMissingElements), retrieveNodeContainer initializes a nil map to an
+		// NB: When modifyRoot is set (e.g., GetOrCreateNode, or SetNode with
+		// InitMissingElements), retrieveNodeContainer initialises a nil map to an
 		// empty map before calling retrieveNodeList, so insert the new entry
 		// directly. Otherwise, a zero-length map has no list elements to traverse
 		// (even in transitory delete states, an entry remains in the map until
@@ -684,10 +621,11 @@ func retrieveNodeListConcrete(schema *yang.Entry, root any, rv reflect.Value, pa
 		return retrieveNodeListConcreteStructKey(schema, root, rv, keyFields, path, remainingPath, traversedPath, args)
 
 	case util.IsTypeInterface(listKeyT):
-		// Single-keyed list with a multi-type YANG union key: the Go map key is a
-		// union interface whose dynamic concrete type is not known from listKeyT
-		// alone (and in wrapper-union mode is a pointer to a wrapper struct, which
-		// cannot be looked up by value via MapIndex), so match by stringified key.
+		// NB: For a single-keyed list with a multi-type YANG union key, the Go map
+		// key is a union interface whose dynamic concrete type is not known from
+		// listKeyT alone (and in wrapper-union mode is a pointer to a wrapper
+		// struct, which cannot be looked up by value via MapIndex), so match via
+		// the stringified map key.
 		pathKey, ok := pathKeys[schema.Key]
 		if !ok {
 			return nil, status.Errorf(codes.NotFound, "schema key %s is not found in gNMI path %v, root %T", schema.Key, path, root)
@@ -695,7 +633,7 @@ func retrieveNodeListConcrete(schema *yang.Entry, root any, rv reflect.Value, pa
 		for _, k := range rv.MapKeys() {
 			keyAsString, err := ygot.KeyValueAsString(k.Interface())
 			if err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "converting key %v to string for path %v: %v", k.Interface(), path, err)
+				return nil, status.Errorf(codes.InvalidArgument, "cannot convert key %v to string for path %v, %v", k.Interface(), path, err)
 			}
 			if keyAsString == pathKey {
 				return retrieveNodeListElem(schema, rv, k, rv.MapIndex(k), path.GetElem()[0], remainingPath, traversedPath, args)
@@ -715,7 +653,7 @@ func retrieveNodeListConcrete(schema *yang.Entry, root any, rv reflect.Value, pa
 		}
 		kfv, err := StringToType(listKeyT, pathKey)
 		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "converting key %q to %v for schema key %s in path %v: %v", pathKey, listKeyT, schema.Key, path, err)
+			return nil, status.Errorf(codes.InvalidArgument, "cannot convert key %q to %v for schema key %s in path %v, %v", pathKey, listKeyT, schema.Key, path, err)
 		}
 		if listElemV := rv.MapIndex(kfv); listElemV.IsValid() {
 			return retrieveNodeListElem(schema, rv, kfv, listElemV, path.GetElem()[0], remainingPath, traversedPath, args)
@@ -729,7 +667,9 @@ func retrieveNodeListConcrete(schema *yang.Entry, root any, rv reflect.Value, pa
 
 // retrieveNodeListConcreteStructKey looks up or inserts a concrete key in a
 // multi-keyed list. When all fields of the key struct are concrete non-interface
-// types, it constructs the key struct and performs a direct O(1) MapIndex lookup.
+// types, it constructs the key struct and performs a direct O(1) MapIndex
+// lookup. It returns an error if any required key is missing from path, cannot
+// be converted to its target field type, or fails recursive traversal.
 func retrieveNodeListConcreteStructKey(schema *yang.Entry, root any, rv reflect.Value, keyFields []structKeyField, path, remainingPath, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
 	listKeyT := rv.Type().Key()
 	pathKeys := path.GetElem()[0].GetKey()
@@ -747,7 +687,7 @@ func retrieveNodeListConcreteStructKey(schema *yang.Entry, root any, rv reflect.
 		}
 		kfv, err := StringToType(kf.fieldType, pathKey)
 		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "converting key %q to %v for schema key %s in path %v: %v", pathKey, kf.fieldType, kf.schemaKey, path, err)
+			return nil, status.Errorf(codes.InvalidArgument, "cannot convert key %q to %v for schema key %s in path %v, %v", pathKey, kf.fieldType, kf.schemaKey, path, err)
 		}
 		keyVal.Field(i).Set(kfv)
 	}
@@ -762,8 +702,8 @@ func retrieveNodeListConcreteStructKey(schema *yang.Entry, root any, rv reflect.
 		return nil, nil
 	}
 
-	// At least one field of the key struct is a union interface; compare concrete
-	// fields directly and union interface fields via KeyValueAsString.
+	// NB: At least one field of the key struct is a union interface; compare
+	// concrete fields directly and union interface fields via KeyValueAsString.
 	for _, k := range rv.MapKeys() {
 		match := true
 		for i, kf := range keyFields {
@@ -794,8 +734,10 @@ func retrieveNodeListConcreteStructKey(schema *yang.Entry, root any, rv reflect.
 	return nil, nil
 }
 
-// retrieveNodeListWildcard retrieves all list entries matching a wildcard ("*")
-// or partial-key query at the head of path.
+// retrieveNodeListWildcard retrieves or deletes all list entries matching a
+// wildcard ("*") or partial-key query at the head of path. It returns an error
+// if required keys are missing when partial key matching is disabled, if key
+// stringification fails, or if recursive traversal fails.
 func retrieveNodeListWildcard(schema *yang.Entry, root any, rv reflect.Value, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
 	if rv.Len() == 0 {
 		return nil, nil
@@ -804,7 +746,7 @@ func retrieveNodeListWildcard(schema *yang.Entry, root any, rv reflect.Value, pa
 	listKeyT := rv.Type().Key()
 	listElemT := rv.Type().Elem()
 	remainingPath := util.PopGNMIPath(path)
-	var matches []*TreeNode
+	matches := []*TreeNode{}
 
 	switch {
 	case util.IsTypeStruct(listKeyT):
@@ -825,8 +767,9 @@ func retrieveNodeListWildcard(schema *yang.Entry, root any, rv reflect.Value, pa
 			for i, kf := range keyFields {
 				pathKey, ok := pathKeys[kf.schemaKey]
 				if !ok {
-					// args.partialKeyMatch is guaranteed true here because missing
-					// keys were already rejected above when !args.partialKeyMatch.
+					// NB: args.partialKeyMatch is guaranteed true here because
+					// missing keys were already rejected above when
+					// !args.partialKeyMatch.
 					continue
 				}
 				if args.handleWildcards && pathKey == "*" {
@@ -847,12 +790,10 @@ func retrieveNodeListWildcard(schema *yang.Entry, root any, rv reflect.Value, pa
 			listElemV := rv.MapIndex(k)
 			keys, err := ygot.PathKeyFromStruct(listElemV)
 			if err != nil {
-				// If the key field is not populated, then fall back to using the key being used in the map.
-				// We're technically operating on a schema-invalid struct, but this could be a
-				// transitory state for the GoStruct.
-				// An example is when there is a batch delete of all paths underneath the list where the
-				// deletion paths are deleted in random order -- in this case we would want to avoid a
-				// deletion error.
+				// NB: If the key field is not populated, fall back to using the
+				// key stored in the map. We are technically operating on a
+				// schema-invalid struct, which can occur as a transitory state
+				// during an unordered batch delete of all paths beneath the list.
 				if keys, err = ygot.PathKeyFromStruct(k); err != nil {
 					return nil, status.Errorf(codes.Unknown, "%v: could not extract from key struct: %v", traversedPath, err)
 				}
@@ -883,6 +824,75 @@ func retrieveNodeListWildcard(schema *yang.Entry, root any, rv reflect.Value, pa
 		}
 		return matches, nil
 	}
+}
+
+// structKeyField holds pre-resolved reflection and schema metadata for a single
+// field of a multi-keyed list's Go key struct.
+type structKeyField struct {
+	// name is the Go struct field name on both the key struct and element struct.
+	name string
+	// schemaKey is the YANG schema leaf name corresponding to the key field.
+	schemaKey string
+	// fieldType is the Go reflect.Type of the field on the key struct.
+	fieldType reflect.Type
+}
+
+// structKeyFields resolves the Go field name, YANG schema key name, and Go type
+// for each field of listKeyT, verifying that each field exists on listElemT. It
+// returns an error if any key struct field is absent on listElemT or its direct
+// descendant schema name cannot be resolved.
+func structKeyFields(listKeyT, listElemT reflect.Type) ([]structKeyField, error) {
+	fields := make([]structKeyField, 0, listKeyT.NumField())
+	for i := 0; i < listKeyT.NumField(); i++ {
+		kf := listKeyT.Field(i)
+		elem, ok := listElemT.Elem().FieldByName(kf.Name)
+		if !ok {
+			return nil, status.Errorf(codes.NotFound, "element struct type %v does not contain key field %s", listElemT, kf.Name)
+		}
+		schemaKey, err := directDescendantSchema(elem)
+		if err != nil {
+			return nil, status.Errorf(codes.Unknown, "unable to get direct descendant schema name for %v: %v", schemaKey, err)
+		}
+		fields = append(fields, structKeyField{
+			name:      kf.Name,
+			schemaKey: schemaKey,
+			fieldType: kf.Type,
+		})
+	}
+	return fields, nil
+}
+
+// retrieveNodeListElem handles deletion or recursive traversal for a matched
+// list element at mapKey within map rv, pruning the map entry if a descendant
+// deletion leaves the element struct completely zeroed. It returns an error if
+// recursive traversal of the matched element fails.
+func retrieveNodeListElem(schema *yang.Entry, rv, mapKey, listElemV reflect.Value, elemPath *gpb.PathElem, remainingPath, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
+	if args.delete && len(remainingPath.GetElem()) == 0 {
+		rv.SetMapIndex(mapKey, reflect.Value{})
+		return nil, nil
+	}
+	nodes, err := retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, elemPath), args)
+	if err != nil {
+		return nil, err
+	}
+	// If the map element is empty after the deletion operation is executed,
+	// remove the map element from the map.
+	if args.delete && listElemV.Elem().IsZero() {
+		rv.SetMapIndex(mapKey, reflect.Value{})
+	}
+	return nodes, nil
+}
+
+// insertAndRetrieveNodeList inserts a new list entry into root for the key(s)
+// at the head of path and continues traversal on the newly created element. It
+// returns an error if inserting the new list entry or traversing the resulting
+// element fails.
+func insertAndRetrieveNodeList(schema *yang.Entry, root any, rv reflect.Value, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
+	key, err := insertAndGetKey(schema, root, path.GetElem()[0].GetKey())
+	if err != nil {
+		return nil, err
+	}
+	return retrieveNode(schema, rv.MapIndex(reflect.ValueOf(key)).Interface(), util.PopGNMIPath(path), appendElem(traversedPath, path.GetElem()[0]), args)
 }
 
 // GetOrCreateNodeOpt defines an interface that can be used to supply arguments to functions using GetOrCreateNode.

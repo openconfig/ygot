@@ -204,8 +204,12 @@ type testStruct struct {
 	Test testEnum
 }
 
+// TestStringToType verifies conversion of string representations into target
+// reflect.Type values across supported scalar, defined, and enum types.
 func TestStringToType(t *testing.T) {
+	// customString is a defined string type used to verify Convert(t) on string keys.
 	type customString string
+	// customFloat is a defined float64 type used to verify Convert(t) on decimal64 keys.
 	type customFloat float64
 	ts := testStruct{}
 	tests := []struct {
@@ -236,7 +240,7 @@ func TestStringToType(t *testing.T) {
 		{s: "test_enum3", t: reflect.TypeOf(ts.Test)},
 		// invalid enum for the enum type
 		{s: "fortytwo", t: reflect.TypeOf(ts.Test), wantErr: true},
-		// unsupported non-scalar type
+		// Unsupported non-scalar types must return an error.
 		{s: "bytes", t: reflect.TypeOf([]byte(nil)), wantErr: true},
 	}
 

@@ -1146,6 +1146,8 @@ type rootStruct struct {
 	ChildList map[string]*childList            `path:"state/childlist"`
 }
 
+// TestGetNode verifies GetNode traversal across containers, leaves, leaf-lists,
+// keyed lists, and shadow paths.
 func TestGetNode(t *testing.T) {
 	rootSchema := &yang.Entry{
 		Name: "root",
@@ -1884,14 +1886,14 @@ func TestGetNode(t *testing.T) {
 		inArgs:           []GetNodeOpt{&PreferShadowPath{}},
 		wantErrSubstring: "no match found in *ytypes.listChildContainer",
 	}, {
-		desc:     "empty initialized single-key map returns no nodes",
+		desc:     "empty initialised single-key map returns no nodes",
 		inSchema: containerWithStringKey(),
 		inData: &ContainerStruct1{
 			StructKeyList: map[string]*ListElemStruct1{},
 		},
 		inPath: mustPath("/config/simple-key-list[key1=forty-two]"),
 	}, {
-		desc:     "empty initialized single-key map with wildcard returns no nodes",
+		desc:     "empty initialised single-key map with wildcard returns no nodes",
 		inSchema: containerWithStringKey(),
 		inData: &ContainerStruct1{
 			StructKeyList: map[string]*ListElemStruct1{},
@@ -1899,7 +1901,7 @@ func TestGetNode(t *testing.T) {
 		inPath: mustPath("/config/simple-key-list[key1=*]"),
 		inArgs: []GetNodeOpt{&GetHandleWildcards{}},
 	}, {
-		desc:     "empty initialized multi-key map with partial key returns no nodes",
+		desc:     "empty initialised multi-key map with partial key returns no nodes",
 		inSchema: containerWithMultiKeyedList,
 		inData: &ContainerStruct3{
 			StructKeyList: map[KeyStruct]*ListElemStruct3{},
@@ -3091,7 +3093,12 @@ func TestSetNode(t *testing.T) {
 	}
 }
 
+// TestDeleteNode verifies DeleteNode behaviour across leaves, containers,
+// lists, and shadow paths.
 func TestDeleteNode(t *testing.T) {
+	keepUnionKey := &Union1String{String: "keep"}
+	delUnionKey := &Union1Int16{Int16: 42}
+
 	tests := []struct {
 		name             string
 		inSchema         *yang.Entry
@@ -3630,6 +3637,22 @@ func TestDeleteNode(t *testing.T) {
 		inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer/INVALID"),
 		inOpts:           []DelNodeOpt{&PreferShadowPath{}},
 		wantErrSubstring: "no match found in *ytypes.OuterContainerType1",
+	}, {
+		name:     "deleting a union-keyed list entry non-key field when the key field has been deleted",
+		inSchema: unionKeyListSchema(),
+		inRoot: &containerUnionKey{
+			UnionList: map[testutil.TestUnion]*unionKeyListElem{
+				keepUnionKey: {Key: &Union1String{String: "keep"}, Value: ygot.String("stay")},
+				// NB: Key field inside the struct has already been deleted (nil), leaving a transitory state.
+				delUnionKey: {Value: ygot.String("to-delete")},
+			},
+		},
+		inPath: mustPath("/union-list[key1=42]/value"),
+		want: &containerUnionKey{
+			UnionList: map[testutil.TestUnion]*unionKeyListElem{
+				keepUnionKey: {Key: &Union1String{String: "keep"}, Value: ygot.String("stay")},
+			},
+		},
 	}}
 
 	for _, tt := range tests {
@@ -3792,13 +3815,19 @@ func TestRetrieveContainerListError(t *testing.T) {
 	}
 }
 
+// decimalListElem represents a YANG list element keyed by a decimal64 leaf.
 type decimalListElem struct {
-	Key   *float64 `path:"key1"`
-	Value *string  `path:"value"`
+	// Key is the decimal64 list key leaf.
+	Key *float64 `path:"key1"`
+	// Value is an arbitrary string leaf under the list element.
+	Value *string `path:"value"`
 }
 
+// IsYANGGoStruct implements the ygot.GoStruct interface.
 func (*decimalListElem) IsYANGGoStruct() {}
 
+// ΛListKeyMap returns the map of YANG list key names to values for d. It
+// returns an error if Key is nil.
 func (d *decimalListElem) ΛListKeyMap() (map[string]any, error) {
 	if d.Key == nil {
 		return nil, errors.New("nil value for key Key")
@@ -3806,12 +3835,16 @@ func (d *decimalListElem) ΛListKeyMap() (map[string]any, error) {
 	return map[string]any{"key1": *d.Key}, nil
 }
 
+// containerDecimalKey represents a container holding a decimal64-keyed list.
 type containerDecimalKey struct {
+	// DecimalList stores list entries keyed by their float64 decimal64 value.
 	DecimalList map[float64]*decimalListElem `path:"decimal-list"`
 }
 
+// IsYANGGoStruct implements the ygot.GoStruct interface.
 func (*containerDecimalKey) IsYANGGoStruct() {}
 
+// decimalListSchema builds the YANG schema entry for containerDecimalKey.
 func decimalListSchema() *yang.Entry {
 	root := &yang.Entry{
 		Name: "container",
@@ -3843,13 +3876,20 @@ func decimalListSchema() *yang.Entry {
 	return root
 }
 
+// unionKeyListElem represents a single-keyed YANG list element whose key is a
+// multi-type YANG union.
 type unionKeyListElem struct {
-	Key   testutil.TestUnion `path:"key1"`
-	Value *string            `path:"value"`
+	// Key stores the wrapper-union key value for the list element.
+	Key testutil.TestUnion `path:"key1"`
+	// Value stores a string leaf value on the list element.
+	Value *string `path:"value"`
 }
 
+// IsYANGGoStruct implements the ygot.GoStruct interface.
 func (*unionKeyListElem) IsYANGGoStruct() {}
 
+// ΛListKeyMap returns the map of YANG list key names to values for u. It
+// returns an error if Key is nil.
 func (u *unionKeyListElem) ΛListKeyMap() (map[string]any, error) {
 	if u.Key == nil {
 		return nil, errors.New("nil value for key Key")
@@ -3857,6 +3897,9 @@ func (u *unionKeyListElem) ΛListKeyMap() (map[string]any, error) {
 	return map[string]any{"key1": u.Key}, nil
 }
 
+// To_TestUnion converts i into a concrete wrapper type implementing
+// testutil.TestUnion. It returns an error if i does not match a union member
+// type.
 func (*unionKeyListElem) To_TestUnion(i any) (testutil.TestUnion, error) {
 	switch v := i.(type) {
 	case EnumType:
@@ -3870,18 +3913,24 @@ func (*unionKeyListElem) To_TestUnion(i any) (testutil.TestUnion, error) {
 	}
 }
 
+// ΛEnumTypeMap returns the map of schema paths to candidate GoEnum types for
+// unionKeyListElem.
 func (*unionKeyListElem) ΛEnumTypeMap() map[string][]reflect.Type {
 	return map[string][]reflect.Type{
 		"/union-list/key1": {reflect.TypeOf(EnumType(0))},
 	}
 }
 
+// containerUnionKey represents a container holding a single-keyed union list.
 type containerUnionKey struct {
+	// UnionList maps wrapper-union keys to their corresponding list elements.
 	UnionList map[testutil.TestUnion]*unionKeyListElem `path:"union-list"`
 }
 
+// IsYANGGoStruct implements the ygot.GoStruct interface.
 func (*containerUnionKey) IsYANGGoStruct() {}
 
+// unionKeyListSchema builds the YANG schema entry for containerUnionKey.
 func unionKeyListSchema() *yang.Entry {
 	root := &yang.Entry{
 		Name: "container",
@@ -3920,13 +3969,19 @@ func unionKeyListSchema() *yang.Entry {
 	return root
 }
 
+// multiUnionKeyStruct represents the composite Go map key for
+// multiUnionKeyListElem.
 type multiUnionKeyStruct struct {
-	Key1 string             `path:"key1"`
+	// Key1 is the concrete string key component.
+	Key1 string `path:"key1"`
+	// Key2 is the union interface key component.
 	Key2 testutil.TestUnion `path:"key2"`
 }
 
-func (m multiUnionKeyStruct) IsYANGGoKeyStruct() {}
+// IsYANGGoKeyStruct implements the ygot.KeyHelperGoStruct marker method.
+func (multiUnionKeyStruct) IsYANGGoKeyStruct() {}
 
+// ΛListKeyMap returns the map of YANG list key names to values for m.
 func (m multiUnionKeyStruct) ΛListKeyMap() (map[string]any, error) {
 	return map[string]any{
 		"key1": m.Key1,
@@ -3934,14 +3989,22 @@ func (m multiUnionKeyStruct) ΛListKeyMap() (map[string]any, error) {
 	}, nil
 }
 
+// multiUnionKeyListElem represents a multi-keyed YANG list element containing
+// both a concrete scalar key and a union interface key.
 type multiUnionKeyListElem struct {
-	Key1  *string            `path:"key1"`
-	Key2  testutil.TestUnion `path:"key2"`
-	Value *string            `path:"value"`
+	// Key1 is the string key leaf of the list element.
+	Key1 *string `path:"key1"`
+	// Key2 is the union key leaf of the list element.
+	Key2 testutil.TestUnion `path:"key2"`
+	// Value is an arbitrary string leaf under the list element.
+	Value *string `path:"value"`
 }
 
+// IsYANGGoStruct implements the ygot.GoStruct interface.
 func (*multiUnionKeyListElem) IsYANGGoStruct() {}
 
+// ΛListKeyMap returns the map of YANG list key names to values for m. It
+// returns an error if either key field is nil.
 func (m *multiUnionKeyListElem) ΛListKeyMap() (map[string]any, error) {
 	if m.Key1 == nil || m.Key2 == nil {
 		return nil, errors.New("nil key field")
@@ -3952,6 +4015,9 @@ func (m *multiUnionKeyListElem) ΛListKeyMap() (map[string]any, error) {
 	}, nil
 }
 
+// To_TestUnion converts i into a concrete wrapper type implementing
+// testutil.TestUnion. It returns an error if i does not match a union member
+// type.
 func (*multiUnionKeyListElem) To_TestUnion(i any) (testutil.TestUnion, error) {
 	switch v := i.(type) {
 	case int16:
@@ -3963,16 +4029,24 @@ func (*multiUnionKeyListElem) To_TestUnion(i any) (testutil.TestUnion, error) {
 	}
 }
 
+// ΛEnumTypeMap returns the map of schema paths to candidate GoEnum types for
+// multiUnionKeyListElem.
 func (*multiUnionKeyListElem) ΛEnumTypeMap() map[string][]reflect.Type {
 	return nil
 }
 
+// containerMultiUnionKey represents a container holding a multi-keyed list with
+// a union key component.
 type containerMultiUnionKey struct {
+	// MultiUnionList maps composite key structs to their corresponding list elements.
 	MultiUnionList map[multiUnionKeyStruct]*multiUnionKeyListElem `path:"multi-union-list"`
 }
 
+// IsYANGGoStruct implements the ygot.GoStruct interface.
 func (*containerMultiUnionKey) IsYANGGoStruct() {}
 
+// multiUnionKeyListSchema builds the YANG schema entry for
+// containerMultiUnionKey.
 func multiUnionKeyListSchema() *yang.Entry {
 	root := &yang.Entry{
 		Name: "container",
@@ -4016,119 +4090,108 @@ func multiUnionKeyListSchema() *yang.Entry {
 	return root
 }
 
+// TestGetOrCreateNodeUnionKeyList verifies GetOrCreateNode insertion into
+// populated single-keyed and multi-keyed lists with union key types.
 func TestGetOrCreateNodeUnionKeyList(t *testing.T) {
 	uSchema := unionKeyListSchema()
 	muSchema := multiUnionKeyListSchema()
 
+	listEntriesByKey := func(t *testing.T, parent any) map[string]any {
+		t.Helper()
+		m := reflect.ValueOf(parent).Elem().Field(0)
+		out := map[string]any{}
+		for _, k := range m.MapKeys() {
+			elem := m.MapIndex(k)
+			keys, err := ygot.PathKeyFromStruct(elem)
+			if err != nil {
+				t.Fatalf("PathKeyFromStruct(%v) failed: %v", elem.Interface(), err)
+			}
+			out[fmt.Sprint(keys)] = elem.Interface()
+		}
+		return out
+	}
+
 	tests := []struct {
-		desc       string
-		inSchema   *yang.Entry
-		inParent   any
-		inPath     *gpb.Path
-		want       any
-		wantParent any
-	}{
-		{
-			desc:     "inserts into non-empty single-key union list",
-			inSchema: uSchema,
-			inParent: &containerUnionKey{
-				UnionList: map[testutil.TestUnion]*unionKeyListElem{
-					&Union1String{String: "existing"}: {
-						Key:   &Union1String{String: "existing"},
-						Value: ygot.String("v1"),
-					},
-				},
-			},
-			inPath: mustPath("/union-list[key1=42]"),
-			want:   &unionKeyListElem{Key: &Union1Int16{Int16: 42}},
-			wantParent: &containerUnionKey{
-				UnionList: map[testutil.TestUnion]*unionKeyListElem{
-					&Union1String{String: "existing"}: {
-						Key:   &Union1String{String: "existing"},
-						Value: ygot.String("v1"),
-					},
-					&Union1Int16{Int16: 42}: {
-						Key: &Union1Int16{Int16: 42},
-					},
+		desc        string
+		inSchema    *yang.Entry
+		inParent    any
+		inPath      *gpb.Path
+		want        any
+		wantEntries map[string]any
+		wantErr     bool
+	}{{
+		desc:     "inserts into non-empty single-key union list",
+		inSchema: uSchema,
+		inParent: &containerUnionKey{
+			UnionList: map[testutil.TestUnion]*unionKeyListElem{
+				&Union1String{String: "existing"}: {
+					Key:   &Union1String{String: "existing"},
+					Value: ygot.String("v1"),
 				},
 			},
 		},
-		{
-			desc:     "inserts into non-empty multi-key union list",
-			inSchema: muSchema,
-			inParent: &containerMultiUnionKey{
-				MultiUnionList: map[multiUnionKeyStruct]*multiUnionKeyListElem{
-					{Key1: "k1", Key2: &Union1Int16{Int16: 7}}: {
-						Key1:  ygot.String("k1"),
-						Key2:  &Union1Int16{Int16: 7},
-						Value: ygot.String("seven"),
-					},
+		inPath: mustPath("/union-list[key1=42]"),
+		want:   &unionKeyListElem{Key: &Union1Int16{Int16: 42}},
+		wantEntries: map[string]any{
+			"map[key1:existing]": &unionKeyListElem{
+				Key:   &Union1String{String: "existing"},
+				Value: ygot.String("v1"),
+			},
+			"map[key1:42]": &unionKeyListElem{
+				Key: &Union1Int16{Int16: 42},
+			},
+		},
+	}, {
+		desc:     "inserts into non-empty multi-key union list",
+		inSchema: muSchema,
+		inParent: &containerMultiUnionKey{
+			MultiUnionList: map[multiUnionKeyStruct]*multiUnionKeyListElem{
+				{Key1: "k1", Key2: &Union1Int16{Int16: 7}}: {
+					Key1:  ygot.String("k1"),
+					Key2:  &Union1Int16{Int16: 7},
+					Value: ygot.String("seven"),
 				},
 			},
-			inPath: mustPath("/multi-union-list[key1=k1][key2=hello]"),
-			want: &multiUnionKeyListElem{
+		},
+		inPath: mustPath("/multi-union-list[key1=k1][key2=hello]"),
+		want: &multiUnionKeyListElem{
+			Key1: ygot.String("k1"),
+			Key2: &Union1String{String: "hello"},
+		},
+		wantEntries: map[string]any{
+			"map[key1:k1 key2:7]": &multiUnionKeyListElem{
+				Key1:  ygot.String("k1"),
+				Key2:  &Union1Int16{Int16: 7},
+				Value: ygot.String("seven"),
+			},
+			"map[key1:k1 key2:hello]": &multiUnionKeyListElem{
 				Key1: ygot.String("k1"),
 				Key2: &Union1String{String: "hello"},
 			},
-			wantParent: &containerMultiUnionKey{
-				MultiUnionList: map[multiUnionKeyStruct]*multiUnionKeyListElem{
-					{Key1: "k1", Key2: &Union1Int16{Int16: 7}}: {
-						Key1:  ygot.String("k1"),
-						Key2:  &Union1Int16{Int16: 7},
-						Value: ygot.String("seven"),
-					},
-					{Key1: "k1", Key2: &Union1String{String: "hello"}}: {
-						Key1: ygot.String("k1"),
-						Key2: &Union1String{String: "hello"},
-					},
-				},
-			},
 		},
-	}
+	}}
 
-	for _, tc := range tests {
-		t.Run(tc.desc, func(t *testing.T) {
-			got, _, err := GetOrCreateNode(tc.inSchema, tc.inParent, tc.inPath)
-			if err != nil {
-				t.Fatalf("GetOrCreateNode(%v) unexpected error: %v", tc.inPath, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, _, err := GetOrCreateNode(tt.inSchema, tt.inParent, tt.inPath)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("GetOrCreateNode(%v): did not get expected error, got: %v, wantErr? %v", tt.inPath, err, tt.wantErr)
 			}
-			if diff := cmp.Diff(tc.want, got); diff != "" {
-				t.Errorf("GetOrCreateNode(%v) diff (-want +got):\n%s", tc.inPath, diff)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Fatalf("GetOrCreateNode(%v): did not get expected node, diff(-got,+want):\n%s", tt.inPath, diff)
 			}
-			// Verify map length and newly inserted entry; wrapper-union map keys are
-			// struct pointers, so compare the retrieved element rather than pointer keys.
-			if gotMap, wantMap := reflect.ValueOf(tc.inParent).Elem().Field(0), reflect.ValueOf(tc.wantParent).Elem().Field(0); gotMap.Len() != wantMap.Len() {
-				t.Errorf("GetOrCreateNode(%v) map len = %d, want %d", tc.inPath, gotMap.Len(), wantMap.Len())
+			// NB: Wrapper-union map keys are struct pointers, so compare entries
+			// indexed by their canonical gNMI key map rather than pointer identity.
+			gotEntries := listEntriesByKey(t, tt.inParent)
+			if diff := cmp.Diff(gotEntries, tt.wantEntries); diff != "" {
+				t.Fatalf("GetOrCreateNode(%v): did not get expected list entries, diff(-got,+want):\n%s", tt.inPath, diff)
 			}
 		})
 	}
 }
 
-func TestDeleteNodeUnionKeyTransitoryState(t *testing.T) {
-	uSchema := unionKeyListSchema()
-	keepKey := &Union1String{String: "keep"}
-	delKey := &Union1Int16{Int16: 42}
-	parent := &containerUnionKey{
-		UnionList: map[testutil.TestUnion]*unionKeyListElem{
-			keepKey: {Key: &Union1String{String: "keep"}, Value: ygot.String("stay")},
-			// Key field inside the struct has already been deleted (nil), leaving a transitory state.
-			delKey: {Value: ygot.String("to-delete")},
-		},
-	}
-	path := mustPath("/union-list[key1=42]/value")
-	if err := DeleteNode(uSchema, parent, path); err != nil {
-		t.Fatalf("DeleteNode(%v) unexpected error: %v", path, err)
-	}
-	want := &containerUnionKey{
-		UnionList: map[testutil.TestUnion]*unionKeyListElem{
-			keepKey: {Key: &Union1String{String: "keep"}, Value: ygot.String("stay")},
-		},
-	}
-	if diff := cmp.Diff(want, parent); diff != "" {
-		t.Errorf("DeleteNode(%v) diff (-want +got):\n%s", path, diff)
-	}
-}
-
+// BenchmarkSetNodeSingleKeyList measures bulk SetNode insertion and lookup
+// performance across single-keyed YANG lists of size n.
 func BenchmarkSetNodeSingleKeyList(b *testing.B) {
 	schema := containerWithStringKey()
 	val := &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}}
@@ -4152,6 +4215,8 @@ func BenchmarkSetNodeSingleKeyList(b *testing.B) {
 	}
 }
 
+// BenchmarkSetNodeMultiKeyList measures bulk SetNode insertion and lookup
+// performance across multi-keyed YANG lists of size n.
 func BenchmarkSetNodeMultiKeyList(b *testing.B) {
 	addParents(containerWithMultiKeyedList)
 	val := &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}}
@@ -4175,6 +4240,8 @@ func BenchmarkSetNodeMultiKeyList(b *testing.B) {
 	}
 }
 
+// BenchmarkGetNodeSingleKeyList measures point GetNode lookup latency across
+// populated single-keyed YANG lists of size n.
 func BenchmarkGetNodeSingleKeyList(b *testing.B) {
 	schema := containerWithStringKey()
 	val := &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}}
@@ -4200,6 +4267,8 @@ func BenchmarkGetNodeSingleKeyList(b *testing.B) {
 	}
 }
 
+// BenchmarkGetNodeMultiKeyList measures point GetNode lookup latency across
+// populated multi-keyed YANG lists of size n.
 func BenchmarkGetNodeMultiKeyList(b *testing.B) {
 	addParents(containerWithMultiKeyedList)
 	val := &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}}
