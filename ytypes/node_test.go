@@ -4240,7 +4240,7 @@ func BenchmarkSetNodeMultiKeyList(b *testing.B) {
 	}
 }
 
-// BenchmarkGetNodeSingleKeyList measures point GetNode lookup latency across
+// BenchmarkGetNodeSingleKeyList measures concrete GetNode lookup latency across
 // populated single-keyed YANG lists of size n.
 func BenchmarkGetNodeSingleKeyList(b *testing.B) {
 	schema := containerWithStringKey()
@@ -4255,19 +4255,19 @@ func BenchmarkGetNodeSingleKeyList(b *testing.B) {
 				b.Fatalf("SetNode(%v) setup failed: %v", paths[i], err)
 			}
 		}
-		target := paths[n-1]
 		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
 			b.ReportAllocs()
-			for b.Loop() {
-				if _, err := GetNode(schema, root, target); err != nil {
-					b.Fatalf("GetNode(%v) failed: %v", target, err)
+			for i := 0; b.Loop(); i++ {
+				p := paths[i%n]
+				if _, err := GetNode(schema, root, p); err != nil {
+					b.Fatalf("GetNode(%v) failed: %v", p, err)
 				}
 			}
 		})
 	}
 }
 
-// BenchmarkGetNodeMultiKeyList measures point GetNode lookup latency across
+// BenchmarkGetNodeMultiKeyList measures concrete GetNode lookup latency across
 // populated multi-keyed YANG lists of size n.
 func BenchmarkGetNodeMultiKeyList(b *testing.B) {
 	addParents(containerWithMultiKeyedList)
@@ -4282,12 +4282,134 @@ func BenchmarkGetNodeMultiKeyList(b *testing.B) {
 				b.Fatalf("SetNode(%v) setup failed: %v", paths[i], err)
 			}
 		}
-		target := paths[n-1]
 		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
 			b.ReportAllocs()
-			for b.Loop() {
-				if _, err := GetNode(containerWithMultiKeyedList, root, target); err != nil {
-					b.Fatalf("GetNode(%v) failed: %v", target, err)
+			for i := 0; b.Loop(); i++ {
+				p := paths[i%n]
+				if _, err := GetNode(containerWithMultiKeyedList, root, p); err != nil {
+					b.Fatalf("GetNode(%v) failed: %v", p, err)
+				}
+			}
+		})
+	}
+}
+
+// BenchmarkGetOrCreateNodeSingleKeyList measures concrete GetOrCreateNode
+// lookup latency across populated single-keyed YANG lists of size n.
+func BenchmarkGetOrCreateNodeSingleKeyList(b *testing.B) {
+	schema := containerWithStringKey()
+	val := &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}}
+
+	for _, n := range []int{10, 100, 1000} {
+		root := &ContainerStruct1{}
+		paths := make([]*gpb.Path, n)
+		for i := range n {
+			paths[i] = mustPath(fmt.Sprintf("/config/simple-key-list[key1=item-%d]/outer/inner/int32-leaf-field", i))
+			if err := SetNode(schema, root, paths[i], val, &InitMissingElements{}); err != nil {
+				b.Fatalf("SetNode(%v) setup failed: %v", paths[i], err)
+			}
+		}
+		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; b.Loop(); i++ {
+				p := paths[i%n]
+				if _, _, err := GetOrCreateNode(schema, root, p); err != nil {
+					b.Fatalf("GetOrCreateNode(%v) failed: %v", p, err)
+				}
+			}
+		})
+	}
+}
+
+// BenchmarkGetOrCreateNodeMultiKeyList measures concrete GetOrCreateNode lookup
+// latency across populated multi-keyed YANG lists of size n.
+func BenchmarkGetOrCreateNodeMultiKeyList(b *testing.B) {
+	addParents(containerWithMultiKeyedList)
+	val := &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}}
+
+	for _, n := range []int{10, 100, 1000} {
+		root := &ContainerStruct3{}
+		paths := make([]*gpb.Path, n)
+		for i := range n {
+			paths[i] = mustPath(fmt.Sprintf("/struct-key-list[key1=item-%d][key2=%d][key3=E_VALUE_FORTY_TWO]/outer/inner/int32-leaf-field", i, i))
+			if err := SetNode(containerWithMultiKeyedList, root, paths[i], val, &InitMissingElements{}); err != nil {
+				b.Fatalf("SetNode(%v) setup failed: %v", paths[i], err)
+			}
+		}
+		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; b.Loop(); i++ {
+				p := paths[i%n]
+				if _, _, err := GetOrCreateNode(containerWithMultiKeyedList, root, p); err != nil {
+					b.Fatalf("GetOrCreateNode(%v) failed: %v", p, err)
+				}
+			}
+		})
+	}
+}
+
+// BenchmarkDeleteNodeSingleKeyList measures bulk DeleteNode performance across
+// populated single-keyed YANG lists of size n.
+func BenchmarkDeleteNodeSingleKeyList(b *testing.B) {
+	schema := containerWithStringKey()
+
+	for _, n := range []int{10, 100, 1000} {
+		keys := make([]string, n)
+		paths := make([]*gpb.Path, n)
+		for i := range n {
+			keys[i] = fmt.Sprintf("item-%d", i)
+			paths[i] = mustPath(fmt.Sprintf("/config/simple-key-list[key1=%s]", keys[i]))
+		}
+		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				b.StopTimer()
+				m := make(map[string]*ListElemStruct1, n)
+				for _, k := range keys {
+					kv := k
+					m[k] = &ListElemStruct1{Key1: &kv}
+				}
+				root := &ContainerStruct1{StructKeyList: m}
+				b.StartTimer()
+
+				for _, p := range paths {
+					if err := DeleteNode(schema, root, p); err != nil {
+						b.Fatalf("DeleteNode(%v) failed: %v", p, err)
+					}
+				}
+			}
+		})
+	}
+}
+
+// BenchmarkDeleteNodeMultiKeyList measures bulk DeleteNode performance across
+// populated multi-keyed YANG lists of size n.
+func BenchmarkDeleteNodeMultiKeyList(b *testing.B) {
+	addParents(containerWithMultiKeyedList)
+
+	for _, n := range []int{10, 100, 1000} {
+		keys := make([]KeyStruct, n)
+		paths := make([]*gpb.Path, n)
+		for i := range n {
+			keys[i] = KeyStruct{Key1: fmt.Sprintf("item-%d", i), Key2: int32(i), EnumKey: 42}
+			paths[i] = mustPath(fmt.Sprintf("/struct-key-list[key1=item-%d][key2=%d][key3=E_VALUE_FORTY_TWO]", i, i))
+		}
+		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				b.StopTimer()
+				m := make(map[KeyStruct]*ListElemStruct3, n)
+				for _, k := range keys {
+					k1, k2 := k.Key1, k.Key2
+					m[k] = &ListElemStruct3{Key1: &k1, Key2: &k2, EnumKey: k.EnumKey}
+				}
+				root := &ContainerStruct3{StructKeyList: m}
+				b.StartTimer()
+
+				for _, p := range paths {
+					if err := DeleteNode(containerWithMultiKeyedList, root, p); err != nil {
+						b.Fatalf("DeleteNode(%v) failed: %v", p, err)
+					}
 				}
 			}
 		})
