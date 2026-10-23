@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/openconfig/gnmi/errlist"
@@ -65,7 +66,7 @@ var (
 	// unionSingletonUnderlyingTypes stores the underlying types of the
 	// singleton (i.e. non-struct, non-slice, non-map) typedefs used to
 	// represent union subtypes for the "Simplified Union Leaf" way of
-	// representatiing unions in the Go generated code.
+	// representing unions in the Go generated code.
 	unionSingletonUnderlyingTypes = map[string]reflect.Type{
 		"UnionInt8":    reflect.TypeOf(int8(0)),
 		"UnionInt16":   reflect.TypeOf(int16(0)),
@@ -93,7 +94,10 @@ func (p *path) String() string {
 	if p.p.isPathElemPath() {
 		return prototext.Format(&gnmipb.Path{Elem: p.p.pathElemPath})
 	}
-	return fmt.Sprintf("%v", p.p.pathElemPath)
+
+	// If the path is not path element path, return the joined string (unique for keying)
+	// of the string slice path.
+	return strings.Join(p.p.stringSlicePath, "/")
 }
 
 // pathval combines path and the value for the relative or absolute path.
@@ -1246,9 +1250,6 @@ func rewriteModName(mod string, rules map[string]string) string {
 // there are modules to be prepended, it also returns the module to which the
 // field belongs. It will also return an error if it encounters one.
 func prependmodsJSON(fType reflect.StructField, parentMod string, args jsonOutputConfig) ([][]string, string, error) {
-	var prependmods [][]string
-	var chMod string
-
 	mapModules, err := structTagToLibModules(fType, args.rfc7951Config.PreferShadowPath)
 	if err != nil {
 		return nil, "", fmt.Errorf("%s: %v", fType.Name, err)
@@ -1257,8 +1258,11 @@ func prependmodsJSON(fType reflect.StructField, parentMod string, args jsonOutpu
 		return nil, "", nil
 	}
 
-	for _, modulePath := range mapModules {
-		var prependmod []string
+	prependmods := make([][]string, len(mapModules))
+	var chMod string
+
+	for idx, modulePath := range mapModules {
+		prependmod := make([]string, modulePath.Len())
 		prevMod := parentMod
 		for i := 0; i != modulePath.Len(); i++ {
 			mod, err := modulePath.StringElemAt(i)
@@ -1274,12 +1278,12 @@ func prependmodsJSON(fType reflect.StructField, parentMod string, args jsonOutpu
 			} else {
 				prevMod = mod
 			}
-			prependmod = append(prependmod, mod)
+			prependmod[i] = mod
 		}
 		if chMod != "" && prevMod != chMod {
 			return nil, "", fmt.Errorf("%s: child modules between all paths are not equal: %v", fType.Name, mapModules)
 		}
-		prependmods = append(prependmods, prependmod)
+		prependmods[idx] = prependmod
 		chMod = prevMod
 	}
 	return prependmods, chMod, nil
@@ -1415,8 +1419,20 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 // and float64 values are represented as strings.
 func writeIETFScalarJSON(i any) any {
 	switch reflect.ValueOf(i).Kind() {
-	case reflect.Uint64, reflect.Int64, reflect.Float64:
+	case reflect.Float64:
 		return fmt.Sprintf("%v", i)
+	case reflect.Int64:
+		if val, ok := i.(int64); ok {
+			return strconv.FormatInt(int64(val), 10)
+		}
+
+		return fmt.Sprintf("%d", i)
+	case reflect.Uint64:
+		if val, ok := i.(uint64); ok {
+			return strconv.FormatUint(uint64(val), 10)
+		}
+
+		return fmt.Sprintf("%d", i)
 	}
 	return i
 }
@@ -1644,6 +1660,10 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 			if err != nil {
 				errs.Add(err)
 			}
+		case reflect.String:
+			value = field.Elem().String()
+		case reflect.Bool:
+			value = field.Elem().Bool()
 		default:
 			value = field.Elem().Interface()
 			if args.jType == RFC7951 {
@@ -1651,7 +1671,6 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 			}
 		}
 	case reflect.Slice:
-
 		isAnnotationSlice := func(v reflect.Value) bool {
 			annoT := reflect.TypeOf((*Annotation)(nil)).Elem()
 			return v.Type().Elem().Implements(annoT)
