@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	stdpath "path"
 	"sort"
 	"strings"
 
@@ -43,7 +42,7 @@ const (
 // representing the path. Path is always treated as absolute.
 func PathToString(path *gnmipb.Path) (string, error) {
 	s, err := PathToStrings(path)
-	return "/" + stdpath.Join(s...), err
+	return "/" + strings.Join(s, "/"), err
 }
 
 // PathToSchemaPath returns the supplied Path as its corresponding schema path.
@@ -66,7 +65,7 @@ func PathToSchemaPath(path *gnmipb.Path) (string, error) {
 			sp = append(sp, elem)
 		}
 		s, err := elementsToString(sp)
-		return "/" + stdpath.Join(s...), err
+		return "/" + strings.Join(s, "/"), err
 	}
 
 	var p []string
@@ -76,7 +75,7 @@ func PathToSchemaPath(path *gnmipb.Path) (string, error) {
 		}
 		p = append(p, e.Name)
 	}
-	return "/" + stdpath.Join(p...), nil
+	return "/" + strings.Join(p, "/"), nil
 }
 
 // PathToStrings takes a gNMI Path and provides its string representation. For example,
