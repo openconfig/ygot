@@ -448,7 +448,8 @@ func yangFloatIntToGoType(t yang.TypeKind, v float64) (interface{}, error) {
 	return nil, fmt.Errorf("unexpected YANG type %v", t)
 }
 
-// checkJSONFloat64Range checks whether f is in range for the given YANG type.
+// checkJSONFloat64Range checks whether f is an integer that is in range for
+// the given YANG type.
 func checkJSONFloat64Range(t yang.TypeKind, f float64) error {
 	minMax := map[yang.TypeKind]struct {
 		min int64
@@ -464,6 +465,12 @@ func checkJSONFloat64Range(t yang.TypeKind, f float64) error {
 
 	if _, ok := minMax[t]; !ok {
 		return fmt.Errorf("checkJSONFloat64Range bad YANG type %v", t)
+	}
+	// A JSON number for an integer YANG type must not carry a fractional
+	// part; without this check int8(f)/uint8(f)/etc. below would silently
+	// truncate it (e.g. 3.9 would be accepted and stored as 3).
+	if f != math.Trunc(f) {
+		return fmt.Errorf("value %v is not an integer", f)
 	}
 	if int64(f) < minMax[t].min || int64(f) > minMax[t].max {
 		return fmt.Errorf("value %d falls outside the int range [%d, %d]", int64(f), minMax[t].min, minMax[t].max)
