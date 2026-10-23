@@ -14,7 +14,7 @@ require (
 	github.com/openconfig/goyang v1.6.3
 	github.com/openconfig/gribi v1.9.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	golang.org/x/exp v0.0.0-20251009144603-d2f985daa21b
 	google.golang.org/grpc v1.76.0
