@@ -546,7 +546,10 @@ func generateGetListKey(buf *bytes.Buffer, s *ygen.ParsedDirectory, nameMap map[
 	sort.Strings(kn)
 
 	for _, k := range kn {
-		h.Keys = append(h.Keys, nameMap[k])
+		// Skip keys that don't exist in nameMap (e.g., when skip_obsolete is enabled)
+		if fieldMap, ok := nameMap[k]; ok {
+			h.Keys = append(h.Keys, fieldMap)
+		}
 	}
 
 	return goKeyMapTemplate.Execute(buf, h)
