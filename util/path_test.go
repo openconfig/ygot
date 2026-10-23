@@ -1017,6 +1017,12 @@ func TestSplitPath(t *testing.T) {
 			want:                      []string{"a", `b[key1 = ../x/y key2 = "z"]`, "c"},
 			wantIgnoreLeadingTrailing: []string{"a", `b[key1 = ../x/y key2 = "z"]`, "c"},
 		},
+		{
+			desc:                      "escaped bracket then slash in key",
+			in:                        `a/b[k=x\]/y]/c`,
+			want:                      []string{"a", `b[k=x\]/y]`, "c"},
+			wantIgnoreLeadingTrailing: []string{"a", `b[k=x\]/y]`, "c"},
+		},
 	}
 
 	for _, tt := range tests {
