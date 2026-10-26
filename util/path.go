@@ -401,8 +401,15 @@ func SplitPath(path string) []string {
 			inKey = true
 		case ch == ']' && !inEscape:
 			inKey = false
-		case ch == '\\' && !inEscape && !inKey:
+		case ch == '\\' && !inEscape:
 			inEscape = true
+			// Inside a key the backslash must be kept so that the key
+			// parser (extractKV) can interpret the escape; it still marks
+			// the next character as escaped so an escaped ] does not end the
+			// key and an escaped / is not treated as a path separator here.
+			if inKey {
+				buf.WriteRune(ch)
+			}
 			continue
 		case ch == '/' && !inEscape && !inKey:
 			parts = append(parts, buf.String())
