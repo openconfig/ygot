@@ -241,9 +241,10 @@ func PruneEmptyBranches(s GoStruct) {
 
 // pruneBranchesInternal implements the logic to remove empty branches from the
 // supplied reflect.Type, reflect.Value which must represent a GoStruct. An empty
-// tree is defined to be a struct that is equal to its zero value. Only struct
-// pointer fields are examined, since these are subtrees within the generated GoStruct
-// types. It returns a bool which indicates whether all fields of the struct were
+// tree is defined to be a struct that is equal to its zero value, or an ordered
+// map with zero entries. Struct pointer, map, and ordered map fields are
+// traversed to prune unpopulated subtrees within the generated GoStruct types.
+// It returns a bool which indicates whether all fields of the struct were
 // removed.
 func pruneBranchesInternal(t reflect.Type, v reflect.Value) bool {
 	// Track whether all fields of the GoStruct are nil, such that it can
@@ -254,6 +255,30 @@ func pruneBranchesInternal(t reflect.Type, v reflect.Value) bool {
 	for i := 0; i < v.NumField(); i++ {
 		fVal := v.Field(i)
 		fType := t.Field(i)
+		if om, isOrderedMap := fVal.Interface().(GoOrderedMap); isOrderedMap {
+			// Handle YANG ordered-by user lists via GoOrderedMap methods rather
+			// than reflecting over the generated struct's unexported fields.
+			switch {
+			case util.IsNilOrInvalidValue(fVal):
+				continue
+			case om.Len() == 0:
+				fVal.Set(reflect.Zero(fType.Type))
+				continue
+			default:
+				allChildrenPruned = false
+				_ = yreflect.RangeOrderedMap(om, func(_, elem reflect.Value) bool {
+					if !util.IsValueStructPtr(elem) {
+						return true
+					}
+					sv := elem.Elem()
+					// NB: Discard the return value because this ordered map has
+					// at least one entry and therefore cannot be pruned.
+					_ = pruneBranchesInternal(sv.Type(), sv)
+					return true
+				})
+				continue
+			}
+		}
 		if util.IsTypeStructPtr(fType.Type) {
 			// Create an empty version of the struct that is within the struct pointer.
 			// We can safely call Elem() here since we verified above that this type

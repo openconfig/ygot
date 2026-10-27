@@ -717,3 +717,141 @@ func TestMergeStructsOrderedMap(t *testing.T) {
 		})
 	}
 }
+
+// TestPruneEmptyBranchesOrderedMap validates that PruneEmptyBranches handles nil,
+// empty, and populated GoOrderedMap fields without panicking on unexported struct
+// fields, whilst pruning empty child branches inside ordered map entries.
+func TestPruneEmptyBranchesOrderedMap(t *testing.T) {
+	tests := []struct {
+		// desc is the human-readable test case description.
+		desc string
+		// in is the input GoStruct mutated in-place by PruneEmptyBranches.
+		in ygot.GoStruct
+		// want is the expected GoStruct after pruning empty branches.
+		want ygot.GoStruct
+	}{{
+		desc: "compressed device with nil ordered map and empty container",
+		in: func() ygot.GoStruct {
+			d := &ctestschema.Device{}
+			ygot.BuildEmptyTree(d)
+			return d
+		}(),
+		want: &ctestschema.Device{},
+	}, {
+		desc: "compressed device with empty ordered map literal",
+		in: &ctestschema.Device{
+			OrderedList: &ctestschema.OrderedList_OrderedMap{},
+			OtherData: &ctestschema.OtherData{
+				Motd: ygot.String("hello"),
+			},
+		},
+		want: &ctestschema.Device{
+			OtherData: &ctestschema.OtherData{
+				Motd: ygot.String("hello"),
+			},
+		},
+	}, {
+		desc: "uncompressed device with deleted ordered map entries prunes parent container",
+		in: func() ygot.GoStruct {
+			d := &utestschema.Device{}
+			if _, err := d.GetOrCreateOrderedLists().AppendNewOrderedList("foo"); err != nil {
+				t.Fatalf("AppendNewOrderedList(\"foo\"): got unexpected error: %v", err)
+			}
+			d.GetOrderedLists().DeleteOrderedList("foo")
+			return d
+		}(),
+		want: &utestschema.Device{},
+	}, {
+		desc: "compressed device with populated single-keyed and multi-keyed ordered maps and empty sibling",
+		in: &ctestschema.Device{
+			OrderedList:           ctestschema.GetOrderedMap(t),
+			OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t),
+			OtherData:             &ctestschema.OtherData{},
+		},
+		want: &ctestschema.Device{
+			OrderedList:           ctestschema.GetOrderedMap(t),
+			OrderedMultikeyedList: ctestschema.GetOrderedMapMultikeyed(t),
+		},
+	}, {
+		desc: "compressed nested ordered map prunes empty child ordered map and preserves populated nested entry",
+		in: func() ygot.GoStruct {
+			d := &ctestschema.Device{}
+			foo, err := d.AppendNewOrderedList("foo")
+			if err != nil {
+				t.Fatalf("AppendNewOrderedList(\"foo\"): got unexpected error: %v", err)
+			}
+			foo.GetOrCreateOrderedListMap()
+
+			bar, err := d.AppendNewOrderedList("bar")
+			if err != nil {
+				t.Fatalf("AppendNewOrderedList(\"bar\"): got unexpected error: %v", err)
+			}
+			baz, err := bar.AppendNewOrderedList("baz")
+			if err != nil {
+				t.Fatalf("AppendNewOrderedList(\"baz\"): got unexpected error: %v", err)
+			}
+			baz.Value = ygot.String("baz-val")
+			return d
+		}(),
+		want: func() ygot.GoStruct {
+			d := &ctestschema.Device{}
+			if _, err := d.AppendNewOrderedList("foo"); err != nil {
+				t.Fatalf("AppendNewOrderedList(\"foo\"): got unexpected error: %v", err)
+			}
+			bar, err := d.AppendNewOrderedList("bar")
+			if err != nil {
+				t.Fatalf("AppendNewOrderedList(\"bar\"): got unexpected error: %v", err)
+			}
+			baz, err := bar.AppendNewOrderedList("baz")
+			if err != nil {
+				t.Fatalf("AppendNewOrderedList(\"baz\"): got unexpected error: %v", err)
+			}
+			baz.Value = ygot.String("baz-val")
+			return d
+		}(),
+	}, {
+		desc: "uncompressed ordered map with BuildEmptyTree on elements prunes unpopulated child containers",
+		in: func() ygot.GoStruct {
+			d := &utestschema.Device{}
+			ygot.BuildEmptyTree(d)
+
+			foo, err := d.GetOrCreateOrderedLists().AppendNewOrderedList("foo")
+			if err != nil {
+				t.Fatalf("AppendNewOrderedList(\"foo\"): got unexpected error: %v", err)
+			}
+			ygot.BuildEmptyTree(foo)
+			foo.GetOrCreateConfig().Key = ygot.String("foo")
+			foo.Config.Value = ygot.String("foo-val")
+
+			bar, err := d.GetOrCreateOrderedLists().AppendNewOrderedList("bar")
+			if err != nil {
+				t.Fatalf("AppendNewOrderedList(\"bar\"): got unexpected error: %v", err)
+			}
+			ygot.BuildEmptyTree(bar)
+			return d
+		}(),
+		want: func() ygot.GoStruct {
+			d := &utestschema.Device{}
+			foo, err := d.GetOrCreateOrderedLists().AppendNewOrderedList("foo")
+			if err != nil {
+				t.Fatalf("AppendNewOrderedList(\"foo\"): got unexpected error: %v", err)
+			}
+			foo.GetOrCreateConfig().Key = ygot.String("foo")
+			foo.Config.Value = ygot.String("foo-val")
+
+			if _, err := d.GetOrCreateOrderedLists().AppendNewOrderedList("bar"); err != nil {
+				t.Fatalf("AppendNewOrderedList(\"bar\"): got unexpected error: %v", err)
+			}
+			return d
+		}(),
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			ygot.PruneEmptyBranches(tt.in)
+			if diff := cmp.Diff(tt.in, tt.want, ytestutil.OrderedMapCmpOptions...); diff != "" {
+				t.Fatalf("PruneEmptyBranches(...): did not get expected struct, diff(-got,+want):\n%s", diff)
+			}
+		})
+	}
+}
