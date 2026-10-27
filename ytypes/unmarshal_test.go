@@ -15,6 +15,7 @@
 package ytypes
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -83,6 +84,89 @@ func TestUnmarshal(t *testing.T) {
 				t.Errorf("%s: got error: %v, want error: %v", tt.desc, got, want)
 			}
 
+		})
+	}
+}
+
+const (
+	// maxUnmarshalAllocRegression is the maximum permitted fractional
+	// increase (5%) above the Unmarshal allocation baseline.
+	maxUnmarshalAllocRegression = 0.05
+	// unmarshalAllocMeasureRuns is the number of runs averaged by
+	// testing.AllocsPerRun after warmup.
+	unmarshalAllocMeasureRuns = 5
+	// wantUnmarshalKeyedListBaseAllocs is the fixed root-container
+	// allocation overhead when unmarshalling ContainerStruct1.
+	wantUnmarshalKeyedListBaseAllocs = 55.0
+	// wantUnmarshalKeyedListAllocsPerElem is the expected allocations per
+	// entry when unmarshalling a keyed list with debug logging disabled.
+	wantUnmarshalKeyedListAllocsPerElem = 311.5
+)
+
+var unmarshalPerfSizes = []int{10, 100}
+
+func newUnmarshalKeyedListWorkload(tb testing.TB, n int) func() {
+	tb.Helper()
+	schema := containerWithStringKey()
+	addParents(schema)
+	items := make([]any, n)
+	for i := range n {
+		items[i] = map[string]any{
+			"key1": fmt.Sprintf("item-%d", i),
+			"outer": map[string]any{
+				"config": map[string]any{
+					"inner": map[string]any{
+						"int32-leaf-field": float64(i),
+					},
+				},
+			},
+		}
+	}
+	jsonTree := map[string]any{
+		"config": map[string]any{
+			"simple-key-list": items,
+		},
+	}
+	return func() {
+		root := &ContainerStruct1{}
+		if err := Unmarshal(schema, root, jsonTree); err != nil {
+			tb.Fatalf("Unmarshal(n=%d) failed: %v", n, err)
+		}
+		if len(root.StructKeyList) != n {
+			tb.Fatalf("Unmarshal(n=%d) got %d entries, want %d", n, len(root.StructKeyList), n)
+		}
+	}
+}
+
+// TestUnmarshalKeyedListPerformance verifies that Unmarshal scales linearly in
+// heap allocations across keyed lists of size n -- guarding against O(n^2)
+// pretty.Sprint debug formatting regressions.
+func TestUnmarshalKeyedListPerformance(t *testing.T) {
+	for _, n := range unmarshalPerfSizes {
+		t.Run(fmt.Sprintf("n=%d", n), func(t *testing.T) {
+			fn := newUnmarshalKeyedListWorkload(t, n)
+			got := testing.AllocsPerRun(unmarshalAllocMeasureRuns, fn)
+			want := wantUnmarshalKeyedListBaseAllocs + wantUnmarshalKeyedListAllocsPerElem*float64(n)
+			maxAllowed := want * (1 + maxUnmarshalAllocRegression)
+			if got > maxAllowed {
+				pct := ((got - want) / want) * 100
+				t.Fatalf("UnmarshalKeyedList(n=%d): allocations regressed by +%.2f%% (max +%.0f%%), got: %.1f allocs/op, baseline: %.1f, max allowed: %.1f",
+					n, pct, maxUnmarshalAllocRegression*100, got, want, maxAllowed)
+			}
+		})
+	}
+}
+
+// BenchmarkUnmarshalKeyedList measures Unmarshal throughput and allocations
+// across keyed lists of size n.
+func BenchmarkUnmarshalKeyedList(b *testing.B) {
+	for _, n := range unmarshalPerfSizes {
+		fn := newUnmarshalKeyedListWorkload(b, n)
+		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				fn()
+			}
 		})
 	}
 }

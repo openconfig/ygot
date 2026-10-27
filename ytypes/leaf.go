@@ -259,11 +259,13 @@ func validateUnion(schema *yang.Entry, value interface{}) util.Errors {
 func validateMatchingSchemas(schema *yang.Entry, value interface{}) util.Errors {
 	var errors []error
 	ss := findMatchingSchemasInUnion(schema.Type, value)
-	var kk []yang.TypeKind
-	for _, s := range ss {
-		kk = append(kk, s.Type.Kind)
+	if util.IsDebugLibraryEnabled() {
+		var kk []yang.TypeKind
+		for _, s := range ss {
+			kk = append(kk, s.Type.Kind)
+		}
+		util.DbgPrint("validateMatchingSchemas for value %v (%T) for schema %s with types %v", value, value, schema.Name, kk)
 	}
-	util.DbgPrint("validateMatchingSchemas for value %v (%T) for schema %s with types %v", value, value, schema.Name, kk)
 	if len(ss) == 0 {
 		return util.NewErrs(fmt.Errorf("no types in schema %s match the type of value %v, which is %T", schema.Name, util.ValueStr(value), value))
 	}
@@ -659,9 +661,12 @@ func schemaToEnumTypes(schema *yang.Entry, t reflect.Type) ([]reflect.Type, erro
 		return nil, fmt.Errorf("%s ΛEnumTypes function returned wrong type %T, want map[string][]reflect.Type", t, ei)
 	}
 
-	util.DbgPrint("path is %s for schema %s", absoluteSchemaDataPath(schema), schema.Name)
+	p := absoluteSchemaDataPath(schema)
+	if util.IsDebugLibraryEnabled() {
+		util.DbgPrint("path is %s for schema %s", p, schema.Name)
+	}
 
-	return enumTypesMap[absoluteSchemaDataPath(schema)], nil
+	return enumTypesMap[p], nil
 }
 
 // unmarshalScalar unmarshals value, which is the Go type from json.Unmarshal,

@@ -353,7 +353,9 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 			return fmt.Errorf("unmarshalList for schema %s: got list element type %T, expect map[string]interface{}", schema.Name, le)
 		}
 		newVal := reflect.New(listElementType.Elem())
-		util.DbgPrint("creating a new list element val of type %v", newVal.Type())
+		if util.IsDebugLibraryEnabled() {
+			util.DbgPrint("creating a new list element val of type %v", newVal.Type())
+		}
 		if err := unmarshalStruct(schema, newVal.Interface(), jt, enc, opts...); err != nil {
 			return err
 		}
@@ -389,7 +391,9 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 			return err
 		}
 	}
-	util.DbgPrint("list after unmarshal:\n%s\n", pretty.Sprint(parent))
+	if util.IsDebugLibraryEnabled() {
+		util.DbgPrint("list after unmarshal:\n%s\n", pretty.Sprint(parent))
+	}
 
 	return nil
 }
@@ -514,7 +518,9 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 			if !nv.IsValid() {
 				return reflect.ValueOf(nil), fmt.Errorf("%v field doesn't have a valid value", kfn)
 			}
-			util.DbgPrint("Setting value of %v (%T) in key struct (%T)", nv.Interface(), nv.Interface(), newKey.Interface())
+			if util.IsDebugLibraryEnabled() {
+				util.DbgPrint("Setting value of %v (%T) in key struct (%T)", nv.Interface(), nv.Interface(), newKey.Interface())
+			}
 			newKeyField := newKey.FieldByName(kfn)
 			if !nv.Type().AssignableTo(newKeyField.Type()) {
 				return reflect.ValueOf(nil), fmt.Errorf("multi-key %v is not assignable to %v", nv.Type(), newKeyField.Type())

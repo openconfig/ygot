@@ -214,11 +214,15 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 		}
 
 		if jsonValue == nil {
-			util.DbgPrint("field %s paths %v not present in tree", ft.Name, sp)
+			if util.IsDebugLibraryEnabled() {
+				util.DbgPrint("field %s paths %v not present in tree", ft.Name, sp)
+			}
 			continue
 		}
 
-		util.DbgPrint("populating field %s type %s with paths %v.", ft.Name, ft.Type, sp)
+		if util.IsDebugLibraryEnabled() {
+			util.DbgPrint("populating field %s type %s with paths %v.", ft.Name, ft.Type, sp)
+		}
 		// Only create a new field if it is nil, otherwise update just the
 		// fields that are in the data tree being passed to unmarshal, and
 		// preserve all other existing values.
@@ -252,7 +256,9 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 		}
 	}
 
-	util.DbgPrint("container after unmarshal:\n%s\n", pretty.Sprint(destv.Interface()))
+	if util.IsDebugLibraryEnabled() {
+		util.DbgPrint("container after unmarshal:\n%s\n", pretty.Sprint(destv.Interface()))
+	}
 	return nil
 }
 
