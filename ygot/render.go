@@ -18,7 +18,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/openconfig/gnmi/errlist"
@@ -959,7 +961,7 @@ func marshalStructOrOrderedList(s any, enc gnmipb.Encoding, cfg *RFC7951JSONConf
 // should be used within a Notification. If prependModuleNameIref is set to true, then
 // identity names are prepended with the name of the module that defines them.
 func leaflistToSlice(val reflect.Value, prependModuleNameIref bool) ([]any, error) {
-	sval := []any{}
+	sval := make([]any, 0, val.Len())
 	for i := 0; i < val.Len(); i++ {
 		e := val.Index(i)
 
@@ -1304,6 +1306,12 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 
 	for i := 0; i < sval.NumField(); i++ {
 		field := sval.Field(i)
+		switch field.Kind() {
+		case reflect.Map, reflect.Slice, reflect.Ptr, reflect.Interface:
+			if field.IsNil() {
+				continue
+			}
+		}
 		fType := stype.Field(i)
 
 		// Module names to prepend to the path in RFC7951 output mode.
@@ -1392,13 +1400,6 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			if prependmods != nil && prependmods[i][j] != "" {
 				k = fmt.Sprintf("%s:%s", prependmods[i][j], k)
 			}
-			if args.jType != Internal {
-				value, err = normalizeJSONValue(value)
-			}
-			if err != nil {
-				errs.Add(err)
-				continue
-			}
 			parent[k] = value
 		}
 	}
@@ -1410,15 +1411,66 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 	return jsonout, nil
 }
 
-// writeIETFScalarJSON takes an input scalar value, and returns it in the format
-// that is expected in IETF RFC7951 JSON. Per this specification, uint64, int64
-// and float64 values are represented as strings.
-func writeIETFScalarJSON(i any) any {
-	switch reflect.ValueOf(i).Kind() {
-	case reflect.Uint64, reflect.Int64, reflect.Float64:
-		return fmt.Sprintf("%v", i)
+// writeIETFScalarJSON formats a scalar value for IETF RFC7951 JSON. It returns
+// the Go primitive types (string, float64, bool) that encoding/json.Unmarshal
+// decodes into any. This avoids repeated JSON round-trips in
+// normalizeJSONValue.
+func writeIETFScalarJSON(i any) (any, error) {
+	if i == nil {
+		return nil, nil
 	}
-	return i
+	switch i.(type) {
+	case string, bool:
+		// Return string and bool values directly without reflection or
+		// re-boxing.
+		return i, nil
+	}
+
+	rv := reflect.ValueOf(i)
+	switch rv.Kind() {
+	case reflect.String:
+		// Unwrap defined string and bool types -- such as UnionString.
+		return rv.String(), nil
+	case reflect.Bool:
+		return rv.Bool(), nil
+	case reflect.Int64, reflect.Uint64, reflect.Float64:
+		// Format 64-bit numbers as decimal strings per RFC7951
+		// Section 6.1, honouring fmt.Stringer when implemented.
+		if _, ok := i.(fmt.Stringer); ok {
+			return fmt.Sprintf("%v", i), nil
+		}
+		switch rv.Kind() {
+		case reflect.Int64:
+			return strconv.FormatInt(rv.Int(), 10), nil
+		case reflect.Uint64:
+			return strconv.FormatUint(rv.Uint(), 10), nil
+		default:
+			f := rv.Float()
+			if math.IsNaN(f) || math.IsInf(f, 0) {
+				return fmt.Sprintf("%v", f), nil
+			}
+			return strconv.FormatFloat(f, 'g', -1, 64), nil
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
+		// Widen narrower integers to float64 to match
+		// encoding/json.Unmarshal into any. All 8/16/32-bit integers
+		// fit losslessly in float64 and serialise to identical JSON.
+		return float64(rv.Int()), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
+		return float64(rv.Uint()), nil
+	case reflect.Float32:
+		// Format at 32-bit precision before parsing to float64 -- so
+		// float32(0.1) widens to 0.1 rather than 0.10000000149011612.
+		// Reject NaN and Inf to match encoding/json.Marshal.
+		f := float32(rv.Float())
+		if math.IsNaN(float64(f)) || math.IsInf(float64(f), 0) {
+			return nil, fmt.Errorf("cannot marshal JSON value: unsupported float32 value %v", f)
+		}
+		return strconv.ParseFloat(strconv.FormatFloat(float64(f), 'g', -1, 32), 64)
+	default:
+		// Fall back to normalizeJSONValue for remaining custom types.
+		return normalizeJSONValue(i)
+	}
 }
 
 // keyValue takes an input reflect.Value and returns its representation when used
@@ -1512,9 +1564,9 @@ func mapValuePairsToJSON(pairs []mapValuePair, parentMod string, args jsonOutput
 	var vals any
 	switch args.jType {
 	case RFC7951:
-		vals = []any{}
+		vals = make([]any, 0, len(pairs))
 	case Internal:
-		vals = map[string]any{}
+		vals = make(map[string]any, len(pairs))
 	default:
 		return nil, fmt.Errorf("invalid JSON format specified: %v", args.jType)
 	}
@@ -1554,7 +1606,7 @@ func mapValuePairsToJSON(pairs []mapValuePair, parentMod string, args jsonOutput
 func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (any, error) {
 	var errs errlist.List
 	// Order of elements determines the order in which keys will be processed.
-	var pairs []mapValuePair
+	pairs := make([]mapValuePair, 0, field.Len())
 
 	iter := field.MapRange()
 	for iter.Next() {
@@ -1647,7 +1699,11 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 		default:
 			value = field.Elem().Interface()
 			if args.jType == RFC7951 {
-				value = writeIETFScalarJSON(value)
+				var err error
+				value, err = writeIETFScalarJSON(value)
+				if err != nil {
+					errs.Add(err)
+				}
 			}
 		}
 	case reflect.Slice:
@@ -1720,7 +1776,9 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 			}
 		}
 		if args.jType == RFC7951 {
-			value = writeIETFScalarJSON(value)
+			if value, err = writeIETFScalarJSON(value); err != nil {
+				return nil, err
+			}
 		}
 	case reflect.Bool:
 		// A non-pointer field of type boolean is an empty leaf within the YANG schema.
@@ -1757,7 +1815,9 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 			return nil, err
 		}
 		if args.jType == RFC7951 {
-			value = writeIETFScalarJSON(value)
+			if value, err = writeIETFScalarJSON(value); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -1798,7 +1858,7 @@ func jsonSlice(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 	// In the case that the field is a slice of struct pointers then this
 	// was an unkeyed YANG list.
 	if c := field.Type().Elem(); util.IsTypeStructPtr(c) {
-		vals := []any{}
+		vals := make([]any, 0, field.Len())
 		for i := 0; i < field.Len(); i++ {
 			gs, ok := field.Index(i).Interface().(GoStruct)
 			if !ok {
@@ -1826,7 +1886,10 @@ func jsonSlice(field reflect.Value, parentMod string, args jsonOutputConfig) (an
 			// so we base64 encode it.
 			sl[j] = binaryBase64(reflect.ValueOf(e).Bytes())
 		case args.jType == RFC7951:
-			sl[j] = writeIETFScalarJSON(e)
+			sl[j], err = writeIETFScalarJSON(e)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	return sl, nil
@@ -1840,7 +1903,7 @@ func jsonAnnotationSlice(v reflect.Value) (any, error) {
 		return nil, nil
 	}
 
-	vals := []any{}
+	vals := make([]any, 0, v.Len())
 	for i := 0; i < v.Len(); i++ {
 		fv := v.Index(i).Interface().(Annotation)
 		jv, err := fv.MarshalJSON()

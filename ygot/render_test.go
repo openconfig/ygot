@@ -4480,3 +4480,277 @@ func TestMarshal7951(t *testing.T) {
 		})
 	}
 }
+
+type parityScalarContainer struct {
+	IntVal      *int               `path:"int-val"`
+	Int8Val     *int8              `path:"int8-val"`
+	Int16Val    *int16             `path:"int16-val"`
+	Int32Val    *int32             `path:"int32-val"`
+	Int64Val    *int64             `path:"int64-val"`
+	UintVal     *uint              `path:"uint-val"`
+	Uint8Val    *uint8             `path:"uint8-val"`
+	Uint16Val   *uint16            `path:"uint16-val"`
+	Uint32Val   *uint32            `path:"uint32-val"`
+	Uint64Val   *uint64            `path:"uint64-val"`
+	Float32Val  *float32           `path:"float32-val"`
+	Float64Val  *float64           `path:"float64-val"`
+	BoolVal     *bool              `path:"bool-val"`
+	StrVal      *string            `path:"str-val"`
+	EmptySet    YANGEmpty          `path:"empty-set"`
+	EmptyUnset  YANGEmpty          `path:"empty-unset"`
+	EnumSet     EnumTest           `path:"enum-set"`
+	EnumUnset   EnumTest           `path:"enum-unset"`
+	BinVal      Binary             `path:"bin-val"`
+	Int32List   []int32            `path:"int32-list"`
+	Uint16List  []uint16           `path:"uint16-list"`
+	Int64List   []int64            `path:"int64-list"`
+	Uint64List  []uint64           `path:"uint64-list"`
+	Float32List []float32          `path:"float32-list"`
+	Float64List []float64          `path:"float64-list"`
+	EmptySlice  []string           `path:"empty-slice"`
+	NilSlice    []string           `path:"nil-slice"`
+	UnkeyedList []*listAtRootChild `path:"unkeyed-list"`
+	Annotations []Annotation       `path:"@int32-val" ygotAnnotation:"true"`
+}
+
+func (*parityScalarContainer) IsYANGGoStruct() {}
+
+func valPtr[T any](v T) *T { return &v }
+
+// TestConstructIETFJSONTypeParity verifies that ConstructIETFJSON returns the
+// same Go types as Marshal7951 followed by encoding/json.Unmarshal.
+func TestConstructIETFJSONTypeParity(t *testing.T) {
+	tests := []struct {
+		desc string
+		in   GoStruct
+		cfg  *RFC7951JSONConfig
+	}{{
+		desc: "all scalar, slice, unkeyed-list, and annotation types",
+		in: &parityScalarContainer{
+			IntVal:      valPtr(int(-7)),
+			Int8Val:     valPtr(int8(-8)),
+			Int16Val:    valPtr(int16(-16)),
+			Int32Val:    valPtr(int32(-32)),
+			Int64Val:    Int64(-64000000000),
+			UintVal:     valPtr(uint(7)),
+			Uint8Val:    valPtr(uint8(8)),
+			Uint16Val:   valPtr(uint16(16)),
+			Uint32Val:   Uint32(32),
+			Uint64Val:   Uint64(64000000000),
+			Float32Val:  valPtr(float32(3.14)),
+			Float64Val:  Float64(2.718281828),
+			BoolVal:     Bool(true),
+			StrVal:      String("hello"),
+			EmptySet:    YANGEmpty(true),
+			EnumSet:     EnumTestVALONE,
+			BinVal:      Binary("abc"),
+			Int32List:   []int32{-1, 0, 42},
+			Uint16List:  []uint16{1, 65535},
+			Int64List:   []int64{-9007199254740993},
+			Uint64List:  []uint64{9007199254740993},
+			Float32List: []float32{0.1, 3.14},
+			Float64List: []float64{1.25, 3.5},
+			EmptySlice:  []string{},
+			UnkeyedList: []*listAtRootChild{{Bar: String("elem-1")}},
+			Annotations: []Annotation{&testAnnotation{AnnotationFieldOne: "meta"}},
+		},
+	}, {
+		desc: "simple and wrapper unions with nested keyed lists",
+		in: &exampleDevice{
+			Bgp: &exampleBgp{
+				Global: &exampleBgpGlobal{As: Uint32(65001), RouterID: String("192.0.2.1")},
+				Neighbor: map[string]*exampleBgpNeighbor{
+					"192.0.2.2": {
+						NeighborAddress:        String("192.0.2.2"),
+						PeerAs:                 Uint32(65002),
+						Enabled:                Bool(true),
+						TransportAddress:       &exampleTransportAddressUint64{Uint64: 99},
+						TransportAddressSimple: testutil.UnionString("192.0.2.254"),
+						EnabledAddressFamilies: []exampleBgpNeighborEnabledAddressFamiliesUnion{
+							&exampleBgpNeighborEnabledAddressFamiliesUnionString{String: "IPV4"},
+							&exampleBgpNeighborEnabledAddressFamiliesUnionUint64{Uint64: 42},
+							&exampleBgpNeighborEnabledAddressFamiliesUnionBinary{Binary: Binary("xy")},
+						},
+						EnabledAddressFamiliesSimple: []exampleUnion{
+							testutil.UnionString("s"),
+							testutil.UnionBool(false),
+							testutil.UnionUint32(17),
+							testutil.UnionInt64(-99),
+							testutil.UnionFloat64(6.28),
+							EnumTestVALTWO,
+							testBinary,
+						},
+					},
+				},
+			},
+		},
+	}, {
+		desc: "module prefixing and mixed []any leaf-list",
+		in: &ietfRenderExample{
+			F1:        String("foo"),
+			F2:        String("bar"),
+			MixedList: []any{EnumTestVALONE, "txt", 42, int64(100), float32(1.25)},
+			EnumList: map[EnumTest]*ietfRenderExampleEnumList{
+				EnumTestVALONE: {Key: EnumTestVALONE},
+			},
+		},
+		cfg: &RFC7951JSONConfig{AppendModuleName: true, PrependModuleNameIdentityref: true},
+	}, {
+		desc: "presence containers and empty keyed map",
+		in: &ucExampleDevice{
+			Bgp: &ucExampleBgp{
+				Neighbor: map[string]*ucExampleBgpNeighbor{},
+			},
+			System: &ucExampleSystem{},
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := ConstructIETFJSON(tt.in, tt.cfg)
+			if err != nil {
+				t.Fatalf("ConstructIETFJSON() unexpected error: %v", err)
+			}
+
+			var args []Marshal7951Arg
+			if tt.cfg != nil {
+				args = append(args, tt.cfg)
+			}
+			raw, err := Marshal7951(tt.in, args...)
+			if err != nil {
+				t.Fatalf("Marshal7951() unexpected error: %v", err)
+			}
+			var want map[string]any
+			if err := json.Unmarshal(raw, &want); err != nil {
+				t.Fatalf("json.Unmarshal() unexpected error: %v", err)
+			}
+
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("ConstructIETFJSON() differed from Marshal7951+json.Unmarshal (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+const (
+	// maxRFC7951AllocRegression is the maximum permitted fractional
+	// increase (5%) above the RFC7951 allocation baselines.
+	maxRFC7951AllocRegression = 0.05
+	// rfc7951AllocMeasureRuns is the number of runs averaged by
+	// testing.AllocsPerRun after warmup.
+	rfc7951AllocMeasureRuns = 5
+	// wantConstructIETFJSONBaseAllocs is the fixed allocation overhead in
+	// ConstructIETFJSON.
+	wantConstructIETFJSONBaseAllocs = 47.0
+	// wantConstructIETFJSONAllocsPerElem is the per-entry allocation count
+	// in ConstructIETFJSON.
+	wantConstructIETFJSONAllocsPerElem = 49.0
+	// wantMarshal7951BaseAllocs and wantMarshal7951AllocsPerElem are the
+	// fixed and per-entry allocations in Marshal7951.
+	wantMarshal7951BaseAllocs    = 68.0
+	wantMarshal7951AllocsPerElem = 68.0
+)
+
+var rfc7951PerfSizes = []int{10, 100}
+
+func buildRFC7951PerfDevice(n int) *exampleDevice {
+	neighbors := make(map[string]*exampleBgpNeighbor, n)
+	for i := range n {
+		addr := fmt.Sprintf("192.0.2.%d", i)
+		neighbors[addr] = &exampleBgpNeighbor{
+			Description:            String("ebgp peer"),
+			Enabled:                Bool(true),
+			NeighborAddress:        String(addr),
+			PeerAs:                 Uint32(uint32(65000 + i)),
+			TransportAddressSimple: testutil.UnionString("198.51.100.1"),
+		}
+	}
+	return &exampleDevice{
+		Bgp: &exampleBgp{
+			Global: &exampleBgpGlobal{
+				As:       Uint32(65000),
+				RouterID: String("192.0.2.254"),
+			},
+			Neighbor: neighbors,
+		},
+	}
+}
+
+// TestRFC7951JSONPerformance verifies that ConstructIETFJSON and Marshal7951
+// scale linearly in heap allocations without repeated JSON normalisation.
+func TestRFC7951JSONPerformance(t *testing.T) {
+	tests := []struct {
+		desc       string
+		run        func(t *testing.T, dev *exampleDevice)
+		wantBase   float64
+		wantPerElm float64
+	}{{
+		desc: "ConstructIETFJSON",
+		run: func(t *testing.T, dev *exampleDevice) {
+			if _, err := ConstructIETFJSON(dev, nil); err != nil {
+				t.Fatalf("ConstructIETFJSON() failed: %v", err)
+			}
+		},
+		wantBase:   wantConstructIETFJSONBaseAllocs,
+		wantPerElm: wantConstructIETFJSONAllocsPerElem,
+	}, {
+		desc: "Marshal7951",
+		run: func(t *testing.T, dev *exampleDevice) {
+			if _, err := Marshal7951(dev); err != nil {
+				t.Fatalf("Marshal7951() failed: %v", err)
+			}
+		},
+		wantBase:   wantMarshal7951BaseAllocs,
+		wantPerElm: wantMarshal7951AllocsPerElem,
+	}}
+
+	for _, tt := range tests {
+		for _, n := range rfc7951PerfSizes {
+			t.Run(fmt.Sprintf("%s/n=%d", tt.desc, n), func(t *testing.T) {
+				dev := buildRFC7951PerfDevice(n)
+				got := testing.AllocsPerRun(rfc7951AllocMeasureRuns, func() {
+					tt.run(t, dev)
+				})
+				want := tt.wantBase + tt.wantPerElm*float64(n)
+				maxAllowed := want * (1 + maxRFC7951AllocRegression)
+				if got > maxAllowed {
+					pct := ((got - want) / want) * 100
+					t.Fatalf("%s(n=%d): allocations regressed by +%.2f%% (max +%.0f%%), got: %.1f allocs/op, baseline: %.1f, max allowed: %.1f",
+						tt.desc, n, pct, maxRFC7951AllocRegression*100, got, want, maxAllowed)
+				}
+			})
+		}
+	}
+}
+
+// BenchmarkConstructIETFJSON measures ConstructIETFJSON latency and allocations
+// across devices with n BGP neighbour entries.
+func BenchmarkConstructIETFJSON(b *testing.B) {
+	for _, n := range rfc7951PerfSizes {
+		dev := buildRFC7951PerfDevice(n)
+		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				if _, err := ConstructIETFJSON(dev, nil); err != nil {
+					b.Fatalf("ConstructIETFJSON() failed: %v", err)
+				}
+			}
+		})
+	}
+}
+
+// BenchmarkMarshal7951 measures Marshal7951 latency and allocations across
+// devices with n BGP neighbour entries.
+func BenchmarkMarshal7951(b *testing.B) {
+	for _, n := range rfc7951PerfSizes {
+		dev := buildRFC7951PerfDevice(n)
+		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				if _, err := Marshal7951(dev); err != nil {
+					b.Fatalf("Marshal7951() failed: %v", err)
+				}
+			}
+		})
+	}
+}
