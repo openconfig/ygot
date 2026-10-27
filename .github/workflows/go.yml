@@ -167,7 +167,7 @@ jobs:
           done
 
       - name: Submit coverage
-        uses: shogo82148/actions-goveralls@77a1912dca42260ee3e97f61bd13ea7ef40baa93
+        uses: shogo82148/actions-goveralls@4b30166c2ac96ac557328a27874a16b777f9b8bd
         with:
           path-to-profile: concatenated.coverprofile
 
