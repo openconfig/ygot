@@ -364,6 +364,8 @@ type GNMINotificationsConfig struct {
 // into separate atomic notifications after the initial notification containing
 // the non-atomic updates.
 //
+// Annotation fields that are contained within the supplied GoStruct are skipped.
+//
 // Note: Within the generated notifications there could be data sharing for
 // space and compute optimization. Make a deep copy if one plans to modify the
 // generated message.
@@ -483,6 +485,11 @@ func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath, preferShadowPat
 	for i := 0; i < sval.NumField(); i++ {
 		fval := sval.Field(i)
 		ftype := stype.Field(i)
+
+		// Skip schema annotation fields, matching findSetLeaves in diff.go.
+		if util.IsYgotAnnotation(ftype) {
+			continue
+		}
 
 		// Handle nil values, and enumerations specifically.
 		switch fval.Kind() {
@@ -1009,6 +1016,8 @@ func leaflistToSlice(val reflect.Value, prependModuleNameIref bool) ([]any, erro
 			var err error
 			ev := e.Elem()
 			switch {
+			case !ev.IsValid():
+				return nil, fmt.Errorf("unknown kind in leaflist: %v", ev.Kind())
 			case ev.Kind() == reflect.Ptr:
 				uval, err := unwrapUnionInterfaceValue(e, prependModuleNameIref)
 				if err != nil {
@@ -1049,6 +1058,9 @@ func leaflistToSlice(val reflect.Value, prependModuleNameIref bool) ([]any, erro
 // is set to true, the module name is prepended to the string value of
 // any identity encountered when appending.
 func appendTypedValue(l []any, v reflect.Value, prependModuleNameIref bool) ([]any, error) {
+	if !v.IsValid() {
+		return nil, fmt.Errorf("unknown kind in leaflist: %v", v.Kind())
+	}
 	ival := v.Interface()
 	switch reflect.TypeOf(ival).Kind() {
 	case reflect.String:
@@ -1090,7 +1102,7 @@ func appendTypedValue(l []any, v reflect.Value, prependModuleNameIref bool) ([]a
 		}
 		return append(l, v.Bytes()), nil
 	}
-	return nil, fmt.Errorf("unknown kind in leaflist: %v", reflect.TypeOf(v).Kind())
+	return nil, fmt.Errorf("unknown kind in leaflist: %v", reflect.TypeOf(ival).Kind())
 }
 
 // RFC7951JSONConfig is used to control the behaviour of how

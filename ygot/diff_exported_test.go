@@ -795,3 +795,68 @@ func TestDiffOrderedMap(t *testing.T) {
 		})
 	}
 }
+
+// TestDiffWithAtomicOrderedMapAnnotations validates that DiffWithAtomic skips
+// ygotAnnotation fields inside modified GoOrderedMap entries when constructing
+// atomic notifications.
+func TestDiffWithAtomicOrderedMapAnnotations(t *testing.T) {
+	tests := []struct {
+		// desc is the human-readable test case description.
+		desc string
+		// inOrig is the baseline GoStruct passed to DiffWithAtomic.
+		inOrig ygot.GoStruct
+		// inMod is the modified annotated GoStruct passed to DiffWithAtomic.
+		inMod ygot.GoStruct
+		// want is the expected slice of gNMI notifications.
+		want []*gnmipb.Notification
+		// wantErr indicates whether DiffWithAtomic should return an error.
+		wantErr bool
+	}{{
+		desc:   "annotated ordered list entries added in modified struct",
+		inOrig: &ctestschema.Device{},
+		inMod: func() ygot.GoStruct {
+			om := ctestschema.GetOrderedMap(t)
+			om.Get("foo").ΛMetadata = []ygot.Annotation{
+				&exportedTestAnnotation{Source: "policy-gen", Priority: 10},
+			}
+			return &ctestschema.Device{
+				OrderedList: om,
+			}
+		}(),
+		want: []*gnmipb.Notification{{
+			Prefix: mustPath(`ordered-lists`),
+			Atomic: true,
+			Update: []*gnmipb.Update{{
+				Path: mustPath(`ordered-list[key=foo]/config/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
+			}, {
+				Path: mustPath(`ordered-list[key=foo]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
+			}, {
+				Path: mustPath(`ordered-list[key=foo]/config/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo-val"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/config/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/config/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar-val"}},
+			}},
+		}},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := ygot.DiffWithAtomic(tt.inOrig, tt.inMod)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("DiffWithAtomic(...): did not get expected error, got: %v, wantErr? %v", err, tt.wantErr)
+			}
+			if diff := cmp.Diff(got, tt.want, protocmp.Transform()); diff != "" {
+				t.Fatalf("DiffWithAtomic(...): did not get expected notifications, diff(-got,+want):\n%s", diff)
+			}
+		})
+	}
+}
