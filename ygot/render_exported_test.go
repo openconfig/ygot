@@ -665,3 +665,101 @@ func TestMarshal7951OrderedMap(t *testing.T) {
 		})
 	}
 }
+
+// exportedTestAnnotation represents a multi-field metadata annotation for
+// testing gNMI notification rendering on generated GoOrderedMap schemas.
+type exportedTestAnnotation struct {
+	// Source identifies the origin of the annotated configuration node.
+	Source string `json:"source"`
+	// Priority records the precedence of the annotated configuration node.
+	Priority int `json:"priority"`
+}
+
+// MarshalJSON marshals e to JSON bytes.
+func (e *exportedTestAnnotation) MarshalJSON() ([]byte, error) {
+	return json.Marshal(*e)
+}
+
+// UnmarshalJSON unmarshals JSON bytes d into e.
+func (e *exportedTestAnnotation) UnmarshalJSON(d []byte) error {
+	return json.Unmarshal(d, e)
+}
+
+// TestTogNMINotificationsOrderedMapAnnotations validates that
+// TogNMINotifications skips ygotAnnotation fields on both parent containers and
+// GoOrderedMap entries.
+func TestTogNMINotificationsOrderedMapAnnotations(t *testing.T) {
+	tests := []struct {
+		// desc is the human-readable test case description.
+		desc string
+		// inStruct is the annotated GoStruct rendered to gNMI notifications.
+		inStruct ygot.GoStruct
+		// inConfig specifies path formatting options for TogNMINotifications.
+		inConfig ygot.GNMINotificationsConfig
+		// want is the expected slice of gNMI notifications.
+		want []*gnmipb.Notification
+		// wantErr indicates whether TogNMINotifications should return an error.
+		wantErr bool
+	}{{
+		desc: "compressed ordered list with device and entry annotations",
+		inStruct: func() ygot.GoStruct {
+			om := ctestschema.GetOrderedMap(t)
+			foo := om.Get("foo")
+			foo.ΛMetadata = []ygot.Annotation{
+				&exportedTestAnnotation{Source: "policy-gen", Priority: 10},
+			}
+			foo.ΛValue = []ygot.Annotation{
+				&exportedTestAnnotation{Source: "leaf-gen", Priority: 20},
+			}
+			return &ctestschema.Device{
+				ΛMetadata: []ygot.Annotation{
+					&exportedTestAnnotation{Source: "device-gen", Priority: 1},
+				},
+				OrderedList: om,
+				ΛOrderedList: []ygot.Annotation{
+					&exportedTestAnnotation{Source: "list-gen", Priority: 2},
+				},
+			}
+		}(),
+		inConfig: ygot.GNMINotificationsConfig{
+			UsePathElem:    true,
+			PathElemPrefix: mustPathElem("heart/of/gold"),
+		},
+		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Atomic:    true,
+			Prefix:    mustPath("heart/of/gold/ordered-lists"),
+			Update: []*gnmipb.Update{{
+				Path: mustPath(`ordered-list[key=foo]/config/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
+			}, {
+				Path: mustPath(`ordered-list[key=foo]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo"}},
+			}, {
+				Path: mustPath(`ordered-list[key=foo]/config/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "foo-val"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/config/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/key`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar"}},
+			}, {
+				Path: mustPath(`ordered-list[key=bar]/config/value`),
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "bar-val"}},
+			}},
+		}},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := ygot.TogNMINotifications(tt.inStruct, 42, tt.inConfig)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("TogNMINotifications(...): did not get expected error, got: %v, wantErr? %v", err, tt.wantErr)
+			}
+			if diff := cmp.Diff(got, tt.want, protocmp.Transform()); diff != "" {
+				t.Fatalf("TogNMINotifications(...): did not get expected notifications, diff(-got,+want):\n%s", diff)
+			}
+		})
+	}
+}

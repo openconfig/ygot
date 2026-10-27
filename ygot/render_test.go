@@ -4480,3 +4480,174 @@ func TestMarshal7951(t *testing.T) {
 		})
 	}
 }
+
+// multiFieldAnnotation represents a multi-field metadata annotation for testing
+// gNMI notification rendering.
+type multiFieldAnnotation struct {
+	// Source identifies the generator that produced the annotated value.
+	Source string `json:"source"`
+	// Priority records the precedence of the annotated configuration item.
+	Priority int64 `json:"priority"`
+}
+
+// MarshalJSON marshals m to JSON bytes.
+func (m *multiFieldAnnotation) MarshalJSON() ([]byte, error) {
+	return json.Marshal(*m)
+}
+
+// UnmarshalJSON unmarshals JSON bytes d into m.
+func (m *multiFieldAnnotation) UnmarshalJSON(d []byte) error {
+	return json.Unmarshal(d, m)
+}
+
+// nestedPtrAnnotation represents a single-field pointer annotation for testing
+// gNMI notification rendering.
+type nestedPtrAnnotation struct {
+	// Inner points to nested metadata associated with the schema node.
+	Inner *testAnnotation `json:"inner"`
+}
+
+// MarshalJSON marshals n to JSON bytes.
+func (n *nestedPtrAnnotation) MarshalJSON() ([]byte, error) {
+	return json.Marshal(*n)
+}
+
+// UnmarshalJSON unmarshals JSON bytes d into n.
+func (n *nestedPtrAnnotation) UnmarshalJSON(d []byte) error {
+	return json.Unmarshal(d, n)
+}
+
+// TestTogNMINotificationsAnnotations validates that TogNMINotifications skips
+// ygotAnnotation fields rather than serialising or failing on metadata slices.
+func TestTogNMINotificationsAnnotations(t *testing.T) {
+	tests := []struct {
+		// desc is the human-readable test case description.
+		desc string
+		// inTimestamp is the timestamp written to the rendered notifications.
+		inTimestamp int64
+		// inStruct is the annotated GoStruct rendered to gNMI notifications.
+		inStruct GoStruct
+		// inConfig specifies path formatting options for TogNMINotifications.
+		inConfig GNMINotificationsConfig
+		// want is the expected slice of gNMI notifications.
+		want []*gnmipb.Notification
+		// wantErr indicates whether TogNMINotifications should return an error.
+		wantErr bool
+	}{{
+		desc:        "single-field scalar annotations skipped in PathElem mode",
+		inTimestamp: 42,
+		inStruct: &annotatedJSONTestStruct{
+			Field: String("hello"),
+			ΛField: []Annotation{
+				&testAnnotation{AnnotationFieldOne: "meta-one"},
+			},
+			ΛFieldThree: []Annotation{
+				&testAnnotation{AnnotationFieldOne: "meta-two"},
+			},
+		},
+		inConfig: GNMINotificationsConfig{UsePathElem: true},
+		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Elem: []*gnmipb.PathElem{{Name: "field"}}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "hello"}},
+			}},
+		}},
+	}, {
+		desc:        "multi-field struct annotations skipped without union field-count error",
+		inTimestamp: 42,
+		inStruct: &annotatedJSONTestStruct{
+			Field: String("world"),
+			ΛField: []Annotation{
+				&multiFieldAnnotation{Source: "generator", Priority: 10},
+			},
+		},
+		inConfig: GNMINotificationsConfig{UsePathElem: true},
+		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Elem: []*gnmipb.PathElem{{Name: "field"}}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "world"}},
+			}},
+		}},
+	}, {
+		desc:        "single-field pointer annotations skipped in string-slice mode",
+		inTimestamp: 42,
+		inStruct: &annotatedJSONTestStruct{
+			Field: String("test"),
+			ΛField: []Annotation{
+				&nestedPtrAnnotation{Inner: &testAnnotation{AnnotationFieldOne: "nested"}},
+			},
+		},
+		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"field"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "test"}},
+			}},
+		}},
+	}, {
+		desc:        "struct containing only annotations produces empty notification",
+		inTimestamp: 84,
+		inStruct: &annotatedJSONTestStruct{
+			ΛField: []Annotation{
+				&multiFieldAnnotation{Source: "only-meta", Priority: 1},
+			},
+		},
+		inConfig: GNMINotificationsConfig{UsePathElem: true},
+		want: []*gnmipb.Notification{{
+			Timestamp: 84,
+		}},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := TogNMINotifications(tt.inStruct, tt.inTimestamp, tt.inConfig)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("TogNMINotifications(...): did not get expected error, got: %v, wantErr? %v", err, tt.wantErr)
+			}
+			if diff := cmp.Diff(got, tt.want, protocmp.Transform()); diff != "" {
+				t.Fatalf("TogNMINotifications(...): did not get expected notifications, diff(-got,+want):\n%s", diff)
+			}
+		})
+	}
+}
+
+// TestLeaflistToSliceInvalidKinds validates that leaflistToSlice and
+// appendTypedValue report the actual underlying kind of unsupported or nil
+// interface elements rather than reflect.Value's own struct kind.
+func TestLeaflistToSliceInvalidKinds(t *testing.T) {
+	tests := []struct {
+		// desc is the human-readable test case description.
+		desc string
+		// inVal is the input slice reflect.Value passed to leaflistToSlice.
+		inVal reflect.Value
+		// wantErrSubstring is the expected error substring.
+		wantErrSubstring string
+	}{{
+		desc:             "unsupported interface scalar kind",
+		inVal:            reflect.ValueOf([]any{complex(1, 2)}),
+		wantErrSubstring: "unknown kind in leaflist: complex128",
+	}, {
+		desc:             "unsupported unwrapped union pointer kind",
+		inVal:            reflect.ValueOf([]exampleUnion{&testutil.UnionUnsupported{Value: (*int)(nil)}}),
+		wantErrSubstring: "unknown kind in leaflist: ptr",
+	}, {
+		desc:             "nil interface element",
+		inVal:            reflect.ValueOf([]any{nil}),
+		wantErrSubstring: "unknown kind in leaflist: invalid",
+	}, {
+		desc:             "nil unwrapped union value",
+		inVal:            reflect.ValueOf([]exampleUnion{&testutil.UnionUnsupported{Value: nil}}),
+		wantErrSubstring: "unknown kind in leaflist: invalid",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			_, err := leaflistToSlice(tt.inVal, false)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("leaflistToSlice(...): did not get expected error, %s", diff)
+			}
+		})
+	}
+}
