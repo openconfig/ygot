@@ -1580,6 +1580,13 @@ func TestDiff(t *testing.T) {
 				t.Errorf("FormatDiff returned empty")
 			}
 		})
+		t.Run(tt.desc+"ParallelDiff", func(t *testing.T) {
+			got, err := ParallelDiff(tt.inOrig, tt.inMod, tt.inOpts...)
+			testDiffSingleNotif(t, "ParallelDiff", got, err)
+			if diffout := FormatDiff(got); diffout == "" {
+				t.Errorf("FormatDiff returned empty")
+			}
+		})
 		t.Run(tt.desc+"DiffWithAtomic", func(t *testing.T) {
 			var got *gnmipb.Notification
 			gots, err := DiffWithAtomic(tt.inOrig, tt.inMod, tt.inOpts...)
@@ -1592,6 +1599,22 @@ func TestDiff(t *testing.T) {
 				t.Fatalf("Got multiple Notifications for DiffWithAtomic: %d, this is not expected.", len(gots))
 			}
 			testDiffSingleNotif(t, "DiffWithAtomic", got, err)
+			if diffout := FormatDiff(got); diffout == "" {
+				t.Errorf("FormatDiff returned empty")
+			}
+		})
+		t.Run(tt.desc+"ParallelDiffWithAtomic", func(t *testing.T) {
+			var got *gnmipb.Notification
+			gots, err := ParallelDiffWithAtomic(tt.inOrig, tt.inMod, tt.inOpts...)
+			switch len(gots) {
+			case 0:
+				got = nil
+			case 1:
+				got = gots[0]
+			default:
+				t.Fatalf("Got multiple Notifications for ParallelDiffWithAtomic: %d, this is not expected.", len(gots))
+			}
+			testDiffSingleNotif(t, "ParallelDiffWithAtomic", got, err)
 			if diffout := FormatDiff(got); diffout == "" {
 				t.Errorf("FormatDiff returned empty")
 			}
@@ -1868,7 +1891,7 @@ func TestDiffOverrideLeafList(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name+"/Diff", func(t *testing.T) {
 			got, err := Diff(tt.original, tt.modified, tt.opts...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Diff() error = %v, wantErr %v", err, tt.wantErr)
@@ -1876,6 +1899,195 @@ func TestDiffOverrideLeafList(t *testing.T) {
 			}
 			if diff := cmp.Diff(tt.want, got, protocmp.Transform(), protocmp.SortRepeatedFields((*gnmipb.Notification)(nil), "update", "delete")); diff != "" {
 				t.Errorf("Diff() returned unexpected diff (-want +got):\n%s", diff)
+			}
+		})
+		t.Run(tt.name+"/ParallelDiff", func(t *testing.T) {
+			got, err := ParallelDiff(tt.original, tt.modified, tt.opts...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParallelDiff() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if diff := cmp.Diff(tt.want, got, protocmp.Transform(), protocmp.SortRepeatedFields((*gnmipb.Notification)(nil), "update", "delete")); diff != "" {
+				t.Errorf("ParallelDiff() returned unexpected diff (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// inlineChildStruct represents an inline (non-pointer) child container struct
+// used to test diffFieldStruct handling in ParallelDiff.
+type inlineChildStruct struct {
+	// Leaf is a string leaf inside the inline child container.
+	Leaf *string `path:"leaf"`
+}
+
+// inlineParentStruct represents a GoStruct containing an inline child struct
+// and error-returning list maps.
+type inlineParentStruct struct {
+	// Inline is an inline child struct field.
+	Inline inlineChildStruct `path:"inline"`
+	// ErrList is a keyed list whose members return an error from ΛListKeyMap.
+	ErrList map[string]*errorListMember `path:"err-list"`
+	// BadKeyList is a keyed list whose members return an unstringable key type.
+	BadKeyList map[string]*badListKeyType `path:"bad-key-list"`
+	// BoolLeaf is a boolean pointer leaf.
+	BoolLeaf *bool `path:"bool-leaf"`
+	// UintLeaf is an unsigned integer pointer leaf.
+	UintLeaf *uint32 `path:"uint-leaf"`
+	// FloatLeaf is a floating-point pointer leaf.
+	FloatLeaf *float64 `path:"float-leaf"`
+	// EmptyVal is a non-pointer YANGEmpty leaf.
+	EmptyVal YANGEmpty `path:"empty-val"`
+}
+
+// IsYANGGoStruct implements the GoStruct interface for inlineParentStruct.
+func (*inlineParentStruct) IsYANGGoStruct() {}
+
+// TestParallelDiffEdgeCases tests edge-case branches in ParallelDiff and
+// ParallelDiffWithAtomic including typed-nil struct inputs, shared subtree
+// pointers, inline structs, scalar/slice equality fast paths, and list key
+// error propagation.
+func TestParallelDiffEdgeCases(t *testing.T) {
+	sharedChild := &basicStructTwo{StringValue: String("shared")}
+	sharedEntry := &basicListMember{ListKey: String("k1")}
+	sharedMap := map[string]*basicListMember{"k1": sharedEntry}
+	cmplx := complex(float64(1), float64(2))
+
+	tests := []struct {
+		desc             string
+		inOrig           GoStruct
+		inMod            GoStruct
+		inOpts           []DiffOpt
+		want             *gnmipb.Notification
+		wantErrSubstring string
+	}{{
+		desc:   "both original and modified are typed-nil GoStructs",
+		inOrig: (*renderExample)(nil),
+		inMod:  (*renderExample)(nil),
+		want:   &gnmipb.Notification{},
+	}, {
+		desc:   "typed-nil original with populated modified",
+		inOrig: (*renderExample)(nil),
+		inMod: &renderExample{
+			Str: String("added"),
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Elem: []*gnmipb.PathElem{{Name: "str"}}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "added"}},
+			}},
+		},
+	}, {
+		desc: "populated original with typed-nil modified",
+		inOrig: &renderExample{
+			Str: String("removed"),
+		},
+		inMod: (*renderExample)(nil),
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{Name: "str"}},
+			}},
+		},
+	}, {
+		desc: "shared child pointer and shared map pointer produce empty diff",
+		inOrig: &basicStruct{
+			StructValue: sharedChild,
+			MapValue:    sharedMap,
+		},
+		inMod: &basicStruct{
+			StructValue: sharedChild,
+			MapValue:    sharedMap,
+		},
+		want: &gnmipb.Notification{},
+	}, {
+		desc: "shared map entry pointer with distinct map instances",
+		inOrig: &basicStruct{
+			MapValue: map[string]*basicListMember{"k1": sharedEntry},
+		},
+		inMod: &basicStruct{
+			MapValue: map[string]*basicListMember{
+				"k1": sharedEntry,
+				"k2": {ListKey: String("k2")},
+			},
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{
+						{Name: "map-list", Key: map[string]string{"list-key": "k2"}},
+						{Name: "list-key"},
+					},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "k2"}},
+			}},
+		},
+	}, {
+		desc: "inline struct and scalar fast paths equal and modified",
+		inOrig: &inlineParentStruct{
+			Inline:    inlineChildStruct{Leaf: String("v1")},
+			BoolLeaf:  Bool(true),
+			UintLeaf:  Uint32(7),
+			FloatLeaf: Float64(3.5),
+			EmptyVal:  YANGEmpty(true),
+		},
+		inMod: &inlineParentStruct{
+			Inline:    inlineChildStruct{Leaf: String("v2")},
+			BoolLeaf:  Bool(true),
+			UintLeaf:  Uint32(7),
+			FloatLeaf: Float64(3.5),
+			EmptyVal:  YANGEmpty(false),
+		},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{Name: "empty-val"}},
+			}},
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Elem: []*gnmipb.PathElem{{Name: "inline"}, {Name: "leaf"}}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{StringVal: "v2"}},
+			}},
+		},
+	}, {
+		desc: "empty string slices in both original and modified",
+		inOrig: &TestDiffDeleteStruct{
+			LeafList: []string{},
+			Binary:   Binary("same"),
+		},
+		inMod: &TestDiffDeleteStruct{
+			LeafList: []string{},
+			Binary:   Binary("same"),
+		},
+		want: &gnmipb.Notification{},
+	}, {
+		desc:   "list member returning error from ΛListKeyMap",
+		inOrig: &inlineParentStruct{},
+		inMod: &inlineParentStruct{
+			ErrList: map[string]*errorListMember{
+				"bad": {StringValue: String("foo")},
+			},
+		},
+		wantErrSubstring: "invalid key map",
+	}, {
+		desc:   "list member returning unstringable key from ΛListKeyMap",
+		inOrig: &inlineParentStruct{},
+		inMod: &inlineParentStruct{
+			BadKeyList: map[string]*badListKeyType{
+				"bad": {Value: &cmplx},
+			},
+		},
+		wantErrSubstring: "cannot convert keys to map[string]string",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := ParallelDiff(tt.inOrig, tt.inMod, tt.inOpts...)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("ParallelDiff(%#v, %#v): did not get expected error, %s", tt.inOrig, tt.inMod, diff)
+			}
+			if tt.wantErrSubstring != "" {
+				return
+			}
+			if diff := cmp.Diff(got, tt.want, protocmp.Transform(), protocmp.SortRepeatedFields((*gnmipb.Notification)(nil), "update", "delete")); diff != "" {
+				t.Fatalf("ParallelDiff(%#v, %#v): did not get expected notification, diff(-got,+want):\n%s", tt.inOrig, tt.inMod, diff)
 			}
 		})
 	}

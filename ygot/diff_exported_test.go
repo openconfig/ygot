@@ -726,72 +726,100 @@ func TestDiffOrderedMap(t *testing.T) {
 			}
 		})
 
-		t.Run("DiffWithAtomic/"+tt.name, func(t *testing.T) {
-			got, err := ygot.DiffWithAtomic(tt.inOrig, tt.inMod, tt.inOpts...)
-			if diff := errdiff.Substring(err, tt.wantErrSubstrAtomic); diff != "" {
-				t.Errorf("DiffWithAtomic: did not get expected error status, got: %s, want: %s", err, tt.wantErrSubstrAtomic)
+		t.Run("ParallelDiff/"+tt.name, func(t *testing.T) {
+			got, err := ygot.ParallelDiff(tt.inOrig, tt.inMod, tt.inOpts...)
+			if err != nil {
+				t.Errorf("ParallelDiff: got unexpected error: %v", err)
 				return
 			}
 
-			if tt.wantErrSubstrAtomic != "" {
-				return
-			}
-
-			var gotNonAtomic *gnmipb.Notification
-			gotAtomic := got
-			if tt.wantNonAtomic != nil && len(got) > 0 {
-				gotNonAtomic = got[len(got)-1]
-				gotAtomic = got[:len(got)-1]
-				if len(gotAtomic) == 0 {
-					gotAtomic = nil
-				}
-			}
-
-			if diff := cmp.Diff(gotAtomic, tt.wantAtomic, cmpopts.SortSlices(testutil.NotificationLess), protocmp.Transform()); diff != "" {
-				t.Errorf("telemetry-atomic values of DiffWithAtomic: did not get expected Notification, diff(-got,+want):%s\n", diff)
-			}
-			// Avoid test flakiness by ignoring the update ordering. Required because
-			// there is no order to the map of fields that are returned by the struct
-			// output.
-			if diff := cmp.Diff(gotNonAtomic, tt.wantNonAtomic, testutil.NotificationComparer()); diff != "" {
-				t.Errorf("non-telemetry-atomic values of DiffWithAtomic: did not get expected Notification, diff(-got,+want):%s\n", diff)
-			}
-
-			if tt.skipTestUnmarshal {
-				return
-			}
-			// Test that unmarshalling into original gets back to modified.
-			var schema *ytypes.Schema
-			switch tt.inOrig.(type) {
-			case *ctestschema.Device:
-				if schema, err = ctestschema.Schema(); err != nil {
-					t.Fatal(err)
-				}
-			case *utestschema.Device:
-				if schema, err = utestschema.Schema(); err != nil {
-					t.Fatal(err)
-				}
-			default:
-				t.Fatalf("Unexpected type: %T", tt.inOrig)
-			}
-			schema.Root = tt.inOrig
-			var preferShadowPath bool
-			for _, o := range tt.inOpts {
-				switch v := o.(type) {
-				case *ygot.DiffPathOpt:
-					preferShadowPath = v.PreferShadowPath
-				}
-			}
-			var unmopts []ytypes.UnmarshalOpt
-			if preferShadowPath {
-				unmopts = append(unmopts, &ytypes.PreferShadowPath{})
-			}
-			if err := ytypes.UnmarshalNotifications(schema, got, unmopts...); err != nil {
-				t.Fatal(err)
-			}
-			if diff := cmp.Diff(tt.inOrig, tt.inMod, ytestutil.OrderedMapCmpOptions...); diff != "" {
-				t.Errorf("Unmarshal diff into orig (-got, +want):\n%s", diff)
+			if !testutil.NotificationSetEqual([]*gnmipb.Notification{got}, []*gnmipb.Notification{tt.want}) {
+				diff := cmp.Diff(got, tt.want, protocmp.Transform())
+				t.Errorf("ParallelDiff: did not get expected Notification, diff(-got,+want):\n%s", diff)
 			}
 		})
+
+		for _, atomicFn := range []struct {
+			name string
+			fn   func(ygot.GoStruct, ygot.GoStruct, ...ygot.DiffOpt) ([]*gnmipb.Notification, error)
+		}{{
+			name: "DiffWithAtomic",
+			fn:   ygot.DiffWithAtomic,
+		}, {
+			name: "ParallelDiffWithAtomic",
+			fn:   ygot.ParallelDiffWithAtomic,
+		}} {
+			t.Run(atomicFn.name+"/"+tt.name, func(t *testing.T) {
+				origCopy, err := ygot.DeepCopy(tt.inOrig)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got, err := atomicFn.fn(origCopy, tt.inMod, tt.inOpts...)
+				if diff := errdiff.Substring(err, tt.wantErrSubstrAtomic); diff != "" {
+					t.Errorf("%s: did not get expected error status, got: %s, want: %s", atomicFn.name, err, tt.wantErrSubstrAtomic)
+					return
+				}
+
+				if tt.wantErrSubstrAtomic != "" {
+					return
+				}
+
+				var gotNonAtomic *gnmipb.Notification
+				gotAtomic := got
+				if tt.wantNonAtomic != nil && len(got) > 0 {
+					gotNonAtomic = got[len(got)-1]
+					gotAtomic = got[:len(got)-1]
+					if len(gotAtomic) == 0 {
+						gotAtomic = nil
+					}
+				}
+
+				if diff := cmp.Diff(gotAtomic, tt.wantAtomic, cmpopts.SortSlices(testutil.NotificationLess), protocmp.Transform()); diff != "" {
+					t.Errorf("telemetry-atomic values of %s: did not get expected Notification, diff(-got,+want):%s\n", atomicFn.name, diff)
+				}
+				// Avoid test flakiness by ignoring the update ordering. Required because
+				// there is no order to the map of fields that are returned by the struct
+				// output.
+				if diff := cmp.Diff(gotNonAtomic, tt.wantNonAtomic, testutil.NotificationComparer()); diff != "" {
+					t.Errorf("non-telemetry-atomic values of %s: did not get expected Notification, diff(-got,+want):%s\n", atomicFn.name, diff)
+				}
+
+				if tt.skipTestUnmarshal {
+					return
+				}
+				// Test that unmarshalling into original gets back to modified.
+				var schema *ytypes.Schema
+				switch origCopy.(type) {
+				case *ctestschema.Device:
+					if schema, err = ctestschema.Schema(); err != nil {
+						t.Fatal(err)
+					}
+				case *utestschema.Device:
+					if schema, err = utestschema.Schema(); err != nil {
+						t.Fatal(err)
+					}
+				default:
+					t.Fatalf("Unexpected type: %T", origCopy)
+				}
+				schema.Root = origCopy
+				var preferShadowPath bool
+				for _, o := range tt.inOpts {
+					switch v := o.(type) {
+					case *ygot.DiffPathOpt:
+						preferShadowPath = v.PreferShadowPath
+					}
+				}
+				var unmopts []ytypes.UnmarshalOpt
+				if preferShadowPath {
+					unmopts = append(unmopts, &ytypes.PreferShadowPath{})
+				}
+				if err := ytypes.UnmarshalNotifications(schema, got, unmopts...); err != nil {
+					t.Fatal(err)
+				}
+				if diff := cmp.Diff(origCopy, tt.inMod, ytestutil.OrderedMapCmpOptions...); diff != "" {
+					t.Errorf("Unmarshal diff into orig (-got, +want):\n%s", diff)
+				}
+			})
+		}
 	}
 }

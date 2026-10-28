@@ -15,10 +15,12 @@
 package ygot
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errlist"
@@ -759,4 +761,1008 @@ func diff(original, modified GoStruct, withAtomic bool, opts ...DiffOpt) ([]*gnm
 	}
 
 	return append([]*gnmipb.Notification{n}, atomicNotifs...), nil
+}
+
+// ParallelDiff takes an original and modified GoStruct of the same type and
+// returns a gNMI Notification containing the diff between them by traversing
+// both struct trees in lockstep. The original struct is considered as the
+// "from" data and the modified struct as the "to" data such that:
+//
+//   - The contents of the Update field of the notification indicate that the
+//     field in modified was either not present in original, or had a different
+//     field value.
+//   - The paths within the Delete field of the notification indicate that the
+//     field was not present in the modified struct, but was set in the original.
+//   - For ordered-by user nodes, which are represented by ordered maps in the
+//     ygot-generated code, updates are emitted at leaf granularity. To generate
+//     atomic Notifications for ordered maps, use ParallelDiffWithAtomic instead.
+//
+// Annotation fields contained within original or modified are skipped.
+// It returns an error if original and modified have different types or if any
+// visited struct field has an invalid schema path or value encoding.
+func ParallelDiff(original, modified GoStruct, opts ...DiffOpt) (*gnmipb.Notification, error) {
+	notifs, err := parallelDiff(original, modified, false, opts...)
+	switch len(notifs) {
+	case 0:
+		return &gnmipb.Notification{}, err
+	case 1:
+		return notifs[0], err
+	default:
+		return nil, fmt.Errorf("internal error: ParallelDiff expected a single Notification but got multiple")
+	}
+}
+
+// ParallelDiffWithAtomic takes an original and modified GoStruct of the same
+// type and returns a slice of gNMI Notifications representing the diff between
+// them by traversing both struct trees in lockstep. Updates to atomic nodes
+// (currently YANG ordered-by user lists represented by GoOrderedMap) are
+// emitted as separate atomic Notifications, whilst non-atomic leaf updates and
+// all deletions are emitted in a non-atomic Notification.
+//
+// Annotation fields contained within original or modified are skipped.
+// It returns an error if original and modified have different types or if any
+// visited struct field has an invalid schema path or value encoding.
+func ParallelDiffWithAtomic(original, modified GoStruct, opts ...DiffOpt) ([]*gnmipb.Notification, error) {
+	return parallelDiff(original, modified, true, opts...)
+}
+
+// parallelDiff produces a slice of notifications given two GoStructs by
+// walking original and modified in lockstep without materialising full-tree
+// leaf maps.
+//
+//   - original and modified are the baseline and target GoStructs to compare.
+//   - withAtomic indicates whether atomic notifications should be generated for
+//     ordered-by user lists.
+//   - opts specifies optional diff behaviour modifiers.
+//
+// It returns an error if original and modified have different types or if any
+// visited struct field has an invalid schema path or value encoding.
+func parallelDiff(original, modified GoStruct, withAtomic bool, opts ...DiffOpt) ([]*gnmipb.Notification, error) {
+	if reflect.TypeOf(original) != reflect.TypeOf(modified) {
+		return nil, fmt.Errorf("cannot diff structs of different types, original: %T, modified: %T", original, modified)
+	}
+
+	origVal := reflect.ValueOf(original)
+	modVal := reflect.ValueOf(modified)
+	origValid := origVal.IsValid() && (origVal.Kind() != reflect.Ptr || !origVal.IsNil())
+	modValid := modVal.IsValid() && (modVal.Kind() != reflect.Ptr || !modVal.IsNil())
+	if !origValid && !modValid {
+		return nil, nil
+	}
+
+	var structType reflect.Type
+	switch {
+	case origValid:
+		if origVal.Kind() == reflect.Ptr {
+			origVal = origVal.Elem()
+		}
+		structType = origVal.Type()
+	default:
+		if modVal.Kind() == reflect.Ptr {
+			modVal = modVal.Elem()
+		}
+		structType = modVal.Type()
+	}
+	if modValid && modVal.Kind() == reflect.Ptr {
+		modVal = modVal.Elem()
+	}
+	if !origValid {
+		origVal = reflect.Value{}
+	}
+	if !modValid {
+		modVal = reflect.Value{}
+	}
+
+	pathOpt := hasDiffPathOpt(opts)
+	d := &parallelDiffer{
+		notif:            &gnmipb.Notification{},
+		pathStack:        make([]parallelPathElem, 0, 16),
+		withAtomic:       withAtomic,
+		preferShadowPath: pathOpt != nil && pathOpt.PreferShadowPath,
+		mapToSinglePath:  pathOpt != nil && pathOpt.MapToSinglePath,
+		overrideLeafList: pathOpt != nil && pathOpt.OverrideLeafList,
+		ignoreAdditions:  hasIgnoreAdditions(opts) != nil,
+	}
+
+	if err := d.diffStructs(structType, origVal, modVal); err != nil {
+		return nil, err
+	}
+
+	if len(d.notif.Delete)+len(d.notif.Update) == 0 {
+		return d.atomicNotifs, nil
+	}
+	return append([]*gnmipb.Notification{d.notif}, d.atomicNotifs...), nil
+}
+
+// diffFieldKind classifies a GoStruct field for lockstep diff traversal.
+type diffFieldKind uint8
+
+const (
+	// diffFieldPtrLeaf indicates a pointer to a scalar leaf value.
+	diffFieldPtrLeaf diffFieldKind = iota
+	// diffFieldStructPtr indicates a pointer to a child container GoStruct.
+	diffFieldStructPtr
+	// diffFieldStruct indicates an inline child container struct.
+	diffFieldStruct
+	// diffFieldMap indicates a keyed YANG list represented as a Go map.
+	diffFieldMap
+	// diffFieldOrderedMap indicates an ordered-by user YANG list implementing GoOrderedMap.
+	diffFieldOrderedMap
+	// diffFieldEnum indicates a YANG enumeration implementing GoEnum.
+	diffFieldEnum
+	// diffFieldInterface indicates a YANG union represented as a Go interface.
+	diffFieldInterface
+	// diffFieldSliceLeaf indicates a leaf-list slice or Binary byte slice.
+	diffFieldSliceLeaf
+	// diffFieldValueLeaf indicates a non-pointer scalar leaf (such as YANGEmpty).
+	diffFieldValueLeaf
+)
+
+// diffStructDesc caches pre-parsed schema path and type metadata for all
+// non-annotation fields of a GoStruct reflect.Type.
+type diffStructDesc struct {
+	// fields contains the pre-classified field descriptors in struct field order.
+	fields []diffFieldDesc
+	// schemaErr stores the first schema path tag error encountered on the struct.
+	schemaErr error
+}
+
+// diffFieldDesc stores precomputed schema path elements and type classification
+// for a single GoStruct field.
+type diffFieldDesc struct {
+	// index is the field index within the parent struct type.
+	index int
+	// kind is the pre-classified diff traversal category for the field.
+	kind diffFieldKind
+	// elemType is the dereferenced child struct type for diffFieldStructPtr,
+	// diffFieldStruct, and diffFieldMap fields.
+	elemType reflect.Type
+	// isLeafList reports whether the field is a non-Binary slice leaf-list.
+	isLeafList bool
+	// normalElems contains the pre-built PathElem slices from the path tag.
+	normalElems [][]*gnmipb.PathElem
+	// shadowElems contains the pre-built PathElem slices from the shadow-path tag
+	// (falling back to normalElems when no shadow-path tag is present).
+	shadowElems [][]*gnmipb.PathElem
+	// singleNormalElems contains the shortest PathElem slice from normalElems.
+	singleNormalElems [][]*gnmipb.PathElem
+	// singleShadowElems contains the shortest PathElem slice from shadowElems.
+	singleShadowElems [][]*gnmipb.PathElem
+}
+
+// pathElems returns the precomputed PathElem slices for fd according to
+// preferShadowPath and mapToSinglePath.
+func (fd *diffFieldDesc) pathElems(preferShadowPath, mapToSinglePath bool) [][]*gnmipb.PathElem {
+	switch {
+	case preferShadowPath && mapToSinglePath:
+		return fd.singleShadowElems
+	case preferShadowPath:
+		return fd.shadowElems
+	case mapToSinglePath:
+		return fd.singleNormalElems
+	default:
+		return fd.normalElems
+	}
+}
+
+// diffStructDescCache maps a struct reflect.Type to its cached *diffStructDesc.
+var diffStructDescCache sync.Map
+
+// goOrderedMapIfaceType is the reflect.Type of the GoOrderedMap interface.
+var goOrderedMapIfaceType = reflect.TypeOf((*GoOrderedMap)(nil)).Elem()
+
+// goEnumIfaceType is the reflect.Type of the GoEnum interface.
+var goEnumIfaceType = reflect.TypeOf((*GoEnum)(nil)).Elem()
+
+// describeDiffStruct returns the cached *diffStructDesc for the struct type t,
+// computing and caching it on first access.
+func describeDiffStruct(t reflect.Type) *diffStructDesc {
+	if v, ok := diffStructDescCache.Load(t); ok {
+		return v.(*diffStructDesc)
+	}
+	sd := buildDiffStructDesc(t)
+	actual, _ := diffStructDescCache.LoadOrStore(t, sd)
+	return actual.(*diffStructDesc)
+}
+
+// buildDiffStructDesc constructs a *diffStructDesc by inspecting the fields and
+// struct tags of the struct type t.
+func buildDiffStructDesc(t reflect.Type) *diffStructDesc {
+	sd := &diffStructDesc{
+		fields: make([]diffFieldDesc, 0, t.NumField()),
+	}
+	for i := 0; i < t.NumField(); i++ {
+		sf := t.Field(i)
+		if util.IsYgotAnnotation(sf) {
+			continue
+		}
+		normalPaths, err := util.SchemaPaths(sf)
+		if err != nil {
+			sd.schemaErr = fmt.Errorf("could not extract set leaves from original struct: error from ForEachDataField iteration: %v", err)
+			return sd
+		}
+		if len(normalPaths) == 0 {
+			sd.schemaErr = fmt.Errorf("could not extract set leaves from original struct: error from ForEachDataField iteration: invalid schema path for %s", sf.Name)
+			return sd
+		}
+		shadowPaths := util.ShadowSchemaPaths(sf)
+		if len(shadowPaths) == 0 {
+			shadowPaths = normalPaths
+		}
+
+		normalElems := schemaPathsToPathElems(normalPaths)
+		shadowElems := normalElems
+		if &shadowPaths[0] != &normalPaths[0] {
+			shadowElems = schemaPathsToPathElems(shadowPaths)
+		}
+		singleNormal := [][]*gnmipb.PathElem{schemaPathTogNMIPath(leastSpecificPath(normalPaths)).Elem}
+		singleShadow := singleNormal
+		if &shadowPaths[0] != &normalPaths[0] {
+			singleShadow = [][]*gnmipb.PathElem{schemaPathTogNMIPath(leastSpecificPath(shadowPaths)).Elem}
+		}
+
+		kind, elemType := classifyDiffField(sf.Type)
+		sd.fields = append(sd.fields, diffFieldDesc{
+			index:             i,
+			kind:              kind,
+			elemType:          elemType,
+			isLeafList:        sf.Type.Kind() == reflect.Slice && sf.Type.Name() != BinaryTypeName,
+			normalElems:       normalElems,
+			shadowElems:       shadowElems,
+			singleNormalElems: singleNormal,
+			singleShadowElems: singleShadow,
+		})
+	}
+	return sd
+}
+
+// schemaPathsToPathElems converts a slice of schema paths into deduplicated
+// slices of gNMI PathElem pointers.
+func schemaPathsToPathElems(paths [][]string) [][]*gnmipb.PathElem {
+	out := make([][]*gnmipb.PathElem, 0, len(paths))
+	for i, p := range paths {
+		var dup bool
+		for j := 0; j < i; j++ {
+			if stringSlicesEqual(p, paths[j]) {
+				dup = true
+				break
+			}
+		}
+		if dup {
+			continue
+		}
+		elems := make([]*gnmipb.PathElem, len(p))
+		for k, pe := range p {
+			elems[k] = &gnmipb.PathElem{Name: pe}
+		}
+		out = append(out, elems)
+	}
+	return out
+}
+
+// stringSlicesEqual reports whether a and b have identical length and elements.
+func stringSlicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// classifyDiffField returns the diffFieldKind and dereferenced element struct
+// type (where applicable) for a struct field of type ft.
+func classifyDiffField(ft reflect.Type) (diffFieldKind, reflect.Type) {
+	switch {
+	case ft.Implements(goOrderedMapIfaceType):
+		return diffFieldOrderedMap, nil
+	case util.IsTypeStructPtr(ft):
+		return diffFieldStructPtr, ft.Elem()
+	case util.IsTypeStruct(ft):
+		return diffFieldStruct, ft
+	case util.IsTypeMap(ft):
+		elem := ft.Elem()
+		if elem.Kind() == reflect.Ptr {
+			elem = elem.Elem()
+		}
+		return diffFieldMap, elem
+	case ft.Implements(goEnumIfaceType):
+		return diffFieldEnum, nil
+	case ft.Kind() == reflect.Interface:
+		return diffFieldInterface, nil
+	case ft.Kind() == reflect.Slice:
+		return diffFieldSliceLeaf, nil
+	case ft.Kind() == reflect.Ptr:
+		return diffFieldPtrLeaf, nil
+	default:
+		return diffFieldValueLeaf, nil
+	}
+}
+
+// parallelPathElem represents a single element on the active gNMI path stack
+// during a lockstep struct traversal.
+type parallelPathElem struct {
+	// elem is the resolved PathElem for this path segment. For list entries,
+	// elem is nil until materialised lazily from keyHelper on first diff emission.
+	elem *gnmipb.PathElem
+	// name is the YANG list element name when elem has not yet been materialised.
+	name string
+	// keyHelper is the list member GoStruct used to populate elem.Key lazily.
+	keyHelper KeyHelperGoStruct
+}
+
+// parallelDiffer holds the traversal state and accumulated gNMI notifications
+// for a single ParallelDiff or ParallelDiffWithAtomic invocation.
+type parallelDiffer struct {
+	// notif accumulates non-atomic leaf updates and deletions.
+	notif *gnmipb.Notification
+	// atomicNotifs accumulates atomic notifications for updated ordered maps.
+	atomicNotifs []*gnmipb.Notification
+	// pathStack holds the active ancestor path elements from the root struct.
+	pathStack []parallelPathElem
+	// withAtomic specifies whether ordered maps are emitted as atomic notifications.
+	withAtomic bool
+	// preferShadowPath specifies whether shadow-path tags take precedence.
+	preferShadowPath bool
+	// mapToSinglePath specifies whether multi-path fields map only to their shortest path.
+	mapToSinglePath bool
+	// overrideLeafList specifies whether modified leaf-lists emit a delete before update.
+	overrideLeafList bool
+	// ignoreAdditions specifies whether newly added fields in modified are ignored.
+	ignoreAdditions bool
+}
+
+// diffStructs walks the fields of structType on origVal and modVal in lockstep.
+// Either origVal or modVal (but not both) may be a zero reflect.Value when a
+// container or list entry is present in only one of the two trees.
+func (d *parallelDiffer) diffStructs(structType reflect.Type, origVal, modVal reflect.Value) error {
+	sd := describeDiffStruct(structType)
+	if sd.schemaErr != nil {
+		return sd.schemaErr
+	}
+
+	origValid := origVal.IsValid()
+	modValid := modVal.IsValid()
+
+	for i := range sd.fields {
+		fd := &sd.fields[i]
+		switch fd.kind {
+		case diffFieldPtrLeaf:
+			if err := d.diffPtrLeaf(fd, origValid, modValid, origVal, modVal); err != nil {
+				return err
+			}
+		case diffFieldStructPtr:
+			if err := d.diffStructPtr(fd, origValid, modValid, origVal, modVal); err != nil {
+				return err
+			}
+		case diffFieldMap:
+			if err := d.diffMap(fd, origValid, modValid, origVal, modVal); err != nil {
+				return err
+			}
+		case diffFieldEnum:
+			if err := d.diffEnumLeaf(fd, origValid, modValid, origVal, modVal); err != nil {
+				return err
+			}
+		case diffFieldSliceLeaf:
+			if err := d.diffSliceLeaf(fd, origValid, modValid, origVal, modVal); err != nil {
+				return err
+			}
+		case diffFieldInterface:
+			if err := d.diffInterfaceLeaf(fd, origValid, modValid, origVal, modVal); err != nil {
+				return err
+			}
+		case diffFieldOrderedMap:
+			if err := d.diffOrderedMap(fd, origValid, modValid, origVal, modVal); err != nil {
+				return err
+			}
+		case diffFieldValueLeaf:
+			if err := d.diffValueLeaf(fd, origValid, modValid, origVal, modVal); err != nil {
+				return err
+			}
+		case diffFieldStruct:
+			if err := d.diffInlineStruct(fd, origValid, modValid, origVal, modVal); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// diffPtrLeaf compares a pointer-to-scalar leaf field between origVal and modVal.
+func (d *parallelDiffer) diffPtrLeaf(fd *diffFieldDesc, origValid, modValid bool, origVal, modVal reflect.Value) error {
+	var origField, modField reflect.Value
+	origHas := false
+	if origValid {
+		origField = origVal.Field(fd.index)
+		origHas = !origField.IsNil()
+	}
+	modHas := false
+	if modValid {
+		modField = modVal.Field(fd.index)
+		modHas = !modField.IsNil()
+	}
+
+	switch {
+	case !origHas && !modHas:
+		return nil
+	case origHas && modHas:
+		if origField.Pointer() == modField.Pointer() || scalarValuesEqual(origField.Elem(), modField.Elem()) {
+			return nil
+		}
+		return d.emitLeafUpdates(fd, modField.Interface(), false)
+	case origHas && !modHas:
+		return d.emitLeafDeletes(fd)
+	default:
+		if d.ignoreAdditions {
+			return nil
+		}
+		return d.emitLeafUpdates(fd, modField.Interface(), false)
+	}
+}
+
+// diffEnumLeaf compares a GoEnum leaf field between origVal and modVal.
+func (d *parallelDiffer) diffEnumLeaf(fd *diffFieldDesc, origValid, modValid bool, origVal, modVal reflect.Value) error {
+	var origInt, modInt int64
+	if origValid {
+		origInt = origVal.Field(fd.index).Int()
+	}
+	if modValid {
+		modInt = modVal.Field(fd.index).Int()
+	}
+	if origInt == modInt {
+		return nil
+	}
+
+	switch {
+	case origInt != 0 && modInt == 0:
+		return d.emitLeafDeletes(fd)
+	case origInt == 0 && modInt != 0:
+		if d.ignoreAdditions {
+			return nil
+		}
+		return d.emitLeafUpdates(fd, modVal.Field(fd.index).Interface(), false)
+	default:
+		return d.emitLeafUpdates(fd, modVal.Field(fd.index).Interface(), false)
+	}
+}
+
+// diffValueLeaf compares a non-pointer scalar value leaf field (such as YANGEmpty)
+// between origVal and modVal.
+func (d *parallelDiffer) diffValueLeaf(fd *diffFieldDesc, origValid, modValid bool, origVal, modVal reflect.Value) error {
+	var origField, modField reflect.Value
+	origHas := false
+	if origValid {
+		origField = origVal.Field(fd.index)
+		origHas = !origField.IsZero()
+	}
+	modHas := false
+	if modValid {
+		modField = modVal.Field(fd.index)
+		modHas = !modField.IsZero()
+	}
+
+	switch {
+	case !origHas && !modHas:
+		return nil
+	case origHas && modHas:
+		if scalarValuesEqual(origField, modField) {
+			return nil
+		}
+		return d.emitLeafUpdates(fd, modField.Interface(), false)
+	case origHas && !modHas:
+		return d.emitLeafDeletes(fd)
+	default:
+		if d.ignoreAdditions {
+			return nil
+		}
+		return d.emitLeafUpdates(fd, modField.Interface(), false)
+	}
+}
+
+// diffSliceLeaf compares a leaf-list slice or Binary byte slice field between
+// origVal and modVal.
+func (d *parallelDiffer) diffSliceLeaf(fd *diffFieldDesc, origValid, modValid bool, origVal, modVal reflect.Value) error {
+	var origField, modField reflect.Value
+	origHas := false
+	if origValid {
+		origField = origVal.Field(fd.index)
+		origHas = !origField.IsNil()
+	}
+	modHas := false
+	if modValid {
+		modField = modVal.Field(fd.index)
+		modHas = !modField.IsNil()
+	}
+
+	switch {
+	case !origHas && !modHas:
+		return nil
+	case origHas && modHas:
+		if sliceValuesEqual(origField, modField) {
+			return nil
+		}
+		return d.emitLeafUpdates(fd, modField.Interface(), d.overrideLeafList && fd.isLeafList)
+	case origHas && !modHas:
+		return d.emitLeafDeletes(fd)
+	default:
+		if d.ignoreAdditions {
+			return nil
+		}
+		return d.emitLeafUpdates(fd, modField.Interface(), false)
+	}
+}
+
+// diffInterfaceLeaf compares a YANG union interface field between origVal and modVal.
+func (d *parallelDiffer) diffInterfaceLeaf(fd *diffFieldDesc, origValid, modValid bool, origVal, modVal reflect.Value) error {
+	var origField, modField reflect.Value
+	origHas := false
+	if origValid {
+		origField = origVal.Field(fd.index)
+		origHas = isInterfaceLeafSet(origField)
+	}
+	modHas := false
+	if modValid {
+		modField = modVal.Field(fd.index)
+		modHas = isInterfaceLeafSet(modField)
+	}
+
+	switch {
+	case !origHas && !modHas:
+		return nil
+	case origHas && modHas:
+		origIface := origField.Interface()
+		modIface := modField.Interface()
+		if reflect.DeepEqual(origIface, modIface) {
+			return nil
+		}
+		return d.emitLeafUpdates(fd, modIface, d.overrideLeafList && isLeafList(modIface))
+	case origHas && !modHas:
+		return d.emitLeafDeletes(fd)
+	default:
+		if d.ignoreAdditions {
+			return nil
+		}
+		return d.emitLeafUpdates(fd, modField.Interface(), false)
+	}
+}
+
+// diffStructPtr recurses into a child GoStruct pointer field on origVal and modVal.
+func (d *parallelDiffer) diffStructPtr(fd *diffFieldDesc, origValid, modValid bool, origVal, modVal reflect.Value) error {
+	var origPtr, modPtr, origChild, modChild reflect.Value
+	origHas := false
+	if origValid {
+		origPtr = origVal.Field(fd.index)
+		if !origPtr.IsNil() {
+			origHas = true
+			origChild = origPtr.Elem()
+		}
+	}
+	modHas := false
+	if modValid {
+		modPtr = modVal.Field(fd.index)
+		if !modPtr.IsNil() {
+			modHas = true
+			modChild = modPtr.Elem()
+		}
+	}
+	if !origHas && !modHas {
+		return nil
+	}
+	if origHas && modHas && origPtr.Pointer() == modPtr.Pointer() {
+		return nil
+	}
+
+	spSet := fd.pathElems(d.preferShadowPath, d.mapToSinglePath)
+	baseLen := len(d.pathStack)
+	for _, spElems := range spSet {
+		for _, e := range spElems {
+			d.pathStack = append(d.pathStack, parallelPathElem{elem: e})
+		}
+		if err := d.diffStructs(fd.elemType, origChild, modChild); err != nil {
+			return err
+		}
+		d.pathStack = d.pathStack[:baseLen]
+	}
+	return nil
+}
+
+// diffInlineStruct recurses into an inline struct field on origVal and modVal.
+func (d *parallelDiffer) diffInlineStruct(fd *diffFieldDesc, origValid, modValid bool, origVal, modVal reflect.Value) error {
+	var origChild, modChild reflect.Value
+	if origValid {
+		origChild = origVal.Field(fd.index)
+	}
+	if modValid {
+		modChild = modVal.Field(fd.index)
+	}
+
+	spSet := fd.pathElems(d.preferShadowPath, d.mapToSinglePath)
+	baseLen := len(d.pathStack)
+	for _, spElems := range spSet {
+		for _, e := range spElems {
+			d.pathStack = append(d.pathStack, parallelPathElem{elem: e})
+		}
+		if err := d.diffStructs(fd.elemType, origChild, modChild); err != nil {
+			return err
+		}
+		d.pathStack = d.pathStack[:baseLen]
+	}
+	return nil
+}
+
+// diffMap compares a keyed YANG list Go map field between origVal and modVal in
+// lockstep by map key.
+func (d *parallelDiffer) diffMap(fd *diffFieldDesc, origValid, modValid bool, origVal, modVal reflect.Value) error {
+	var origMap, modMap reflect.Value
+	origLen := 0
+	if origValid {
+		origMap = origVal.Field(fd.index)
+		if !origMap.IsNil() {
+			origLen = origMap.Len()
+		}
+	}
+	modLen := 0
+	if modValid {
+		modMap = modVal.Field(fd.index)
+		if !modMap.IsNil() {
+			modLen = modMap.Len()
+		}
+	}
+	if origLen == 0 && modLen == 0 {
+		return nil
+	}
+	if origLen > 0 && modLen > 0 && origMap.Pointer() == modMap.Pointer() {
+		return nil
+	}
+
+	spSet := fd.pathElems(d.preferShadowPath, d.mapToSinglePath)
+	baseLen := len(d.pathStack)
+	for _, spElems := range spSet {
+		prefixElems := spElems[:len(spElems)-1]
+		listElem := spElems[len(spElems)-1]
+		for _, e := range prefixElems {
+			d.pathStack = append(d.pathStack, parallelPathElem{elem: e})
+		}
+		listBaseLen := len(d.pathStack)
+
+		if origLen > 0 {
+			iter := origMap.MapRange()
+			for iter.Next() {
+				origEntry := iter.Value()
+				if !origEntry.IsValid() || origEntry.IsNil() {
+					continue
+				}
+				var modChild reflect.Value
+				if modLen > 0 {
+					modEntry := modMap.MapIndex(iter.Key())
+					if modEntry.IsValid() && !modEntry.IsNil() {
+						if origEntry.Pointer() == modEntry.Pointer() {
+							continue
+						}
+						modChild = modEntry.Elem()
+					}
+				}
+				d.pushListEntry(listElem, origEntry)
+				if err := d.diffStructs(fd.elemType, origEntry.Elem(), modChild); err != nil {
+					return err
+				}
+				d.pathStack = d.pathStack[:listBaseLen]
+			}
+		}
+
+		if modLen > 0 && !d.ignoreAdditions {
+			iter := modMap.MapRange()
+			for iter.Next() {
+				if origLen > 0 {
+					if origEntry := origMap.MapIndex(iter.Key()); origEntry.IsValid() && !origEntry.IsNil() {
+						continue
+					}
+				}
+				modEntry := iter.Value()
+				if !modEntry.IsValid() || modEntry.IsNil() {
+					continue
+				}
+				d.pushListEntry(listElem, modEntry)
+				if err := d.diffStructs(fd.elemType, reflect.Value{}, modEntry.Elem()); err != nil {
+					return err
+				}
+				d.pathStack = d.pathStack[:listBaseLen]
+			}
+		}
+
+		d.pathStack = d.pathStack[:baseLen]
+	}
+	return nil
+}
+
+// diffOrderedMap compares a GoOrderedMap field between origVal and modVal,
+// emitting either atomic notifications (when d.withAtomic is true) or
+// leaf-level updates and deletions (when d.withAtomic is false).
+func (d *parallelDiffer) diffOrderedMap(fd *diffFieldDesc, origValid, modValid bool, origVal, modVal reflect.Value) error {
+	var origOM, modOM GoOrderedMap
+	origSet := false
+	if origValid {
+		origField := origVal.Field(fd.index)
+		if !origField.IsNil() {
+			origOM = origField.Interface().(GoOrderedMap)
+			origSet = origOM.Len() > 0
+		}
+	}
+	modSet := false
+	if modValid {
+		modField := modVal.Field(fd.index)
+		if !modField.IsNil() {
+			modOM = modField.Interface().(GoOrderedMap)
+			modSet = modOM.Len() > 0
+		}
+	}
+	if !origSet && !modSet {
+		return nil
+	}
+
+	if d.withAtomic {
+		return d.diffOrderedMapAtomic(fd, origOM, modOM, origSet, modSet)
+	}
+	return d.diffOrderedMapGranular(fd, origOM, modOM, origSet, modSet)
+}
+
+// diffOrderedMapAtomic handles GoOrderedMap comparison when atomic notifications
+// are requested (ParallelDiffWithAtomic).
+func (d *parallelDiffer) diffOrderedMapAtomic(fd *diffFieldDesc, origOM, modOM GoOrderedMap, origSet, modSet bool) error {
+	if origSet && modSet && reflect.DeepEqual(origOM, modOM) {
+		return nil
+	}
+
+	spSet := fd.pathElems(d.preferShadowPath, d.mapToSinglePath)
+	switch {
+	case origSet && !modSet:
+		for _, spElems := range spSet {
+			p, err := d.materialisePath(spElems)
+			if err != nil {
+				return err
+			}
+			if len(p.Elem) == 0 {
+				return fmt.Errorf("deletion path on ordered list is empty, this is unexpected: %T", origOM)
+			}
+			p.Elem = p.Elem[:len(p.Elem)-1]
+			d.notif.Delete = append(d.notif.Delete, p)
+		}
+		return nil
+	case !origSet && modSet && d.ignoreAdditions:
+		return nil
+	default:
+		for _, spElems := range spSet {
+			p, err := d.materialisePath(spElems)
+			if err != nil {
+				return err
+			}
+			notif, err := orderedMapNotif(modOM, newPathElemGNMIPath(p.GetElem()), 0, d.preferShadowPath)
+			if err != nil {
+				return err
+			}
+			d.atomicNotifs = append(d.atomicNotifs, notif)
+		}
+		return nil
+	}
+}
+
+// diffOrderedMapGranular handles GoOrderedMap comparison at leaf granularity
+// (ParallelDiff without atomic notifications).
+func (d *parallelDiffer) diffOrderedMapGranular(fd *diffFieldDesc, origOM, modOM GoOrderedMap, origSet, modSet bool) error {
+	spSet := fd.pathElems(d.preferShadowPath, d.mapToSinglePath)
+	baseLen := len(d.pathStack)
+
+	for _, spElems := range spSet {
+		prefixElems := spElems[:len(spElems)-1]
+		listElem := spElems[len(spElems)-1]
+		for _, e := range prefixElems {
+			d.pathStack = append(d.pathStack, parallelPathElem{elem: e})
+		}
+		listBaseLen := len(d.pathStack)
+
+		if origSet {
+			var walkErr error
+			if err := yreflect.RangeOrderedMap(origOM, func(k, origEntry reflect.Value) bool {
+				if !origEntry.IsValid() || origEntry.IsNil() {
+					return true
+				}
+				var modChild reflect.Value
+				if modSet {
+					modEntry, exists, err := yreflect.GetOrderedMapElement(modOM, k)
+					if err != nil {
+						walkErr = err
+						return false
+					}
+					if exists && modEntry.IsValid() && !modEntry.IsNil() {
+						modChild = modEntry.Elem()
+					}
+				}
+				d.pushListEntry(listElem, origEntry)
+				if err := d.diffStructs(origEntry.Elem().Type(), origEntry.Elem(), modChild); err != nil {
+					walkErr = err
+					return false
+				}
+				d.pathStack = d.pathStack[:listBaseLen]
+				return true
+			}); err != nil {
+				return err
+			}
+			if walkErr != nil {
+				return walkErr
+			}
+		}
+
+		if modSet && !d.ignoreAdditions {
+			var walkErr error
+			if err := yreflect.RangeOrderedMap(modOM, func(k, modEntry reflect.Value) bool {
+				if !modEntry.IsValid() || modEntry.IsNil() {
+					return true
+				}
+				if origSet {
+					origEntry, exists, err := yreflect.GetOrderedMapElement(origOM, k)
+					if err != nil {
+						walkErr = err
+						return false
+					}
+					if exists && origEntry.IsValid() && !origEntry.IsNil() {
+						return true
+					}
+				}
+				d.pushListEntry(listElem, modEntry)
+				if err := d.diffStructs(modEntry.Elem().Type(), reflect.Value{}, modEntry.Elem()); err != nil {
+					walkErr = err
+					return false
+				}
+				d.pathStack = d.pathStack[:listBaseLen]
+				return true
+			}); err != nil {
+				return err
+			}
+			if walkErr != nil {
+				return walkErr
+			}
+		}
+
+		d.pathStack = d.pathStack[:baseLen]
+	}
+	return nil
+}
+
+// pushListEntry appends a lazy list entry frame onto d.pathStack.
+func (d *parallelDiffer) pushListEntry(listElem *gnmipb.PathElem, entryVal reflect.Value) {
+	if kh, ok := entryVal.Interface().(KeyHelperGoStruct); ok {
+		d.pathStack = append(d.pathStack, parallelPathElem{
+			name:      listElem.Name,
+			keyHelper: kh,
+		})
+		return
+	}
+	d.pathStack = append(d.pathStack, parallelPathElem{elem: listElem})
+}
+
+// emitLeafDeletes appends delete paths for all schema paths of fd to d.notif.Delete.
+func (d *parallelDiffer) emitLeafDeletes(fd *diffFieldDesc) error {
+	for _, spElems := range fd.pathElems(d.preferShadowPath, d.mapToSinglePath) {
+		p, err := d.materialisePath(spElems)
+		if err != nil {
+			return err
+		}
+		d.notif.Delete = append(d.notif.Delete, p)
+	}
+	return nil
+}
+
+// emitLeafUpdates encodes val as a gNMI TypedValue and appends update messages
+// (plus preceding delete paths when deleteFirst is true) for all schema paths
+// of fd to d.notif.
+func (d *parallelDiffer) emitLeafUpdates(fd *diffFieldDesc, val any, deleteFirst bool) error {
+	spSet := fd.pathElems(d.preferShadowPath, d.mapToSinglePath)
+	tv, valErr := EncodeTypedValue(val, gnmipb.Encoding_PROTO)
+	for _, spElems := range spSet {
+		p, err := d.materialisePath(spElems)
+		if err != nil {
+			return err
+		}
+		if deleteFirst {
+			d.notif.Delete = append(d.notif.Delete, p)
+		}
+		if valErr != nil {
+			pathStr, _ := PathToString(p)
+			return fmt.Errorf("cannot represent field value %v as TypedValue for path %v: %v", val, pathStr, valErr)
+		}
+		d.notif.Update = append(d.notif.Update, &gnmipb.Update{
+			Path: p,
+			Val:  tv,
+		})
+	}
+	return nil
+}
+
+// materialisePath constructs a *gnmipb.Path by combining d.pathStack with
+// leafElems, lazily resolving any list key maps on d.pathStack.
+func (d *parallelDiffer) materialisePath(leafElems []*gnmipb.PathElem) (*gnmipb.Path, error) {
+	stackLen := len(d.pathStack)
+	elems := make([]*gnmipb.PathElem, stackLen+len(leafElems))
+	for i := 0; i < stackLen; i++ {
+		pe := d.pathStack[i].elem
+		if pe == nil {
+			keys, err := d.pathStack[i].keyHelper.ΛListKeyMap()
+			if err != nil {
+				return nil, err
+			}
+			strkeys, err := keyMapAsStrings(keys)
+			if err != nil {
+				return nil, fmt.Errorf("cannot convert keys to map[string]string: %v", err)
+			}
+			pe = &gnmipb.PathElem{
+				Name: d.pathStack[i].name,
+				Key:  strkeys,
+			}
+			d.pathStack[i].elem = pe
+		}
+		elems[i] = pe
+	}
+	copy(elems[stackLen:], leafElems)
+	return &gnmipb.Path{Elem: elems}, nil
+}
+
+// scalarValuesEqual reports whether two valid scalar reflect.Values of the same
+// type hold equal values without boxing them into interface{}.
+func scalarValuesEqual(a, b reflect.Value) bool {
+	switch a.Kind() {
+	case reflect.String:
+		return a.String() == b.String()
+	case reflect.Bool:
+		return a.Bool() == b.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return a.Int() == b.Int()
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return a.Uint() == b.Uint()
+	case reflect.Float32, reflect.Float64:
+		return a.Float() == b.Float()
+	default:
+		return reflect.DeepEqual(a.Interface(), b.Interface())
+	}
+}
+
+// sliceValuesEqual reports whether two non-nil slice reflect.Values of the same
+// type hold equal elements, using fast paths for []string and []byte slices.
+func sliceValuesEqual(a, b reflect.Value) bool {
+	if a.Len() != b.Len() {
+		return false
+	}
+	if a.Len() == 0 {
+		return true
+	}
+	switch a.Type().Elem().Kind() {
+	case reflect.Uint8:
+		return bytes.Equal(a.Bytes(), b.Bytes())
+	case reflect.String:
+		for i := 0; i < a.Len(); i++ {
+			if a.Index(i).String() != b.Index(i).String() {
+				return false
+			}
+		}
+		return true
+	default:
+		return reflect.DeepEqual(a.Interface(), b.Interface())
+	}
+}
+
+// isInterfaceLeafSet reports whether a union interface reflect.Value holds a
+// non-nil, non-default value.
+func isInterfaceLeafSet(v reflect.Value) bool {
+	if !v.IsValid() || v.IsNil() {
+		return false
+	}
+	elem := v.Elem()
+	switch elem.Kind() {
+	case reflect.Ptr, reflect.Slice, reflect.Map:
+		return !elem.IsNil()
+	default:
+		return !elem.IsZero()
+	}
 }
