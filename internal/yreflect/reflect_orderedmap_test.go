@@ -15,6 +15,7 @@
 package yreflect_test
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -119,5 +120,115 @@ func TestGetOrderedMapElement(t *testing.T) {
 				t.Errorf("gotOk: %v, wantOk: %v", gotOk, tt.wantOk)
 			}
 		})
+	}
+}
+
+func TestRangeOrderedMap(t *testing.T) {
+	tests := []struct {
+		desc          string
+		inMap         ygot.GoOrderedMap
+		inStopAfter   int
+		wantKeys      []string
+		wantValues    []string
+		wantErrSubstr string
+	}{{
+		desc:       "full iteration",
+		inMap:      ctestschema.GetOrderedMap(t),
+		wantKeys:   []string{"foo", "bar"},
+		wantValues: []string{"foo-val", "bar-val"},
+	}, {
+		desc:        "early termination after first element",
+		inMap:       ctestschema.GetOrderedMap(t),
+		inStopAfter: 1,
+		wantKeys:    []string{"foo"},
+		wantValues:  []string{"foo-val"},
+	}, {
+		desc:  "empty ordered map",
+		inMap: &ctestschema.OrderedList_OrderedMap{},
+	}, {
+		desc:  "typed nil ordered map",
+		inMap: (*ctestschema.OrderedList_OrderedMap)(nil),
+	}, {
+		desc:          "invalid ordered map",
+		inMap:         &invalidOrderedMapType{},
+		wantErrSubstr: "did not find Get() method on type",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			var gotKeys, gotValues []string
+			err := yreflect.RangeOrderedMap(tt.inMap, func(k, v reflect.Value) bool {
+				gotKeys = append(gotKeys, k.Interface().(string))
+				elem := v.Interface().(*ctestschema.OrderedList)
+				gotValues = append(gotValues, *elem.Value)
+				if tt.inStopAfter > 0 && len(gotKeys) >= tt.inStopAfter {
+					return false
+				}
+				return true
+			})
+			if diff := errdiff.Substring(err, tt.wantErrSubstr); diff != "" {
+				t.Fatalf("RangeOrderedMap(%v): %s", tt.inMap, diff)
+			}
+			if err != nil {
+				return
+			}
+			if diff := cmp.Diff(gotKeys, tt.wantKeys); diff != "" {
+				t.Errorf("RangeOrderedMap(%v) keys diff(-got,+want):\n%s", tt.inMap, diff)
+			}
+			if diff := cmp.Diff(gotValues, tt.wantValues); diff != "" {
+				t.Errorf("RangeOrderedMap(%v) values diff(-got,+want):\n%s", tt.inMap, diff)
+			}
+		})
+	}
+}
+
+func TestRangeOrderedMapPerformance(t *testing.T) {
+	om := &ctestschema.OrderedList_OrderedMap{}
+	const numEntries = 100
+	for i := 0; i < numEntries; i++ {
+		k := fmt.Sprintf("key-%03d", i)
+		el, err := om.AppendNew(k)
+		if err != nil {
+			t.Fatalf("om.AppendNew(%q): got unexpected error: %v", k, err)
+		}
+		el.Value = ygot.String(fmt.Sprintf("val-%03d", i))
+	}
+
+	gotAllocs := testing.AllocsPerRun(50, func() {
+		count := 0
+		if err := yreflect.RangeOrderedMap(om, func(k, v reflect.Value) bool {
+			if k.IsValid() && v.IsValid() {
+				count++
+			}
+			return true
+		}); err != nil || count != numEntries {
+			t.Fatalf("RangeOrderedMap: got (%d, %v), want (%d, nil)", count, err, numEntries)
+		}
+	})
+
+	legacyRange := func() error {
+		getMethod, err := yreflect.MethodByName(reflect.ValueOf(om), "Get")
+		if err != nil {
+			return err
+		}
+		keys, err := yreflect.OrderedMapKeys(om)
+		if err != nil {
+			return err
+		}
+		for _, k := range keys {
+			ret := getMethod.Call([]reflect.Value{k})
+			_ = ret[0]
+		}
+		return nil
+	}
+	baselineAllocs := testing.AllocsPerRun(50, func() {
+		if err := legacyRange(); err != nil {
+			t.Fatalf("legacyRange: got unexpected error: %v", err)
+		}
+	})
+
+	maxAllowedAllocs := baselineAllocs * 0.95
+	if gotAllocs > maxAllowedAllocs {
+		t.Fatalf("RangeOrderedMap allocated %.1f objects/run, want <= %.1f (at least 5%% fewer than legacy baseline %.1f)", gotAllocs, maxAllowedAllocs, baselineAllocs)
 	}
 }

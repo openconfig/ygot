@@ -2381,6 +2381,126 @@ func TestDeepEqualDerefPtrs(t *testing.T) {
 	}
 }
 
+func TestWalkNodeFromNodeInfoZeroAllocs(t *testing.T) {
+	if got := WalkNodeFromNodeInfo(nil).NodeInfo(); got != nil {
+		t.Fatalf("WalkNodeFromNodeInfo(nil).NodeInfo(): got %v, want nil", got)
+	}
+
+	ni := &NodeInfo{
+		FieldValue: reflect.ValueOf("leaf"),
+	}
+	if got := WalkNodeFromNodeInfo(ni).NodeInfo(); got != ni {
+		t.Fatalf("WalkNodeFromNodeInfo(ni).NodeInfo(): got %p, want %p", got, ni)
+	}
+
+	if allocs := testing.AllocsPerRun(100, func() {
+		_ = WalkNodeFromNodeInfo(ni).NodeInfo()
+	}); allocs != 0 {
+		t.Fatalf("WalkNodeFromNodeInfo(ni) allocated %v objects/run, want 0", allocs)
+	}
+}
+
+// legacyMemoVisitor reproduces the pre-optimisation forEachFieldMemoVisitor
+// behaviour that allocated a PathQueryNodeMemo map and boxed a child Visitor on
+// every scalar leaf node.
+type legacyMemoVisitor struct {
+	// parent is the PathQueryNodeMemo of the parent node in the traversal.
+	parent *PathQueryNodeMemo
+	// errorCollector aggregates errors returned by iterFunction.
+	errorCollector *DefaultWalkErrors
+	// iterFunction is the callback invoked on each visited node.
+	iterFunction FieldIteratorFunc
+}
+
+// Visit allocates a fresh PathQueryNodeMemo map and returns a boxed child
+// Visitor for every visited node, including scalar leaves.
+func (vf legacyMemoVisitor) Visit(node WalkNode) Visitor {
+	if node == nil {
+		return nil
+	}
+	in := &PathQueryNodeMemo{
+		Parent: vf.parent,
+		Memo:   PathQueryMemo{},
+	}
+	if err := vf.iterFunction(node.NodeInfo(), in, nil); err != nil {
+		vf.errorCollector.Collect(err)
+	}
+	vf.parent = in
+	return vf
+}
+
+func TestForEachFieldLeafMemoPerformance(t *testing.T) {
+	type leafHeavyContainer struct {
+		L1 *string `path:"l1"`
+		L2 *string `path:"l2"`
+		L3 *string `path:"l3"`
+		L4 *string `path:"l4"`
+		L5 *uint32 `path:"l5"`
+		L6 *uint32 `path:"l6"`
+		L7 *uint32 `path:"l7"`
+		L8 *uint32 `path:"l8"`
+	}
+
+	schema := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir:  map[string]*yang.Entry{},
+	}
+	for _, name := range []string{"l1", "l2", "l3", "l4"} {
+		schema.Dir[name] = &yang.Entry{
+			Name:   name,
+			Kind:   yang.LeafEntry,
+			Type:   &yang.YangType{Kind: yang.Ystring},
+			Parent: schema,
+		}
+	}
+	for _, name := range []string{"l5", "l6", "l7", "l8"} {
+		schema.Dir[name] = &yang.Entry{
+			Name:   name,
+			Kind:   yang.LeafEntry,
+			Type:   &yang.YangType{Kind: yang.Yuint32},
+			Parent: schema,
+		}
+	}
+
+	s := "value"
+	u := uint32(42)
+	c := &leafHeavyContainer{
+		L1: &s, L2: &s, L3: &s, L4: &s,
+		L5: &u, L6: &u, L7: &u, L8: &u,
+	}
+
+	iterFn := func(ni *NodeInfo, in, out any) Errors {
+		if _, ok := in.(*PathQueryNodeMemo); !ok {
+			return NewErrs(fmt.Errorf("unexpected in type %T", in))
+		}
+		return nil
+	}
+
+	gotAllocs := testing.AllocsPerRun(50, func() {
+		if errs := ForEachField(schema, c, &PathQueryNodeMemo{}, nil, iterFn); len(errs) != 0 {
+			t.Fatalf("ForEachField: got unexpected errors: %v", errs)
+		}
+	})
+
+	legacyAllocs := testing.AllocsPerRun(50, func() {
+		errCollector := new(DefaultWalkErrors)
+		lv := legacyMemoVisitor{
+			iterFunction:   iterFn,
+			errorCollector: errCollector,
+		}
+		_ = Walk(lv, WalkNodeFromGoStruct(c), DefaultWalkOptions().WithWalkErrors(errCollector).WithSchema(schema))
+		if len(errCollector.Errors) != 0 {
+			t.Fatalf("legacyMemoVisitor Walk: got unexpected errors: %v", errCollector.Errors)
+		}
+	})
+
+	maxAllowedAllocs := legacyAllocs * 0.95
+	if gotAllocs > maxAllowedAllocs {
+		t.Fatalf("ForEachField with PathQueryNodeMemo allocated %.1f objects/run, want <= %.1f (at least 5%% fewer than legacy baseline %.1f)", gotAllocs, maxAllowedAllocs, legacyAllocs)
+	}
+}
+
 func sliceToMap(s []interface{}) map[string]int {
 	m := make(map[string]int)
 	for _, v := range s {

@@ -934,10 +934,10 @@ func (o *Tstruct_ListWithKey_OrderedMap) Keys() []string {
 
 // Values returns the current set of the list's values in order.
 func (o *Tstruct_ListWithKey_OrderedMap) Values() []*Tstruct_ListWithKey {
-	if o == nil {
+	if o == nil || len(o.keys) == 0 {
 		return nil
 	}
-	var values []*Tstruct_ListWithKey
+	values := make([]*Tstruct_ListWithKey, 0, len(o.keys))
 	for _, key := range o.keys {
 		values = append(values, o.valueMap[key])
 	}

@@ -60,6 +60,7 @@ func Walk(v Visitor, node WalkNode, o *WalkOptions) WalkErrors {
 }
 
 var _ WalkNode = (*walkNodeInfo)(nil)
+var _ WalkNode = (*NodeInfo)(nil)
 
 type walkNodeInfo struct {
 	ni *NodeInfo
@@ -67,6 +68,11 @@ type walkNodeInfo struct {
 
 func (w *walkNodeInfo) NodeInfo() *NodeInfo {
 	return w.ni
+}
+
+// NodeInfo returns the NodeInfo receiver to satisfy the WalkNode interface.
+func (n *NodeInfo) NodeInfo() *NodeInfo {
+	return n
 }
 
 // WalkNodeFromGoStruct converts a GoStruct to WalkNode with empty schema.
@@ -78,7 +84,10 @@ func WalkNodeFromGoStruct(value any) WalkNode {
 
 // WalkNodeFromNodeInfo converts a NodeInfo to WalkNode.
 func WalkNodeFromNodeInfo(ni *NodeInfo) WalkNode {
-	return &walkNodeInfo{ni: ni}
+	if ni == nil {
+		return &walkNodeInfo{}
+	}
+	return ni
 }
 
 // WalkOptions are configurations of the Walk function.
@@ -146,7 +155,11 @@ func walkFieldInternal(visitor Visitor, node WalkNode, o *WalkOptions) {
 	t := v.Type()
 
 	// walk children
-	orderedMap, isOrderedMap := v.Interface().(goOrderedMap)
+	var orderedMap goOrderedMap
+	var isOrderedMap bool
+	if k := t.Kind(); k == reflect.Ptr || k == reflect.Interface {
+		orderedMap, isOrderedMap = v.Interface().(goOrderedMap)
+	}
 
 	switch {
 	case isOrderedMap, IsTypeSlice(t), IsTypeMap(t):
@@ -289,7 +302,11 @@ func walkDataFieldInternal(visitor Visitor, node WalkNode, o *WalkOptions) {
 	v := ni.FieldValue
 	t := v.Type()
 
-	orderedMap, isOrderedMap := v.Interface().(goOrderedMap)
+	var orderedMap goOrderedMap
+	var isOrderedMap bool
+	if k := t.Kind(); k == reflect.Ptr || k == reflect.Interface {
+		orderedMap, isOrderedMap = v.Interface().(goOrderedMap)
+	}
 
 	// Determine whether we need to recurse into the field, or whether it is
 	// a leaf or leaf-list, which are not recursed into when traversing the

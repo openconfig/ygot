@@ -282,10 +282,10 @@ func (o *Model_SingleKeyOrdered_OrderedMap) Keys() []string {
 
 // Values returns the current set of the list's values in order.
 func (o *Model_SingleKeyOrdered_OrderedMap) Values() []*Model_SingleKeyOrdered {
-	if o == nil {
+	if o == nil || len(o.keys) == 0 {
 		return nil
 	}
-	var values []*Model_SingleKeyOrdered
+	values := make([]*Model_SingleKeyOrdered, 0, len(o.keys))
 	for _, key := range o.keys {
 		values = append(values, o.valueMap[key])
 	}
