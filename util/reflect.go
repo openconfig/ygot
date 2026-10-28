@@ -222,7 +222,7 @@ func UpdateField(parentStruct interface{}, fieldName string, fieldValue interfac
 	if !IsTypeStructPtr(pt) {
 		return fmt.Errorf("parent type %T must be a struct ptr", parentStruct)
 	}
-	ft, ok := pt.Elem().FieldByName(fieldName)
+	ft, ok := DescribeStructType(pt.Elem()).FieldByName(fieldName)
 	if !ok {
 		return fmt.Errorf("parent type %T does not have a field name %s", parentStruct, fieldName)
 	}
@@ -247,7 +247,7 @@ func InsertIntoStruct(parentStruct interface{}, fieldName string, fieldValue int
 	if !IsTypeStructPtr(pt) {
 		return fmt.Errorf("parent type %T must be a struct ptr", parentStruct)
 	}
-	ft, ok := pt.Elem().FieldByName(fieldName)
+	ft, fv, ok := DescribeStructType(pt.Elem()).FieldValueByName(pv.Elem(), fieldName)
 	if !ok {
 		return fmt.Errorf("parent type %T does not have a field name %s", parentStruct, fieldName)
 	}
@@ -286,7 +286,7 @@ func InsertIntoStruct(parentStruct interface{}, fieldName string, fieldValue int
 		return fmt.Errorf("cannot assign value %v (type %T) to struct field %s (type %v) in struct %T", fieldValue, fieldValue, fieldName, ft.Type, parentStruct)
 	}
 
-	pv.Elem().FieldByName(fieldName).Set(n)
+	fv.Set(n)
 
 	return nil
 }
@@ -302,7 +302,7 @@ func InsertIntoSliceStructField(parentStruct interface{}, fieldName string, fiel
 	if !IsTypeStructPtr(pt) {
 		return fmt.Errorf("parent type %T must be a struct ptr", parentStruct)
 	}
-	ft, ok := pt.Elem().FieldByName(fieldName)
+	ft, fv, ok := DescribeStructType(pt.Elem()).FieldValueByName(pv.Elem(), fieldName)
 	if !ok {
 		return fmt.Errorf("parent type %T does not have a field name %s", parentStruct, fieldName)
 	}
@@ -323,8 +323,7 @@ func InsertIntoSliceStructField(parentStruct interface{}, fieldName string, fiel
 		return fmt.Errorf("cannot assign value %v (type %T) to struct field %s (type %v) in struct %T", fieldValue, fieldValue, fieldName, et, parentStruct)
 	}
 
-	nl := reflect.Append(pv.Elem().FieldByName(fieldName), n)
-	pv.Elem().FieldByName(fieldName).Set(nl)
+	fv.Set(reflect.Append(fv, n))
 
 	return nil
 }
@@ -338,10 +337,12 @@ func InsertIntoMapStructField(parentStruct interface{}, fieldName string, key, f
 
 	v := reflect.ValueOf(parentStruct)
 	t := reflect.TypeOf(parentStruct)
+	vv := v
 	if v.Kind() == reflect.Ptr {
-		t = reflect.TypeOf(v.Elem().Interface())
+		vv = v.Elem()
+		t = vv.Type()
 	}
-	ft, ok := t.FieldByName(fieldName)
+	ft, fv, ok := DescribeStructType(t).FieldValueByName(vv, fieldName)
 	if !ok {
 		return fmt.Errorf("field %s not found in parent type %T", fieldName, parentStruct)
 	}
@@ -349,11 +350,7 @@ func InsertIntoMapStructField(parentStruct interface{}, fieldName string, key, f
 	if ft.Type.Kind() != reflect.Map {
 		return fmt.Errorf("field %s to insert into must be a map, type is %v", fieldName, ft.Type.Kind())
 	}
-	vv := v
-	if v.Kind() == reflect.Ptr {
-		vv = v.Elem()
-	}
-	fvn := reflect.TypeOf(vv.FieldByName(fieldName).Interface()).Elem()
+	fvn := ft.Type.Elem()
 	if fvn.Kind() != reflect.ValueOf(fieldValue).Kind() && !(fieldValue == nil && fvn.Kind() == reflect.Ptr) {
 		return fmt.Errorf("cannot assign value %v (type %T) to field %s (type %v) in struct %s",
 			fieldValue, fieldValue, fieldName, fvn.Kind(), t.Name())
@@ -363,7 +360,6 @@ func InsertIntoMapStructField(parentStruct interface{}, fieldName string, key, f
 	if fieldValue != nil {
 		n.Elem().Set(reflect.ValueOf(fieldValue))
 	}
-	fv := v.Elem().FieldByName(fieldName)
 	if fv.IsNil() {
 		fv.Set(reflect.MakeMap(fv.Type()))
 	}
@@ -391,14 +387,20 @@ func InitializeStructField(parent interface{}, fieldName string, initializeLeafs
 		return fmt.Errorf("%T is not a struct kind", parent)
 	}
 
-	fV := pV.FieldByName(fieldName)
-	if !fV.IsValid() {
+	sd := DescribeStructType(pV.Type())
+	if fd, ok := sd.fieldsByName[fieldName]; ok {
+		fd.InitValue(pV.Field(fd.Index), initializeLeafs)
+		return nil
+	}
+	_, fV, ok := sd.FieldValueByName(pV, fieldName)
+	if !ok || !fV.IsValid() {
 		return fmt.Errorf("invalid %T %v field value", parent, fieldName)
 	}
 	switch {
 	case IsValuePtr(fV) && fV.IsNil():
-		if v := reflect.New(fV.Type().Elem()); initializeLeafs || !IsValueScalar(v) {
-			fV.Set(v)
+		elemKind := fV.Type().Elem().Kind()
+		if initializeLeafs || elemKind == reflect.Struct || elemKind == reflect.Map || elemKind == reflect.Slice {
+			fV.Set(reflect.New(fV.Type().Elem()))
 		}
 	case IsValueMap(fV) && fV.IsNil():
 		fV.Set(reflect.MakeMap(fV.Type()))
@@ -458,6 +460,9 @@ func DeepEqualDerefPtrs(a, b interface{}) bool {
 // if the struct tag is invalid, or nil if tag is valid but the schema is not
 // found in the tree at the specified path.
 func ChildSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error) {
+	if !debugSchema {
+		return resolveChildSchemaFromTag(schema, f, false)
+	}
 	return childSchema(schema, f, false)
 }
 
@@ -467,6 +472,9 @@ func ChildSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error)
 // struct tag is invalid, or nil if tag is valid but the schema is not found in
 // the tree at the specified path.
 func ChildSchemaPreferShadow(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error) {
+	if !debugSchema {
+		return resolveChildSchemaFromTag(schema, f, true)
+	}
 	return childSchema(schema, f, true)
 }
 
@@ -484,6 +492,9 @@ func childSchema(schema *yang.Entry, f reflect.StructField, preferShadowPath boo
 	shadowPathTag, _ := f.Tag.Lookup("shadow-path")
 	DbgSchema("childSchema for schema %s, field %s, path tag %s, shadow-path tag %s\n", schema.Name, f.Name, pathTag, shadowPathTag)
 	p, err := relativeSchemaPath(f, preferShadowPath)
+	if IsYgotAnnotation(f) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -862,38 +873,62 @@ func getNodesContainer(schema *yang.Entry, root interface{}, path *gpb.Path) ([]
 	}
 
 	v := rv.Elem()
+	sd := DescribeStructType(v.Type())
+	ssd := sd.Schema(schema)
 
-	for i := 0; i < v.NumField(); i++ {
-		f := v.Field(i)
-		ft := v.Type().Field(i)
+	if !debugLibrary && !debugSchema && !sd.HasEmptyPrefix() && len(path.GetElem()) > 0 {
+		cur := sd.Candidates(path, false)
+		for idx, ok := cur.Next(ssd.FirstNonAnnotErrIdx); ok; idx, ok = cur.Next(ssd.FirstNonAnnotErrIdx) {
+			fd := &sd.Fields[idx]
+			if fd.IsAnnotation {
+				continue
+			}
+			cschema := ssd.ChildSchemas[idx]
+			for _, p := range fd.SchemaPaths {
+				if PathMatchesPrefix(path, p) {
+					to := len(p)
+					if fd.IsMap {
+						to--
+					}
+					return getNodesInternal(cschema, v.Field(idx).Interface(), TrimGNMIPathPrefix(path, p[0:to]))
+				}
+			}
+		}
+		if ssd.FirstNonAnnotErrIdx < len(sd.Fields) {
+			fd := &sd.Fields[ssd.FirstNonAnnotErrIdx]
+			if err := ssd.ChildSchemaErrs[ssd.FirstNonAnnotErrIdx]; err != nil {
+				return nil, nil, fmt.Errorf("error for schema for type %T, field name %s: %s", root, fd.Field.Name, err)
+			}
+			return nil, nil, fmt.Errorf("could not find schema for type %T, field name %s", root, fd.Field.Name)
+		}
+		return nil, nil, DbgErr(fmt.Errorf("could not find path in tree beyond schema node %s, (type %T), remaining path %v", schema.Name, root, path))
+	}
 
-		// Skip annotation fields, since they do not have a schema.
-		if IsYgotAnnotation(ft) {
+	for i := range sd.Fields {
+		fd := &sd.Fields[i]
+		if fd.IsAnnotation {
 			continue
 		}
 
-		cschema, err := ChildSchema(schema, ft)
+		cschema, err := ssd.ChildSchema(schema, i, false)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error for schema for type %T, field name %s: %s", root, ft.Name, err)
+			return nil, nil, fmt.Errorf("error for schema for type %T, field name %s: %s", root, fd.Field.Name, err)
 		}
 		if cschema == nil {
-			return nil, nil, fmt.Errorf("could not find schema for type %T, field name %s", root, ft.Name)
+			return nil, nil, fmt.Errorf("could not find schema for type %T, field name %s", root, fd.Field.Name)
 		}
 
-		ps, err := SchemaPaths(ft)
-		DbgPrint("check field name %s, paths %v", cschema.Name, ps)
-		if err != nil {
-			return nil, nil, err
+		DbgPrint("check field name %s, paths %v", cschema.Name, fd.SchemaPaths)
+		if fd.SchemaPathsErr != nil {
+			return nil, nil, fd.SchemaPathsErr
 		}
-		for _, p := range ps {
+		for _, p := range fd.SchemaPaths {
 			if PathMatchesPrefix(path, p) {
-				// don't trim whole prefix  for keyed list since name and key
-				// are a in the same element.
 				to := len(p)
-				if IsTypeMap(ft.Type) {
+				if fd.IsMap {
 					to--
 				}
-				return getNodesInternal(cschema, f.Interface(), TrimGNMIPathPrefix(path, p[0:to]))
+				return getNodesInternal(cschema, v.Field(i).Interface(), TrimGNMIPathPrefix(path, p[0:to]))
 			}
 		}
 	}
@@ -1024,15 +1059,15 @@ func pathStructTagKey(f reflect.StructField) string {
 // getKeyValue returns an error if no path in any of the fields of structVal has
 // key as the last path element.
 func getKeyValue(structVal reflect.Value, key string) (interface{}, error) {
-	for i := 0; i < structVal.NumField(); i++ {
-		f := structVal.Type().Field(i)
-		p, err := RelativeSchemaPath(f)
-		if err != nil {
-			return nil, err
+	sd := DescribeStructType(structVal.Type())
+	for _, idx := range sd.LastRelElemFields(StripModulePrefix(key), false) {
+		if idx >= sd.FirstRelPathErrIdx {
+			break
 		}
-		if p[len(p)-1] == key {
-			fv := structVal.Field(i)
-			if fv.Type().Kind() == reflect.Ptr {
+		fd := &sd.Fields[idx]
+		if fd.RelPath[len(fd.RelPath)-1] == key {
+			fv := structVal.Field(idx)
+			if fd.IsPtr {
 				// The type for the key is the dereferenced type, if the type
 				// is a ptr.
 				if !fv.Elem().IsValid() {
@@ -1042,6 +1077,9 @@ func getKeyValue(structVal reflect.Value, key string) (interface{}, error) {
 			}
 			return fv.Interface(), nil
 		}
+	}
+	if sd.FirstRelPathErrIdx < len(sd.Fields) {
+		return nil, sd.Fields[sd.FirstRelPathErrIdx].RelPathErr
 	}
 
 	return nil, fmt.Errorf("could not find key field %s in struct type %s", key, structVal.Type())

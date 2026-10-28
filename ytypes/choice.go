@@ -60,10 +60,15 @@ func validateChoice(schema *yang.Entry, structValue ygot.GoStruct) (selected []s
 // the names of all fields in the case that were selected.
 func IsCaseSelected(schema *yang.Entry, value interface{}) (selected []string, errors []error) {
 	v := reflect.ValueOf(value).Elem()
-	for i := 0; i < v.NumField(); i++ {
+	sd := util.DescribeStructType(v.Type())
+	ssd := sd.Schema(schema)
+	for i := range sd.Fields {
+		fd := &sd.Fields[i]
+		if fd.IsAnnotation {
+			continue
+		}
 		if !util.IsValueNilOrDefault(v.Field(i).Interface()) {
-			fieldType := v.Type().Field(i)
-			cs, err := util.ChildSchema(schema, fieldType)
+			cs, err := ssd.ChildSchema(schema, i, false)
 			if err != nil {
 				errors = util.AppendErr(errors, err)
 				continue
@@ -72,7 +77,7 @@ func IsCaseSelected(schema *yang.Entry, value interface{}) (selected []string, e
 				// Since the field is non-nil and matching schema is found for
 				// the field under this case, this means that this case is
 				// selected.
-				selected = append(selected, fieldType.Name)
+				selected = append(selected, fd.Field.Name)
 			}
 		}
 	}

@@ -146,7 +146,11 @@ func walkFieldInternal(visitor Visitor, node WalkNode, o *WalkOptions) {
 	t := v.Type()
 
 	// walk children
-	orderedMap, isOrderedMap := v.Interface().(goOrderedMap)
+	var orderedMap goOrderedMap
+	isOrderedMap := t.Implements(goOrderedMapType) || (t.Kind() == reflect.Interface && !v.IsNil())
+	if isOrderedMap {
+		orderedMap, isOrderedMap = v.Interface().(goOrderedMap)
+	}
 
 	switch {
 	case isOrderedMap, IsTypeSlice(t), IsTypeMap(t):
@@ -221,30 +225,30 @@ func walkFieldInternal(visitor Visitor, node WalkNode, o *WalkOptions) {
 		}
 		fallthrough
 	case IsTypeStruct(t):
-		for i := 0; i < t.NumField(); i++ {
-			sf := t.Field(i)
-
+		sd := DescribeStructType(t)
+		hasVal := !IsNilOrInvalidValue(v)
+		for i := range sd.Fields {
+			fd := &sd.Fields[i]
 			// Do not handle annotation fields, since they have no schema.
-			if IsYgotAnnotation(sf) {
+			if fd.IsAnnotation {
 				continue
 			}
 
 			nn := &NodeInfo{
 				Parent:      ni,
-				StructField: sf,
+				StructField: fd.Field,
 			}
-			if !IsNilOrInvalidValue(v) {
+			if hasVal {
 				nn.FieldValue = v.Field(i)
 			} else {
-				nn.FieldValue = reflect.Zero(sf.Type)
+				nn.FieldValue = reflect.Zero(fd.Field.Type)
 			}
-			ps, err := SchemaPaths(nn.StructField)
-			if err != nil {
-				o.WalkErrors.Collect(err)
+			if fd.SchemaPathsErr != nil {
+				o.WalkErrors.Collect(fd.SchemaPathsErr)
 				return
 			}
 
-			for _, p := range ps {
+			for _, p := range fd.SchemaPaths {
 				nn.Schema = FirstChild(ni.Schema, p)
 				if nn.Schema == nil {
 					e := fmt.Errorf("forEachFieldInternal could not find child schema with path %v from schema name %s", p, ni.Schema.Name)
@@ -289,7 +293,11 @@ func walkDataFieldInternal(visitor Visitor, node WalkNode, o *WalkOptions) {
 	v := ni.FieldValue
 	t := v.Type()
 
-	orderedMap, isOrderedMap := v.Interface().(goOrderedMap)
+	var orderedMap goOrderedMap
+	isOrderedMap := t.Implements(goOrderedMapType) || (t.Kind() == reflect.Interface && !v.IsNil())
+	if isOrderedMap {
+		orderedMap, isOrderedMap = v.Interface().(goOrderedMap)
+	}
 
 	// Determine whether we need to recurse into the field, or whether it is
 	// a leaf or leaf-list, which are not recursed into when traversing the
@@ -327,18 +335,16 @@ func walkDataFieldInternal(visitor Visitor, node WalkNode, o *WalkOptions) {
 		fallthrough
 	case IsTypeStruct(t):
 		// Handle non-pointer structs by recursing into each field of the struct.
-		for i := 0; i < t.NumField(); i++ {
-			sf := t.Field(i)
+		sd := DescribeStructType(t)
+		for i := range sd.Fields {
+			fd := &sd.Fields[i]
 			nn := &NodeInfo{
 				Parent:      ni,
-				StructField: sf,
-				FieldValue:  reflect.Zero(sf.Type),
+				StructField: fd.Field,
+				FieldValue:  v.Field(i),
 			}
-
-			nn.FieldValue = v.Field(i)
-			ps, err := SchemaPaths(nn.StructField)
-			if err != nil {
-				o.WalkErrors.Collect(err)
+			if fd.SchemaPathsErr != nil {
+				o.WalkErrors.Collect(fd.SchemaPathsErr)
 				return
 			}
 			// In the case that the field expands to >1 different data tree path,
@@ -346,14 +352,14 @@ func walkDataFieldInternal(visitor Visitor, node WalkNode, o *WalkOptions) {
 			// for each schema path. This ensures that the iterator
 			// function runs for all expansions of the data tree as well as the GoStruct
 			// fields.
-			for _, p := range ps {
+			for _, p := range fd.SchemaPaths {
 				nn.PathFromParent = p
-				if IsTypeSlice(sf.Type) || IsTypeMap(sf.Type) {
+				if fd.IsSlice || fd.IsMap {
 					// Since lists can have path compression - where the path contains more
 					// than one element, ensure that the schema path we received is only two
 					// elements long. This protects against compression errors where there are
 					// trailing spaces (e.g., a path tag of config/bar/).
-					nn.PathFromParent = p[0:1]
+					nn.PathFromParent = p[:1:1]
 				}
 				walkDataFieldInternal(childVisitor, WalkNodeFromNodeInfo(nn), o)
 			}

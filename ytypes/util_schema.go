@@ -313,23 +313,53 @@ func schemaToStructFieldName(schema *yang.Entry, parent interface{}, preferShado
 		t = t.Elem()
 	}
 
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		fieldName := f.Name
-		relativeSchemaPathFn := util.RelativeSchemaPath
-		if preferShadowPath {
-			relativeSchemaPathFn = util.RelativeSchemaPathPreferShadow
+	sd := util.DescribeStructType(t)
+	errLimit := sd.FirstRelPathErrIdx
+	if preferShadowPath {
+		errLimit = sd.FirstRelShadowPathErrIdx
+	}
+
+	// Leaf and leaf-list schemas have an empty Dir map, so findSchemaAtPath
+	// always returns nil and only fields whose relative path ends with
+	// schema.Name can match via hasRelativePath.
+	if len(schema.Dir) == 0 {
+		for _, idx := range sd.LastRelElemFields(schema.Name, preferShadowPath) {
+			if idx >= errLimit {
+				break
+			}
+			fd := &sd.Fields[idx]
+			p := fd.RelPath
+			if preferShadowPath {
+				p = fd.RelShadowPath
+			}
+			if hasRelativePath(schema, p) {
+				return fd.Field.Name, schema, nil
+			}
 		}
-		p, err := relativeSchemaPathFn(f)
+		if errLimit < len(sd.Fields) {
+			if preferShadowPath {
+				return "", nil, sd.Fields[errLimit].RelShadowPathErr
+			}
+			return "", nil, sd.Fields[errLimit].RelPathErr
+		}
+		return "", nil, fmt.Errorf("struct field %s not found in parent %v, type %T", schema.Name, parent, parent)
+	}
+
+	for i := range sd.Fields {
+		fd := &sd.Fields[i]
+		p, err := fd.RelPath, fd.RelPathErr
+		if preferShadowPath {
+			p, err = fd.RelShadowPath, fd.RelShadowPathErr
+		}
 		if err != nil {
 			return "", nil, err
 		}
 
 		if hasRelativePath(schema, p) {
-			return fieldName, schema, nil
+			return fd.Field.Name, schema, nil
 		}
 		if ns := findSchemaAtPath(schema, p); ns != nil {
-			return fieldName, ns, nil
+			return fd.Field.Name, ns, nil
 		}
 	}
 

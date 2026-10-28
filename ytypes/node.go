@@ -161,207 +161,45 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 		return nil, status.Errorf(codes.InvalidArgument, "got %T, want struct ptr root in retrieveNodeContainer", root)
 	}
 
-	// dereference reflect value as it points to a pointer.
+	// Dereference reflect value as it points to a pointer.
 	v := rv.Elem()
+	sd := util.DescribeStructType(v.Type())
+	ssd := sd.Schema(schema)
 
-	for i := 0; i < v.NumField(); i++ {
-		fv, ft := v.Field(i), v.Type().Field(i)
-
-		childSchemaFn := util.ChildSchema
+	if !sd.HasEmptyPrefix() && len(path.GetElem()) > 0 {
+		limit := ssd.FirstErrIdx
 		if args.preferShadowPath {
-			childSchemaFn = util.ChildSchemaPreferShadow
-		}
-		cschema, err := childSchemaFn(schema, ft)
-		if !util.IsYgotAnnotation(ft) {
-			switch {
-			case err != nil:
-				return nil, status.Errorf(codes.Unknown, "failed to get child schema for %T, field %s: %s", root, ft.Name, err)
-			case cschema == nil:
-				return nil, status.Errorf(codes.InvalidArgument, "could not find schema for type %T, field %s", root, ft.Name)
-			}
+			limit = ssd.FirstShadowErrIdx
 		}
 
-		checkPath := func(p []string, args retrieveNodeArgs, shadowLeaf bool) ([]*TreeNode, error) {
-			to := len(p)
-			if _, isOrderedMap := fv.Interface().(ygot.GoOrderedMap); util.IsTypeMap(ft.Type) || isOrderedMap {
-				// We pause for a single step because it takes
-				// two steps to traverse a map.
-				to--
-			}
-			np := &gpb.Path{}
-			if traversedPath != nil {
-				np = proto.Clone(traversedPath).(*gpb.Path)
-			}
-			for i := range p[0:to] {
-				np.Elem = append(np.Elem, path.GetElem()[i])
-			}
-
-			// If the current node is a shadow leaf, this means the input path is a shadow path
-			// that the GoStruct recognizes, but doesn't have space for. We will therefore
-			// stop processing at this point, in other words avoid modifying any child struct
-			// elements beyond this point.
-			if shadowLeaf {
-				switch {
-				case cschema == nil:
-					return nil, status.Errorf(codes.InvalidArgument, "could not find schema for path %v", np)
-				case !cschema.IsLeaf() && !cschema.IsLeafList():
-					return nil, status.Errorf(codes.InvalidArgument, "shadow path traverses a non-leaf node, this is not allowed, path: %v", np)
-				default:
-					return []*TreeNode{{
-						Path: np,
-					}}, nil
-				}
-			}
-
-			// If args.modifyRoot is true, then initialize the field before possibly searching further.
-			if args.modifyRoot {
-				if err := util.InitializeStructField(root, ft.Name, args.initializeLeafs); err != nil {
-					return nil, status.Errorf(codes.Unknown, "failed to initialize struct field %s in %T, child schema %v, path %v", ft.Name, root, cschema, path)
-				}
-			}
-
-			// If delete is specified, and the path is exhausted, then we set the
-			// corresponding field to its zero value. The zero value is the unset value for
-			// any node type, whether leaf or non-leaf.
-			if args.delete && len(path.Elem) == to {
-				fv.Set(reflect.Zero(ft.Type))
-				return nil, nil
-			}
-
-			// If val in args is set to a non-nil value and the path is exhausted, we
-			// may be dealing with a leaf or leaf list node. We should set the val
-			// to the corresponding field in GoStruct. If the field is an annotation,
-			// the field doesn't have a schema, so it is handled separately.
-			if !util.IsValueNil(args.val) && len(path.Elem) == to {
-				switch {
-				case util.IsYgotAnnotation(ft):
-					if err := util.UpdateField(root, ft.Name, args.val); err != nil {
-						return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v, because of %v", ft.Name, root, args.val, err)
-					}
-				case cschema.IsLeaf() || cschema.IsLeafList():
-					// With GNMIEncoding, unmarshalGeneric can only unmarshal leaf or leaf list
-					// nodes. Schema provided must be the schema of the leaf or leaf list node.
-					// root must be the reference of container leaf/leaf list belongs to.
-					var val interface{}
-					var encoding Encoding
-
-					// Check before we type assert to avoid a panic.
-					_, isTypedValue := args.val.(*gpb.TypedValue)
-					switch {
-					case isTypedValue && args.val.(*gpb.TypedValue).GetJsonIetfVal() != nil:
-						encoding = JSONEncoding
-						if err := json.Unmarshal(args.val.(*gpb.TypedValue).GetJsonIetfVal(), &val); err != nil {
-							return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v; %v", ft.Name, root, args.val, err)
-						}
-					case isTypedValue && args.val.(*gpb.TypedValue).GetJsonVal() != nil:
-						return nil, status.Errorf(codes.InvalidArgument, "json_val format is deprecated, please use json_ietf_val")
-					case isTypedValue && args.tolerateJSONInconsistenciesForVal:
-						encoding = gNMIEncodingWithJSONTolerance
-						val = args.val
-					case isTypedValue:
-						encoding = GNMIEncoding
-						val = args.val
-					default:
-						return nil, status.Errorf(codes.InvalidArgument, "invalid input data received, type %T", args.val)
-					}
-					var opts []UnmarshalOpt
-					if args.preferShadowPath {
-						opts = append(opts, &PreferShadowPath{})
-					}
-					if err := unmarshalGeneric(cschema, root, val, encoding, opts...); err != nil {
-						return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v; %v", ft.Name, root, args.val, err)
-					}
-				}
-				// With JSONEncoding, we can unmarshal container nodes or list elements.
-				// Handling for this is forwarded to existing handling in retrieveNode
-				// since unlike leaf or leaf-list nodes, we can unmarshal directly into
-				// the struct rather than having to use the parent struct.
-			}
-
-			matches, err := retrieveNode(cschema, fv.Interface(), util.TrimGNMIPathPrefix(path, p[0:to]), np, args)
-			if err != nil {
-				return nil, err
-			}
-			// If the child container struct or list map is empty
-			// after the deletion operation is executed, then set
-			// it to its zero value (nil).
-			if args.delete {
-				switch {
-				case util.IsValueNil(fv.Interface()):
-				case cschema == nil:
-					return nil, status.Errorf(codes.InvalidArgument, "could not find schema for path %v", np)
-				case cschema.IsContainer() || (cschema.IsList() && util.IsTypeStructPtr(reflect.TypeOf(fv.Interface()))):
-					if fv.Elem().IsZero() {
-						fv.Set(reflect.Zero(ft.Type))
-					}
-				case cschema.IsList():
-					if fv.Len() == 0 {
-						fv.Set(reflect.Zero(ft.Type))
-					}
-				}
-			}
-			return matches, nil
-		}
-
-		// Continue traversal on the first-encountered annotated
-		// GoStruct path that forms a prefix of the input path.
-		//
-		// Note that we first look through the non-shadow path, and if
-		// no matches are found, we then look through the shadow path
-		// to find matches. If the input path matches a shadow path,
-		// then we're guaranteed to have reached a leaf, since shadow
-		// paths can only occur for direct leaves under config/state.
-		//
-		// If the user has opted to prefer the "shadow-path" tag instead
-		// of the "path" tag, then we look-up the "shadow-path" first.
-		var shadowLeaf bool
-		if args.preferShadowPath {
-			// Look through shadow paths first instead.
-			schPaths := util.ShadowSchemaPaths(ft)
-			for _, p := range schPaths {
-				if util.PathMatchesPrefix(path, p) {
-					return checkPath(p, args, false)
-				} else if util.PathPartiallyMatchesPrefix(path, p) {
-					// Handle ordered map deletion at the container level in compressed GoStructs.
-					if _, isOrderedMap := fv.Interface().(ygot.GoOrderedMap); isOrderedMap {
-						if args.delete {
-							fv.Set(reflect.Zero(ft.Type))
-							return nil, nil
-						}
-					}
-				}
-			}
-
-			if len(schPaths) != 0 {
-				// If there were shadow paths, then we treat the
-				// "path" tag values as "shadow-path" values.
-				shadowLeaf = true
+		// Yield unique primary and shadow candidate field indices in ascending
+		// field order up to limit so shadow/non-shadow precedence and first-error
+		// semantics match a sequential struct scan.
+		cur := sd.Candidates(path, true)
+		for idx, ok := cur.Next(limit); ok; idx, ok = cur.Next(limit) {
+			matches, handled, err := retrieveNodeContainerField(schema, root, v, &sd.Fields[idx], ssd, path, traversedPath, args)
+			if handled {
+				return matches, err
 			}
 		}
-		schPaths, err := util.SchemaPaths(ft)
-		if err != nil {
-			return nil, status.Errorf(codes.Unknown, "failed to get schema paths for %T, field %s: %s", root, ft.Name, err)
-		}
-		for _, p := range schPaths {
-			if util.PathMatchesPrefix(path, p) {
-				return checkPath(p, args, shadowLeaf)
-			} else if !shadowLeaf && util.PathPartiallyMatchesPrefix(path, p) {
-				// Handle ordered map deletion at the container level in compressed GoStructs.
-				if _, isOrderedMap := fv.Interface().(ygot.GoOrderedMap); isOrderedMap {
-					if args.delete {
-						fv.Set(reflect.Zero(ft.Type))
-						return nil, nil
-					}
-				}
+
+		if limit < len(sd.Fields) {
+			matches, handled, err := retrieveNodeContainerField(schema, root, v, &sd.Fields[limit], ssd, path, traversedPath, args)
+			if handled {
+				return matches, err
 			}
 		}
-		if !args.preferShadowPath {
-			// Look through shadow paths last.
-			for _, p := range util.ShadowSchemaPaths(ft) {
-				if util.PathMatchesPrefix(path, p) {
-					return checkPath(p, args, true)
-				}
-			}
+
+		if args.ignoreExtraFields {
+			return nil, nil
+		}
+		return nil, status.Errorf(codes.InvalidArgument, "no match found in %T, for path %v", root, path)
+	}
+
+	for i := range sd.Fields {
+		matches, handled, err := retrieveNodeContainerField(schema, root, v, &sd.Fields[i], ssd, path, traversedPath, args)
+		if handled {
+			return matches, err
 		}
 	}
 
@@ -369,6 +207,229 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 		return nil, nil
 	}
 	return nil, status.Errorf(codes.InvalidArgument, "no match found in %T, for path %v", root, path)
+}
+
+// retrieveNodeContainerField evaluates struct field fd on container value v
+// against path, returning handled=true whenever fd matches path, partially
+// matches an ordered-map deletion, or encounters a schema/tag error.
+func retrieveNodeContainerField(schema *yang.Entry, root any, v reflect.Value, fd *util.FieldDesc, ssd *util.StructSchemaDesc, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, bool, error) {
+	cschema, err := ssd.ChildSchema(schema, fd.Index, args.preferShadowPath)
+	if !fd.IsAnnotation {
+		switch {
+		case err != nil:
+			return nil, true, status.Errorf(codes.Unknown, "failed to get child schema for %T, field %s: %s", root, fd.Field.Name, err)
+		case cschema == nil:
+			return nil, true, status.Errorf(codes.InvalidArgument, "could not find schema for type %T, field %s", root, fd.Field.Name)
+		}
+	}
+
+	// Continue traversal on the first-encountered annotated GoStruct path that
+	// forms a prefix of the input path. When preferShadowPath is set, inspect
+	// shadow-path entries first and treat path entries on fields that also have
+	// shadow-path as shadow leaves.
+	var shadowLeaf bool
+	if args.preferShadowPath {
+		for _, p := range fd.ShadowSchemaPaths {
+			switch {
+			case util.PathMatchesPrefix(path, p):
+				matches, err := traverseContainerFieldPath(root, v.Field(fd.Index), fd, cschema, p, path, traversedPath, args, false)
+				return matches, true, err
+			case util.PathPartiallyMatchesPrefix(path, p):
+				// Handle ordered map deletion at the container level in compressed GoStructs.
+				if args.delete && isOrderedMapField(v, fd) {
+					v.Field(fd.Index).Set(reflect.Zero(fd.Field.Type))
+					return nil, true, nil
+				}
+			}
+		}
+		if len(fd.ShadowSchemaPaths) != 0 {
+			shadowLeaf = true
+		}
+	}
+
+	if fd.SchemaPathsErr != nil {
+		return nil, true, status.Errorf(codes.Unknown, "failed to get schema paths for %T, field %s: %s", root, fd.Field.Name, fd.SchemaPathsErr)
+	}
+	for _, p := range fd.SchemaPaths {
+		switch {
+		case util.PathMatchesPrefix(path, p):
+			matches, err := traverseContainerFieldPath(root, v.Field(fd.Index), fd, cschema, p, path, traversedPath, args, shadowLeaf)
+			return matches, true, err
+		case !shadowLeaf && util.PathPartiallyMatchesPrefix(path, p):
+			// Handle ordered map deletion at the container level in compressed GoStructs.
+			if args.delete && isOrderedMapField(v, fd) {
+				v.Field(fd.Index).Set(reflect.Zero(fd.Field.Type))
+				return nil, true, nil
+			}
+		}
+	}
+
+	if !args.preferShadowPath {
+		for _, p := range fd.ShadowSchemaPaths {
+			if util.PathMatchesPrefix(path, p) {
+				matches, err := traverseContainerFieldPath(root, v.Field(fd.Index), fd, cschema, p, path, traversedPath, args, true)
+				return matches, true, err
+			}
+		}
+	}
+
+	return nil, false, nil
+}
+
+// traverseContainerFieldPath executes node retrieval, initialisation, mutation,
+// or deletion along matched field path p for struct field fd (value fv) on
+// parent container root.
+func traverseContainerFieldPath(root any, fv reflect.Value, fd *util.FieldDesc, cschema *yang.Entry, p []string, path, traversedPath *gpb.Path, args retrieveNodeArgs, shadowLeaf bool) ([]*TreeNode, error) {
+	ft := fd.Field
+	to := len(p)
+	if fd.IsMap || isOrderedMapValue(fv, fd) {
+		// Pause for a single step because it takes two steps to traverse a map.
+		to--
+	}
+	np := &gpb.Path{}
+	if traversedPath != nil {
+		np = proto.Clone(traversedPath).(*gpb.Path)
+	}
+	if to > 0 {
+		np.Elem = append(np.Elem, path.GetElem()[:to]...)
+	}
+
+	// If the current node is a shadow leaf, the input path is a shadow path
+	// that the GoStruct recognises without storing data for it, so stop
+	// traversal without modifying child struct elements.
+	if shadowLeaf {
+		switch {
+		case cschema == nil:
+			return nil, status.Errorf(codes.InvalidArgument, "could not find schema for path %v", np)
+		case !cschema.IsLeaf() && !cschema.IsLeafList():
+			return nil, status.Errorf(codes.InvalidArgument, "shadow path traverses a non-leaf node, this is not allowed, path: %v", np)
+		default:
+			return []*TreeNode{{
+				Path: np,
+			}}, nil
+		}
+	}
+
+	// If args.modifyRoot is true, initialise the field before searching further.
+	if args.modifyRoot {
+		fd.InitValue(fv, args.initializeLeafs)
+	}
+
+	// If delete is specified and the path is exhausted, reset the field to its
+	// zero value.
+	if args.delete && len(path.Elem) == to {
+		fv.Set(reflect.Zero(ft.Type))
+		return nil, nil
+	}
+
+	// If val in args is non-nil and the path is exhausted, update the leaf,
+	// leaf-list, or annotation field on root.
+	if !util.IsValueNil(args.val) && len(path.Elem) == to {
+		switch {
+		case fd.IsAnnotation:
+			if err := util.UpdateField(root, ft.Name, args.val); err != nil {
+				return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v, because of %v", ft.Name, root, args.val, err)
+			}
+		case cschema.IsLeaf() || cschema.IsLeafList():
+			var val any
+			var encoding Encoding
+
+			tv, isTypedValue := args.val.(*gpb.TypedValue)
+			switch {
+			case isTypedValue && tv.GetJsonIetfVal() != nil:
+				encoding = JSONEncoding
+				if err := json.Unmarshal(tv.GetJsonIetfVal(), &val); err != nil {
+					return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v; %v", ft.Name, root, args.val, err)
+				}
+			case isTypedValue && tv.GetJsonVal() != nil:
+				return nil, status.Errorf(codes.InvalidArgument, "json_val format is deprecated, please use json_ietf_val")
+			case isTypedValue && args.tolerateJSONInconsistenciesForVal:
+				encoding = gNMIEncodingWithJSONTolerance
+				val = args.val
+			case isTypedValue:
+				encoding = GNMIEncoding
+				val = args.val
+			default:
+				return nil, status.Errorf(codes.InvalidArgument, "invalid input data received, type %T", args.val)
+			}
+			var opts []UnmarshalOpt
+			if args.preferShadowPath {
+				opts = append(opts, &PreferShadowPath{})
+			}
+			if err := unmarshalGeneric(cschema, root, val, encoding, opts...); err != nil {
+				return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v; %v", ft.Name, root, args.val, err)
+			}
+		}
+	}
+
+	matches, err := retrieveNode(cschema, fv.Interface(), trimPathPrefix(path, p[0:to]), np, args)
+	if err != nil {
+		return nil, err
+	}
+	// If the child container struct or list map is empty after deletion, reset
+	// it to its zero value (nil).
+	if args.delete {
+		fvVal := fv.Interface()
+		switch {
+		case util.IsValueNil(fvVal):
+		case cschema == nil:
+			return nil, status.Errorf(codes.InvalidArgument, "could not find schema for path %v", np)
+		case cschema.IsContainer() || (cschema.IsList() && util.IsTypeStructPtr(reflect.TypeOf(fvVal))):
+			if fv.Elem().IsZero() {
+				fv.Set(reflect.Zero(ft.Type))
+			}
+		case cschema.IsList():
+			if fv.Len() == 0 {
+				fv.Set(reflect.Zero(ft.Type))
+			}
+		}
+	}
+	return matches, nil
+}
+
+// isOrderedMapField reports whether field fd on struct value v implements
+// ygot.GoOrderedMap without boxing concrete field values.
+func isOrderedMapField(v reflect.Value, fd *util.FieldDesc) bool {
+	if fd.IsOrderedMap {
+		return true
+	}
+	if fd.IsInterface {
+		return isOrderedMapValue(v.Field(fd.Index), fd)
+	}
+	return false
+}
+
+// isOrderedMapValue reports whether field value fv described by fd implements
+// ygot.GoOrderedMap without boxing concrete field values.
+func isOrderedMapValue(fv reflect.Value, fd *util.FieldDesc) bool {
+	if fd.IsOrderedMap {
+		return true
+	}
+	if fd.IsInterface && !fv.IsNil() {
+		_, ok := fv.Interface().(ygot.GoOrderedMap)
+		return ok
+	}
+	return false
+}
+
+// trimPathPrefix returns a shallow gpb.Path view with prefix removed from
+// path.Elem, nil when prefix consumes all elements of path, or path unchanged
+// when prefix does not match path.
+func trimPathPrefix(path *gpb.Path, prefix []string) *gpb.Path {
+	for len(prefix) != 0 && prefix[len(prefix)-1] == "" {
+		prefix = prefix[:len(prefix)-1]
+	}
+	if !util.PathMatchesPrefix(path, prefix) {
+		return path
+	}
+	if len(path.GetElem()) == len(prefix) {
+		return nil
+	}
+	return &gpb.Path{
+		Origin: path.GetOrigin(),
+		Target: path.GetTarget(),
+		Elem:   path.GetElem()[len(prefix):],
+	}
 }
 
 // getKeyFields retrieves the key field values of the input key-value list
