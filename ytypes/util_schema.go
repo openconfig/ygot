@@ -179,7 +179,9 @@ func dataTreePaths(parentSchema, schema *yang.Entry, f reflect.StructField) ([][
 		return nil, err
 	}
 	n, err := removeNonDataPathElements(parentSchema, schema, out)
-	util.DbgPrint("have paths %v, removing non-data from %s -> %v", out, schema.Name, n)
+	if util.IsDebugLibraryEnabled() {
+		util.DbgPrint("have paths %v, removing non-data from %s -> %v", out, schema.Name, n)
+	}
 	return n, err
 }
 
@@ -189,7 +191,9 @@ func dataTreePaths(parentSchema, schema *yang.Entry, f reflect.StructField) ([][
 func shadowDataTreePaths(parentSchema, schema *yang.Entry, f reflect.StructField) ([][]string, error) {
 	out := util.ShadowSchemaPaths(f)
 	n, err := removeNonDataPathElements(parentSchema, schema, out)
-	util.DbgPrint("have shadow paths %v, removing non-data from %s -> %v", out, schema.Name, n)
+	if util.IsDebugLibraryEnabled() {
+		util.DbgPrint("have shadow paths %v, removing non-data from %s -> %v", out, schema.Name, n)
+	}
 	return n, err
 }
 

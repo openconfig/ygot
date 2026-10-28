@@ -15,6 +15,7 @@
 package util
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -294,3 +295,52 @@ func TestDataSchemaTreesString(t *testing.T) {
 
 func String(s string) *string { return &s }
 func Int32(i int32) *int32    { return &i }
+
+func TestDebugEnabledHelpers(t *testing.T) {
+	saveDebugVals()
+	defer restoreDebugVals()
+
+	debugLibrary = false
+	debugSchema = false
+	if IsDebugLibraryEnabled() {
+		t.Errorf("IsDebugLibraryEnabled() = true, want false")
+	}
+	if IsDebugSchemaEnabled() {
+		t.Errorf("IsDebugSchemaEnabled() = true, want false")
+	}
+
+	debugLibrary = true
+	debugSchema = true
+	if !IsDebugLibraryEnabled() {
+		t.Errorf("IsDebugLibraryEnabled() = false, want true")
+	}
+	if !IsDebugSchemaEnabled() {
+		t.Errorf("IsDebugSchemaEnabled() = false, want true")
+	}
+}
+
+func TestDbgErr(t *testing.T) {
+	saveDebugVals()
+	defer restoreDebugVals()
+
+	sentinel := errors.New("test error")
+
+	debugLibrary = false
+	if got := DbgErr(nil); got != nil {
+		t.Errorf("DbgErr(nil) = %v, want nil", got)
+	}
+	if got := DbgErr(sentinel); !errors.Is(got, sentinel) {
+		t.Errorf("DbgErr(sentinel) = %v, want %v", got, sentinel)
+	}
+	if allocs := testing.AllocsPerRun(50, func() { _ = DbgErr(sentinel) }); allocs != 0 {
+		t.Errorf("DbgErr(sentinel) with debugLibrary=false allocated %.1f objects, want 0", allocs)
+	}
+
+	debugLibrary = true
+	if got := DbgErr(nil); got != nil {
+		t.Errorf("DbgErr(nil) with debugLibrary=true = %v, want nil", got)
+	}
+	if got := DbgErr(sentinel); !errors.Is(got, sentinel) {
+		t.Errorf("DbgErr(sentinel) with debugLibrary=true = %v, want %v", got, sentinel)
+	}
+}

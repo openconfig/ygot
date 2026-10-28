@@ -183,15 +183,19 @@ func InsertIntoSlice(parentSlice interface{}, value interface{}) error {
 	}
 
 	pv.Elem().Set(reflect.Append(pv.Elem(), v))
-	DbgPrint("new list: %v\n", pv.Elem().Interface())
+	if debugLibrary {
+		DbgPrint("new list: %v\n", pv.Elem().Interface())
+	}
 
 	return nil
 }
 
 // InsertIntoMap inserts value with key into parent which must be a map.
 func InsertIntoMap(parentMap interface{}, key interface{}, value interface{}) error {
-	DbgPrint("InsertIntoMap into parent type %T with key %v(%T) value \n%s\n (%T)",
-		parentMap, ValueStrDebug(key), key, pretty.Sprint(value), value)
+	if debugLibrary {
+		DbgPrint("InsertIntoMap into parent type %T with key %v(%T) value \n%s\n (%T)",
+			parentMap, ValueStrDebug(key), key, pretty.Sprint(value), value)
+	}
 
 	v := reflect.ValueOf(parentMap)
 	t := reflect.TypeOf(parentMap)
@@ -480,9 +484,11 @@ func ChildSchemaPreferShadow(schema *yang.Entry, f reflect.StructField) (*yang.E
 // path values from the "shadow-path" tag are used; if the field doesn't have
 // the "shadow-path" tag, then the path values from the "path" tag are used.
 func childSchema(schema *yang.Entry, f reflect.StructField, preferShadowPath bool) (*yang.Entry, error) {
-	pathTag, _ := f.Tag.Lookup("path")
-	shadowPathTag, _ := f.Tag.Lookup("shadow-path")
-	DbgSchema("childSchema for schema %s, field %s, path tag %s, shadow-path tag %s\n", schema.Name, f.Name, pathTag, shadowPathTag)
+	if debugSchema {
+		pathTag, _ := f.Tag.Lookup("path")
+		shadowPathTag, _ := f.Tag.Lookup("shadow-path")
+		DbgSchema("childSchema for schema %s, field %s, path tag %s, shadow-path tag %s\n", schema.Name, f.Name, pathTag, shadowPathTag)
+	}
 	p, err := relativeSchemaPath(f, preferShadowPath)
 	if err != nil {
 		return nil, err
@@ -532,7 +538,9 @@ func childSchema(schema *yang.Entry, f reflect.StructField, preferShadowPath boo
 	}
 	entries := FindFirstNonChoiceOrCase(schema)
 
-	DbgSchema("checking for %s against non choice/case entries: %v\n", p[0], stringMapKeys(entries))
+	if debugSchema {
+		DbgSchema("checking for %s against non choice/case entries: %v\n", p[0], stringMapKeys(entries))
+	}
 	for path, entry := range entries {
 		splitPath := SplitPath(path)
 		name := splitPath[len(splitPath)-1]
@@ -931,7 +939,9 @@ func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]inter
 	// Iterate through all the map keys to see if any match the path.
 	for _, k := range rv.MapKeys() {
 		ev := rv.MapIndex(k)
-		DbgPrint("checking key %v, value %v", k.Interface(), ValueStrDebug(ev.Interface()))
+		if debugLibrary {
+			DbgPrint("checking key %v, value %v", k.Interface(), ValueStrDebug(ev.Interface()))
+		}
 		match := true
 		if !emptyKey { // empty key matches everything.
 			if !IsValueStruct(k) {

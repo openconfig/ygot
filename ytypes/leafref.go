@@ -173,7 +173,9 @@ func leafRefToGNMIPath(root *util.NodeInfo, path string, pathQueryNode *util.Pat
 // dataNodesAtPath returns all nodes that match the given path from the given
 // node.
 func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.PathQueryNodeMemo) ([]interface{}, error) {
-	util.DbgPrint("DataNodeAtPath got leafref with path %s from node path %s, field name %s", path, ni.Schema.Path(), ni.StructField.Name)
+	if util.IsDebugLibraryEnabled() {
+		util.DbgPrint("DataNodeAtPath got leafref with path %s from node path %s, field name %s", path, ni.Schema.Path(), ni.StructField.Name)
+	}
 	if path == nil || len(path.GetElem()) == 0 {
 		return []interface{}{ni}, nil
 	}
@@ -206,15 +208,19 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.Path
 				continue
 			} else {
 				path.Elem = removeParentDirPrefix(path.GetElem(), root.PathFromParent)
-				util.DbgPrint("going up data tree from type %s to %s, schema path from parent is %v, remaining path %v",
-					root.FieldValue.Type(), root.Parent.FieldValue.Type(), root.PathFromParent, path)
+				if util.IsDebugLibraryEnabled() {
+					util.DbgPrint("going up data tree from type %s to %s, schema path from parent is %v, remaining path %v",
+						root.FieldValue.Type(), root.Parent.FieldValue.Type(), root.PathFromParent, path)
+				}
 				root = root.Parent
 				pathQueryRoot = pathQueryRoot.Parent
 			}
 		}
 	}
 
-	util.DbgPrint("root element type %s with remaining path %s", root.FieldValue.Type(), path)
+	if util.IsDebugLibraryEnabled() {
+		util.DbgPrint("root element type %s with remaining path %s", root.FieldValue.Type(), path)
+	}
 
 	// Check whether we have already done a lookup for the path specified by 'path' from this node before
 	// -- if so, return it from the cache rather than walking the tree again
