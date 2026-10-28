@@ -460,7 +460,7 @@ func TestDiff(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
+		t.Run(tt.desc+"/Diff", func(t *testing.T) {
 			got, err := ygot.Diff(tt.inOrig, tt.inMod)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("ygot.Diff(%#v, %#v): did not get expected error, %s", tt.inOrig, tt.inMod, diff)
@@ -473,6 +473,21 @@ func TestDiff(t *testing.T) {
 				}
 
 				t.Fatalf("ygot.Diff(%#v, %#v); did not get expected diff output, diff(-got,+want):\n%s", tt.inOrig, tt.inMod, diff)
+			}
+		})
+		t.Run(tt.desc+"/ParallelDiff", func(t *testing.T) {
+			got, err := ygot.ParallelDiff(tt.inOrig, tt.inMod)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("ygot.ParallelDiff(%#v, %#v): did not get expected error, %s", tt.inOrig, tt.inMod, diff)
+			}
+
+			if !testutil.NotificationSetEqual([]*gnmipb.Notification{got}, []*gnmipb.Notification{tt.want}) {
+				diff, err := testutil.GenerateUnifiedDiff(prototext.Format(got), prototext.Format(tt.want))
+				if err != nil {
+					diff = "unable to produce diff"
+				}
+
+				t.Fatalf("ygot.ParallelDiff(%#v, %#v); did not get expected diff output, diff(-got,+want):\n%s", tt.inOrig, tt.inMod, diff)
 			}
 		})
 	}
