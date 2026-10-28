@@ -40,6 +40,12 @@ var (
 	maxValueStrLen = 150
 )
 
+// IsDebugLibraryEnabled reports whether library data tree traversal debug
+// logging is enabled.
+func IsDebugLibraryEnabled() bool {
+	return debugLibrary
+}
+
 // DbgPrint prints v if the package global variable debugLibrary is set.
 // v has the same format as Printf. A trailing newline is added to the output.
 func DbgPrint(v ...interface{}) {

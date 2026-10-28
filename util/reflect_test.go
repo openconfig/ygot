@@ -2375,9 +2375,207 @@ func TestGetNodesStructKeyedList(t *testing.T) {
 }
 
 func TestDeepEqualDerefPtrs(t *testing.T) {
-	a, b := 42, 42
-	if !DeepEqualDerefPtrs(&a, &b) {
-		t.Fatalf("DeepEqualDerefPtrs: expect that %v == %v", a, b)
+	s1, s2, s3 := "alpha", "alpha", "beta"
+	u8a, u8b, u8c := uint8(7), uint8(7), uint8(8)
+	u16a, u16b := uint16(16), uint16(16)
+	u32a, u32b, u32c := uint32(32), uint32(32), uint32(33)
+	u64a, u64b := uint64(64), uint64(64)
+	i8a, i8b := int8(-8), int8(-8)
+	i16a, i16b := int16(-16), int16(-16)
+	i32a, i32b := int32(-32), int32(-32)
+	i64a, i64b := int64(-64), int64(-64)
+	ba, bb, bc := true, true, false
+	fa, fb := float64(3.14), float64(3.14)
+	ia, ib := 42, 42
+
+	tests := []struct {
+		desc string
+		inA  interface{}
+		inB  interface{}
+		want bool
+	}{{
+		desc: "equal int pointers",
+		inA:  &ia,
+		inB:  &ib,
+		want: true,
+	}, {
+		desc: "equal string pointers",
+		inA:  &s1,
+		inB:  &s2,
+		want: true,
+	}, {
+		desc: "unequal string pointers",
+		inA:  &s1,
+		inB:  &s3,
+		want: false,
+	}, {
+		desc: "string pointer and string value",
+		inA:  &s1,
+		inB:  s2,
+		want: true,
+	}, {
+		desc: "equal uint8 pointers",
+		inA:  &u8a,
+		inB:  &u8b,
+		want: true,
+	}, {
+		desc: "unequal uint8 pointers",
+		inA:  &u8a,
+		inB:  &u8c,
+		want: false,
+	}, {
+		desc: "equal uint16 pointers",
+		inA:  &u16a,
+		inB:  &u16b,
+		want: true,
+	}, {
+		desc: "equal uint32 pointers",
+		inA:  &u32a,
+		inB:  &u32b,
+		want: true,
+	}, {
+		desc: "unequal uint32 pointers",
+		inA:  &u32a,
+		inB:  &u32c,
+		want: false,
+	}, {
+		desc: "equal uint64 pointers",
+		inA:  &u64a,
+		inB:  &u64b,
+		want: true,
+	}, {
+		desc: "equal int8 pointers",
+		inA:  &i8a,
+		inB:  &i8b,
+		want: true,
+	}, {
+		desc: "equal int16 pointers",
+		inA:  &i16a,
+		inB:  &i16b,
+		want: true,
+	}, {
+		desc: "equal int32 pointers",
+		inA:  &i32a,
+		inB:  &i32b,
+		want: true,
+	}, {
+		desc: "equal int64 pointers",
+		inA:  &i64a,
+		inB:  &i64b,
+		want: true,
+	}, {
+		desc: "equal bool pointers",
+		inA:  &ba,
+		inB:  &bb,
+		want: true,
+	}, {
+		desc: "unequal bool pointers",
+		inA:  &ba,
+		inB:  &bc,
+		want: false,
+	}, {
+		desc: "equal float64 pointers",
+		inA:  &fa,
+		inB:  &fb,
+		want: true,
+	}, {
+		desc: "nil string pointer and non-nil string pointer",
+		inA:  (*string)(nil),
+		inB:  &s1,
+		want: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := DeepEqualDerefPtrs(tt.inA, tt.inB); got != tt.want {
+				t.Fatalf("DeepEqualDerefPtrs(%v, %v): got %v, want %v", tt.inA, tt.inB, got, tt.want)
+			}
+		})
+	}
+
+	if allocs := testing.AllocsPerRun(100, func() {
+		_ = DeepEqualDerefPtrs(&s1, &s2)
+		_ = DeepEqualDerefPtrs(&u32a, &u32b)
+	}); allocs != 0 {
+		t.Fatalf("DeepEqualDerefPtrs allocated %v objects per run, want 0", allocs)
+	}
+}
+
+func TestIsNilOrInvalidValueZeroAllocs(t *testing.T) {
+	type sampleStruct struct {
+		Name *string
+		Code int64
+	}
+	s := "ok"
+	st := sampleStruct{Name: &s, Code: 7}
+	rvStruct := reflect.ValueOf(st)
+	rvInt := reflect.ValueOf(int64(7))
+	rvPtr := reflect.ValueOf(&s)
+	rvNilPtr := reflect.ValueOf((*string)(nil))
+
+	if IsNilOrInvalidValue(rvStruct) {
+		t.Fatalf("IsNilOrInvalidValue(struct): got true, want false")
+	}
+	if IsNilOrInvalidValue(rvInt) {
+		t.Fatalf("IsNilOrInvalidValue(int64): got true, want false")
+	}
+	if IsNilOrInvalidValue(rvPtr) {
+		t.Fatalf("IsNilOrInvalidValue(non-nil ptr): got true, want false")
+	}
+	if !IsNilOrInvalidValue(rvNilPtr) {
+		t.Fatalf("IsNilOrInvalidValue(nil ptr): got false, want true")
+	}
+
+	if allocs := testing.AllocsPerRun(100, func() {
+		_ = IsNilOrInvalidValue(rvStruct)
+		_ = IsNilOrInvalidValue(rvInt)
+		_ = IsNilOrInvalidValue(rvPtr)
+		_ = IsNilOrInvalidValue(rvNilPtr)
+	}); allocs != 0 {
+		t.Fatalf("IsNilOrInvalidValue allocated %v objects per run, want 0", allocs)
+	}
+}
+
+func TestNewPathQueryResult(t *testing.T) {
+	s1, s2, s3, s4 := "p1", "p2", "p3", "p4"
+	u1 := uint32(1)
+
+	tests := []struct {
+		desc          string
+		inNodes       []interface{}
+		inErr         error
+		wantStringSet map[string]struct{}
+	}{{
+		desc:          "fewer than 4 string nodes leaves StringSet nil",
+		inNodes:       []interface{}{&s1, &s2, &s3},
+		wantStringSet: nil,
+	}, {
+		desc:    "4 or more string pointer nodes builds StringSet",
+		inNodes: []interface{}{&s1, &s2, &s3, &s4, (*string)(nil)},
+		wantStringSet: map[string]struct{}{
+			"p1": {},
+			"p2": {},
+			"p3": {},
+			"p4": {},
+		},
+	}, {
+		desc:          "mixed non-string node leaves StringSet nil",
+		inNodes:       []interface{}{&s1, &s2, &s3, &u1},
+		wantStringSet: nil,
+	}, {
+		desc:          "non-nil error leaves StringSet nil",
+		inNodes:       []interface{}{&s1, &s2, &s3, &s4},
+		inErr:         fmt.Errorf("query error"),
+		wantStringSet: nil,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got := NewPathQueryResult(tt.inNodes, tt.inErr)
+			if diff := cmp.Diff(got.StringSet, tt.wantStringSet); diff != "" {
+				t.Fatalf("NewPathQueryResult(%v, %v): did not get expected StringSet, diff(-got,+want):\n%s", tt.inNodes, tt.inErr, diff)
+			}
+		})
 	}
 }
 

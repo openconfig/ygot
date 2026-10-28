@@ -69,19 +69,22 @@ func ValidateLeafRefData(schema *yang.Entry, value interface{}, opt *LeafrefOpti
 		if err != nil {
 			return util.NewErrs(err)
 		}
-		matchNodes, err := dataNodesAtPath(ni, gNMIPath, pathQueryNode)
+		matchResult, err := dataNodesResultAtPath(ni, gNMIPath, pathQueryNode)
 		if err != nil {
 			return util.NewErrs(err)
 		}
 
-		pathStr := util.StripModulePrefixesStr(schema.Type.Path)
-		util.DbgPrint("Verifying leafref at %s, matching nodes are: %v", pathStr, util.ValueStrDebug(matchNodes))
+		if util.IsDebugLibraryEnabled() {
+			pathStr := util.StripModulePrefixesStr(schema.Type.Path)
+			util.DbgPrint("Verifying leafref at %s, matching nodes are: %v", pathStr, util.ValueStrDebug(matchResult.Nodes))
+		}
 
-		match, err := matchesNodes(ni, matchNodes)
+		match, err := matchesNodesResult(ni, matchResult)
 		if err != nil {
 			return leafrefErrOrLog(util.NewErrs(err), opt)
 		}
 		if !match {
+			pathStr := util.StripModulePrefixesStr(schema.Type.Path)
 			e := fmt.Errorf("field name %s value %s schema path %s has leafref path %s not equal to any target nodes",
 				ni.StructField.Name, util.ValueStr(ni.FieldValue.Interface()), ni.Schema.Path(), pathStr)
 			util.DbgPrint("ERR: %s", e)
@@ -173,9 +176,18 @@ func leafRefToGNMIPath(root *util.NodeInfo, path string, pathQueryNode *util.Pat
 // dataNodesAtPath returns all nodes that match the given path from the given
 // node.
 func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.PathQueryNodeMemo) ([]interface{}, error) {
-	util.DbgPrint("DataNodeAtPath got leafref with path %s from node path %s, field name %s", path, ni.Schema.Path(), ni.StructField.Name)
+	res, err := dataNodesResultAtPath(ni, path, pathQueryNode)
+	return res.Nodes, err
+}
+
+// dataNodesResultAtPath returns the cached or freshly queried PathQueryResult
+// for path starting from ni.
+func dataNodesResultAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.PathQueryNodeMemo) (util.PathQueryResult, error) {
+	if util.IsDebugLibraryEnabled() {
+		util.DbgPrint("DataNodeAtPath got leafref with path %s from node path %s, field name %s", path, ni.Schema.Path(), ni.StructField.Name)
+	}
 	if path == nil || len(path.GetElem()) == 0 {
-		return []interface{}{ni}, nil
+		return util.PathQueryResult{Nodes: []interface{}{ni}}, nil
 	}
 	root := getDataTreeRoot(ni)
 	pathQueryRoot := pathQueryNode.GetRoot()
@@ -188,7 +200,7 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.Path
 		pathQueryRoot = pathQueryNode
 		for len(path.GetElem()) != 0 && path.GetElem()[0].GetName() == ".." {
 			if root.Parent == nil {
-				return nil, fmt.Errorf("no parent for leafref path at %v, with remaining path %s", ni.Schema.Path(), path)
+				return util.PathQueryResult{}, fmt.Errorf("no parent for leafref path at %v, with remaining path %s", ni.Schema.Path(), path)
 			}
 			_, isOrderedMap := root.Parent.FieldValue.Interface().(ygot.GoOrderedMap)
 			if (root.Parent.Schema.IsList() && (util.IsValueMap(root.Parent.FieldValue) || isOrderedMap)) || (root.Parent.Schema.IsLeafList() && util.IsValueSlice(root.Parent.FieldValue)) {
@@ -206,15 +218,19 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.Path
 				continue
 			} else {
 				path.Elem = removeParentDirPrefix(path.GetElem(), root.PathFromParent)
-				util.DbgPrint("going up data tree from type %s to %s, schema path from parent is %v, remaining path %v",
-					root.FieldValue.Type(), root.Parent.FieldValue.Type(), root.PathFromParent, path)
+				if util.IsDebugLibraryEnabled() {
+					util.DbgPrint("going up data tree from type %s to %s, schema path from parent is %v, remaining path %v",
+						root.FieldValue.Type(), root.Parent.FieldValue.Type(), root.PathFromParent, path)
+				}
 				root = root.Parent
 				pathQueryRoot = pathQueryRoot.Parent
 			}
 		}
 	}
 
-	util.DbgPrint("root element type %s with remaining path %s", root.FieldValue.Type(), path)
+	if util.IsDebugLibraryEnabled() {
+		util.DbgPrint("root element type %s with remaining path %s", root.FieldValue.Type(), path)
+	}
 
 	// Check whether we have already done a lookup for the path specified by 'path' from this node before
 	// -- if so, return it from the cache rather than walking the tree again
@@ -222,13 +238,14 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.Path
 	// Get the query path for this node.
 	strPath, err := ygot.PathToString(path)
 	if err != nil {
-		return nil, err
+		return util.PathQueryResult{}, err
 	}
 
 	// Now, check for a previous identical query in the memo map.
-	qVal, ok := pathQueryRoot.Memo[strPath]
-	if ok {
-		return qVal.Nodes, qVal.Err
+	if pathQueryRoot.Memo != nil {
+		if qVal, ok := pathQueryRoot.Memo[strPath]; ok {
+			return qVal, qVal.Err
+		}
 	}
 	// Get all non-nil values
 	var nodes []any
@@ -238,8 +255,11 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.Path
 			nodes = append(nodes, treeNode.Data)
 		}
 	}
-	pathQueryRoot.Memo[strPath] = util.PathQueryResult{Nodes: nodes, Err: err}
-	return nodes, err
+	res := util.NewPathQueryResult(nodes, err)
+	if pathQueryRoot.Memo != nil {
+		pathQueryRoot.Memo[strPath] = res
+	}
+	return res, err
 }
 
 // removeParentDirPrefix removes the leading .. from path and returns the
@@ -264,8 +284,14 @@ func removeParentDirPrefix(path []*gpb.PathElem, pathFromParent []string) []*gpb
 // matchNodes may contain one or more leaf-lists, in which case ni is compared
 // against each value in the leaf-list.
 func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
+	return matchesNodesResult(ni, util.PathQueryResult{Nodes: matchNodes})
+}
+
+// matchesNodesResult reports whether ni matches any of the elements in res,
+// using res.StringSet when available for O(1) string leafref checks.
+func matchesNodesResult(ni *util.NodeInfo, res util.PathQueryResult) (bool, error) {
+	matchNodes := res.Nodes
 	// Handle source or destination being empty.
-	pathStr := util.StripModulePrefixesStr(ni.Schema.Type.Path)
 	if util.IsNilOrInvalidValue(ni.FieldValue) || util.IsValueNilOrDefault(ni.FieldValue.Interface()) {
 		if len(matchNodes) == 0 {
 			util.DbgPrint("OK: source value is nil, dest is empty or list")
@@ -281,53 +307,159 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 	// ni is known not to be empty at this point.
 	nii := ni.FieldValue.Interface()
 	if len(matchNodes) == 0 {
+		pathStr := util.StripModulePrefixesStr(ni.Schema.Type.Path)
 		return false, util.NewErrs(util.DbgErr(fmt.Errorf("pointed-to value with path %s from field %s value %s schema %s is empty set",
 			pathStr, ni.StructField.Name, util.ValueStr(nii), ni.Schema.Path())))
+	}
+
+	if res.StringSet != nil && !util.IsDebugLibraryEnabled() {
+		switch sv := nii.(type) {
+		case *string:
+			if sv != nil {
+				_, ok := res.StringSet[*sv]
+				return ok, nil
+			}
+		case string:
+			_, ok := res.StringSet[sv]
+			return ok, nil
+		}
 	}
 
 	// Check if any of the matching data nodes is equal to the referring
 	// node value. In the case that the referring node is a list, check that
 	// each node in the list is also in the target list.
-	sourceNodes := []interface{}{nii}
-	if ni.FieldValue.Type().Kind() == reflect.Slice {
-		sourceNodes = ni.FieldValue.Elem().Interface().([]interface{})
+	if ni.FieldValue.Type().Kind() != reflect.Slice {
+		return matchSingleNode(ni, nii, matchNodes), nil
 	}
 
+	sourceNodes := ni.FieldValue.Elem().Interface().([]interface{})
 	for _, sourceNode := range sourceNodes {
-		for _, other := range matchNodes {
-			if util.IsValueNilOrDefault(other) {
-				continue
-			}
-			ov := reflect.ValueOf(other)
-			switch {
-			case util.IsValueScalar(ov):
-				util.DbgPrint("comparing leafref values %s vs %s", util.ValueStrDebug(sourceNode), util.ValueStrDebug(other))
-				if util.DeepEqualDerefPtrs(sourceNode, other) {
-					util.DbgPrint("values are equal")
-					return true, nil
-				}
-			case util.IsValueSlice(ov):
-				sourceNode := ni.FieldValue.Interface()
-				util.DbgPrint("checking whether value %s is leafref leaf-list %v", util.ValueStrDebug(sourceNode), util.ValueStrDebug(other))
-				for i := 0; i < ov.Len(); i++ {
-					if util.DeepEqualDerefPtrs(sourceNode, ov.Index(i).Interface()) {
-						util.DbgPrint("value exists in list")
-						return true, nil
-					}
-				}
-			case util.IsValueStructPtr(ov):
-				// TODO(robjs): clean this up.
-				// This is an interface value, which is represented as a struct pointer.
-				ovv := ov.Elem().FieldByIndex([]int{0})
-				svv := ni.FieldValue.Elem().Elem().FieldByIndex([]int{0})
-				if reflect.DeepEqual(ovv.Interface(), svv.Interface()) {
-					return true, nil
-				}
-			}
+		if matchSingleNode(ni, sourceNode, matchNodes) {
+			return true, nil
 		}
 	}
 
 	return false, nil
+}
+
+// matchSingleNode reports whether sourceNode matches any target element in
+// matchNodes.
+func matchSingleNode(ni *util.NodeInfo, sourceNode interface{}, matchNodes []interface{}) bool {
+	debugEnabled := util.IsDebugLibraryEnabled()
+	for _, other := range matchNodes {
+		if !debugEnabled {
+			switch sv := sourceNode.(type) {
+			case *string:
+				if ov, ok := other.(*string); ok && sv != nil && ov != nil {
+					if *sv == *ov {
+						return true
+					}
+					continue
+				}
+			case *uint8:
+				if ov, ok := other.(*uint8); ok && sv != nil && ov != nil {
+					if *sv == *ov {
+						return true
+					}
+					continue
+				}
+			case *uint16:
+				if ov, ok := other.(*uint16); ok && sv != nil && ov != nil {
+					if *sv == *ov {
+						return true
+					}
+					continue
+				}
+			case *uint32:
+				if ov, ok := other.(*uint32); ok && sv != nil && ov != nil {
+					if *sv == *ov {
+						return true
+					}
+					continue
+				}
+			case *uint64:
+				if ov, ok := other.(*uint64); ok && sv != nil && ov != nil {
+					if *sv == *ov {
+						return true
+					}
+					continue
+				}
+			case *int8:
+				if ov, ok := other.(*int8); ok && sv != nil && ov != nil {
+					if *sv == *ov {
+						return true
+					}
+					continue
+				}
+			case *int16:
+				if ov, ok := other.(*int16); ok && sv != nil && ov != nil {
+					if *sv == *ov {
+						return true
+					}
+					continue
+				}
+			case *int32:
+				if ov, ok := other.(*int32); ok && sv != nil && ov != nil {
+					if *sv == *ov {
+						return true
+					}
+					continue
+				}
+			case *int64:
+				if ov, ok := other.(*int64); ok && sv != nil && ov != nil {
+					if *sv == *ov {
+						return true
+					}
+					continue
+				}
+			case *bool:
+				if ov, ok := other.(*bool); ok && sv != nil && ov != nil {
+					if *sv == *ov {
+						return true
+					}
+					continue
+				}
+			}
+		}
+		if util.IsValueNilOrDefault(other) {
+			continue
+		}
+		ov := reflect.ValueOf(other)
+		switch {
+		case util.IsValueScalar(ov):
+			if debugEnabled {
+				util.DbgPrint("comparing leafref values %s vs %s", util.ValueStrDebug(sourceNode), util.ValueStrDebug(other))
+			}
+			if util.DeepEqualDerefPtrs(sourceNode, other) {
+				if debugEnabled {
+					util.DbgPrint("values are equal")
+				}
+				return true
+			}
+		case util.IsValueSlice(ov):
+			sourceVal := ni.FieldValue.Interface()
+			if debugEnabled {
+				util.DbgPrint("checking whether value %s is leafref leaf-list %v", util.ValueStrDebug(sourceVal), util.ValueStrDebug(other))
+			}
+			for i := 0; i < ov.Len(); i++ {
+				if util.DeepEqualDerefPtrs(sourceVal, ov.Index(i).Interface()) {
+					if debugEnabled {
+						util.DbgPrint("value exists in list")
+					}
+					return true
+				}
+			}
+		case util.IsValueStructPtr(ov):
+			// TODO(robjs): clean this up.
+			// This is an interface value, which is represented as a struct pointer.
+			ovv := ov.Elem().FieldByIndex([]int{0})
+			svv := ni.FieldValue.Elem().Elem().FieldByIndex([]int{0})
+			if reflect.DeepEqual(ovv.Interface(), svv.Interface()) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // getDataTreeRoot returns the root NodeInfo element for the current node.
