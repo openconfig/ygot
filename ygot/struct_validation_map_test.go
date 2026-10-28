@@ -2600,3 +2600,191 @@ func TestUniqueSlices(t *testing.T) {
 		})
 	}
 }
+
+// TestStructTagToLibModules verifies that structTagToLibModules extracts module
+// and shadow-module paths and reports errors on invalid empty module segments.
+func TestStructTagToLibModules(t *testing.T) {
+	tests := []struct {
+		desc               string
+		inField            reflect.StructField
+		inPreferShadowPath bool
+		want               []*gnmiPath
+		wantErrSubstring   string
+	}{{
+		desc: "field without module tag",
+		inField: reflect.StructField{
+			Name: "Field",
+			Tag:  `path:"foo"`,
+		},
+		want: nil,
+	}, {
+		desc: "single module element",
+		inField: reflect.StructField{
+			Name: "Field",
+			Tag:  `path:"foo" module:"mod-a"`,
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"mod-a"},
+		}},
+	}, {
+		desc: "multi-element module path",
+		inField: reflect.StructField{
+			Name: "Field",
+			Tag:  `path:"foo/bar" module:"mod-a/mod-b"`,
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"mod-a", "mod-b"},
+		}},
+	}, {
+		desc: "absolute module path",
+		inField: reflect.StructField{
+			Name: "Field",
+			Tag:  `path:"/foo/bar" module:"/mod-a/mod-b"`,
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"mod-a", "mod-b"},
+			isAbsolute:      true,
+		}},
+	}, {
+		desc: "multiple pipe-separated module paths",
+		inField: reflect.StructField{
+			Name: "Field",
+			Tag:  `path:"config/bar|bar" module:"mod-a/mod-b|mod-b"`,
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"mod-a", "mod-b"},
+		}, {
+			stringSlicePath: []string{"mod-b"},
+		}},
+	}, {
+		desc: "shadow-module present but not preferred",
+		inField: reflect.StructField{
+			Name: "Field",
+			Tag:  `path:"config/bar" shadow-path:"state/bar" module:"mod-a/mod-b" shadow-module:"mod-s/mod-b"`,
+		},
+		inPreferShadowPath: false,
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"mod-a", "mod-b"},
+		}},
+	}, {
+		desc: "shadow-module preferred and present",
+		inField: reflect.StructField{
+			Name: "Field",
+			Tag:  `path:"config/bar" shadow-path:"state/bar" module:"mod-a/mod-b" shadow-module:"mod-s/mod-b"`,
+		},
+		inPreferShadowPath: true,
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"mod-s", "mod-b"},
+		}},
+	}, {
+		desc: "shadow-module preferred but absent falls back to module",
+		inField: reflect.StructField{
+			Name: "Field",
+			Tag:  `path:"config/bar" module:"mod-a/mod-b"`,
+		},
+		inPreferShadowPath: true,
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"mod-a", "mod-b"},
+		}},
+	}, {
+		desc: "empty module tag returns error",
+		inField: reflect.StructField{
+			Name: "Field",
+			Tag:  `path:"foo" module:""`,
+		},
+		wantErrSubstring: "module tag must not have an empty path",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := structTagToLibModules(tt.inField, tt.inPreferShadowPath)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("structTagToLibModules(%v, %v): did not get expected error, %s", tt.inField, tt.inPreferShadowPath, diff)
+			}
+			if err != nil {
+				return
+			}
+			if diff := cmp.Diff(got, tt.want, cmp.AllowUnexported(gnmiPath{})); diff != "" {
+				t.Fatalf("structTagToLibModules(%v, %v): did not get expected modules, diff(-got,+want):\n%s", tt.inField, tt.inPreferShadowPath, diff)
+			}
+		})
+	}
+}
+
+// cachedTestStruct is a test struct used to verify getStructTypeInfo caching
+// and slice isolation.
+type cachedTestStruct struct {
+	// Leaf is a string leaf with compressed paths and shadow paths.
+	Leaf *string `path:"config/leaf|leaf" module:"mod-a/mod-b|mod-b" shadow-path:"state/leaf|leaf" shadow-module:"mod-s/mod-b|mod-b"`
+	// Enum is an enumerated leaf sharing the same tag structure.
+	Enum enumTest `path:"config/enum|enum" module:"mod-a/mod-a|mod-a"`
+	// Empty is a YANGEmpty leaf.
+	Empty YANGEmpty `path:"empty" module:"mod-a"`
+	// Presence is a YANG presence container pointer.
+	Presence *cachedTestStruct `path:"presence" module:"mod-a" yangPresence:"true"`
+	// ΛMetadata is a ygot annotation slice field.
+	ΛMetadata []Annotation `path:"@metadata" ygotAnnotation:"true"`
+}
+
+// TestGetStructTypeInfo verifies that getStructTypeInfo caches per-type and
+// per-tag metadata and that mutating slices returned by structTagToLibPaths
+// does not mutate the underlying cache.
+func TestGetStructTypeInfo(t *testing.T) {
+	st := reflect.TypeOf(cachedTestStruct{})
+	info1 := getStructTypeInfo(st)
+	info2 := getStructTypeInfo(st)
+	if info1 != info2 {
+		t.Fatalf("getStructTypeInfo(%v): did not return cached pointer, got %p and %p", st, info1, info2)
+	}
+	if got, want := len(info1.fields), 5; got != want {
+		t.Fatalf("getStructTypeInfo(%v): unexpected field count, got: %d, want: %d", st, got, want)
+	}
+
+	leafInfo := info1.fields[0]
+	if leafInfo.isAnnotation || leafInfo.isYangPresence || leafInfo.isGoEnum || leafInfo.isYANGEmpty {
+		t.Fatalf("leafInfo flags: got annotation=%v presence=%v enum=%v empty=%v, want all false",
+			leafInfo.isAnnotation, leafInfo.isYangPresence, leafInfo.isGoEnum, leafInfo.isYANGEmpty)
+	}
+
+	enumInfo := info1.fields[1]
+	if !enumInfo.isGoEnum {
+		t.Fatalf("enumInfo.isGoEnum: got false, want true")
+	}
+
+	emptyInfo := info1.fields[2]
+	if !emptyInfo.isYANGEmpty {
+		t.Fatalf("emptyInfo.isYANGEmpty: got false, want true")
+	}
+
+	presenceInfo := info1.fields[3]
+	if !presenceInfo.isYangPresence {
+		t.Fatalf("presenceInfo.isYangPresence: got false, want true")
+	}
+
+	annoInfo := info1.fields[4]
+	if !annoInfo.isAnnotation {
+		t.Fatalf("annoInfo.isAnnotation: got false, want true")
+	}
+
+	// Mutate a slice returned by structTagToLibPaths and verify that subsequent
+	// calls and cached parsedTagPath slices remain unmodified.
+	paths1, err := structTagToLibPaths(leafInfo.field, newStringSliceGNMIPath([]string{"root"}), false)
+	if err != nil {
+		t.Fatalf("structTagToLibPaths(first call) unexpected error: %v", err)
+	}
+	paths1[0].stringSlicePath[0] = "mutated"
+	paths1[0].stringSlicePath = append(paths1[0].stringSlicePath, "extra")
+
+	paths2, err := structTagToLibPaths(leafInfo.field, newStringSliceGNMIPath([]string{"root"}), false)
+	if err != nil {
+		t.Fatalf("structTagToLibPaths(second call) unexpected error: %v", err)
+	}
+	wantPaths := []*gnmiPath{{
+		stringSlicePath: []string{"root", "config", "leaf"},
+	}, {
+		stringSlicePath: []string{"root", "leaf"},
+	}}
+	if diff := cmp.Diff(paths2, wantPaths, cmp.AllowUnexported(gnmiPath{})); diff != "" {
+		t.Fatalf("structTagToLibPaths(second call): cache was mutated, diff(-got,+want):\n%s", diff)
+	}
+}

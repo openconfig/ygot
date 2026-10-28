@@ -28,10 +28,13 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 
 	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/ygot/internal/yreflect"
 	"github.com/openconfig/ygot/util"
+
+	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 const (
@@ -40,9 +43,316 @@ const (
 	indentString string = "   "
 )
 
-// structTagToLibPaths takes an input struct field as a reflect.Type, and determines
-// the set of validation library paths that it maps to. Returns the paths as a slice of
-// empty interface slices, or an error.
+var (
+	// structTypeInfoCache caches *structTypeInfo values keyed by struct reflect.Type.
+	structTypeInfoCache sync.Map
+	// structTagInfoCache caches *structTagInfo values keyed by reflect.StructTag.
+	structTagInfoCache sync.Map
+	// goEnumInterfaceType is the reflect.Type of the GoEnum interface.
+	goEnumInterfaceType = reflect.TypeOf((*GoEnum)(nil)).Elem()
+)
+
+// parsedTagPath stores the parsed path elements and absolute-path indicator
+// extracted from a single pipe-separated segment of a struct tag.
+type parsedTagPath struct {
+	// elems contains the non-empty slash-separated path element names.
+	elems []string
+	// isAbsolute indicates whether the tag path segment began with a leading slash.
+	isAbsolute bool
+}
+
+// cachedModuleSet stores pre-parsed module tag paths along with pre-computed
+// RFC7951 module-prefix slices for unmodified module names.
+type cachedModuleSet struct {
+	// paths contains the parsed module tag segments.
+	paths []*parsedTagPath
+	// err is the error encountered whilst parsing the module tag.
+	err error
+	// canFastPrepend indicates whether pre-computed prepend slices can be used when RewriteModuleNames is empty.
+	canFastPrepend bool
+	// chMod is the resolved child module name across all module paths when canFastPrepend is true.
+	chMod string
+	// firstMod0 is the first module element of paths[0] when canFastPrepend is true.
+	firstMod0 string
+	// firstMod1 is the first module element of paths[1] when len(paths) == 2 and canFastPrepend is true.
+	firstMod1 string
+	// prependNoParent is the pre-computed prependmods slice when parentMod matches neither firstMod0 nor firstMod1.
+	prependNoParent [][]string
+	// prependMatch0 is the pre-computed prependmods slice when parentMod equals firstMod0.
+	prependMatch0 [][]string
+	// prependMatch1 is the pre-computed prependmods slice when parentMod equals firstMod1.
+	prependMatch1 [][]string
+}
+
+// structTagInfo stores cached path and module metadata parsed from a reflect.StructTag.
+type structTagInfo struct {
+	// paths contains the parsed "path" tag segments.
+	paths []*parsedTagPath
+	// pathsErr is the error encountered whilst parsing the "path" tag.
+	pathsErr error
+	// shadowPaths contains the parsed "shadow-path" (or fallback "path") tag segments.
+	shadowPaths []*parsedTagPath
+	// shadowPathsErr is the error encountered whilst parsing the preferred shadow path tag.
+	shadowPathsErr error
+	// modules contains the parsed "module" tag metadata.
+	modules *cachedModuleSet
+	// shadowModules contains the parsed "shadow-module" (or fallback "module") tag metadata.
+	shadowModules *cachedModuleSet
+}
+
+// pathsFor returns the parsed path segments and error for the specified shadow-path preference.
+func (s *structTagInfo) pathsFor(preferShadowPath bool) ([]*parsedTagPath, error) {
+	if preferShadowPath {
+		return s.shadowPaths, s.shadowPathsErr
+	}
+	return s.paths, s.pathsErr
+}
+
+// moduleSetFor returns the cachedModuleSet for the specified shadow-path preference.
+func (s *structTagInfo) moduleSetFor(preferShadowPath bool) *cachedModuleSet {
+	if preferShadowPath {
+		return s.shadowModules
+	}
+	return s.modules
+}
+
+// structFieldInfo stores cached reflection and struct-tag metadata for a
+// single field of a GoStruct.
+type structFieldInfo struct {
+	// field is the reflection metadata for the struct field.
+	field reflect.StructField
+	// isAnnotation indicates whether the struct field is a ygot annotation field.
+	isAnnotation bool
+	// isYangPresence indicates whether the struct field represents a YANG presence container.
+	isYangPresence bool
+	// isGoEnum indicates whether the struct field type implements GoEnum.
+	isGoEnum bool
+	// isYANGEmpty indicates whether the struct field is a YANGEmpty boolean leaf.
+	isYANGEmpty bool
+	// tagInfo contains the pre-parsed path and module struct-tag metadata for the field.
+	tagInfo *structTagInfo
+}
+
+// structTypeInfo stores cached per-field metadata for a struct reflect.Type.
+type structTypeInfo struct {
+	// fields contains the cached metadata for each field of the struct, indexed by field position.
+	fields []*structFieldInfo
+}
+
+// getStructTypeInfo returns the cached structTypeInfo for t, computing and
+// caching it on first access.
+func getStructTypeInfo(t reflect.Type) *structTypeInfo {
+	if v, ok := structTypeInfoCache.Load(t); ok {
+		return v.(*structTypeInfo)
+	}
+	n := t.NumField()
+	fields := make([]*structFieldInfo, n)
+	for i := 0; i < n; i++ {
+		f := t.Field(i)
+		fields[i] = &structFieldInfo{
+			field:          f,
+			isAnnotation:   util.IsYgotAnnotation(f),
+			isYangPresence: util.IsYangPresence(f),
+			isGoEnum:       f.Type.Kind() == reflect.Int64 && f.Type.Implements(goEnumInterfaceType),
+			isYANGEmpty:    f.Type.Kind() == reflect.Bool && f.Type.Name() == EmptyTypeName,
+			tagInfo:        getStructTagInfo(f.Tag),
+		}
+	}
+	info := &structTypeInfo{fields: fields}
+	actual, _ := structTypeInfoCache.LoadOrStore(t, info)
+	return actual.(*structTypeInfo)
+}
+
+// getStructTagInfo returns the cached structTagInfo for tag, parsing and
+// caching it on first access.
+func getStructTagInfo(tag reflect.StructTag) *structTagInfo {
+	if v, ok := structTagInfoCache.Load(tag); ok {
+		return v.(*structTagInfo)
+	}
+	paths, pathsErr := parseTagPaths(tag, false)
+	shadowPaths, shadowPathsErr := paths, pathsErr
+	if _, ok := tag.Lookup("shadow-path"); ok {
+		shadowPaths, shadowPathsErr = parseTagPaths(tag, true)
+	}
+
+	modules := newCachedModuleSet(tag, false)
+	shadowModules := modules
+	if _, ok := tag.Lookup("shadow-module"); ok {
+		shadowModules = newCachedModuleSet(tag, true)
+	}
+
+	info := &structTagInfo{
+		paths:          paths,
+		pathsErr:       pathsErr,
+		shadowPaths:    shadowPaths,
+		shadowPathsErr: shadowPathsErr,
+		modules:        modules,
+		shadowModules:  shadowModules,
+	}
+	actual, _ := structTagInfoCache.LoadOrStore(tag, info)
+	return actual.(*structTagInfo)
+}
+
+// parseTagPaths extracts and parses the pipe-separated path segments from tag.
+// If preferShadowPath is true, the "shadow-path" tag is used when present,
+// falling back to the "path" tag otherwise. It returns an error if neither tag
+// is present.
+func parseTagPaths(tag reflect.StructTag, preferShadowPath bool) ([]*parsedTagPath, error) {
+	var pathAnnotation string
+	var ok bool
+	if preferShadowPath {
+		pathAnnotation, ok = tag.Lookup("shadow-path")
+	}
+	if !ok {
+		if pathAnnotation, ok = tag.Lookup("path"); !ok {
+			return nil, fmt.Errorf("field did not specify a path")
+		}
+	}
+
+	tagPaths := strings.Split(pathAnnotation, "|")
+	parsed := make([]*parsedTagPath, 0, len(tagPaths))
+	for _, p := range tagPaths {
+		var elems []string
+		for _, pp := range strings.Split(p, "/") {
+			// Handle empty path tags.
+			if pp == "" {
+				continue
+			}
+			elems = append(elems, pp)
+		}
+		parsed = append(parsed, &parsedTagPath{
+			elems:      elems,
+			isAbsolute: len(p) > 0 && p[0] == '/',
+		})
+	}
+	return parsed, nil
+}
+
+// newCachedModuleSet parses the module struct tag from tag and pre-computes
+// RFC7951 module-prefix slices where possible.
+func newCachedModuleSet(tag reflect.StructTag, preferShadowPath bool) *cachedModuleSet {
+	paths, err := parseTagModules(tag, preferShadowPath)
+	cm := &cachedModuleSet{
+		paths: paths,
+		err:   err,
+	}
+	if err != nil || len(paths) == 0 || len(paths) > 2 {
+		return cm
+	}
+
+	var chMod string
+	for _, p := range paths {
+		if len(p.elems) == 0 {
+			return cm
+		}
+		lastMod := p.elems[len(p.elems)-1]
+		if chMod != "" && lastMod != chMod {
+			return cm
+		}
+		chMod = lastMod
+	}
+
+	firstMod0 := paths[0].elems[0]
+	cm.canFastPrepend = true
+	cm.chMod = chMod
+	cm.firstMod0 = firstMod0
+	cm.prependNoParent = computePrependForParent(paths, "")
+	cm.prependMatch0 = computePrependForParent(paths, firstMod0)
+	if len(paths) == 2 && paths[1].elems[0] != firstMod0 {
+		cm.firstMod1 = paths[1].elems[0]
+		cm.prependMatch1 = computePrependForParent(paths, cm.firstMod1)
+	}
+	return cm
+}
+
+// parseTagModules extracts and parses the pipe-separated module segments from tag.
+// If preferShadowPath is true, the "shadow-module" tag is used when present,
+// falling back to the "module" tag otherwise. If neither tag is present, nil, nil
+// is returned. It returns an error if any pipe-separated module path segment is empty.
+func parseTagModules(tag reflect.StructTag, preferShadowPath bool) ([]*parsedTagPath, error) {
+	var moduleAnnotation string
+	var ok bool
+	if preferShadowPath {
+		moduleAnnotation, ok = tag.Lookup("shadow-module")
+	}
+	if !ok {
+		if moduleAnnotation, ok = tag.Lookup("module"); !ok {
+			return nil, nil
+		}
+	}
+
+	tagModules := strings.Split(moduleAnnotation, "|")
+	parsed := make([]*parsedTagPath, 0, len(tagModules))
+	for _, m := range tagModules {
+		if len(m) == 0 {
+			return nil, fmt.Errorf("module tag must not have an empty path: %s", moduleAnnotation)
+		}
+		var elems []string
+		for _, mm := range strings.Split(m, "/") {
+			// Handle empty module tags.
+			if mm == "" {
+				continue
+			}
+			elems = append(elems, mm)
+		}
+		parsed = append(parsed, &parsedTagPath{
+			elems:      elems,
+			isAbsolute: m[0] == '/',
+		})
+	}
+	return parsed, nil
+}
+
+// computePrependForParent computes the RFC7951 module-prefix slice for paths
+// given parentMod when no module rewrite rules are configured.
+func computePrependForParent(paths []*parsedTagPath, parentMod string) [][]string {
+	prependmods := make([][]string, len(paths))
+	for idx, modulePath := range paths {
+		prependmod := make([]string, len(modulePath.elems))
+		prevMod := parentMod
+		for i, mod := range modulePath.elems {
+			if mod == prevMod {
+				prependmod[i] = ""
+			} else {
+				prependmod[i] = mod
+				prevMod = mod
+			}
+		}
+		prependmods[idx] = prependmod
+	}
+	return prependmods
+}
+
+// buildGNMIPaths constructs a slice of gnmiPath pointers by appending each
+// parsedTagPath in parsed to a copy of parentPath.
+func buildGNMIPaths(parsed []*parsedTagPath, parentPath *gnmiPath) []*gnmiPath {
+	mapPaths := make([]*gnmiPath, 0, len(parsed))
+	isStringSlice := parentPath.isStringSlicePath()
+	for _, p := range parsed {
+		ePath := &gnmiPath{
+			isAbsolute: p.isAbsolute,
+		}
+		if isStringSlice {
+			s := make([]string, len(parentPath.stringSlicePath)+len(p.elems))
+			copy(s, parentPath.stringSlicePath)
+			copy(s[len(parentPath.stringSlicePath):], p.elems)
+			ePath.stringSlicePath = s
+		} else {
+			e := make([]*gnmipb.PathElem, len(parentPath.pathElemPath), len(parentPath.pathElemPath)+len(p.elems))
+			copy(e, parentPath.pathElemPath)
+			for _, elem := range p.elems {
+				e = append(e, &gnmipb.PathElem{Name: elem})
+			}
+			ePath.pathElemPath = e
+		}
+		mapPaths = append(mapPaths, ePath)
+	}
+	return mapPaths
+}
+
+// structTagToLibPaths takes an input struct field and determines the set of
+// validation library paths that it maps to. It returns the paths as a slice of
+// gnmiPath pointers, or an error.
 //
 // Note: the returned paths use a shallow copy of the parentPath.
 func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath, preferShadowPath bool) ([]*gnmiPath, error) {
@@ -50,81 +360,30 @@ func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath, preferShad
 		return nil, fmt.Errorf("invalid path format in parentPath (%v, %v)", parentPath.stringSlicePath == nil, parentPath.pathElemPath == nil)
 	}
 
-	var pathAnnotation string
-	var ok bool
-	if preferShadowPath {
-		pathAnnotation, ok = f.Tag.Lookup("shadow-path")
-	}
-	if !ok {
-		if pathAnnotation, ok = f.Tag.Lookup("path"); !ok {
-			return nil, fmt.Errorf("field did not specify a path")
-		}
+	parsedPaths, err := getStructTagInfo(f.Tag).pathsFor(preferShadowPath)
+	if err != nil {
+		return nil, err
 	}
 
-	var mapPaths []*gnmiPath
-	tagPaths := strings.Split(pathAnnotation, "|")
-	for _, p := range tagPaths {
-		// Make a copy of the existing parent path so we can append to it without
-		// modifying it for future paths.
-		ePath := parentPath.Copy()
-
-		for _, pp := range strings.Split(p, "/") {
-			// Handle empty path tags.
-			if pp == "" {
-				continue
-			}
-			ePath.AppendName(pp)
-		}
-
-		if len(p) > 0 && p[0] == '/' {
-			ePath.isAbsolute = true
-		}
-
-		mapPaths = append(mapPaths, ePath)
-	}
-	return mapPaths, nil
+	return buildGNMIPaths(parsedPaths, parentPath), nil
 }
 
-// structTagToLibModules takes an input struct field as a reflect.Type, and
-// extracts the set of module names in the module or shadow-module struct tag
-// of the field. Returns the module names as a slice of gnmiPaths, or an error.
-// If the field were generated correctly, then these module names should have
-// a 1:1 correspondence to the path names in the path tag, and denotes the
-// module to which each path element belongs (using YANG's XML namespace
-// rules).
+// structTagToLibModules takes an input struct field and extracts the set of
+// module names in the module or shadow-module struct tag of the field. It
+// returns the module names as a slice of gnmiPath pointers, or an error. If
+// the field was generated correctly, these module names have a 1:1
+// correspondence to the path names in the path tag, and denote the module to
+// which each path element belongs (using YANG's XML namespace rules).
 func structTagToLibModules(f reflect.StructField, preferShadowPath bool) ([]*gnmiPath, error) {
-	var moduleAnnotation string
-	var ok bool
-	if preferShadowPath {
-		moduleAnnotation, ok = f.Tag.Lookup("shadow-module")
+	modSet := getStructTagInfo(f.Tag).moduleSetFor(preferShadowPath)
+	if modSet.err != nil {
+		return nil, modSet.err
 	}
-	if !ok {
-		if moduleAnnotation, ok = f.Tag.Lookup("module"); !ok {
-			return nil, nil
-		}
+	if len(modSet.paths) == 0 {
+		return nil, nil
 	}
 
-	var mapModules []*gnmiPath
-	for _, m := range strings.Split(moduleAnnotation, "|") {
-		eModule := newStringSliceGNMIPath(nil)
-		for _, mm := range strings.Split(m, "/") {
-			// Handle empty module tags.
-			if mm == "" {
-				continue
-			}
-			eModule.AppendName(mm)
-		}
-
-		switch {
-		case len(m) == 0:
-			return nil, fmt.Errorf("module tag must not have an empty path: %s", moduleAnnotation)
-		case m[0] == '/':
-			eModule.isAbsolute = true
-		}
-
-		mapModules = append(mapModules, eModule)
-	}
-	return mapModules, nil
+	return buildGNMIPaths(modSet.paths, newStringSliceGNMIPath(nil)), nil
 }
 
 // EnumName returns the string name of an input GoEnum e. If the enumeration is
