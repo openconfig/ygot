@@ -15,6 +15,8 @@
 package ytypes
 
 import (
+	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -22,6 +24,7 @@ import (
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -1143,5 +1146,159 @@ func TestLeafrefValidateCurrent(t *testing.T) {
 				t.Fatalf("did not get expected error, got: %s, want error containing: %s", errs, tt.wantErrSubstring)
 			}
 		})
+	}
+}
+
+// perfTargetEntry represents a keyed string target list entry for leafref
+// allocation testing.
+type perfTargetEntry struct {
+	// Name is the string key of the target list entry.
+	Name *string `path:"name"`
+}
+
+// IsYANGGoStruct ensures that perfTargetEntry implements the ygot.GoStruct
+// interface.
+func (*perfTargetEntry) IsYANGGoStruct() {}
+
+// ΛListKeyMap returns the list key map for perfTargetEntry.
+func (p *perfTargetEntry) ΛListKeyMap() (map[string]interface{}, error) {
+	return map[string]interface{}{"name": *p.Name}, nil
+}
+
+// perfRefEntry represents a list entry containing a leafref to perfTargetEntry.
+type perfRefEntry struct {
+	// ID is the numeric key of the referencing list entry.
+	ID *uint32 `path:"id"`
+	// Target is the leafref pointing to a perfTargetEntry name.
+	Target *string `path:"target"`
+}
+
+// IsYANGGoStruct ensures that perfRefEntry implements the ygot.GoStruct
+// interface.
+func (*perfRefEntry) IsYANGGoStruct() {}
+
+// ΛListKeyMap returns the list key map for perfRefEntry.
+func (p *perfRefEntry) ΛListKeyMap() (map[string]interface{}, error) {
+	return map[string]interface{}{"id": *p.ID}, nil
+}
+
+// perfRootContainer represents the root container for leafref allocation
+// testing.
+type perfRootContainer struct {
+	// Targets is the keyed map of target list entries.
+	Targets map[string]*perfTargetEntry `path:"target"`
+	// Refs is the keyed map of referencing list entries.
+	Refs map[uint32]*perfRefEntry `path:"ref"`
+}
+
+// IsYANGGoStruct ensures that perfRootContainer implements the ygot.GoStruct
+// interface.
+func (*perfRootContainer) IsYANGGoStruct() {}
+
+func TestMatchesNodesPerformance(t *testing.T) {
+	rootSchema := &yang.Entry{
+		Name: "root",
+		Kind: yang.DirectoryEntry,
+		Dir:  map[string]*yang.Entry{},
+		Annotation: map[string]interface{}{
+			"isFakeRoot": true,
+		},
+	}
+	targetListSchema := &yang.Entry{
+		Name:     "target",
+		Kind:     yang.DirectoryEntry,
+		Key:      "name",
+		ListAttr: &yang.ListAttr{},
+		Parent:   rootSchema,
+		Dir:      map[string]*yang.Entry{},
+	}
+	targetListSchema.Dir["name"] = &yang.Entry{
+		Name:   "name",
+		Kind:   yang.LeafEntry,
+		Type:   &yang.YangType{Kind: yang.Ystring},
+		Parent: targetListSchema,
+	}
+	rootSchema.Dir["target"] = targetListSchema
+
+	refListSchema := &yang.Entry{
+		Name:     "ref",
+		Kind:     yang.DirectoryEntry,
+		Key:      "id",
+		ListAttr: &yang.ListAttr{},
+		Parent:   rootSchema,
+		Dir:      map[string]*yang.Entry{},
+	}
+	refListSchema.Dir["id"] = &yang.Entry{
+		Name:   "id",
+		Kind:   yang.LeafEntry,
+		Type:   &yang.YangType{Kind: yang.Yuint32},
+		Parent: refListSchema,
+	}
+	refListSchema.Dir["target"] = &yang.Entry{
+		Name: "target",
+		Kind: yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Yleafref,
+			Path: "../../target/name",
+		},
+		Parent: refListSchema,
+	}
+	rootSchema.Dir["ref"] = refListSchema
+
+	const numEntries = 100
+	rc := &perfRootContainer{
+		Targets: make(map[string]*perfTargetEntry, numEntries),
+		Refs:    make(map[uint32]*perfRefEntry, numEntries),
+	}
+	matchNodes := make([]interface{}, 0, numEntries)
+	for i := 0; i < numEntries; i++ {
+		name := fmt.Sprintf("policy-%03d", i)
+		rc.Targets[name] = &perfTargetEntry{Name: ygot.String(name)}
+		rc.Refs[uint32(i)] = &perfRefEntry{
+			ID:     ygot.Uint32(uint32(i)),
+			Target: ygot.String(name),
+		}
+		matchNodes = append(matchNodes, ygot.String(name))
+	}
+
+	if errs := ValidateLeafRefData(rootSchema, rc, nil); len(errs) != 0 {
+		t.Fatalf("ValidateLeafRefData(rootSchema, rc, nil): got unexpected errors: %v", errs)
+	}
+
+	res := util.NewPathQueryResult(matchNodes, nil)
+	lastTarget := ygot.String(fmt.Sprintf("policy-%03d", numEntries-1))
+	ni := &util.NodeInfo{
+		Schema:     refListSchema.Dir["target"],
+		FieldValue: reflect.ValueOf(lastTarget),
+	}
+
+	gotAllocs := testing.AllocsPerRun(50, func() {
+		ok, err := matchesNodesResult(ni, res)
+		if err != nil || !ok {
+			t.Fatalf("matchesNodesResult: got (%v, %v), want (true, nil)", ok, err)
+		}
+	})
+
+	legacyMatches := func() bool {
+		sourceNode := ni.FieldValue.Interface()
+		for _, other := range matchNodes {
+			util.DbgPrint("comparing leafref values %s vs %s", util.ValueStrDebug(sourceNode), util.ValueStrDebug(other))
+			aa := reflect.ValueOf(sourceNode).Elem().Interface()
+			bb := reflect.ValueOf(other).Elem().Interface()
+			if reflect.DeepEqual(aa, bb) {
+				return true
+			}
+		}
+		return false
+	}
+	baselineAllocs := testing.AllocsPerRun(50, func() {
+		if !legacyMatches() {
+			t.Fatalf("legacyMatches: got false, want true")
+		}
+	})
+
+	maxAllowedAllocs := baselineAllocs * 0.95
+	if gotAllocs > maxAllowedAllocs {
+		t.Fatalf("matchesNodesResult allocated %.1f objects/run, want <= %.1f (at least 5%% fewer than legacy baseline %.1f)", gotAllocs, maxAllowedAllocs, baselineAllocs)
 	}
 }

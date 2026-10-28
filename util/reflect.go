@@ -79,7 +79,22 @@ func IsTypeSliceOfInterface(t reflect.Type) bool {
 
 // IsNilOrInvalidValue reports whether v is nil or reflect.Zero.
 func IsNilOrInvalidValue(v reflect.Value) bool {
-	return !v.IsValid() || (v.Kind() == reflect.Ptr && v.IsNil()) || IsValueNil(v.Interface())
+	if !v.IsValid() {
+		return true
+	}
+	switch v.Kind() {
+	case reflect.Ptr, reflect.Slice, reflect.Map:
+		return v.IsNil()
+	case reflect.Interface:
+		if v.IsNil() {
+			return true
+		}
+		switch elem := v.Elem(); elem.Kind() {
+		case reflect.Ptr, reflect.Slice, reflect.Map:
+			return elem.IsNil()
+		}
+	}
+	return false
 }
 
 // IsValueNil returns true if either value is nil, or has dynamic type {ptr,
@@ -88,9 +103,9 @@ func IsValueNil(value interface{}) bool {
 	if value == nil {
 		return true
 	}
-	switch reflect.TypeOf(value).Kind() {
+	switch v := reflect.ValueOf(value); v.Kind() {
 	case reflect.Slice, reflect.Ptr, reflect.Map:
-		return reflect.ValueOf(value).IsNil()
+		return v.IsNil()
 	}
 	return false
 }
@@ -442,6 +457,65 @@ func IsValueTypeCompatible(t reflect.Type, v reflect.Value) bool {
 // DeepEqualDerefPtrs compares the values of a and b. If either value is a ptr,
 // it is dereferenced prior to the comparison.
 func DeepEqualDerefPtrs(a, b interface{}) bool {
+	switch av := a.(type) {
+	case *string:
+		if bv, ok := b.(*string); ok && av != nil && bv != nil {
+			return *av == *bv
+		}
+	case *uint8:
+		if bv, ok := b.(*uint8); ok && av != nil && bv != nil {
+			return *av == *bv
+		}
+	case *uint16:
+		if bv, ok := b.(*uint16); ok && av != nil && bv != nil {
+			return *av == *bv
+		}
+	case *uint32:
+		if bv, ok := b.(*uint32); ok && av != nil && bv != nil {
+			return *av == *bv
+		}
+	case *uint64:
+		if bv, ok := b.(*uint64); ok && av != nil && bv != nil {
+			return *av == *bv
+		}
+	case *int8:
+		if bv, ok := b.(*int8); ok && av != nil && bv != nil {
+			return *av == *bv
+		}
+	case *int16:
+		if bv, ok := b.(*int16); ok && av != nil && bv != nil {
+			return *av == *bv
+		}
+	case *int32:
+		if bv, ok := b.(*int32); ok && av != nil && bv != nil {
+			return *av == *bv
+		}
+	case *int64:
+		if bv, ok := b.(*int64); ok && av != nil && bv != nil {
+			return *av == *bv
+		}
+	case *bool:
+		if bv, ok := b.(*bool); ok && av != nil && bv != nil {
+			return *av == *bv
+		}
+	case *float64:
+		if bv, ok := b.(*float64); ok && av != nil && bv != nil {
+			return *av == *bv
+		}
+	}
+	if !IsValueNil(a) && !IsValueNil(b) {
+		va := reflect.ValueOf(a)
+		if va.Kind() == reflect.Ptr {
+			va = va.Elem()
+		}
+		vb := reflect.ValueOf(b)
+		if vb.Kind() == reflect.Ptr {
+			vb = vb.Elem()
+		}
+		if va.IsValid() && vb.IsValid() && va.Type() == vb.Type() && va.Comparable() {
+			return va.Equal(vb)
+		}
+	}
 	aa := a
 	bb := b
 	if !IsValueNil(a) && reflect.TypeOf(a).Kind() == reflect.Ptr {
@@ -589,8 +663,47 @@ type PathQueryMemo map[string]PathQueryResult
 
 // PathQueryResult stores a datanode query result.
 type PathQueryResult struct {
+	// Nodes contains the matched data tree nodes.
 	Nodes []interface{}
-	Err   error
+	// Err stores any error encountered while querying the path.
+	Err error
+	// StringSet indexes dereferenced string values when all non-nil elements
+	// in Nodes are strings or string pointers.
+	StringSet map[string]struct{}
+}
+
+// NewPathQueryResult constructs a PathQueryResult and indexes dereferenced
+// string scalar values when nodes contains at least 4 string elements.
+func NewPathQueryResult(nodes []interface{}, err error) PathQueryResult {
+	res := PathQueryResult{
+		Nodes: nodes,
+		Err:   err,
+	}
+	if err != nil || len(nodes) < 4 {
+		return res
+	}
+	strSet := make(map[string]struct{}, len(nodes))
+	for _, n := range nodes {
+		if n == nil {
+			continue
+		}
+		switch v := n.(type) {
+		case *string:
+			if v != nil {
+				strSet[*v] = struct{}{}
+			}
+		case string:
+			if v != "" {
+				strSet[v] = struct{}{}
+			}
+		default:
+			return res
+		}
+	}
+	if len(strSet) > 0 {
+		res.StringSet = strSet
+	}
+	return res
 }
 
 // PathQueryNodeMemo caches previous path queries done against a particular node.
