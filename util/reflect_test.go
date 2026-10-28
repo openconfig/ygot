@@ -152,6 +152,99 @@ func TestIsValueFuncs(t *testing.T) {
 	}
 }
 
+// TestIsValueNilOrDefault verifies IsValueNilOrDefault across nil, default
+// scalar, non-default scalar, pointer, and composite values, and checks that
+// scalar evaluation performs zero heap allocations.
+func TestIsValueNilOrDefault(t *testing.T) {
+	var nilIntPtr *int32
+	var nilSlice []string
+	var nilMap map[string]int
+	tests := []struct {
+		desc string
+		in   any
+		want bool
+	}{{
+		desc: "untyped nil",
+		in:   nil,
+		want: true,
+	}, {
+		desc: "typed nil pointer",
+		in:   nilIntPtr,
+		want: true,
+	}, {
+		desc: "typed nil slice",
+		in:   nilSlice,
+		want: true,
+	}, {
+		desc: "typed nil map",
+		in:   nilMap,
+		want: true,
+	}, {
+		desc: "zero int32 scalar",
+		in:   int32(0),
+		want: true,
+	}, {
+		desc: "non-zero int32 scalar",
+		in:   int32(42),
+		want: false,
+	}, {
+		desc: "zero enum scalar",
+		in:   EnumType(0),
+		want: true,
+	}, {
+		desc: "non-zero enum scalar",
+		in:   EnumType(1),
+		want: false,
+	}, {
+		desc: "empty string scalar",
+		in:   "",
+		want: true,
+	}, {
+		desc: "non-empty string scalar",
+		in:   "hello",
+		want: false,
+	}, {
+		desc: "non-nil pointer to zero int32",
+		in:   toInt32Ptr(0),
+		want: false,
+	}, {
+		desc: "non-nil pointer to non-zero int32",
+		in:   toInt32Ptr(42),
+		want: false,
+	}, {
+		desc: "non-nil struct value",
+		in:   BasicStruct{},
+		want: false,
+	}, {
+		desc: "non-nil empty slice",
+		in:   []string{},
+		want: false,
+	}, {
+		desc: "non-nil empty map",
+		in:   map[string]int{},
+		want: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := IsValueNilOrDefault(tt.in); got != tt.want {
+				t.Fatalf("IsValueNilOrDefault(%#v): did not get expected result, got: %v, want: %v", tt.in, got, tt.want)
+			}
+		})
+	}
+
+	t.Run("zero allocations on scalar values", func(t *testing.T) {
+		val := EnumType(1)
+		zeroVal := EnumType(0)
+		if got := testing.AllocsPerRun(5, func() {
+			_ = IsValueNilOrDefault(val)
+			_ = IsValueNilOrDefault(zeroVal)
+		}); got != 0 {
+			t.Fatalf("IsValueNilOrDefault(EnumType): got %v allocs/op, want 0", got)
+		}
+	})
+}
+
 func TestValuesAreSameType(t *testing.T) {
 	type EnumType int64
 
@@ -1020,6 +1113,8 @@ type annotatedStruct struct {
 	Annotation *string `path:"@field-a" ygotAnnotation:"true"`
 }
 
+// TestForEachField verifies schema-guided ForEachField traversal across
+// structs, slices, maps, annotations, and PathQueryNodeMemo.
 func TestForEachField(t *testing.T) {
 	annotatedStructSchema := &yang.Entry{
 		Name: "annotatedStruct",
@@ -1211,6 +1306,23 @@ func TestForEachField(t *testing.T) {
 			iterFunc: printFieldsIterFunc,
 			wantOut:  `FieldA : "test", `,
 		},
+		{
+			desc:         "struct with PathQueryNodeMemo skips nil data branches and keeps Memo nil",
+			schema:       forEachContainerSchema,
+			parentStruct: &StructOfStructs{BasicStructField: basicStruct1},
+			in:           &PathQueryNodeMemo{},
+			iterFunc: func(ni *NodeInfo, in, out any) Errors {
+				memo, ok := in.(*PathQueryNodeMemo)
+				if !ok {
+					return NewErrs(fmt.Errorf("expected *PathQueryNodeMemo, got %T", in))
+				}
+				if memo.Memo != nil {
+					return NewErrs(fmt.Errorf("expected lazy nil Memo map on visit, got %v", memo.Memo))
+				}
+				return printFieldsIterFunc(ni, in, out)
+			},
+			wantOut: `Int32Field : 42, StringField : "forty two", Int32PtrField : 4242, StringPtrField : "forty two ptr", `,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1242,6 +1354,8 @@ func (v *testWalkVisitor) Visit(node WalkNode) Visitor {
 	return v
 }
 
+// TestWalk verifies Walk traversal with and without schema and skip-nil-data
+// options.
 func TestWalk(t *testing.T) {
 	tests := []struct {
 		desc         string
@@ -1260,6 +1374,18 @@ func TestWalk(t *testing.T) {
 			options:      DefaultWalkOptions().WithSchema(forEachContainerSchema.Dir["basic-struct"]),
 			parentStruct: &basicStruct1,
 			wantOut:      "<*util.BasicStruct Value>\n<int32 Value>\nforty two\n<*int32 Value>\n<*string Value>\n",
+		},
+		{
+			desc:         "struct with schema visits nil fields by default",
+			options:      DefaultWalkOptions().WithSchema(forEachContainerSchema.Dir["basic-struct"]),
+			parentStruct: &PointerOnlyBasicStruct{Int32Field: toInt32Ptr(42)},
+			wantOut:      "<*util.PointerOnlyBasicStruct Value>\n<*int32 Value>\n<*string Value>\n",
+		},
+		{
+			desc:         "struct with schema and WithSkipNilData skips nil fields",
+			options:      DefaultWalkOptions().WithSchema(forEachContainerSchema.Dir["basic-struct"]).WithSkipNilData(),
+			parentStruct: &PointerOnlyBasicStruct{Int32Field: toInt32Ptr(42)},
+			wantOut:      "<*util.PointerOnlyBasicStruct Value>\n<*int32 Value>\n",
 		},
 		{
 			desc:         "struct mismatched schema not an error",

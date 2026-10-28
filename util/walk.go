@@ -83,8 +83,13 @@ func WalkNodeFromNodeInfo(ni *NodeInfo) WalkNode {
 
 // WalkOptions are configurations of the Walk function.
 type WalkOptions struct {
+	// WalkErrors collects errors encountered during the Walk traversal.
 	WalkErrors
+	// schema is the YANG schema entry used to guide the traversal when set.
 	schema *yang.Entry
+	// skipNilData controls whether schema-guided traversal skips nil or invalid
+	// data branches.
+	skipNilData bool
 }
 
 // DefaultWalkOptions initialize a WalkOptions.
@@ -95,6 +100,13 @@ func DefaultWalkOptions() *WalkOptions {
 // WithSchema traverses schema entries even when a node is not populated with data.
 func (o *WalkOptions) WithSchema(schema *yang.Entry) *WalkOptions {
 	o.schema = schema
+	return o
+}
+
+// WithSkipNilData configures a schema-guided Walk to skip nil or invalid data
+// fields rather than traversing their schema-only subtrees.
+func (o *WalkOptions) WithSkipNilData() *WalkOptions {
+	o.skipNilData = true
 	return o
 }
 
@@ -128,6 +140,9 @@ func walkFieldInternal(visitor Visitor, node WalkNode, o *WalkOptions) {
 	ni := node.NodeInfo()
 	// Ignore nil field.
 	if IsValueNil(ni) {
+		return
+	}
+	if o.skipNilData && IsNilOrInvalidValue(ni.FieldValue) {
 		return
 	}
 	// If the field is an annotation, then we do not process it any further, including
@@ -209,7 +224,7 @@ func walkFieldInternal(visitor Visitor, node WalkNode, o *WalkOptions) {
 			}
 		case IsTypeMap(t):
 			nn.FieldKeys = ni.FieldValue.MapKeys()
-			for _, key := range ni.FieldValue.MapKeys() {
+			for _, key := range nn.FieldKeys {
 				visitListElement(key, ni.FieldValue.MapIndex(key))
 			}
 		}
@@ -221,7 +236,17 @@ func walkFieldInternal(visitor Visitor, node WalkNode, o *WalkOptions) {
 		}
 		fallthrough
 	case IsTypeStruct(t):
+		if o.skipNilData && IsNilOrInvalidValue(v) {
+			return
+		}
 		for i := 0; i < t.NumField(); i++ {
+			var fv reflect.Value
+			if o.skipNilData {
+				fv = v.Field(i)
+				if IsNilOrInvalidValue(fv) {
+					continue
+				}
+			}
 			sf := t.Field(i)
 
 			// Do not handle annotation fields, since they have no schema.
@@ -233,7 +258,9 @@ func walkFieldInternal(visitor Visitor, node WalkNode, o *WalkOptions) {
 				Parent:      ni,
 				StructField: sf,
 			}
-			if !IsNilOrInvalidValue(v) {
+			if o.skipNilData {
+				nn.FieldValue = fv
+			} else if !IsNilOrInvalidValue(v) {
 				nn.FieldValue = v.Field(i)
 			} else {
 				nn.FieldValue = reflect.Zero(sf.Type)
@@ -329,13 +356,19 @@ func walkDataFieldInternal(visitor Visitor, node WalkNode, o *WalkOptions) {
 		// Handle non-pointer structs by recursing into each field of the struct.
 		for i := 0; i < t.NumField(); i++ {
 			sf := t.Field(i)
+			fv := v.Field(i)
+			if IsNilOrInvalidValue(fv) {
+				if pathTag, ok := sf.Tag.Lookup("path"); !ok || pathTag == "" {
+					o.WalkErrors.Collect(fmt.Errorf("field %s did not specify a path", sf.Name))
+					return
+				}
+				continue
+			}
 			nn := &NodeInfo{
 				Parent:      ni,
 				StructField: sf,
-				FieldValue:  reflect.Zero(sf.Type),
+				FieldValue:  fv,
 			}
-
-			nn.FieldValue = v.Field(i)
 			ps, err := SchemaPaths(nn.StructField)
 			if err != nil {
 				o.WalkErrors.Collect(err)
@@ -380,12 +413,13 @@ func walkDataFieldInternal(visitor Visitor, node WalkNode, o *WalkOptions) {
 		if IsNilOrInvalidValue(v) {
 			return
 		}
-		for _, key := range ni.FieldValue.MapKeys() {
+		keys := ni.FieldValue.MapKeys()
+		for _, key := range keys {
 			nn := *ni
 			nn.Parent = ni
 			nn.FieldValue = ni.FieldValue.MapIndex(key)
 			nn.FieldKey = key
-			nn.FieldKeys = ni.FieldValue.MapKeys()
+			nn.FieldKeys = keys
 			walkDataFieldInternal(childVisitor, WalkNodeFromNodeInfo(&nn), o)
 		}
 	}

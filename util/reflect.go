@@ -101,11 +101,12 @@ func IsValueNilOrDefault(value interface{}) bool {
 	if IsValueNil(value) {
 		return true
 	}
-	if !IsValueScalar(reflect.ValueOf(value)) {
+	v := reflect.ValueOf(value)
+	if !IsValueScalar(v) {
 		// Default value is nil for non-scalar types.
 		return false
 	}
-	return value == reflect.New(reflect.TypeOf(value)).Elem().Interface()
+	return v.IsZero()
 }
 
 // IsValuePtr reports whether v is a ptr type.
@@ -656,6 +657,7 @@ func ForEachField(schema *yang.Entry, value any, in, out any, iterFunction Field
 	}
 	var v Visitor
 	errCollector := new(DefaultWalkErrors)
+	walkOpts := DefaultWalkOptions().WithWalkErrors(errCollector).WithSchema(schema)
 	if inMemo, ok := in.(*PathQueryNodeMemo); ok {
 		v = forEachFieldMemoVisitor{
 			// Any existing Memo map passed in will be ignored.
@@ -664,6 +666,7 @@ func ForEachField(schema *yang.Entry, value any, in, out any, iterFunction Field
 			iterFunction:   iterFunction,
 			errorCollector: errCollector,
 		}
+		walkOpts = walkOpts.WithSkipNilData()
 	} else {
 		v = &forEachFieldVisitor{
 			in:             in,
@@ -675,7 +678,7 @@ func ForEachField(schema *yang.Entry, value any, in, out any, iterFunction Field
 
 	// For back-compatibility with ForFieldField, we explicitly interleave the errors from
 	// both the traversal and the iterFunction into the shared Errors slice.
-	_ = Walk(v, WalkNodeFromGoStruct(value), DefaultWalkOptions().WithWalkErrors(errCollector).WithSchema(schema))
+	_ = Walk(v, WalkNodeFromGoStruct(value), walkOpts)
 	// We ignore the returned WalkErrors because we know it's a reference to v.errorCollector.
 	return errCollector.Errors
 }
@@ -704,28 +707,40 @@ func (vf *forEachFieldVisitor) Visit(node WalkNode) Visitor {
 	return vf
 }
 
+// forEachFieldMemoVisitor implements Visitor for ForEachField when traversing
+// with a PathQueryNodeMemo.
 type forEachFieldMemoVisitor struct {
-	parent         *PathQueryNodeMemo
-	out            any
+	// parent is the PathQueryNodeMemo of the parent node in the traversal.
+	parent *PathQueryNodeMemo
+	// out is the caller-supplied output state passed to iterFunction.
+	out any
+	// errorCollector aggregates errors returned by iterFunction.
 	errorCollector *DefaultWalkErrors
-	iterFunction   FieldIteratorFunc
+	// iterFunction is the callback invoked on each visited node.
+	iterFunction FieldIteratorFunc
 }
 
+// Visit invokes vf.iterFunction on node with a child PathQueryNodeMemo and
+// returns the visitor for descending into node's children.
 func (vf forEachFieldMemoVisitor) Visit(node WalkNode) Visitor {
 	if node == nil {
 		return nil
 	}
-	// Each children sibling needs a dedicated (not shared) Memo data structure (map).
+	ni := node.NodeInfo()
+	if IsValueNil(ni) || IsNilOrInvalidValue(ni.FieldValue) {
+		return nil
+	}
+	// Each child sibling needs a dedicated (not shared) Memo data structure (map),
+	// which is lazily initialised when a path query is cached against the node.
 	in := &PathQueryNodeMemo{
 		Parent: vf.parent,
-		Memo:   PathQueryMemo{},
+		Memo:   nil,
 	}
-	ni := node.NodeInfo()
 	if err := vf.iterFunction(ni, in, vf.out); err != nil {
 		vf.errorCollector.Collect(err)
 	}
 	// Since we use a value receiver vf instead of a pointer receiver,
-	// vf is passed as a copy and it's safe to manipulate.
+	// vf is passed as a copy and it is safe to manipulate.
 	vf.parent = in
 	return vf
 }

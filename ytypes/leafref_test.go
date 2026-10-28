@@ -15,6 +15,7 @@
 package ytypes
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -1141,6 +1142,183 @@ func TestLeafrefValidateCurrent(t *testing.T) {
 				t.Fatalf("unexpectedly got nil errors, want: %s", tt.wantErrSubstring)
 			case tt.wantErrSubstring != "" && !strings.Contains(errs.String(), tt.wantErrSubstring):
 				t.Fatalf("did not get expected error, got: %s, want error containing: %s", errs, tt.wantErrSubstring)
+			}
+		})
+	}
+}
+
+const (
+	// maxLeafRefAllocRegression is the maximum permitted fractional increase
+	// (5%) above the ValidateLeafRefData allocation baseline.
+	maxLeafRefAllocRegression = 0.05
+	// leafRefAllocMeasureRuns is the number of runs averaged by
+	// testing.AllocsPerRun after warmup.
+	leafRefAllocMeasureRuns = 5
+	// wantValidateLeafRefBaseAllocs is the fixed root-container allocation
+	// overhead when validating leafRefPerfRoot.
+	wantValidateLeafRefBaseAllocs = 60.0
+	// wantValidateLeafRefAllocsPerElem is the expected heap allocations per list
+	// entry when validating leafrefs across leafRefPerfRoot.
+	wantValidateLeafRefAllocsPerElem = 324.1
+)
+
+// leafRefPerfSizes defines the list cardinalities exercised by the
+// ValidateLeafRefData allocation regression test.
+var leafRefPerfSizes = []int{10, 100}
+
+// leafRefPerfSubcontainer represents an optional container with multiple leaf
+// fields used to verify that ValidateLeafRefData skips nil data branches.
+type leafRefPerfSubcontainer struct {
+	// LeafA is an optional string leaf.
+	LeafA *string `path:"leaf-a"`
+	// LeafB is an optional uint32 leaf.
+	LeafB *uint32 `path:"leaf-b"`
+	// LeafC is an optional int32 leaf.
+	LeafC *int32 `path:"leaf-c"`
+}
+
+// leafRefPerfEntry represents a keyed list entry in leafRefPerfRoot.
+type leafRefPerfEntry struct {
+	// Key is the uint32 list key.
+	Key *uint32 `path:"key"`
+	// Val is the uint32 value or leafref target leaf.
+	Val *uint32 `path:"val"`
+	// Sub is an optional child container left nil in sparse workloads.
+	Sub *leafRefPerfSubcontainer `path:"sub"`
+}
+
+// leafRefPerfRoot represents the root container used by
+// TestValidateLeafRefDataPerformance.
+type leafRefPerfRoot struct {
+	// Target is the keyed list referenced by Ref entries.
+	Target map[uint32]*leafRefPerfEntry `path:"target"`
+	// Ref is the keyed list whose Val leafref points into Target.
+	Ref map[uint32]*leafRefPerfEntry `path:"ref"`
+	// Unused is an optional sibling container left nil in sparse workloads.
+	Unused *leafRefPerfSubcontainer `path:"unused"`
+}
+
+// buildLeafRefPerfSubcontainerSchema returns a YANG container schema entry
+// matching leafRefPerfSubcontainer.
+func buildLeafRefPerfSubcontainerSchema(name string) *yang.Entry {
+	return &yang.Entry{
+		Name: name,
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"leaf-a": {
+				Name: "leaf-a",
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{Kind: yang.Ystring},
+			},
+			"leaf-b": {
+				Name: "leaf-b",
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{Kind: yang.Yuint32},
+			},
+			"leaf-c": {
+				Name: "leaf-c",
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{Kind: yang.Yint32},
+			},
+		},
+	}
+}
+
+// buildLeafRefPerfSchema constructs the YANG schema tree for leafRefPerfRoot.
+func buildLeafRefPerfSchema() *yang.Entry {
+	rootSchema := &yang.Entry{
+		Name: "root",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"target": {
+				Name:     "target",
+				Key:      "key",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{},
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Name: "key",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Yuint32},
+					},
+					"val": {
+						Name: "val",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Yuint32},
+					},
+					"sub": buildLeafRefPerfSubcontainerSchema("sub"),
+				},
+			},
+			"ref": {
+				Name:     "ref",
+				Key:      "key",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{},
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Name: "key",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Yuint32},
+					},
+					"val": {
+						Name: "val",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: "../../target[key=current()/../key]/val",
+						},
+					},
+					"sub": buildLeafRefPerfSubcontainerSchema("sub"),
+				},
+			},
+			"unused": buildLeafRefPerfSubcontainerSchema("unused"),
+		},
+		Annotation: map[string]any{
+			"isFakeRoot": true,
+		},
+	}
+	addParents(rootSchema)
+	return rootSchema
+}
+
+// newValidateLeafRefDataWorkload constructs a repeatable closure that validates
+// n keyed leafref entries against n target list entries in leafRefPerfRoot.
+func newValidateLeafRefDataWorkload(tb testing.TB, n int) func() {
+	tb.Helper()
+	schema := buildLeafRefPerfSchema()
+	target := make(map[uint32]*leafRefPerfEntry, n)
+	ref := make(map[uint32]*leafRefPerfEntry, n)
+	for i := range n {
+		k := uint32(i + 1)
+		v := uint32((i + 1) * 10)
+		target[k] = &leafRefPerfEntry{Key: ygot.Uint32(k), Val: ygot.Uint32(v)}
+		ref[k] = &leafRefPerfEntry{Key: ygot.Uint32(k), Val: ygot.Uint32(v)}
+	}
+	r := &leafRefPerfRoot{
+		Target: target,
+		Ref:    ref,
+	}
+	return func() {
+		if errs := ValidateLeafRefData(schema, r, nil); errs != nil {
+			tb.Fatalf("ValidateLeafRefData(n=%d) failed: %v", n, errs)
+		}
+	}
+}
+
+// TestValidateLeafRefDataPerformance verifies that ValidateLeafRefData heap
+// allocations do not regress by more than maxLeafRefAllocRegression (5%) across
+// keyed lists of size n.
+func TestValidateLeafRefDataPerformance(t *testing.T) {
+	for _, n := range leafRefPerfSizes {
+		t.Run(fmt.Sprintf("n=%d", n), func(t *testing.T) {
+			fn := newValidateLeafRefDataWorkload(t, n)
+			got := testing.AllocsPerRun(leafRefAllocMeasureRuns, fn)
+			want := wantValidateLeafRefBaseAllocs + wantValidateLeafRefAllocsPerElem*float64(n)
+			maxAllowed := want * (1 + maxLeafRefAllocRegression)
+			if got > maxAllowed {
+				pct := ((got - want) / want) * 100
+				t.Fatalf("ValidateLeafRefData(n=%d): allocations regressed by +%.2f%% (max +%.0f%%), got: %.1f allocs/op, baseline: %.1f, max allowed: %.1f",
+					n, pct, maxLeafRefAllocRegression*100, got, want, maxAllowed)
 			}
 		})
 	}
