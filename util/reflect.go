@@ -660,6 +660,7 @@ func ForEachField(schema *yang.Entry, value any, in, out any, iterFunction Field
 		v = forEachFieldMemoVisitor{
 			// Any existing Memo map passed in will be ignored.
 			parent:         inMemo.Parent,
+			leafMemo:       &PathQueryNodeMemo{Memo: PathQueryMemo{}},
 			out:            out,
 			iterFunction:   iterFunction,
 			errorCollector: errCollector,
@@ -705,14 +706,55 @@ func (vf *forEachFieldVisitor) Visit(node WalkNode) Visitor {
 }
 
 type forEachFieldMemoVisitor struct {
-	parent         *PathQueryNodeMemo
-	out            any
+	// parent is the PathQueryNodeMemo of the parent node in the traversal.
+	parent *PathQueryNodeMemo
+	// leafMemo is a reusable PathQueryNodeMemo passed to iterFunction for
+	// scalar leaf nodes that have no children.
+	leafMemo *PathQueryNodeMemo
+	// out is the caller-supplied output state passed to iterFunction.
+	out any
+	// errorCollector aggregates errors returned by iterFunction.
 	errorCollector *DefaultWalkErrors
-	iterFunction   FieldIteratorFunc
+	// iterFunction is the callback invoked on each visited node.
+	iterFunction FieldIteratorFunc
+}
+
+// isLeafWithoutChildren reports whether ni represents a scalar leaf node that
+// has no child nodes to traverse in Walk.
+func isLeafWithoutChildren(ni *NodeInfo) bool {
+	if ni == nil || !ni.FieldValue.IsValid() {
+		return false
+	}
+	if ni.Schema != nil && !ni.Schema.IsLeaf() {
+		return false
+	}
+	t := ni.FieldValue.Type()
+	switch t.Kind() {
+	case reflect.Struct, reflect.Slice, reflect.Map, reflect.Interface:
+		return false
+	case reflect.Ptr:
+		return t.Elem().Kind() != reflect.Struct
+	default:
+		return true
+	}
 }
 
 func (vf forEachFieldMemoVisitor) Visit(node WalkNode) Visitor {
 	if node == nil {
+		return nil
+	}
+	ni := node.NodeInfo()
+	if isLeafWithoutChildren(ni) {
+		in := vf.leafMemo
+		if in == nil {
+			in = &PathQueryNodeMemo{Memo: PathQueryMemo{}}
+		} else if len(in.Memo) > 0 {
+			clear(in.Memo)
+		}
+		in.Parent = vf.parent
+		if err := vf.iterFunction(ni, in, vf.out); err != nil {
+			vf.errorCollector.Collect(err)
+		}
 		return nil
 	}
 	// Each children sibling needs a dedicated (not shared) Memo data structure (map).
@@ -720,7 +762,6 @@ func (vf forEachFieldMemoVisitor) Visit(node WalkNode) Visitor {
 		Parent: vf.parent,
 		Memo:   PathQueryMemo{},
 	}
-	ni := node.NodeInfo()
 	if err := vf.iterFunction(ni, in, vf.out); err != nil {
 		vf.errorCollector.Collect(err)
 	}

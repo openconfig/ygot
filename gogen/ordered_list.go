@@ -179,10 +179,10 @@ func (o *{{ .StructName }}) Keys() []{{ .KeyName }} {
 
 // Values returns the current set of the list's values in order.
 func (o *{{ .StructName }}) Values() []*{{ .ListTypeName }} {
-	if o == nil {
+	if o == nil || len(o.keys) == 0 {
 		return nil
 	}
-	var values []*{{ .ListTypeName }}
+	values := make([]*{{ .ListTypeName }}, 0, len(o.keys))
 	for _, key := range o.keys {
 		values = append(values, o.valueMap[key])
 	}
