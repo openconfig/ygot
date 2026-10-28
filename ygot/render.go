@@ -432,13 +432,13 @@ func findUpdatedOrderedListLeaves(leaves any, s GoOrderedMap, parent *gnmiPath, 
 }
 
 // findUpdatedLeaves appends the valid leaves that are within the supplied
-// GoStruct (assumed to the rooted at parentPath) to the supplied leaves map.
-// If errors are encountered they are appended to the errlist.List supplied. If
-// the GoStruct contains fields that are themselves structured objects (YANG
+// GoStruct (assumed to be rooted at parent) to the supplied leaves collection.
+// If errors are encountered they are appended to the errlist.List. If the
+// GoStruct contains fields that are themselves structured objects (YANG
 // lists, or containers - represented as maps or struct pointers), the function
 // is called recursively on them.
 //
-// Note: the returned paths use a shallow copy of the parentPath.
+// Note: the returned paths use a shallow copy of parent.
 func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath, preferShadowPath bool) error {
 	// addLeaf is the function that must be used to add a single leaf or
 	// atomic update to the input cache of leaves. The reason this is
@@ -478,25 +478,33 @@ func findUpdatedLeaves(leaves any, s GoStruct, parent *gnmiPath, preferShadowPat
 	}
 	sval = sval.Elem()
 
-	stype := sval.Type()
+	tInfo := getStructTypeInfo(sval.Type())
 
-	for i := 0; i < sval.NumField(); i++ {
+	for i, fInfo := range tInfo.fields {
 		fval := sval.Field(i)
-		ftype := stype.Field(i)
 
-		// Handle nil values, and enumerations specifically.
+		// Handle nil values, unset enumerations, and unset empty leaves before resolving paths.
 		switch fval.Kind() {
 		case reflect.Map, reflect.Slice, reflect.Ptr, reflect.Interface:
 			if fval.IsNil() {
 				continue
 			}
+		case reflect.Int64:
+			if fInfo.isGoEnum && fval.Int() == 0 {
+				continue
+			}
+		case reflect.Bool:
+			if fInfo.isYANGEmpty && !fval.Bool() {
+				continue
+			}
 		}
 
-		mapPaths, err := structTagToLibPaths(ftype, parent, preferShadowPath)
+		parsedPaths, err := fInfo.tagInfo.pathsFor(preferShadowPath)
 		if err != nil {
-			errs.Add(fmt.Errorf("%v->%s: %v", parent, ftype.Name, err))
+			errs.Add(fmt.Errorf("%v->%s: %v", parent, fInfo.field.Name, err))
 			continue
 		}
+		mapPaths := buildGNMIPaths(parsedPaths, parent)
 
 		switch fval.Kind() {
 		case reflect.Map:
@@ -1244,27 +1252,42 @@ func rewriteModName(mod string, rules map[string]string) string {
 // If an element is the empty string, it indicates that no module name should
 // be prepended due to residing in the same module as the parent module. If
 // there are modules to be prepended, it also returns the module to which the
-// field belongs. It will also return an error if it encounters one.
+// field belongs. It returns an error if it encounters one.
 func prependmodsJSON(fType reflect.StructField, parentMod string, args jsonOutputConfig) ([][]string, string, error) {
-	var prependmods [][]string
-	var chMod string
+	return prependmodsJSONFromTagInfo(fType.Name, getStructTagInfo(fType.Tag), parentMod, args)
+}
 
-	mapModules, err := structTagToLibModules(fType, args.rfc7951Config.PreferShadowPath)
-	if err != nil {
-		return nil, "", fmt.Errorf("%s: %v", fType.Name, err)
+// prependmodsJSONFromTagInfo determines the module names to prepend to a path
+// element in RFC7951 output mode using the cached structTagInfo for the field
+// named fieldName. It returns the per-path module prefix slices, the child
+// module name, or an error if module resolution fails.
+func prependmodsJSONFromTagInfo(fieldName string, tagInfo *structTagInfo, parentMod string, args jsonOutputConfig) ([][]string, string, error) {
+	modSet := tagInfo.moduleSetFor(args.rfc7951Config.PreferShadowPath)
+	if modSet.err != nil {
+		return nil, "", fmt.Errorf("%s: %v", fieldName, modSet.err)
 	}
-	if len(mapModules) == 0 {
+	if len(modSet.paths) == 0 {
 		return nil, "", nil
 	}
 
-	for _, modulePath := range mapModules {
-		var prependmod []string
-		prevMod := parentMod
-		for i := 0; i != modulePath.Len(); i++ {
-			mod, err := modulePath.StringElemAt(i)
-			if err != nil {
-				return nil, "", err
+	if modSet.canFastPrepend && len(args.rfc7951Config.RewriteModuleNames) == 0 {
+		switch parentMod {
+		case modSet.firstMod0:
+			return modSet.prependMatch0, modSet.chMod, nil
+		case modSet.firstMod1:
+			if modSet.firstMod1 != "" {
+				return modSet.prependMatch1, modSet.chMod, nil
 			}
+		}
+		return modSet.prependNoParent, modSet.chMod, nil
+	}
+
+	prependmods := make([][]string, 0, len(modSet.paths))
+	var chMod string
+	for _, modulePath := range modSet.paths {
+		prependmod := make([]string, 0, len(modulePath.elems))
+		prevMod := parentMod
+		for _, mod := range modulePath.elems {
 			// First we check whether we are rewriting the name of the module, so that
 			// we do the right comparison.
 			mod = rewriteModName(mod, args.rfc7951Config.RewriteModuleNames)
@@ -1277,7 +1300,7 @@ func prependmodsJSON(fType reflect.StructField, parentMod string, args jsonOutpu
 			prependmod = append(prependmod, mod)
 		}
 		if chMod != "" && prevMod != chMod {
-			return nil, "", fmt.Errorf("%s: child modules between all paths are not equal: %v", fType.Name, mapModules)
+			return nil, "", fmt.Errorf("%s: child modules between all paths are not equal: %v", fieldName, modSet.paths)
 		}
 		prependmods = append(prependmods, prependmod)
 		chMod = prevMod
@@ -1290,34 +1313,52 @@ func prependmodsJSON(fType reflect.StructField, parentMod string, args jsonOutpu
 // GoStruct is defined within such that RFC7951 format JSON is able to consider
 // whether to prepend the name of the module to an element. The format of JSON to
 // be produced and whether such module names are prepended is controlled through the
-// supplied jsonOutputConfig. Returns an error if the GoStruct cannot be rendered
+// supplied jsonOutputConfig. It returns an error if the GoStruct cannot be rendered
 // to JSON.
 func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string]any, error) {
 	var errs errlist.List
 
 	sval := reflect.ValueOf(s).Elem()
-	stype := sval.Type()
+	tInfo := getStructTypeInfo(sval.Type())
+	preferShadowPath := args.rfc7951Config != nil && args.rfc7951Config.PreferShadowPath
+	appendModName := args.jType == RFC7951 && args.rfc7951Config != nil && args.rfc7951Config.AppendModuleName
 
 	// Marshal into a map[string]any which can be handed to
 	// json.Marshal(Text)?
 	jsonout := map[string]any{}
 
-	for i := 0; i < sval.NumField(); i++ {
+	for i, fInfo := range tInfo.fields {
 		field := sval.Field(i)
-		fType := stype.Field(i)
+
+		switch field.Kind() {
+		case reflect.Map, reflect.Slice, reflect.Ptr, reflect.Interface:
+			if field.IsNil() {
+				continue
+			}
+		case reflect.Int64:
+			if fInfo.isGoEnum && field.Int() == 0 {
+				continue
+			}
+		case reflect.Bool:
+			if fInfo.isYANGEmpty && !field.Bool() {
+				continue
+			}
+		}
+
+		fType := fInfo.field
 
 		// Module names to prepend to the path in RFC7951 output mode.
 		var prependmods [][]string
 		var chMod string
-		if args.jType == RFC7951 && args.rfc7951Config != nil && args.rfc7951Config.AppendModuleName {
+		if appendModName {
 			var err error
-			if prependmods, chMod, err = prependmodsJSON(fType, parentMod, args); err != nil {
+			if prependmods, chMod, err = prependmodsJSONFromTagInfo(fType.Name, fInfo.tagInfo, parentMod, args); err != nil {
 				errs.Add(err)
 				continue
 			}
 		}
 
-		mapPaths, err := structTagToLibPaths(fType, newStringSliceGNMIPath([]string{}), args.rfc7951Config != nil && args.rfc7951Config.PreferShadowPath)
+		mapPaths, err := fInfo.tagInfo.pathsFor(preferShadowPath)
 		if err != nil {
 			errs.Add(fmt.Errorf("%s: %v", fType.Name, err))
 			continue
@@ -1325,7 +1366,7 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 
 		// s is the fake root if its path tag is empty. In this case,
 		// we want to forward the parent module to the child nodes.
-		isFakeRoot := len(mapPaths) == 1 && mapPaths[0].Len() == 0
+		isFakeRoot := len(mapPaths) == 1 && len(mapPaths[0].elems) == 0
 		if isFakeRoot {
 			chMod = parentMod
 		}
@@ -1340,7 +1381,7 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			continue
 		}
 
-		if mp, ok := value.(map[string]any); ok && len(mp) == 0 && !util.IsYangPresence(fType) {
+		if mp, ok := value.(map[string]any); ok && len(mp) == 0 && !fInfo.isYangPresence {
 			continue
 		}
 
@@ -1361,22 +1402,22 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 		}
 
 		for i, p := range mapPaths {
-			if prependmods != nil && p.Len() != len(prependmods[i]) {
-				errs.Add(fmt.Errorf("number of paths and modules elements not the same: (paths: %v, modules: %v)", p, prependmods[i]))
+			if prependmods != nil && len(p.elems) != len(prependmods[i]) {
+				errs.Add(fmt.Errorf("number of paths and modules elements not the same: (paths: %v, modules: %v)", p.elems, prependmods[i]))
+				continue
+			}
+			if len(p.elems) == 0 {
+				errs.Add(fmt.Errorf("invalid index -1 for gnmiPath len 0"))
 				continue
 			}
 
 			parent := jsonout
 			j := 0
-			for ; j != p.Len()-1; j++ {
-				k, err := p.StringElemAt(j)
-				if err != nil {
-					errs.Add(err)
-					continue
-				}
+			for ; j != len(p.elems)-1; j++ {
+				k := p.elems[j]
 
 				if prependmods != nil && prependmods[i][j] != "" {
-					k = fmt.Sprintf("%s:%s", prependmods[i][j], k)
+					k = prependmods[i][j] + ":" + k
 				}
 
 				if _, ok := parent[k]; !ok {
@@ -1384,13 +1425,9 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 				}
 				parent = parent[k].(map[string]any)
 			}
-			k, err := p.LastStringElem()
-			if err != nil {
-				errs.Add(err)
-				continue
-			}
+			k := p.elems[j]
 			if prependmods != nil && prependmods[i][j] != "" {
-				k = fmt.Sprintf("%s:%s", prependmods[i][j], k)
+				k = prependmods[i][j] + ":" + k
 			}
 			if args.jType != Internal {
 				value, err = normalizeJSONValue(value)

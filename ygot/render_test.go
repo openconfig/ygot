@@ -4480,3 +4480,172 @@ func TestMarshal7951(t *testing.T) {
 		})
 	}
 }
+
+const (
+	// marshalAllocMeasureRuns is the number of iterations executed by
+	// testing.AllocsPerRun in TestMarshal7951Performance.
+	marshalAllocMeasureRuns = 10
+	// maxMarshalAllocRegression is the maximum allowed relative increase (5%)
+	// in allocations per operation before TestMarshal7951Performance fails.
+	maxMarshalAllocRegression = 0.05
+	// wantMarshal7951BaseAllocs is the baseline fixed allocations per
+	// Marshal7951 call on marshalPerfRoot.
+	wantMarshal7951BaseAllocs = 55.0
+	// wantMarshal7951AllocsPerElem is the baseline allocations per entry in
+	// Marshal7951 on marshalPerfRoot.
+	wantMarshal7951AllocsPerElem = 75.0
+	// wantGNMINotifsBaseAllocs is the baseline fixed allocations per
+	// TogNMINotifications call on marshalPerfRoot.
+	wantGNMINotifsBaseAllocs = 24.0
+	// wantGNMINotifsAllocsPerElem is the baseline allocations per entry in
+	// TogNMINotifications on marshalPerfRoot.
+	wantGNMINotifsAllocsPerElem = 60.15
+)
+
+// marshalPerfSizes lists the keyed list sizes evaluated in
+// TestMarshal7951Performance.
+var marshalPerfSizes = []int{10, 50, 100}
+
+// marshalPerfSubcontainer represents an optional child container used in
+// TestMarshal7951Performance.
+type marshalPerfSubcontainer struct {
+	// LeafA is an optional string leaf.
+	LeafA *string `path:"config/leaf-a|leaf-a" module:"openconfig-perf/openconfig-perf|openconfig-perf"`
+	// LeafB is an optional uint32 leaf.
+	LeafB *uint32 `path:"config/leaf-b|leaf-b" module:"openconfig-perf/openconfig-perf|openconfig-perf"`
+	// LeafC is an optional int64 leaf.
+	LeafC *int64 `path:"config/leaf-c|leaf-c" module:"openconfig-perf/openconfig-perf|openconfig-perf"`
+	// Enum is an optional enumerated leaf.
+	Enum EnumTest `path:"state/enum" module:"openconfig-perf/openconfig-perf"`
+	// Empty is an optional YANGEmpty leaf.
+	Empty YANGEmpty `path:"state/empty" module:"openconfig-perf/openconfig-perf"`
+}
+
+// IsYANGGoStruct marks marshalPerfSubcontainer as a valid GoStruct.
+func (*marshalPerfSubcontainer) IsYANGGoStruct() {}
+
+// ΛValidate validates marshalPerfSubcontainer against the YANG schema.
+func (*marshalPerfSubcontainer) ΛValidate(...ValidationOption) error { return nil }
+
+// ΛEnumTypeMap returns the enum type map for marshalPerfSubcontainer.
+func (*marshalPerfSubcontainer) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+
+// ΛBelongingModule returns the defining YANG module name for marshalPerfSubcontainer.
+func (*marshalPerfSubcontainer) ΛBelongingModule() string { return "openconfig-perf" }
+
+// marshalPerfEntry represents a keyed list entry in marshalPerfRoot.
+type marshalPerfEntry struct {
+	// Name is the string key of the list entry.
+	Name *string `path:"config/name|name" module:"openconfig-perf/openconfig-perf|openconfig-perf"`
+	// Description is a populated string leaf on the list entry.
+	Description *string `path:"config/description|description" module:"openconfig-perf/openconfig-perf|openconfig-perf"`
+	// Enabled is an optional boolean leaf left nil in sparse workloads.
+	Enabled *bool `path:"config/enabled|enabled" module:"openconfig-perf/openconfig-perf|openconfig-perf"`
+	// Mtu is an optional uint16 leaf left nil in sparse workloads.
+	Mtu *uint16 `path:"config/mtu|mtu" module:"openconfig-perf/openconfig-perf|openconfig-perf"`
+	// Counter is an optional uint64 state leaf left nil in sparse workloads.
+	Counter *uint64 `path:"state/counter" module:"openconfig-perf/openconfig-perf"`
+	// AdminStatus is an optional enumerated leaf left unset in sparse workloads.
+	AdminStatus EnumTest `path:"state/admin-status" module:"openconfig-perf/openconfig-perf"`
+	// EmptyFlag is an optional YANGEmpty leaf left unset in sparse workloads.
+	EmptyFlag YANGEmpty `path:"state/empty-flag" module:"openconfig-perf/openconfig-perf"`
+	// Sub is an optional child container left nil in sparse workloads.
+	Sub *marshalPerfSubcontainer `path:"sub" module:"openconfig-perf"`
+}
+
+// IsYANGGoStruct marks marshalPerfEntry as a valid GoStruct.
+func (*marshalPerfEntry) IsYANGGoStruct() {}
+
+// ΛValidate validates marshalPerfEntry against the YANG schema.
+func (*marshalPerfEntry) ΛValidate(...ValidationOption) error { return nil }
+
+// ΛEnumTypeMap returns the enum type map for marshalPerfEntry.
+func (*marshalPerfEntry) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+
+// ΛBelongingModule returns the defining YANG module name for marshalPerfEntry.
+func (*marshalPerfEntry) ΛBelongingModule() string { return "openconfig-perf" }
+
+// ΛListKeyMap returns the list key map for marshalPerfEntry.
+func (e *marshalPerfEntry) ΛListKeyMap() (map[string]any, error) {
+	if e.Name == nil {
+		return nil, fmt.Errorf("nil key Name in marshalPerfEntry")
+	}
+	return map[string]any{"name": *e.Name}, nil
+}
+
+// marshalPerfRoot represents the root GoStruct used by TestMarshal7951Performance.
+type marshalPerfRoot struct {
+	// Entry is the keyed list of marshalPerfEntry structs.
+	Entry map[string]*marshalPerfEntry `path:"entries/entry" module:"openconfig-perf/openconfig-perf"`
+	// Unused is an optional sibling container left nil in sparse workloads.
+	Unused *marshalPerfSubcontainer `path:"unused" module:"openconfig-perf"`
+	// UnusedEnum is an optional enumerated leaf left unset in sparse workloads.
+	UnusedEnum EnumTest `path:"unused-enum" module:"openconfig-perf"`
+	// UnusedEmpty is an optional YANGEmpty leaf left unset in sparse workloads.
+	UnusedEmpty YANGEmpty `path:"unused-empty" module:"openconfig-perf"`
+}
+
+// IsYANGGoStruct marks marshalPerfRoot as a valid GoStruct.
+func (*marshalPerfRoot) IsYANGGoStruct() {}
+
+// ΛValidate validates marshalPerfRoot against the YANG schema.
+func (*marshalPerfRoot) ΛValidate(...ValidationOption) error { return nil }
+
+// ΛEnumTypeMap returns the enum type map for marshalPerfRoot.
+func (*marshalPerfRoot) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+
+// ΛBelongingModule returns the defining YANG module name for marshalPerfRoot.
+func (*marshalPerfRoot) ΛBelongingModule() string { return "" }
+
+// buildMarshalPerfRoot constructs a marshalPerfRoot populated with n keyed
+// list entries.
+func buildMarshalPerfRoot(n int) *marshalPerfRoot {
+	entries := make(map[string]*marshalPerfEntry, n)
+	for i := 0; i < n; i++ {
+		k := fmt.Sprintf("eth-%d", i)
+		entries[k] = &marshalPerfEntry{
+			Name:        String(k),
+			Description: String("interface description"),
+		}
+	}
+	return &marshalPerfRoot{Entry: entries}
+}
+
+// TestMarshal7951Performance verifies that Marshal7951 and TogNMINotifications
+// heap allocations do not regress by more than maxMarshalAllocRegression (5%)
+// across keyed lists of size n.
+func TestMarshal7951Performance(t *testing.T) {
+	for _, n := range marshalPerfSizes {
+		r := buildMarshalPerfRoot(n)
+		t.Run(fmt.Sprintf("Marshal7951/n=%d", n), func(t *testing.T) {
+			cfg := &RFC7951JSONConfig{AppendModuleName: true}
+			got := testing.AllocsPerRun(marshalAllocMeasureRuns, func() {
+				if _, err := Marshal7951(r, cfg); err != nil {
+					t.Fatalf("Marshal7951(n=%d) unexpected error: %v", n, err)
+				}
+			})
+			want := wantMarshal7951BaseAllocs + wantMarshal7951AllocsPerElem*float64(n)
+			maxAllowed := want * (1 + maxMarshalAllocRegression)
+			if got > maxAllowed {
+				pct := ((got - want) / want) * 100
+				t.Fatalf("Marshal7951(n=%d): allocations regressed by +%.2f%% (max +%.0f%%), got: %.1f allocs/op, baseline: %.1f, max allowed: %.1f",
+					n, pct, maxMarshalAllocRegression*100, got, want, maxAllowed)
+			}
+		})
+		t.Run(fmt.Sprintf("TogNMINotifications/n=%d", n), func(t *testing.T) {
+			cfg := GNMINotificationsConfig{UsePathElem: true}
+			got := testing.AllocsPerRun(marshalAllocMeasureRuns, func() {
+				if _, err := TogNMINotifications(r, 42, cfg); err != nil {
+					t.Fatalf("TogNMINotifications(n=%d) unexpected error: %v", n, err)
+				}
+			})
+			want := wantGNMINotifsBaseAllocs + wantGNMINotifsAllocsPerElem*float64(n)
+			maxAllowed := want * (1 + maxMarshalAllocRegression)
+			if got > maxAllowed {
+				pct := ((got - want) / want) * 100
+				t.Fatalf("TogNMINotifications(n=%d): allocations regressed by +%.2f%% (max +%.0f%%), got: %.1f allocs/op, baseline: %.1f, max allowed: %.1f",
+					n, pct, maxMarshalAllocRegression*100, got, want, maxAllowed)
+			}
+		})
+	}
+}
