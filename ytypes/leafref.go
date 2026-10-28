@@ -91,7 +91,7 @@ func ValidateLeafRefData(schema *yang.Entry, value interface{}, opt *LeafrefOpti
 		return nil
 	}
 
-	pathQueryRootNode := &util.PathQueryNodeMemo{Memo: util.PathQueryMemo{}}
+	pathQueryRootNode := &util.PathQueryNodeMemo{}
 	return util.ForEachField(schema, value, pathQueryRootNode, nil, validateLeafRefDataIterFunc)
 }
 
@@ -226,9 +226,10 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.Path
 	}
 
 	// Now, check for a previous identical query in the memo map.
-	qVal, ok := pathQueryRoot.Memo[strPath]
-	if ok {
-		return qVal.Nodes, qVal.Err
+	if pathQueryRoot.Memo != nil {
+		if qVal, ok := pathQueryRoot.Memo[strPath]; ok {
+			return qVal.Nodes, qVal.Err
+		}
 	}
 	// Get all non-nil values
 	var nodes []any
@@ -237,6 +238,9 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.Path
 		if !util.IsValueNil(treeNode.Data) {
 			nodes = append(nodes, treeNode.Data)
 		}
+	}
+	if pathQueryRoot.Memo == nil {
+		pathQueryRoot.Memo = make(util.PathQueryMemo)
 	}
 	pathQueryRoot.Memo[strPath] = util.PathQueryResult{Nodes: nodes, Err: err}
 	return nodes, err
