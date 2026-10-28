@@ -4221,28 +4221,28 @@ const (
 	listAllocMeasureRuns = 5
 	// wantSetSingleKeyAllocsPerElem is the expected heap allocations per list
 	// entry when populating a single-keyed list via SetNode.
-	wantSetSingleKeyAllocsPerElem = 219.0
+	wantSetSingleKeyAllocsPerElem = 113.0
 	// wantSetMultiKeyAllocsPerElem is the expected heap allocations per list
 	// entry when populating a multi-keyed list via SetNode.
-	wantSetMultiKeyAllocsPerElem = 316.0
+	wantSetMultiKeyAllocsPerElem = 161.0
 	// wantGetSingleKeyAllocs is the expected heap allocations for a single
 	// concrete GetNode lookup on a populated single-keyed list of any size.
-	wantGetSingleKeyAllocs = 164.0
+	wantGetSingleKeyAllocs = 51.0
 	// wantGetMultiKeyAllocs is the expected heap allocations for a single
 	// concrete GetNode lookup on a populated multi-keyed list of any size.
-	wantGetMultiKeyAllocs = 211.0
+	wantGetMultiKeyAllocs = 70.0
 	// wantGetOrCreateSingleKeyAllocs is the expected heap allocations for a
 	// single concrete GetOrCreateNode lookup on a populated single-keyed list.
-	wantGetOrCreateSingleKeyAllocs = 164.0
+	wantGetOrCreateSingleKeyAllocs = 51.0
 	// wantGetOrCreateMultiKeyAllocs is the expected heap allocations for a
 	// single concrete GetOrCreateNode lookup on a populated multi-keyed list.
-	wantGetOrCreateMultiKeyAllocs = 211.0
+	wantGetOrCreateMultiKeyAllocs = 70.0
 	// wantDeleteSingleKeyAllocsPerElem is the expected heap allocations per list
 	// entry when deleting concrete entries from a single-keyed list.
-	wantDeleteSingleKeyAllocsPerElem = 30.0
+	wantDeleteSingleKeyAllocsPerElem = 5.0
 	// wantDeleteMultiKeyAllocsPerElem is the expected heap allocations per list
 	// entry when deleting concrete entries from a multi-keyed list.
-	wantDeleteMultiKeyAllocsPerElem = 46.5
+	wantDeleteMultiKeyAllocsPerElem = 20.0
 )
 
 // listPerfSizes defines the list cardinalities exercised by list traversal
@@ -4665,4 +4665,544 @@ func deleteAllPaths(tb testing.TB, schema *yang.Entry, root any, paths []*gpb.Pa
 			tb.Fatalf("DeleteNode(%v) failed: %v", p, err)
 		}
 	}
+}
+
+// containerPerfWidths defines the data-field widths exercised by wide annotated
+// container benchmarks.
+var containerPerfWidths = []int{10, 50, 100}
+
+// buildWideAnnotatedContainer constructs a compressed container schema (with a
+// choice/case subtree), a dynamic Go struct type containing numFields string
+// leaves and matching ygotAnnotation fields, and the gNMI leaf paths.
+func buildWideAnnotatedContainer(tb testing.TB, numFields int) (*yang.Entry, reflect.Type, []*gpb.Path) {
+	tb.Helper()
+	configDir := &yang.Entry{
+		Name: "config",
+		Kind: yang.DirectoryEntry,
+		Dir:  map[string]*yang.Entry{},
+	}
+	stateDir := &yang.Entry{
+		Name: "state",
+		Kind: yang.DirectoryEntry,
+		Dir:  map[string]*yang.Entry{},
+	}
+	choiceDir := &yang.Entry{
+		Name: "bench-choice",
+		Kind: yang.ChoiceEntry,
+		Dir: map[string]*yang.Entry{
+			"bench-case": {
+				Name: "bench-case",
+				Kind: yang.CaseEntry,
+				Dir: map[string]*yang.Entry{
+					"choice-leaf": {
+						Name: "choice-leaf",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+				},
+			},
+		},
+	}
+	root := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"config":       configDir,
+			"state":        stateDir,
+			"bench-choice": choiceDir,
+		},
+	}
+	addParents(root)
+
+	fields := make([]reflect.StructField, 0, 2*numFields+1)
+	fields = append(fields, reflect.StructField{
+		Name: "Metadata",
+		Type: reflect.TypeOf([]ygot.Annotation(nil)),
+		Tag:  `path:"@" ygotAnnotation:"true"`,
+	})
+	paths := make([]*gpb.Path, numFields)
+	for i := range numFields {
+		leafName := fmt.Sprintf("leaf-%d", i)
+		configDir.Dir[leafName] = &yang.Entry{
+			Name:   leafName,
+			Kind:   yang.LeafEntry,
+			Parent: configDir,
+			Type:   &yang.YangType{Kind: yang.Ystring},
+		}
+		stateDir.Dir[leafName] = &yang.Entry{
+			Name:   leafName,
+			Kind:   yang.LeafEntry,
+			Parent: stateDir,
+			Type:   &yang.YangType{Kind: yang.Ystring},
+		}
+		fields = append(fields,
+			reflect.StructField{
+				Name: fmt.Sprintf("Leaf%d", i),
+				Type: reflect.TypeOf((*string)(nil)),
+				Tag:  reflect.StructTag(fmt.Sprintf(`path:"config/%s|%s" shadow-path:"state/%s|%s"`, leafName, leafName, leafName, leafName)),
+			},
+			reflect.StructField{
+				Name: fmt.Sprintf("Annotation%d", i),
+				Type: reflect.TypeOf([]ygot.Annotation(nil)),
+				Tag:  reflect.StructTag(fmt.Sprintf(`path:"config/@%s" ygotAnnotation:"true"`, leafName)),
+			},
+		)
+		paths[i] = mustPath(fmt.Sprintf("/config/%s", leafName))
+	}
+	return root, reflect.StructOf(fields), paths
+}
+
+// newGetWideContainerWorkload returns a repeatable closure that queries leaves
+// round-robin via GetNode on a populated wide annotated container.
+func newGetWideContainerWorkload(tb testing.TB, numFields int) func() {
+	tb.Helper()
+	schema, st, paths := buildWideAnnotatedContainer(tb, numFields)
+	root := reflect.New(st).Interface()
+	val := &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "val"}}
+	for _, p := range paths {
+		if err := SetNode(schema, root, p, val, &InitMissingElements{}); err != nil {
+			tb.Fatalf("SetNode(%v) setup failed: %v", p, err)
+		}
+	}
+	var idx int
+	return func() {
+		p := paths[idx%numFields]
+		idx++
+		if _, err := GetNode(schema, root, p); err != nil {
+			tb.Fatalf("GetNode(%v) failed: %v", p, err)
+		}
+	}
+}
+
+// newGetOrCreateWideContainerWorkload returns a repeatable closure that queries
+// leaves round-robin via GetOrCreateNode on a populated wide annotated
+// container.
+func newGetOrCreateWideContainerWorkload(tb testing.TB, numFields int) func() {
+	tb.Helper()
+	schema, st, paths := buildWideAnnotatedContainer(tb, numFields)
+	root := reflect.New(st).Interface()
+	val := &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "val"}}
+	for _, p := range paths {
+		if err := SetNode(schema, root, p, val, &InitMissingElements{}); err != nil {
+			tb.Fatalf("SetNode(%v) setup failed: %v", p, err)
+		}
+	}
+	var idx int
+	return func() {
+		p := paths[idx%numFields]
+		idx++
+		if _, _, err := GetOrCreateNode(schema, root, p); err != nil {
+			tb.Fatalf("GetOrCreateNode(%v) failed: %v", p, err)
+		}
+	}
+}
+
+// newSetWideContainerWorkload returns a repeatable closure that updates leaves
+// round-robin via SetNode on a wide annotated container.
+func newSetWideContainerWorkload(tb testing.TB, numFields int) func() {
+	tb.Helper()
+	schema, st, paths := buildWideAnnotatedContainer(tb, numFields)
+	root := reflect.New(st).Interface()
+	val := &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "val"}}
+	var idx int
+	return func() {
+		p := paths[idx%numFields]
+		idx++
+		if err := SetNode(schema, root, p, val, &InitMissingElements{}); err != nil {
+			tb.Fatalf("SetNode(%v) failed: %v", p, err)
+		}
+	}
+}
+
+// BenchmarkGetNodeWideContainer measures GetNode container field lookup across
+// wide annotated structs of width f.
+func BenchmarkGetNodeWideContainer(b *testing.B) {
+	for _, f := range containerPerfWidths {
+		fn := newGetWideContainerWorkload(b, f)
+		b.Run(fmt.Sprintf("fields=%d", f), func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				fn()
+			}
+		})
+	}
+}
+
+// BenchmarkGetOrCreateNodeWideContainer measures GetOrCreateNode container
+// field lookup across wide annotated structs of width f.
+func BenchmarkGetOrCreateNodeWideContainer(b *testing.B) {
+	for _, f := range containerPerfWidths {
+		fn := newGetOrCreateWideContainerWorkload(b, f)
+		b.Run(fmt.Sprintf("fields=%d", f), func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				fn()
+			}
+		})
+	}
+}
+
+// BenchmarkSetNodeWideContainer measures SetNode container field lookup and
+// leaf update across wide annotated structs of width f.
+func BenchmarkSetNodeWideContainer(b *testing.B) {
+	for _, f := range containerPerfWidths {
+		fn := newSetWideContainerWorkload(b, f)
+		b.Run(fmt.Sprintf("fields=%d", f), func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				fn()
+			}
+		})
+	}
+}
+
+const (
+	// wantGetWideContainerAllocs is the expected heap allocations for a single
+	// GetNode lookup on a populated wide annotated container of any width.
+	wantGetWideContainerAllocs = 4.0
+	// wantGetOrCreateWideContainerAllocs is the expected heap allocations for a
+	// single GetOrCreateNode lookup on a populated wide annotated container.
+	wantGetOrCreateWideContainerAllocs = 4.0
+	// wantSetWideContainerAllocs is the expected heap allocations for a single
+	// SetNode leaf update on a wide annotated container of any width.
+	wantSetWideContainerAllocs = 16.0
+)
+
+// TestWideContainerPerformance executes the wide annotated container benchmark
+// workloads as unit tests and fails if heap allocations regress by more than
+// maxListAllocRegression (5%) above the O(1) cached baseline across widths.
+func TestWideContainerPerformance(t *testing.T) {
+	tests := []struct {
+		desc       string
+		build      func(tb testing.TB, numFields int) func()
+		wantAllocs float64
+	}{{
+		desc:       "GetNodeWideContainer",
+		build:      newGetWideContainerWorkload,
+		wantAllocs: wantGetWideContainerAllocs,
+	}, {
+		desc:       "GetOrCreateNodeWideContainer",
+		build:      newGetOrCreateWideContainerWorkload,
+		wantAllocs: wantGetOrCreateWideContainerAllocs,
+	}, {
+		desc:       "SetNodeWideContainer",
+		build:      newSetWideContainerWorkload,
+		wantAllocs: wantSetWideContainerAllocs,
+	}}
+
+	for _, tt := range tests {
+		for _, f := range containerPerfWidths {
+			t.Run(fmt.Sprintf("%s/fields=%d", tt.desc, f), func(t *testing.T) {
+				fn := tt.build(t, f)
+				got := testing.AllocsPerRun(listAllocMeasureRuns, fn)
+				maxAllowed := tt.wantAllocs * (1 + maxListAllocRegression)
+				if got > maxAllowed {
+					pct := ((got - tt.wantAllocs) / tt.wantAllocs) * 100
+					t.Fatalf("%s(fields=%d): allocations regressed by +%.2f%% (max +%.0f%%), got: %.1f allocs/op, baseline: %.1f, max allowed: %.1f",
+						tt.desc, f, pct, maxListAllocRegression*100, got, tt.wantAllocs, maxAllowed)
+				}
+			})
+		}
+	}
+}
+
+// testOrderedMapStub is a minimal GoOrderedMap test double used to exercise
+// container-level partial-prefix ordered-map deletion in retrieveNodeContainer.
+type testOrderedMapStub struct {
+	// count records the logical element count of the stub ordered map.
+	count int
+}
+
+// IsYANGOrderedList marks testOrderedMapStub as implementing ygot.GoOrderedMap.
+func (*testOrderedMapStub) IsYANGOrderedList() {}
+
+// Len returns the logical element count of s.
+func (s *testOrderedMapStub) Len() int {
+	if s == nil {
+		return 0
+	}
+	return s.count
+}
+
+// testAnnotationStub implements ygot.Annotation for SetNode annotation tests.
+type testAnnotationStub struct {
+	// label stores the annotation payload used in equality assertions.
+	label string
+}
+
+// MarshalJSON serialises a into JSON bytes to satisfy ygot.Annotation.
+func (a testAnnotationStub) MarshalJSON() ([]byte, error) {
+	return json.Marshal(a.label)
+}
+
+// UnmarshalJSON deserialises JSON bytes into a to satisfy ygot.Annotation.
+func (a *testAnnotationStub) UnmarshalJSON(b []byte) error {
+	return json.Unmarshal(b, &a.label)
+}
+
+// TestRetrieveNodeContainerEdgeCases verifies that indexed container dispatch
+// preserves sequential first-error ordering, PreferShadowPath shadow-leaf and
+// missing-path-tag behaviour, partial-prefix GoOrderedMap deletion, and
+// SetNode updates on container and leaf ygotAnnotation fields.
+func TestRetrieveNodeContainerEdgeCases(t *testing.T) {
+	type noTagAfterValid struct {
+		// LeafA is a valid compressed leaf declared before an untagged field.
+		LeafA *string `path:"config/leaf-a|leaf-a" shadow-path:"state/leaf-a|leaf-a"`
+		// MissingTag lacks a path tag and triggers an error if reached.
+		MissingTag *string
+		// LeafB is declared after MissingTag and is unreachable on sequential scan.
+		LeafB *string `path:"config/leaf-b|leaf-b"`
+	}
+	type badSchemaAfterValid struct {
+		// LeafA is a valid compressed leaf declared before an unmapped schema field.
+		LeafA *string `path:"config/leaf-a|leaf-a"`
+		// UnknownSchema references a schema child that does not exist in schema.Dir.
+		UnknownSchema *string `path:"config/does-not-exist"`
+		// LeafB is declared after UnknownSchema and is unreachable on sequential scan.
+		LeafB *string `path:"config/leaf-b|leaf-b"`
+	}
+	type shadowOnlyBeforeValid struct {
+		// ShadowOnly carries a valid shadow-path tag without a primary path tag.
+		ShadowOnly *string `shadow-path:"state/leaf-a"`
+		// LeafB is declared after ShadowOnly.
+		LeafB *string `path:"config/leaf-b|leaf-b" shadow-path:"state/leaf-b|leaf-b"`
+	}
+	type orderedMapContainer struct {
+		// Metadata is a container-level annotation field.
+		Metadata []ygot.Annotation `path:"@" ygotAnnotation:"true"`
+		// LeafA is a compressed string leaf with a companion leaf annotation.
+		LeafA *string `path:"config/leaf-a|leaf-a" shadow-path:"state/leaf-a|leaf-a"`
+		// LeafAAnnotation stores leaf-level metadata for LeafA.
+		LeafAAnnotation []ygot.Annotation `path:"config/@leaf-a|@leaf-a" ygotAnnotation:"true"`
+		// Items is a two-segment compressed GoOrderedMap field.
+		Items *testOrderedMapStub `path:"items/item" shadow-path:"shadow-items/item"`
+		// NestedItems is a three-segment compressed GoOrderedMap field.
+		NestedItems *testOrderedMapStub `path:"outer/items/item" shadow-path:"shadow-outer/items/item"`
+	}
+
+	leafEntry := func(name string) *yang.Entry {
+		return &yang.Entry{
+			Name: name,
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{Kind: yang.Ystring},
+		}
+	}
+	listEntry := func(name string) *yang.Entry {
+		e := &yang.Entry{
+			Name:     name,
+			Kind:     yang.DirectoryEntry,
+			ListAttr: yang.NewDefaultListAttr(),
+			Key:      "k",
+			Dir: map[string]*yang.Entry{
+				"k": leafEntry("k"),
+			},
+		}
+		return e
+	}
+	schema := &yang.Entry{
+		Name: "root",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"config": {
+				Name: "config",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"leaf-a": leafEntry("leaf-a"),
+					"leaf-b": leafEntry("leaf-b"),
+				},
+			},
+			"state": {
+				Name: "state",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"leaf-a": leafEntry("leaf-a"),
+					"leaf-b": leafEntry("leaf-b"),
+				},
+			},
+			"items": {
+				Name: "items",
+				Kind: yang.DirectoryEntry,
+				Dir:  map[string]*yang.Entry{"item": listEntry("item")},
+			},
+			"shadow-items": {
+				Name: "shadow-items",
+				Kind: yang.DirectoryEntry,
+				Dir:  map[string]*yang.Entry{"item": listEntry("item")},
+			},
+			"outer": {
+				Name: "outer",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"items": {
+						Name: "items",
+						Kind: yang.DirectoryEntry,
+						Dir:  map[string]*yang.Entry{"item": listEntry("item")},
+					},
+				},
+			},
+			"shadow-outer": {
+				Name: "shadow-outer",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"items": {
+						Name: "items",
+						Kind: yang.DirectoryEntry,
+						Dir:  map[string]*yang.Entry{"item": listEntry("item")},
+					},
+				},
+			},
+		},
+	}
+	addParents(schema)
+
+	t.Run("first-error ordering around untagged and missing-schema fields", func(t *testing.T) {
+		tests := []struct {
+			desc             string
+			inRoot           any
+			inPath           *gpb.Path
+			inOpts           []GetNodeOpt
+			wantVal          string
+			wantCode         codes.Code
+			wantErrSubstring string
+		}{{
+			desc:    "field before untagged field succeeds",
+			inRoot:  &noTagAfterValid{LeafA: ygot.String("ok-a"), LeafB: ygot.String("ok-b")},
+			inPath:  mustPath("/config/leaf-a"),
+			wantVal: "ok-a",
+		}, {
+			desc:             "field after untagged field fails with MissingTag error",
+			inRoot:           &noTagAfterValid{LeafA: ygot.String("ok-a"), LeafB: ygot.String("ok-b")},
+			inPath:           mustPath("/config/leaf-b"),
+			wantCode:         codes.Unknown,
+			wantErrSubstring: "failed to get child schema",
+		}, {
+			desc:    "field before missing-schema field succeeds",
+			inRoot:  &badSchemaAfterValid{LeafA: ygot.String("ok-a"), LeafB: ygot.String("ok-b")},
+			inPath:  mustPath("/config/leaf-a"),
+			wantVal: "ok-a",
+		}, {
+			desc:             "field after missing-schema field fails with BadSchema error",
+			inRoot:           &badSchemaAfterValid{LeafA: ygot.String("ok-a"), LeafB: ygot.String("ok-b")},
+			inPath:           mustPath("/config/leaf-b"),
+			wantCode:         codes.InvalidArgument,
+			wantErrSubstring: "could not find schema",
+		}, {
+			desc:    "shadow-only field succeeds under PreferShadowPath when matched",
+			inRoot:  &shadowOnlyBeforeValid{ShadowOnly: ygot.String("shadow-ok"), LeafB: ygot.String("ok-b")},
+			inPath:  mustPath("/state/leaf-a"),
+			inOpts:  []GetNodeOpt{&PreferShadowPath{}},
+			wantVal: "shadow-ok",
+		}, {
+			desc:             "shadow-only field fails with missing path tag under PreferShadowPath when unmatched",
+			inRoot:           &shadowOnlyBeforeValid{ShadowOnly: ygot.String("shadow-ok"), LeafB: ygot.String("ok-b")},
+			inPath:           mustPath("/state/leaf-b"),
+			inOpts:           []GetNodeOpt{&PreferShadowPath{}},
+			wantCode:         codes.Unknown,
+			wantErrSubstring: "failed to get schema paths",
+		}}
+
+		for _, tt := range tests {
+			t.Run(tt.desc, func(t *testing.T) {
+				nodes, err := GetNode(schema, tt.inRoot, tt.inPath, tt.inOpts...)
+				if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+					t.Fatalf("GetNode(%v): did not get expected error, %s", tt.inPath, diff)
+				}
+				if tt.wantErrSubstring != "" {
+					if gotCode := status.Code(err); gotCode != tt.wantCode {
+						t.Fatalf("GetNode(%v): got status code %v, want %v (err: %v)", tt.inPath, gotCode, tt.wantCode, err)
+					}
+					return
+				}
+				if len(nodes) != 1 {
+					t.Fatalf("GetNode(%v): got %d nodes, want 1", tt.inPath, len(nodes))
+				}
+				gotPtr, ok := nodes[0].Data.(*string)
+				if !ok || gotPtr == nil || *gotPtr != tt.wantVal {
+					t.Fatalf("GetNode(%v): got data %v (%T), want %q", tt.inPath, nodes[0].Data, nodes[0].Data, tt.wantVal)
+				}
+			})
+		}
+	})
+
+	t.Run("PreferShadowPath treats primary path as shadow leaf", func(t *testing.T) {
+		c := &orderedMapContainer{LeafA: ygot.String("initial")}
+		nodes, err := GetNode(schema, c, mustPath("/config/leaf-a"), &PreferShadowPath{})
+		if err != nil {
+			t.Fatalf("GetNode(/config/leaf-a, PreferShadowPath) unexpected error: %v", err)
+		}
+		if len(nodes) != 1 || nodes[0].Data != nil {
+			t.Fatalf("GetNode(/config/leaf-a, PreferShadowPath) = %+v, want 1 shadow TreeNode with nil Data", nodes)
+		}
+
+		tv := &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "updated"}}
+		if err := SetNode(schema, c, mustPath("/config/leaf-a"), tv, &PreferShadowPath{}); err != nil {
+			t.Fatalf("SetNode(/config/leaf-a, PreferShadowPath) unexpected error: %v", err)
+		}
+		if *c.LeafA != "initial" {
+			t.Fatalf("SetNode(/config/leaf-a, PreferShadowPath) mutated LeafA to %q, want %q", *c.LeafA, "initial")
+		}
+	})
+
+	t.Run("container-level GoOrderedMap partial-prefix deletion", func(t *testing.T) {
+		tests := []struct {
+			desc   string
+			inPath *gpb.Path
+			inOpts []DelNodeOpt
+			check  func(*orderedMapContainer) *testOrderedMapStub
+		}{{
+			desc:   "single-segment primary path deletes Items",
+			inPath: mustPath("/items"),
+			check:  func(c *orderedMapContainer) *testOrderedMapStub { return c.Items },
+		}, {
+			desc:   "single-segment shadow path deletes Items under PreferShadowPath",
+			inPath: mustPath("/shadow-items"),
+			inOpts: []DelNodeOpt{&PreferShadowPath{}},
+			check:  func(c *orderedMapContainer) *testOrderedMapStub { return c.Items },
+		}, {
+			desc:   "two-segment primary path deletes three-segment NestedItems",
+			inPath: mustPath("/outer/items"),
+			check:  func(c *orderedMapContainer) *testOrderedMapStub { return c.NestedItems },
+		}, {
+			desc:   "two-segment shadow path deletes three-segment NestedItems under PreferShadowPath",
+			inPath: mustPath("/shadow-outer/items"),
+			inOpts: []DelNodeOpt{&PreferShadowPath{}},
+			check:  func(c *orderedMapContainer) *testOrderedMapStub { return c.NestedItems },
+		}}
+
+		for _, tt := range tests {
+			t.Run(tt.desc, func(t *testing.T) {
+				c := &orderedMapContainer{
+					Items:       &testOrderedMapStub{count: 2},
+					NestedItems: &testOrderedMapStub{count: 3},
+				}
+				if err := DeleteNode(schema, c, tt.inPath, tt.inOpts...); err != nil {
+					t.Fatalf("DeleteNode(%v) unexpected error: %v", tt.inPath, err)
+				}
+				if got := tt.check(c); got != nil {
+					t.Fatalf("DeleteNode(%v) left ordered map non-nil: %+v", tt.inPath, got)
+				}
+			})
+		}
+	})
+
+	t.Run("SetNode updates container and leaf ygotAnnotation fields", func(t *testing.T) {
+		c := &orderedMapContainer{}
+		containerAnnot := &testAnnotationStub{label: "container-meta"}
+		leafAnnot := &testAnnotationStub{label: "leaf-meta"}
+
+		if err := SetNode(schema, c, mustPath("/@"), containerAnnot); err != nil {
+			t.Fatalf("SetNode(/@) unexpected error: %v", err)
+		}
+		if err := SetNode(schema, c, mustPath("/config/@leaf-a"), leafAnnot); err != nil {
+			t.Fatalf("SetNode(/config/@leaf-a) unexpected error: %v", err)
+		}
+		wantContainer := []ygot.Annotation{containerAnnot}
+		wantLeaf := []ygot.Annotation{leafAnnot}
+		if diff := cmp.Diff(c.Metadata, wantContainer, cmp.AllowUnexported(testAnnotationStub{})); diff != "" {
+			t.Fatalf("SetNode(/@) Metadata mismatch, diff(-got,+want):\n%s", diff)
+		}
+		if diff := cmp.Diff(c.LeafAAnnotation, wantLeaf, cmp.AllowUnexported(testAnnotationStub{})); diff != "" {
+			t.Fatalf("SetNode(/config/@leaf-a) LeafAAnnotation mismatch, diff(-got,+want):\n%s", diff)
+		}
+	})
 }

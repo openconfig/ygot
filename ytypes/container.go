@@ -17,7 +17,6 @@ package ytypes
 import (
 	"fmt"
 	"reflect"
-	"strings"
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
@@ -50,26 +49,25 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
 			return nil
 		}
 		structElems := reflect.ValueOf(value).Elem()
-		structTypes := structElems.Type()
+		sd := util.DescribeStructType(structElems.Type())
+		ssd := sd.Schema(schema)
 
-		for i := 0; i < structElems.NumField(); i++ {
-			fieldType := structElems.Type().Field(i)
-			fieldName := fieldType.Name
-			fieldValue := structElems.Field(i).Interface()
-
+		for i := range sd.Fields {
+			fd := &sd.Fields[i]
 			// Skip annotation fields when validating the schema.
-			if util.IsYgotAnnotation(fieldType) {
+			if fd.IsAnnotation {
 				continue
 			}
 
-			cschema, err := util.ChildSchema(schema, structTypes.Field(i))
+			fieldName := fd.Field.Name
+			cschema, err := ssd.ChildSchema(schema, i, false)
 			switch {
 			case err != nil:
 				errors = util.AppendErr(errors, fmt.Errorf("%s: %v", fieldName, err))
 				continue
 			case cschema != nil:
 				// Regular named child.
-				if errs := Validate(cschema, fieldValue); errs != nil {
+				if errs := Validate(cschema, structElems.Field(i).Interface()); errs != nil {
 					errors = util.AppendErrs(errors, util.PrefixErrors(errs, cschema.Path()))
 				}
 			case !util.IsValueNilOrDefault(structElems.Field(i).Interface()):
@@ -149,35 +147,30 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, jsonTree interfa
 func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string]interface{}, enc Encoding, opts ...UnmarshalOpt) error {
 	destv := reflect.ValueOf(parent).Elem()
 	var allSchemaPaths [][]string
+	preferShadow := hasPreferShadowPath(opts)
+	sd := util.DescribeStructType(destv.Type())
+	ssd := sd.Schema(schema)
 
 	// Range over the parent struct fields. For each field, check if the data
 	// is present in the JSON tree and if so unmarshal it into the field.
-	for i := 0; i < destv.NumField(); i++ {
+	for i := range sd.Fields {
 		f := destv.Field(i)
-		ft := destv.Type().Field(i)
+		fd := &sd.Fields[i]
+		ft := fd.Field
 
 		// Skip annotation fields since they do not have a schema.
 		// TODO(robjs): Implement unmarshalling annotations.
-		if util.IsYgotAnnotation(ft) {
+		if fd.IsAnnotation {
 			// We need to find the paths that we should have unmarshalled here to avoid
 			// throwing errors to users whilst there is a TODO above.
-			paths, err := pathTagFromField(ft)
-			if err != nil {
-				return fmt.Errorf("cannot find JSON field names for annotation field %s, %v", ft.Name, err)
+			if !fd.HasPathTag {
+				return fmt.Errorf("cannot find JSON field names for annotation field %s, field %s did not specify a path", ft.Name, ft.Name)
 			}
-
-			for _, s := range strings.Split(paths, "|") {
-				pp := strings.Split(s, "/")
-				allSchemaPaths = append(allSchemaPaths, []string{pp[len(pp)-1]})
-			}
+			allSchemaPaths = append(allSchemaPaths, fd.AnnotationLeafPaths...)
 			continue
 		}
 
-		childSchemaFn := util.ChildSchema
-		if hasPreferShadowPath(opts) {
-			childSchemaFn = util.ChildSchemaPreferShadow
-		}
-		cschema, err := childSchemaFn(schema, ft)
+		cschema, err := ssd.ChildSchema(schema, i, preferShadow)
 		if err != nil {
 			return err
 		}

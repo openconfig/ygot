@@ -1818,6 +1818,24 @@ func TestChildSchema(t *testing.T) {
 		inSchema:  containerWithChoiceSchema.Dir["simple-key-list"],
 		inField:   enumKeyField,
 		wantEntry: containerWithChoiceSchema.Dir["simple-key-list"].Dir["choice"].Dir["case"].Dir["enum-key"],
+	}, {
+		desc:     "annotation field with path tag",
+		inSchema: containerWithChoiceSchema.Dir["simple-key-list"],
+		inField: reflect.StructField{
+			Name: "Annotation",
+			Type: reflect.TypeOf([]any(nil)),
+			Tag:  `path:"@" ygotAnnotation:"true"`,
+		},
+		wantEntry: nil,
+	}, {
+		desc:     "annotation field without path tag",
+		inSchema: containerWithChoiceSchema.Dir["simple-key-list"],
+		inField: reflect.StructField{
+			Name: "AnnotationNoPath",
+			Type: reflect.TypeOf([]any(nil)),
+			Tag:  `ygotAnnotation:"true"`,
+		},
+		wantEntry: nil,
 	}}
 
 	for _, tt := range tests {
@@ -2388,4 +2406,124 @@ func sliceToMap(s []interface{}) map[string]int {
 		m[vs] = m[vs] + 1
 	}
 	return m
+}
+
+// buildWideBenchSchemaAndType constructs a container schema (including a
+// choice/case subtree) and a corresponding dynamic Go struct type with
+// numFields compressed leaf fields and per-field ygotAnnotation fields.
+func buildWideBenchSchemaAndType(numFields int) (*yang.Entry, reflect.Type) {
+	configDir := &yang.Entry{
+		Name: "config",
+		Kind: yang.DirectoryEntry,
+		Dir:  map[string]*yang.Entry{},
+	}
+	stateDir := &yang.Entry{
+		Name: "state",
+		Kind: yang.DirectoryEntry,
+		Dir:  map[string]*yang.Entry{},
+	}
+	choiceDir := &yang.Entry{
+		Name: "bench-choice",
+		Kind: yang.ChoiceEntry,
+		Dir: map[string]*yang.Entry{
+			"bench-case": {
+				Name: "bench-case",
+				Kind: yang.CaseEntry,
+				Dir: map[string]*yang.Entry{
+					"choice-leaf": {
+						Name: "choice-leaf",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+				},
+			},
+		},
+	}
+	root := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"config":       configDir,
+			"state":        stateDir,
+			"bench-choice": choiceDir,
+		},
+	}
+	configDir.Parent = root
+	stateDir.Parent = root
+	choiceDir.Parent = root
+
+	fields := make([]reflect.StructField, 0, 2*numFields+2)
+	fields = append(fields, reflect.StructField{
+		Name: "Metadata",
+		Type: reflect.TypeOf([]string(nil)),
+		Tag:  `path:"@" ygotAnnotation:"true"`,
+	})
+	for i := range numFields {
+		leafName := fmt.Sprintf("leaf-%d", i)
+		cfgLeaf := &yang.Entry{
+			Name:   leafName,
+			Kind:   yang.LeafEntry,
+			Parent: configDir,
+			Type:   &yang.YangType{Kind: yang.Ystring},
+		}
+		stLeaf := &yang.Entry{
+			Name:   leafName,
+			Kind:   yang.LeafEntry,
+			Parent: stateDir,
+			Type:   &yang.YangType{Kind: yang.Ystring},
+		}
+		configDir.Dir[leafName] = cfgLeaf
+		stateDir.Dir[leafName] = stLeaf
+
+		fields = append(fields,
+			reflect.StructField{
+				Name: fmt.Sprintf("Leaf%d", i),
+				Type: reflect.TypeOf((*string)(nil)),
+				Tag:  reflect.StructTag(fmt.Sprintf(`path:"config/%s|%s" shadow-path:"state/%s|%s"`, leafName, leafName, leafName, leafName)),
+			},
+			reflect.StructField{
+				Name: fmt.Sprintf("Annotation%d", i),
+				Type: reflect.TypeOf([]string(nil)),
+				Tag:  reflect.StructTag(fmt.Sprintf(`path:"config/@%s" ygotAnnotation:"true"`, leafName)),
+			},
+		)
+	}
+	fields = append(fields, reflect.StructField{
+		Name: "ChoiceLeaf",
+		Type: reflect.TypeOf((*string)(nil)),
+		Tag:  `path:"choice-leaf"`,
+	})
+	return root, reflect.StructOf(fields)
+}
+
+// BenchmarkChildSchema measures ChildSchema resolution across all fields
+// (including compressed leaves, ygotAnnotation fields, and choice/case leaves)
+// of a 50-leaf annotated container struct.
+func BenchmarkChildSchema(b *testing.B) {
+	schema, st := buildWideBenchSchemaAndType(50)
+	numFields := st.NumField()
+	b.ReportAllocs()
+	for b.Loop() {
+		for i := range numFields {
+			if _, err := ChildSchema(schema, st.Field(i)); err != nil {
+				b.Fatalf("ChildSchema(field %d) failed: %v", i, err)
+			}
+		}
+	}
+}
+
+// BenchmarkSchemaPaths measures SchemaPaths and RelativeSchemaPath tag parsing
+// across a compressed struct field.
+func BenchmarkSchemaPaths(b *testing.B) {
+	_, st := buildWideBenchSchemaAndType(1)
+	ft := st.Field(1)
+	b.ReportAllocs()
+	for b.Loop() {
+		if _, err := SchemaPaths(ft); err != nil {
+			b.Fatalf("SchemaPaths failed: %v", err)
+		}
+		if _, err := RelativeSchemaPath(ft); err != nil {
+			b.Fatalf("RelativeSchemaPath failed: %v", err)
+		}
+	}
 }

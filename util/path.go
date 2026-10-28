@@ -25,31 +25,57 @@ import (
 
 // SchemaPaths returns all the paths in the path tag.
 func SchemaPaths(f reflect.StructField) ([][]string, error) {
-	var out [][]string
 	pathTag, ok := f.Tag.Lookup("path")
 	if !ok || pathTag == "" {
 		return nil, fmt.Errorf("field %s did not specify a path", f.Name)
 	}
-
-	ps := strings.Split(pathTag, "|")
-	for _, p := range ps {
-		out = append(out, stripModulePrefixes(strings.Split(p, "/")))
-	}
-	return out, nil
+	return parseTagPaths(pathTag), nil
 }
 
 // ShadowSchemaPaths returns all the paths in the shadow-path tag. If the tag
 // doesn't exist, a nil slice is returned.
 func ShadowSchemaPaths(f reflect.StructField) [][]string {
-	var out [][]string
 	pathTag, ok := f.Tag.Lookup("shadow-path")
 	if !ok || pathTag == "" {
 		return nil
 	}
+	return parseTagPaths(pathTag)
+}
 
-	ps := strings.Split(pathTag, "|")
-	for _, p := range ps {
-		out = append(out, stripModulePrefixes(strings.Split(p, "/")))
+// parseTagPaths splits a non-empty pipe-delimited struct tag into caller-owned
+// slash-split path slices with module prefixes stripped from every element.
+func parseTagPaths(pathTag string) [][]string {
+	numPaths := strings.Count(pathTag, "|") + 1
+	numElems := numPaths + strings.Count(pathTag, "/")
+	allElems := make([]string, numElems)
+	out := make([][]string, numPaths)
+
+	elemIdx := 0
+	remPaths := pathTag
+	for pIdx := 0; pIdx < numPaths; pIdx++ {
+		bar := strings.IndexByte(remPaths, '|')
+		var p string
+		if bar == -1 {
+			p = remPaths
+		} else {
+			p = remPaths[:bar]
+			remPaths = remPaths[bar+1:]
+		}
+
+		start := elemIdx
+		remSegs := p
+		for {
+			slash := strings.IndexByte(remSegs, '/')
+			if slash == -1 {
+				allElems[elemIdx] = StripModulePrefix(remSegs)
+				elemIdx++
+				break
+			}
+			allElems[elemIdx] = StripModulePrefix(remSegs[:slash])
+			elemIdx++
+			remSegs = remSegs[slash+1:]
+		}
+		out[pIdx] = allElems[start:elemIdx:elemIdx]
 	}
 	return out
 }
@@ -113,33 +139,26 @@ func RelativeSchemaPathPreferShadow(f reflect.StructField) ([]string, error) {
 // path values from the "shadow-path" tag are used; if the field doesn't have
 // the "shadow-path" tag, then the path values from the "path" tag are used.
 func relativeSchemaPath(f reflect.StructField, preferShadowPath bool) ([]string, error) {
-	var pathTag string
-	var ok bool
-	if preferShadowPath {
-		pathTag, ok = f.Tag.Lookup("shadow-path")
+	selected, err := selectRelativeSchemaPathStr(f, preferShadowPath)
+	if err != nil {
+		return nil, err
 	}
-	if !ok {
-		if pathTag, ok = f.Tag.Lookup("path"); !ok || pathTag == "" {
-			return nil, fmt.Errorf("field %s did not specify a path", f.Name)
-		}
-	} else if pathTag == "" {
-		return nil, fmt.Errorf("field %s did not specify a shadow-path", f.Name)
-	}
+	return splitSlashPath(selected), nil
+}
 
-	paths := strings.Split(pathTag, "|")
-	if len(paths) == 1 {
-		pathTag = strings.TrimPrefix(pathTag, "/")
-		return strings.Split(pathTag, "/"), nil
+// splitSlashPath splits s across '/' into a caller-owned slice sized to the
+// exact element count.
+func splitSlashPath(s string) []string {
+	n := strings.Count(s, "/") + 1
+	out := make([]string, n)
+	rem := s
+	for i := 0; i < n-1; i++ {
+		slash := strings.IndexByte(rem, '/')
+		out[i] = rem[:slash]
+		rem = rem[slash+1:]
 	}
-	for _, pv := range paths {
-		pv = strings.TrimPrefix(pv, "/")
-		pe := strings.Split(pv, "/")
-		if len(pe) > 1 {
-			return pe, nil
-		}
-	}
-
-	return nil, fmt.Errorf("field %s had path tag %s with |, but no elements of form a/b", f.Name, pathTag)
+	out[n-1] = rem
+	return out
 }
 
 // SchemaTreePath returns the schema tree path of the supplied yang.Entry
@@ -194,29 +213,45 @@ func SchemaEntryPathNoChoiceCase(elem *yang.Entry) []*yang.Entry {
 // root. When comparing the path, only nodes that appear in the data tree
 // are considered. It returns nil if no node matches the path.
 func FirstChild(schema *yang.Entry, path []string) *yang.Entry {
-	path = stripModulePrefixes(path)
-	entries := FindFirstNonChoiceOrCase(schema)
-
-	for _, e := range entries {
-		m := firstMatching(e, path)
-		if m != nil {
+	if schema == nil || len(path) == 0 {
+		return nil
+	}
+	first := StripModulePrefix(path[0])
+	if ch, ok := schema.Dir[first]; ok && !IsChoiceOrCase(ch) && ch.Name == first {
+		if m := firstMatchingStripped(ch, path[1:]); m != nil {
 			return m
 		}
 	}
+	return firstChildSlow(schema, first, path[1:])
+}
 
+// firstChildSlow searches schema.Dir recursively through any choice or case
+// subtrees for the first non-choice, non-case entry matching first followed by
+// rem.
+func firstChildSlow(schema *yang.Entry, first string, rem []string) *yang.Entry {
+	for _, ch := range schema.Dir {
+		switch {
+		case !IsChoiceOrCase(ch):
+			if ch.Name == first {
+				if m := firstMatchingStripped(ch, rem); m != nil {
+					return m
+				}
+			}
+		case ch.IsDir():
+			if m := firstChildSlow(ch, first, rem); m != nil {
+				return m
+			}
+		}
+	}
 	return nil
 }
 
-// firstMatching returns the child schema at the given path from
-// schema if one is found, or nil otherwise.
-func firstMatching(schema *yang.Entry, path []string) *yang.Entry {
-	s := schema
-	if len(path) == 0 || schema.Name != path[0] {
-		return nil
-	}
-	path = path[1:]
-	for i := 0; i < len(path); i++ {
-		if s = s.Dir[path[i]]; s == nil {
+// firstMatchingStripped traverses s.Dir along rem, stripping any module prefix
+// from each element, and returns the terminal *yang.Entry or nil if absent.
+func firstMatchingStripped(s *yang.Entry, rem []string) *yang.Entry {
+	for i := 0; i < len(rem); i++ {
+		s = s.Dir[StripModulePrefix(rem[i])]
+		if s == nil {
 			return nil
 		}
 	}
@@ -326,14 +361,15 @@ func stripModulePrefixes(in []string) []string {
 // "foo:bar".  Such qualified paths are used in YANG modules where remote paths
 // are referenced.
 func stripModulePrefixWithCheck(name string) (string, error) {
-	ps := strings.Split(name, ":")
-	switch len(ps) {
-	case 1:
+	idx := strings.IndexByte(name, ':')
+	switch {
+	case idx == -1:
 		return name, nil
-	case 2:
-		return ps[1], nil
+	case strings.IndexByte(name[idx+1:], ':') == -1:
+		return name[idx+1:], nil
+	default:
+		return "", fmt.Errorf("path element did not form a valid name (name, prefix:name): %v", name)
 	}
-	return "", fmt.Errorf("path element did not form a valid name (name, prefix:name): %v", name)
 }
 
 // StripModulePrefix removes the prefix from a YANG path element, and
@@ -341,15 +377,11 @@ func stripModulePrefixWithCheck(name string) (string, error) {
 // removing foo from "foo:bar". Such qualified paths are used in YANG modules
 // where remote paths are referenced.
 func StripModulePrefix(name string) string {
-	ps := strings.Split(name, ":")
-	switch len(ps) {
-	case 1:
-		return name
-	case 2:
-		return ps[1]
-	default:
+	idx := strings.IndexByte(name, ':')
+	if idx == -1 || strings.IndexByte(name[idx+1:], ':') != -1 {
 		return name
 	}
+	return name[idx+1:]
 }
 
 // ReplacePathSuffix replaces the non-prefix part of a prefixed path name, or
