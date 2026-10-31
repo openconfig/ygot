@@ -401,6 +401,12 @@ func SplitPath(path string) []string {
 			inKey = true
 		case ch == ']' && !inEscape:
 			inKey = false
+		case ch == '\\' && !inEscape && inKey:
+			// Keep escapes inside keys intact for the key parser, but honor
+			// them here so an escaped ] does not prematurely end the key.
+			inEscape = true
+			buf.WriteRune(ch)
+			continue
 		case ch == '\\' && !inEscape && !inKey:
 			inEscape = true
 			continue
