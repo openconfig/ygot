@@ -59,8 +59,9 @@ func genGoEnumeratedTypes(enums map[string]*ygen.EnumeratedYANGType) (map[string
 
 		switch e.Kind {
 		case ygen.IdentityType, ygen.SimpleEnumerationType, ygen.DerivedEnumerationType, ygen.UnionEnumerationType, ygen.DerivedUnionEnumerationType:
+			uniqueNames := makeUniqueGoEnumValueNames(e.ValToYANGDetails)
 			for _, v := range e.ValToYANGDetails {
-				values[int64(v.Value)+1] = safeGoEnumeratedValueName(v.Name)
+				values[int64(v.Value)+1] = uniqueNames[int64(v.Value)]
 				origValues[int64(v.Value)+1] = v
 			}
 		default:

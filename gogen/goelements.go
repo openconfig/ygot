@@ -560,12 +560,20 @@ func generateGoDefaultValue(field *yang.Entry, mtype *ygen.MappedType, gogen *Go
 	// support the wrapper union generated code, so this if
 	// block would be obsolete.
 	if !simpleUnions {
-		defaultValues = goLeafDefaults(field, mtype)
 		if len(defaultValues) != 0 && len(mtype.UnionTypes) > 1 {
 			// If the default value is applied to a union type, we will generate
 			// non-compilable code when generating wrapper unions, so error out and inform
 			// the user instead of having the user find out that the code doesn't compile.
 			return nil, fmt.Errorf("path %q: default value not supported for wrapper union values, please generate using simplified union leaves", field.Path())
+		}
+
+		if !mtype.IsEnumeratedValue {
+			// Enumerated default values -- including ones reached via a
+			// leafref -- are already correctly resolved above by
+			// yangDefaultValueToGo, so only recompute the
+			// wrapper-union-style literal for non-enumerated types (see
+			// goLeafDefaults).
+			defaultValues = goLeafDefaults(field, mtype)
 		}
 	}
 
@@ -628,7 +636,11 @@ func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, 
 				return "", yang.Ynone, fmt.Errorf("default value conversion: typedef identity value %q not found in enum with type name %q", value, args.yangType.Name)
 			}
 		}
-		return enumDefaultValue(typedefName, value, goEnumPrefix), args.yangType.Kind, nil
+		dv, err := enumDefaultValue(typedefName, value, goEnumPrefix, args.yangType)
+		if err != nil {
+			return "", yang.Ynone, err
+		}
+		return dv, args.yangType.Kind, nil
 	}
 
 	signed := false
@@ -734,7 +746,11 @@ func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, 
 		if err != nil {
 			return "", yang.Ynone, err
 		}
-		return enumDefaultValue(n, value, ""), ykind, nil
+		dv, err := enumDefaultValue(n, value, "", args.yangType)
+		if err != nil {
+			return "", yang.Ynone, err
+		}
+		return dv, ykind, nil
 	case yang.Yidentityref:
 		// Identityref leaves are mapped according to the base identity that they
 		// refer to - this is stored in the IdentityBase field of the context leaf
@@ -752,7 +768,11 @@ func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, 
 		if err != nil {
 			return "", yang.Ynone, err
 		}
-		return enumDefaultValue(n, value, ""), ykind, nil
+		dv, err := enumDefaultValue(n, value, "", args.yangType)
+		if err != nil {
+			return "", yang.Ynone, err
+		}
+		return dv, ykind, nil
 	case yang.Yleafref:
 		// This is a leafref, so we check what the type of the leaf that it
 		// references is by looking it up.
@@ -786,6 +806,14 @@ func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, 
 // goLeafDefaults returns the default value(s) of the leaf e if specified. If it
 // is unspecified, the value specified by the type is returned if it is not nil,
 // otherwise nil is returned to indicate no default was specified.
+//
+// generateGoDefaultValue only calls goLeafDefaults for non-enumerated mapped
+// types: enumerated default values -- including ones reached via a leafref
+// that targets an enumeration or identityref -- are already correctly
+// resolved to their collision-disambiguated identifier by
+// yangDefaultValueToGo, which (unlike this function) knows how to follow a
+// leafref to its target type; e.Type here may still be Yleafref, so it
+// cannot be used to re-resolve an enumerated default value.
 // TODO(wenbli): This doesn't handle unions. Deprecate this for v1 release.
 func goLeafDefaults(e *yang.Entry, t *ygen.MappedType) []string {
 	defaultValues := e.DefaultValues()
@@ -795,7 +823,15 @@ func goLeafDefaults(e *yang.Entry, t *ygen.MappedType) []string {
 
 	for i, defVal := range defaultValues {
 		if t.IsEnumeratedValue {
-			defaultValues[i] = enumDefaultValue(t.NativeType, defVal, goEnumPrefix)
+			// Not collision-aware: only reachable when goLeafDefaults
+			// is called directly (e.g. in tests), since
+			// generateGoDefaultValue never calls it for an
+			// enumerated mapped type.
+			if strings.Contains(defVal, ":") {
+				defVal = strings.Split(defVal, ":")[1]
+			}
+			baseName := strings.TrimPrefix(t.NativeType, goEnumPrefix)
+			defaultValues[i] = fmt.Sprintf("%s_%s", baseName, safeGoEnumeratedValueName(defVal))
 		} else {
 			defaultValues[i] = quoteDefault(defVal, t.NativeType)
 		}

@@ -103,6 +103,58 @@ func TestGenGoEnumeratedTypes(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		// Regression test for https://github.com/openconfig/ygot/issues/1083:
+		// "SPEED.1" and "SPEED-1" both sanitise to "SPEED_1", and must not
+		// produce a duplicate Go constant name. "OTHER", which doesn't
+		// collide with anything, must keep its ordinary sanitised name.
+		name: "colliding enum values are disambiguated, non-colliding values are unchanged",
+		in: map[string]*ygen.EnumeratedYANGType{
+			"foo": {
+				Name:     "EnumeratedValue",
+				Kind:     ygen.SimpleEnumerationType,
+				TypeName: "enumerated-value",
+				ValToYANGDetails: []ygot.EnumDefinition{
+					{
+						Name:  "SPEED.1",
+						Value: 0,
+					},
+					{
+						Name:  "SPEED-1",
+						Value: 1,
+					},
+					{
+						Name:  "OTHER",
+						Value: 2,
+					},
+				},
+			},
+		},
+		want: map[string]*goEnumeratedType{
+			"EnumeratedValue": {
+				Name: "EnumeratedValue",
+				CodeValues: map[int64]string{
+					0: "UNSET",
+					1: "SPEED_1",
+					2: "SPEED_1_",
+					3: "OTHER",
+				},
+				YANGValues: map[int64]ygot.EnumDefinition{
+					1: {
+						Name:  "SPEED.1",
+						Value: 0,
+					},
+					2: {
+						Name:  "SPEED-1",
+						Value: 1,
+					},
+					3: {
+						Name:  "OTHER",
+						Value: 2,
+					},
+				},
+			},
+		},
 	}}
 
 	for _, tt := range tests {
