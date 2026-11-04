@@ -599,6 +599,11 @@ func TestUnmarshalLeafListJSONEncoding(t *testing.T) {
 			json:    `{ "int32-leaf-list" : [42, 4294967296] }`,
 			wantErr: `error parsing 4.294967296e+09 for schema int32-leaf-list: value 4294967296 falls outside the int range [-2147483648, 2147483647]`,
 		},
+		{
+			desc:    "non-integer array element",
+			json:    `{ "int32-leaf-list" : [42, 1.5] }`,
+			wantErr: `error parsing 1.5 for schema int32-leaf-list: value 1.5 is not an integer`,
+		},
 	}
 
 	var jsonTree interface{}

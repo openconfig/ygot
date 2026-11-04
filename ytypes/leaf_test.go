@@ -1335,6 +1335,21 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			wantErr: `error parsing -42 for schema uint32-leaf: value -42 falls outside the int range [0, 4294967295]`,
 		},
 		{
+			desc:    "int8 non-integer",
+			json:    `{"int8-leaf" : -1.5}`,
+			wantErr: `error parsing -1.5 for schema int8-leaf: value -1.5 is not an integer`,
+		},
+		{
+			desc:    "uint8 non-integer",
+			json:    `{"uint8-leaf" : 3.9}`,
+			wantErr: `error parsing 3.9 for schema uint8-leaf: value 3.9 is not an integer`,
+		},
+		{
+			desc:    "int32 non-integer",
+			json:    `{"int32-leaf" : 42.1}`,
+			wantErr: `error parsing 42.1 for schema int32-leaf: value 42.1 is not an integer`,
+		},
+		{
 			desc:    "int64 out of range",
 			json:    `{"int64-leaf" : "-9223372036854775809"}`,
 			wantErr: `error parsing -9223372036854775809 for schema int64-leaf: strconv.ParseInt: parsing "-9223372036854775809": value out of range`,
