@@ -1,0 +1,29 @@
+module skip-obsolete-test {
+  prefix "sot";
+  namespace "urn:sot";
+
+  container top {
+    list interfaces {
+      key "name obsolete-key";
+      
+      leaf name {
+        type string;
+        description "Interface name";
+      }
+      
+      leaf obsolete-key {
+        type string;
+        status obsolete;
+        description "Obsolete key that should be skipped";
+      }
+      
+      leaf admin-status {
+        type enumeration {
+          enum up;
+          enum down;
+        }
+        description "Administrative status";
+      }
+    }
+  }
+}
