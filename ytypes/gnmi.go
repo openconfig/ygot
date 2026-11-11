@@ -74,24 +74,36 @@ func UnmarshalSetRequest(schema *Schema, req *gpb.SetRequest, opts ...UnmarshalO
 
 	var complianceErrs *ComplianceErrors
 
+	// collectErr folds an error from one of the processing helpers into
+	// complianceErrs. The helpers usually return a *ComplianceErrors, but they
+	// also return a plain error when joining the request prefix to a path fails
+	// (differing origin/target), so the type cannot be assumed.
+	collectErr := func(err error) {
+		if ce, ok := err.(*ComplianceErrors); ok {
+			complianceErrs = complianceErrs.append(ce.Errors...)
+			return
+		}
+		complianceErrs = complianceErrs.append(err)
+	}
+
 	// Process deletes, then replace, then updates.
 	if err := deletePaths(schema.SchemaTree[rootName], root, req.Prefix, req.Delete, preferShadowPath, bestEffortUnmarshal); err != nil {
 		if bestEffortUnmarshal {
-			complianceErrs = complianceErrs.append(err.(*ComplianceErrors).Errors...)
+			collectErr(err)
 		} else {
 			return err
 		}
 	}
 	if err := replacePaths(schema.SchemaTree[rootName], root, req.Prefix, req.Replace, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal); err != nil {
 		if bestEffortUnmarshal {
-			complianceErrs = complianceErrs.append(err.(*ComplianceErrors).Errors...)
+			collectErr(err)
 		} else {
 			return err
 		}
 	}
 	if err := updatePaths(schema.SchemaTree[rootName], root, req.Prefix, req.Update, preferShadowPath, ignoreExtraFields, bestEffortUnmarshal); err != nil {
 		if bestEffortUnmarshal {
-			complianceErrs = complianceErrs.append(err.(*ComplianceErrors).Errors...)
+			collectErr(err)
 		} else {
 			return err
 		}

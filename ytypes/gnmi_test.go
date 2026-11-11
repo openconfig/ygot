@@ -568,6 +568,24 @@ func TestUnmarshalSetRequest(t *testing.T) {
 		},
 		wantErr: true,
 		numErrs: 6,
+	}, {
+		desc: "prefix/path origin mismatch with best-effort flag",
+		inSchema: &Schema{
+			Root: &ListElemStruct1{},
+			SchemaTree: map[string]*yang.Entry{
+				"ListElemStruct1": simpleSchema(),
+			},
+		},
+		inReq: &gpb.SetRequest{
+			Prefix: &gpb.Path{Origin: "openconfig"},
+			Delete: []*gpb.Path{{
+				Origin: "other",
+				Elem:   []*gpb.PathElem{{Name: "key1"}},
+			}},
+		},
+		inUnmarshalOpts: []UnmarshalOpt{&BestEffortUnmarshal{}},
+		wantErr:         true,
+		numErrs:         1,
 	}}
 
 	for _, tt := range tests {

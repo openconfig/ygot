@@ -24,7 +24,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 
@@ -1143,6 +1146,8 @@ type rootStruct struct {
 	ChildList map[string]*childList            `path:"state/childlist"`
 }
 
+// TestGetNode verifies GetNode traversal across containers, leaves, leaf-lists,
+// keyed lists, and shadow paths.
 func TestGetNode(t *testing.T) {
 	rootSchema := &yang.Entry{
 		Name: "root",
@@ -1321,6 +1326,40 @@ func TestGetNode(t *testing.T) {
 	}
 	rootSchema.Dir["state"] = newChildListSchema("state")
 
+	decSchema := decimalListSchema()
+	uSchema := unionKeyListSchema()
+	muSchema := multiUnionKeyListSchema()
+	simpleKeySchemaWithType := func(kind yang.TypeKind) *yang.Entry {
+		return &yang.Entry{
+			Name: "container",
+			Kind: yang.DirectoryEntry,
+			Dir: map[string]*yang.Entry{
+				"config": {
+					Name: "config",
+					Kind: yang.DirectoryEntry,
+					Dir: map[string]*yang.Entry{
+						"simple-key-list": {
+							Name:     "simple-key-list",
+							Kind:     yang.DirectoryEntry,
+							ListAttr: yang.NewDefaultListAttr(),
+							Key:      "key1",
+							Config:   yang.TSTrue,
+							Dir: map[string]*yang.Entry{
+								"key1": {
+									Name: "key1",
+									Kind: yang.LeafEntry,
+									Type: &yang.YangType{Kind: kind},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+	uint32KeySchema := simpleKeySchemaWithType(yang.Yuint32)
+	enumKeySchema := simpleKeySchemaWithType(yang.Yenum)
+
 	tests := []struct {
 		desc             string
 		inSchema         *yang.Entry
@@ -1328,6 +1367,7 @@ func TestGetNode(t *testing.T) {
 		inPath           *gpb.Path
 		inArgs           []GetNodeOpt
 		wantTreeNodes    []*TreeNode
+		wantErrCode      codes.Code
 		wantErrSubstring string
 	}{{
 		desc:     "simple get leaf",
@@ -1845,6 +1885,175 @@ func TestGetNode(t *testing.T) {
 		inPath:           mustPath("/state/childlist[key=one]/child-container/valeur"),
 		inArgs:           []GetNodeOpt{&PreferShadowPath{}},
 		wantErrSubstring: "no match found in *ytypes.listChildContainer",
+	}, {
+		desc:     "empty initialised single-key map returns no nodes",
+		inSchema: containerWithStringKey(),
+		inData: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{},
+		},
+		inPath: mustPath("/config/simple-key-list[key1=forty-two]"),
+	}, {
+		desc:     "empty initialised single-key map with wildcard returns no nodes",
+		inSchema: containerWithStringKey(),
+		inData: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{},
+		},
+		inPath: mustPath("/config/simple-key-list[key1=*]"),
+		inArgs: []GetNodeOpt{&GetHandleWildcards{}},
+	}, {
+		desc:     "empty initialised multi-key map with partial key returns no nodes",
+		inSchema: containerWithMultiKeyedList,
+		inData: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{},
+		},
+		inPath: mustPath("/struct-key-list[key1=forty-two]"),
+		inArgs: []GetNodeOpt{&GetPartialKeyMatch{}},
+	}, {
+		desc:     "invalid uint32 key on populated list fails immediately with InvalidArgument",
+		inSchema: uint32KeySchema,
+		inData: &ContainerStruct2{
+			StructKeyList: map[uint32]*ListElemStruct2{
+				42: {Key1: ygot.Uint32(42)},
+			},
+		},
+		inPath:           mustPath("/config/simple-key-list[key1=INVALID_KEY]"),
+		wantErrCode:      codes.InvalidArgument,
+		wantErrSubstring: `unable to convert "INVALID_KEY" to uint32`,
+	}, {
+		desc:     "invalid enum key on populated list fails immediately with InvalidArgument",
+		inSchema: enumKeySchema,
+		inData: &ContainerEnumKey{
+			StructKeyList: map[EnumType]*ListElemEnumKey{
+				42: {Key1: 42},
+			},
+		},
+		inPath:           mustPath("/config/simple-key-list[key1=INVALID_ENUM]"),
+		wantErrCode:      codes.InvalidArgument,
+		wantErrSubstring: "no enum matching with INVALID_ENUM",
+	}, {
+		desc:     "invalid int32 key on populated multi-key list fails immediately with InvalidArgument",
+		inSchema: containerWithMultiKeyedList,
+		inData: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{Key1: "forty-two", Key2: 42, EnumKey: 42}: {
+					Key1:    ygot.String("forty-two"),
+					Key2:    ygot.Int32(42),
+					EnumKey: 42,
+				},
+			},
+		},
+		inPath:           mustPath("/struct-key-list[key1=forty-two][key2=not-an-int][key3=E_VALUE_FORTY_TWO]"),
+		wantErrCode:      codes.InvalidArgument,
+		wantErrSubstring: `unable to convert "not-an-int" to int32`,
+	}, {
+		desc:     "decimal64 concrete key lookup succeeds",
+		inSchema: decSchema,
+		inData: &containerDecimalKey{
+			DecimalList: map[float64]*decimalListElem{
+				3.14: {Key: ygot.Float64(3.14), Value: ygot.String("pi")},
+				2.71: {Key: ygot.Float64(2.71), Value: ygot.String("e")},
+			},
+		},
+		inPath: mustPath("/decimal-list[key1=3.14]/value"),
+		wantTreeNodes: []*TreeNode{{
+			Path:   mustPath("/decimal-list[key1=3.14]/value"),
+			Schema: decSchema.Dir["decimal-list"].Dir["value"],
+			Data:   ygot.String("pi"),
+		}},
+	}, {
+		desc:     "decimal64 non-finite NaN key fails immediately with InvalidArgument",
+		inSchema: decSchema,
+		inData: &containerDecimalKey{
+			DecimalList: map[float64]*decimalListElem{
+				3.14: {Key: ygot.Float64(3.14), Value: ygot.String("pi")},
+			},
+		},
+		inPath:           mustPath("/decimal-list[key1=NaN]/value"),
+		wantErrCode:      codes.InvalidArgument,
+		wantErrSubstring: "value must be finite",
+	}, {
+		desc:     "wrapper-union single-key concrete lookup hits matching entry",
+		inSchema: uSchema,
+		inData: &containerUnionKey{
+			UnionList: map[testutil.TestUnion]*unionKeyListElem{
+				&Union1String{String: "alpha"}: {Key: &Union1String{String: "alpha"}, Value: ygot.String("v-alpha")},
+				&Union1Int16{Int16: 42}:        {Key: &Union1Int16{Int16: 42}, Value: ygot.String("v-42")},
+			},
+		},
+		inPath: mustPath("/union-list[key1=42]/value"),
+		wantTreeNodes: []*TreeNode{{
+			Path:   mustPath("/union-list[key1=42]/value"),
+			Schema: uSchema.Dir["union-list"].Dir["value"],
+			Data:   ygot.String("v-42"),
+		}},
+	}, {
+		desc:     "wrapper-union single-key concrete lookup misses absent entry",
+		inSchema: uSchema,
+		inData: &containerUnionKey{
+			UnionList: map[testutil.TestUnion]*unionKeyListElem{
+				&Union1String{String: "alpha"}: {Key: &Union1String{String: "alpha"}, Value: ygot.String("v-alpha")},
+			},
+		},
+		inPath: mustPath("/union-list[key1=missing]"),
+	}, {
+		desc:     "wrapper-union single-key wildcard lookup returns all entries",
+		inSchema: uSchema,
+		inData: &containerUnionKey{
+			UnionList: map[testutil.TestUnion]*unionKeyListElem{
+				&Union1String{String: "alpha"}: {Key: &Union1String{String: "alpha"}, Value: ygot.String("v-alpha")},
+				&Union1Int16{Int16: 42}:        {Key: &Union1Int16{Int16: 42}, Value: ygot.String("v-42")},
+			},
+		},
+		inPath: mustPath("/union-list[key1=*]/value"),
+		inArgs: []GetNodeOpt{&GetHandleWildcards{}},
+		wantTreeNodes: []*TreeNode{{
+			Path:   mustPath("/union-list[key1=alpha]/value"),
+			Schema: uSchema.Dir["union-list"].Dir["value"],
+			Data:   ygot.String("v-alpha"),
+		}, {
+			Path:   mustPath("/union-list[key1=42]/value"),
+			Schema: uSchema.Dir["union-list"].Dir["value"],
+			Data:   ygot.String("v-42"),
+		}},
+	}, {
+		desc:     "multi-key struct with union field concrete lookup succeeds",
+		inSchema: muSchema,
+		inData: &containerMultiUnionKey{
+			MultiUnionList: map[multiUnionKeyStruct]*multiUnionKeyListElem{
+				{Key1: "k1", Key2: &Union1Int16{Int16: 7}}: {
+					Key1:  ygot.String("k1"),
+					Key2:  &Union1Int16{Int16: 7},
+					Value: ygot.String("seven"),
+				},
+				{Key1: "k1", Key2: &Union1String{String: "eight"}}: {
+					Key1:  ygot.String("k1"),
+					Key2:  &Union1String{String: "eight"},
+					Value: ygot.String("eight-val"),
+				},
+			},
+		},
+		inPath: mustPath("/multi-union-list[key1=k1][key2=7]/value"),
+		wantTreeNodes: []*TreeNode{{
+			Path:   mustPath("/multi-union-list[key1=k1][key2=7]/value"),
+			Schema: muSchema.Dir["multi-union-list"].Dir["value"],
+			Data:   ygot.String("seven"),
+		}},
+	}, {
+		desc:     "concrete single-key with wildcard and partial-key options uses concrete lookup",
+		inSchema: containerWithStringKey(),
+		inData: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"one": {Key1: ygot.String("one")},
+				"two": {Key1: ygot.String("two")},
+			},
+		},
+		inPath: mustPath("/config/simple-key-list[key1=one]"),
+		inArgs: []GetNodeOpt{&GetHandleWildcards{}, &GetPartialKeyMatch{}},
+		wantTreeNodes: []*TreeNode{{
+			Path:   mustPath("/config/simple-key-list[key1=one]"),
+			Schema: containerWithStringKey().Dir["config"].Dir["simple-key-list"],
+			Data:   &ListElemStruct1{Key1: ygot.String("one")},
+		}},
 	}}
 
 	for _, tt := range tests {
@@ -1852,6 +2061,11 @@ func TestGetNode(t *testing.T) {
 			got, err := GetNode(tt.inSchema, tt.inData, tt.inPath, tt.inArgs...)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("did not get expected error, %s", diff)
+			}
+			if tt.wantErrCode != codes.OK {
+				if gotCode := status.Code(err); gotCode != tt.wantErrCode {
+					t.Errorf("GetNode(%v) status code = %v, want %v (err: %v)", tt.inPath, gotCode, tt.wantErrCode, err)
+				}
 			}
 
 			if err := treeNodesEqual(got, tt.wantTreeNodes); err != nil {
@@ -2879,7 +3093,12 @@ func TestSetNode(t *testing.T) {
 	}
 }
 
+// TestDeleteNode verifies DeleteNode behaviour across leaves, containers,
+// lists, and shadow paths.
 func TestDeleteNode(t *testing.T) {
+	keepUnionKey := &Union1String{String: "keep"}
+	delUnionKey := &Union1Int16{Int16: 42}
+
 	tests := []struct {
 		name             string
 		inSchema         *yang.Entry
@@ -3418,6 +3637,22 @@ func TestDeleteNode(t *testing.T) {
 		inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer/INVALID"),
 		inOpts:           []DelNodeOpt{&PreferShadowPath{}},
 		wantErrSubstring: "no match found in *ytypes.OuterContainerType1",
+	}, {
+		name:     "deleting a union-keyed list entry non-key field when the key field has been deleted",
+		inSchema: unionKeyListSchema(),
+		inRoot: &containerUnionKey{
+			UnionList: map[testutil.TestUnion]*unionKeyListElem{
+				keepUnionKey: {Key: &Union1String{String: "keep"}, Value: ygot.String("stay")},
+				// NB: Key field inside the struct has already been deleted (nil), leaving a transitory state.
+				delUnionKey: {Value: ygot.String("to-delete")},
+			},
+		},
+		inPath: mustPath("/union-list[key1=42]/value"),
+		want: &containerUnionKey{
+			UnionList: map[testutil.TestUnion]*unionKeyListElem{
+				keepUnionKey: {Key: &Union1String{String: "keep"}, Value: ygot.String("stay")},
+			},
+		},
 	}}
 
 	for _, tt := range tests {
@@ -3577,5 +3812,857 @@ func TestRetrieveContainerListError(t *testing.T) {
 				t.Fatalf("did not get expected error, %s", diff)
 			}
 		})
+	}
+}
+
+// decimalListElem represents a YANG list element keyed by a decimal64 leaf.
+type decimalListElem struct {
+	// Key is the decimal64 list key leaf.
+	Key *float64 `path:"key1"`
+	// Value is an arbitrary string leaf under the list element.
+	Value *string `path:"value"`
+}
+
+// IsYANGGoStruct implements the ygot.GoStruct interface.
+func (*decimalListElem) IsYANGGoStruct() {}
+
+// ΛListKeyMap returns the map of YANG list key names to values for d. It
+// returns an error if Key is nil.
+func (d *decimalListElem) ΛListKeyMap() (map[string]any, error) {
+	if d.Key == nil {
+		return nil, errors.New("nil value for key Key")
+	}
+	return map[string]any{"key1": *d.Key}, nil
+}
+
+// containerDecimalKey represents a container holding a decimal64-keyed list.
+type containerDecimalKey struct {
+	// DecimalList stores list entries keyed by their float64 decimal64 value.
+	DecimalList map[float64]*decimalListElem `path:"decimal-list"`
+}
+
+// IsYANGGoStruct implements the ygot.GoStruct interface.
+func (*containerDecimalKey) IsYANGGoStruct() {}
+
+// decimalListSchema builds the YANG schema entry for containerDecimalKey.
+func decimalListSchema() *yang.Entry {
+	root := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir:  map[string]*yang.Entry{},
+	}
+	list := &yang.Entry{
+		Name:     "decimal-list",
+		Kind:     yang.DirectoryEntry,
+		Parent:   root,
+		ListAttr: yang.NewDefaultListAttr(),
+		Key:      "key1",
+		Config:   yang.TSTrue,
+		Dir:      map[string]*yang.Entry{},
+	}
+	list.Dir["key1"] = &yang.Entry{
+		Name:   "key1",
+		Kind:   yang.LeafEntry,
+		Parent: list,
+		Type:   &yang.YangType{Kind: yang.Ydecimal64},
+	}
+	list.Dir["value"] = &yang.Entry{
+		Name:   "value",
+		Kind:   yang.LeafEntry,
+		Parent: list,
+		Type:   &yang.YangType{Kind: yang.Ystring},
+	}
+	root.Dir["decimal-list"] = list
+	return root
+}
+
+// unionKeyListElem represents a single-keyed YANG list element whose key is a
+// multi-type YANG union.
+type unionKeyListElem struct {
+	// Key stores the wrapper-union key value for the list element.
+	Key testutil.TestUnion `path:"key1"`
+	// Value stores a string leaf value on the list element.
+	Value *string `path:"value"`
+}
+
+// IsYANGGoStruct implements the ygot.GoStruct interface.
+func (*unionKeyListElem) IsYANGGoStruct() {}
+
+// ΛListKeyMap returns the map of YANG list key names to values for u. It
+// returns an error if Key is nil.
+func (u *unionKeyListElem) ΛListKeyMap() (map[string]any, error) {
+	if u.Key == nil {
+		return nil, errors.New("nil value for key Key")
+	}
+	return map[string]any{"key1": u.Key}, nil
+}
+
+// To_TestUnion converts i into a concrete wrapper type implementing
+// testutil.TestUnion. It returns an error if i does not match a union member
+// type.
+func (*unionKeyListElem) To_TestUnion(i any) (testutil.TestUnion, error) {
+	switch v := i.(type) {
+	case EnumType:
+		return &Union1EnumType{v}, nil
+	case int16:
+		return &Union1Int16{v}, nil
+	case string:
+		return &Union1String{v}, nil
+	default:
+		return nil, fmt.Errorf("cannot convert %v (%T) to TestUnion", i, i)
+	}
+}
+
+// ΛEnumTypeMap returns the map of schema paths to candidate GoEnum types for
+// unionKeyListElem.
+func (*unionKeyListElem) ΛEnumTypeMap() map[string][]reflect.Type {
+	return map[string][]reflect.Type{
+		"/union-list/key1": {reflect.TypeOf(EnumType(0))},
+	}
+}
+
+// containerUnionKey represents a container holding a single-keyed union list.
+type containerUnionKey struct {
+	// UnionList maps wrapper-union keys to their corresponding list elements.
+	UnionList map[testutil.TestUnion]*unionKeyListElem `path:"union-list"`
+}
+
+// IsYANGGoStruct implements the ygot.GoStruct interface.
+func (*containerUnionKey) IsYANGGoStruct() {}
+
+// unionKeyListSchema builds the YANG schema entry for containerUnionKey.
+func unionKeyListSchema() *yang.Entry {
+	root := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir:  map[string]*yang.Entry{},
+	}
+	list := &yang.Entry{
+		Name:     "union-list",
+		Kind:     yang.DirectoryEntry,
+		Parent:   root,
+		ListAttr: yang.NewDefaultListAttr(),
+		Key:      "key1",
+		Config:   yang.TSTrue,
+		Dir:      map[string]*yang.Entry{},
+	}
+	list.Dir["key1"] = &yang.Entry{
+		Name:   "key1",
+		Kind:   yang.LeafEntry,
+		Parent: list,
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{Name: "enum-type", Kind: yang.Yenum},
+				{Name: "int16", Kind: yang.Yint16},
+				{Name: "string", Kind: yang.Ystring},
+			},
+		},
+	}
+	list.Dir["value"] = &yang.Entry{
+		Name:   "value",
+		Kind:   yang.LeafEntry,
+		Parent: list,
+		Type:   &yang.YangType{Kind: yang.Ystring},
+	}
+	root.Dir["union-list"] = list
+	return root
+}
+
+// multiUnionKeyStruct represents the composite Go map key for
+// multiUnionKeyListElem.
+type multiUnionKeyStruct struct {
+	// Key1 is the concrete string key component.
+	Key1 string `path:"key1"`
+	// Key2 is the union interface key component.
+	Key2 testutil.TestUnion `path:"key2"`
+}
+
+// IsYANGGoKeyStruct implements the ygot.KeyHelperGoStruct marker method.
+func (multiUnionKeyStruct) IsYANGGoKeyStruct() {}
+
+// ΛListKeyMap returns the map of YANG list key names to values for m.
+func (m multiUnionKeyStruct) ΛListKeyMap() (map[string]any, error) {
+	return map[string]any{
+		"key1": m.Key1,
+		"key2": m.Key2,
+	}, nil
+}
+
+// multiUnionKeyListElem represents a multi-keyed YANG list element containing
+// both a concrete scalar key and a union interface key.
+type multiUnionKeyListElem struct {
+	// Key1 is the string key leaf of the list element.
+	Key1 *string `path:"key1"`
+	// Key2 is the union key leaf of the list element.
+	Key2 testutil.TestUnion `path:"key2"`
+	// Value is an arbitrary string leaf under the list element.
+	Value *string `path:"value"`
+}
+
+// IsYANGGoStruct implements the ygot.GoStruct interface.
+func (*multiUnionKeyListElem) IsYANGGoStruct() {}
+
+// ΛListKeyMap returns the map of YANG list key names to values for m. It
+// returns an error if either key field is nil.
+func (m *multiUnionKeyListElem) ΛListKeyMap() (map[string]any, error) {
+	if m.Key1 == nil || m.Key2 == nil {
+		return nil, errors.New("nil key field")
+	}
+	return map[string]any{
+		"key1": *m.Key1,
+		"key2": m.Key2,
+	}, nil
+}
+
+// To_TestUnion converts i into a concrete wrapper type implementing
+// testutil.TestUnion. It returns an error if i does not match a union member
+// type.
+func (*multiUnionKeyListElem) To_TestUnion(i any) (testutil.TestUnion, error) {
+	switch v := i.(type) {
+	case int16:
+		return &Union1Int16{v}, nil
+	case string:
+		return &Union1String{v}, nil
+	default:
+		return nil, fmt.Errorf("cannot convert %v (%T) to TestUnion", i, i)
+	}
+}
+
+// ΛEnumTypeMap returns the map of schema paths to candidate GoEnum types for
+// multiUnionKeyListElem.
+func (*multiUnionKeyListElem) ΛEnumTypeMap() map[string][]reflect.Type {
+	return nil
+}
+
+// containerMultiUnionKey represents a container holding a multi-keyed list with
+// a union key component.
+type containerMultiUnionKey struct {
+	// MultiUnionList maps composite key structs to their corresponding list elements.
+	MultiUnionList map[multiUnionKeyStruct]*multiUnionKeyListElem `path:"multi-union-list"`
+}
+
+// IsYANGGoStruct implements the ygot.GoStruct interface.
+func (*containerMultiUnionKey) IsYANGGoStruct() {}
+
+// multiUnionKeyListSchema builds the YANG schema entry for
+// containerMultiUnionKey.
+func multiUnionKeyListSchema() *yang.Entry {
+	root := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir:  map[string]*yang.Entry{},
+	}
+	list := &yang.Entry{
+		Name:     "multi-union-list",
+		Kind:     yang.DirectoryEntry,
+		Parent:   root,
+		ListAttr: yang.NewDefaultListAttr(),
+		Key:      "key1 key2",
+		Config:   yang.TSTrue,
+		Dir:      map[string]*yang.Entry{},
+	}
+	list.Dir["key1"] = &yang.Entry{
+		Name:   "key1",
+		Kind:   yang.LeafEntry,
+		Parent: list,
+		Type:   &yang.YangType{Kind: yang.Ystring},
+	}
+	list.Dir["key2"] = &yang.Entry{
+		Name:   "key2",
+		Kind:   yang.LeafEntry,
+		Parent: list,
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{Name: "int16", Kind: yang.Yint16},
+				{Name: "string", Kind: yang.Ystring},
+			},
+		},
+	}
+	list.Dir["value"] = &yang.Entry{
+		Name:   "value",
+		Kind:   yang.LeafEntry,
+		Parent: list,
+		Type:   &yang.YangType{Kind: yang.Ystring},
+	}
+	root.Dir["multi-union-list"] = list
+	return root
+}
+
+// TestGetOrCreateNodeUnionKeyList verifies GetOrCreateNode insertion into
+// populated single-keyed and multi-keyed lists with union key types.
+func TestGetOrCreateNodeUnionKeyList(t *testing.T) {
+	uSchema := unionKeyListSchema()
+	muSchema := multiUnionKeyListSchema()
+
+	listEntriesByKey := func(t *testing.T, parent any) map[string]any {
+		t.Helper()
+		m := reflect.ValueOf(parent).Elem().Field(0)
+		out := map[string]any{}
+		for _, k := range m.MapKeys() {
+			elem := m.MapIndex(k)
+			keys, err := ygot.PathKeyFromStruct(elem)
+			if err != nil {
+				t.Fatalf("PathKeyFromStruct(%v) failed: %v", elem.Interface(), err)
+			}
+			out[fmt.Sprint(keys)] = elem.Interface()
+		}
+		return out
+	}
+
+	tests := []struct {
+		desc        string
+		inSchema    *yang.Entry
+		inParent    any
+		inPath      *gpb.Path
+		want        any
+		wantEntries map[string]any
+		wantErr     bool
+	}{{
+		desc:     "inserts into non-empty single-key union list",
+		inSchema: uSchema,
+		inParent: &containerUnionKey{
+			UnionList: map[testutil.TestUnion]*unionKeyListElem{
+				&Union1String{String: "existing"}: {
+					Key:   &Union1String{String: "existing"},
+					Value: ygot.String("v1"),
+				},
+			},
+		},
+		inPath: mustPath("/union-list[key1=42]"),
+		want:   &unionKeyListElem{Key: &Union1Int16{Int16: 42}},
+		wantEntries: map[string]any{
+			"map[key1:existing]": &unionKeyListElem{
+				Key:   &Union1String{String: "existing"},
+				Value: ygot.String("v1"),
+			},
+			"map[key1:42]": &unionKeyListElem{
+				Key: &Union1Int16{Int16: 42},
+			},
+		},
+	}, {
+		desc:     "inserts into non-empty multi-key union list",
+		inSchema: muSchema,
+		inParent: &containerMultiUnionKey{
+			MultiUnionList: map[multiUnionKeyStruct]*multiUnionKeyListElem{
+				{Key1: "k1", Key2: &Union1Int16{Int16: 7}}: {
+					Key1:  ygot.String("k1"),
+					Key2:  &Union1Int16{Int16: 7},
+					Value: ygot.String("seven"),
+				},
+			},
+		},
+		inPath: mustPath("/multi-union-list[key1=k1][key2=hello]"),
+		want: &multiUnionKeyListElem{
+			Key1: ygot.String("k1"),
+			Key2: &Union1String{String: "hello"},
+		},
+		wantEntries: map[string]any{
+			"map[key1:k1 key2:7]": &multiUnionKeyListElem{
+				Key1:  ygot.String("k1"),
+				Key2:  &Union1Int16{Int16: 7},
+				Value: ygot.String("seven"),
+			},
+			"map[key1:k1 key2:hello]": &multiUnionKeyListElem{
+				Key1: ygot.String("k1"),
+				Key2: &Union1String{String: "hello"},
+			},
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, _, err := GetOrCreateNode(tt.inSchema, tt.inParent, tt.inPath)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("GetOrCreateNode(%v): did not get expected error, got: %v, wantErr? %v", tt.inPath, err, tt.wantErr)
+			}
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Fatalf("GetOrCreateNode(%v): did not get expected node, diff(-got,+want):\n%s", tt.inPath, diff)
+			}
+			// NB: Wrapper-union map keys are struct pointers, so compare entries
+			// indexed by their canonical gNMI key map rather than pointer identity.
+			gotEntries := listEntriesByKey(t, tt.inParent)
+			if diff := cmp.Diff(gotEntries, tt.wantEntries); diff != "" {
+				t.Fatalf("GetOrCreateNode(%v): did not get expected list entries, diff(-got,+want):\n%s", tt.inPath, diff)
+			}
+		})
+	}
+}
+
+// The constants, test, and benchmarks below measure concrete YANG list
+// traversal across single-keyed (K = 1) and multi-keyed (K >= 2) lists of
+// cardinality N whose element struct has F fields, guarding against regressions
+// from the direct reflect.Value.MapIndex lookup fast paths in retrieveNodeList:
+//
+//   - Single-key point lookup (GetNode, existing GetOrCreateNode): O(1) time
+//     and allocations via StringToType + MapIndex, vs. O(N*F) when scanning
+//     rv.MapKeys() and reflecting over F struct fields/tags via getKeyValue.
+//   - Single-key bulk N-entry SetNode / DeleteNode: O(N*F) and O(N) total work
+//     respectively (constant allocations per entry), vs. O(N^2*F) previously.
+//   - Multi-key concrete struct lookup (GetNode, existing GetOrCreateNode):
+//     O(K*F) field resolution + O(K) MapIndex lookup -- i.e. O(1) with respect
+//     to list cardinality N -- vs. O(N*K + K*F) when stringifying K fields
+//     across all N map entries.
+//   - Multi-key bulk N-entry SetNode / DeleteNode: O(N*K*F) total work -- i.e.
+//     O(N) linear in list cardinality N -- vs. O(N^2*K + N*K*F) previously.
+//
+// Both Benchmark* and TestListTraversalPerformance execute the same workload
+// closures so that any >5% (maxListAllocRegression) increase in heap
+// allocations -- whether from reintroducing O(N) map scans or adding per-lookup
+// reflection overhead -- fails standard unit tests deterministically without
+// wall-clock timing flakiness.
+const (
+	// maxListAllocRegression is the maximum fractional increase (5%) in heap
+	// allocations permitted before list traversal performance tests fail.
+	maxListAllocRegression = 0.05
+	// listAllocMeasureRuns is the number of measured iterations executed per
+	// subtest by testing.AllocsPerRun after its initial warmup iteration.
+	listAllocMeasureRuns = 5
+	// wantSetSingleKeyAllocsPerElem is the expected heap allocations per list
+	// entry when populating a single-keyed list via SetNode.
+	wantSetSingleKeyAllocsPerElem = 219.0
+	// wantSetMultiKeyAllocsPerElem is the expected heap allocations per list
+	// entry when populating a multi-keyed list via SetNode.
+	wantSetMultiKeyAllocsPerElem = 316.0
+	// wantGetSingleKeyAllocs is the expected heap allocations for a single
+	// concrete GetNode lookup on a populated single-keyed list of any size.
+	wantGetSingleKeyAllocs = 164.0
+	// wantGetMultiKeyAllocs is the expected heap allocations for a single
+	// concrete GetNode lookup on a populated multi-keyed list of any size.
+	wantGetMultiKeyAllocs = 211.0
+	// wantGetOrCreateSingleKeyAllocs is the expected heap allocations for a
+	// single concrete GetOrCreateNode lookup on a populated single-keyed list.
+	wantGetOrCreateSingleKeyAllocs = 164.0
+	// wantGetOrCreateMultiKeyAllocs is the expected heap allocations for a
+	// single concrete GetOrCreateNode lookup on a populated multi-keyed list.
+	wantGetOrCreateMultiKeyAllocs = 211.0
+	// wantDeleteSingleKeyAllocsPerElem is the expected heap allocations per list
+	// entry when deleting concrete entries from a single-keyed list.
+	wantDeleteSingleKeyAllocsPerElem = 30.0
+	// wantDeleteMultiKeyAllocsPerElem is the expected heap allocations per list
+	// entry when deleting concrete entries from a multi-keyed list.
+	wantDeleteMultiKeyAllocsPerElem = 46.5
+)
+
+// listPerfSizes defines the list cardinalities exercised by list traversal
+// benchmarks and allocation regression tests.
+var listPerfSizes = []int{10, 100, 1000}
+
+// TestListTraversalPerformance executes the single-keyed and multi-keyed list
+// benchmark workloads as unit tests and fails if heap allocations regress by
+// more than maxListAllocRegression (5%) above the encoded baseline constants.
+//
+// NB: Heap allocations (via testing.AllocsPerRun) are asserted rather than
+// wall-clock ns/op because reflection and map-scan regressions in ytypes
+// manifest deterministically as heap allocations, whereas wall-clock timings
+// vary by >20% across shared CI runners and by >400% under -race.
+func TestListTraversalPerformance(t *testing.T) {
+	tests := []struct {
+		desc       string
+		build      func(tb testing.TB, n int) func()
+		wantAllocs func(n int) float64
+	}{{
+		desc:       "SetNodeSingleKeyList",
+		build:      newSetSingleKeyWorkload,
+		wantAllocs: func(n int) float64 { return wantSetSingleKeyAllocsPerElem * float64(n) },
+	}, {
+		desc:       "SetNodeMultiKeyList",
+		build:      newSetMultiKeyWorkload,
+		wantAllocs: func(n int) float64 { return wantSetMultiKeyAllocsPerElem * float64(n) },
+	}, {
+		desc:       "GetNodeSingleKeyList",
+		build:      newGetSingleKeyWorkload,
+		wantAllocs: func(int) float64 { return wantGetSingleKeyAllocs },
+	}, {
+		desc:       "GetNodeMultiKeyList",
+		build:      newGetMultiKeyWorkload,
+		wantAllocs: func(int) float64 { return wantGetMultiKeyAllocs },
+	}, {
+		desc:       "GetOrCreateNodeSingleKeyList",
+		build:      newGetOrCreateSingleKeyWorkload,
+		wantAllocs: func(int) float64 { return wantGetOrCreateSingleKeyAllocs },
+	}, {
+		desc:       "GetOrCreateNodeMultiKeyList",
+		build:      newGetOrCreateMultiKeyWorkload,
+		wantAllocs: func(int) float64 { return wantGetOrCreateMultiKeyAllocs },
+	}, {
+		desc: "DeleteNodeSingleKeyList",
+		build: func(tb testing.TB, n int) func() {
+			return newDeleteSingleKeyWorkload(tb, n, listAllocMeasureRuns)
+		},
+		wantAllocs: func(n int) float64 { return wantDeleteSingleKeyAllocsPerElem * float64(n) },
+	}, {
+		desc: "DeleteNodeMultiKeyList",
+		build: func(tb testing.TB, n int) func() {
+			return newDeleteMultiKeyWorkload(tb, n, listAllocMeasureRuns)
+		},
+		wantAllocs: func(n int) float64 { return wantDeleteMultiKeyAllocsPerElem * float64(n) },
+	}}
+
+	for _, tt := range tests {
+		for _, n := range listPerfSizes {
+			t.Run(fmt.Sprintf("%s/n=%d", tt.desc, n), func(t *testing.T) {
+				fn := tt.build(t, n)
+				got := testing.AllocsPerRun(listAllocMeasureRuns, fn)
+				want := tt.wantAllocs(n)
+				maxAllowed := want * (1 + maxListAllocRegression)
+				if got > maxAllowed {
+					pct := ((got - want) / want) * 100
+					t.Fatalf("%s(n=%d): allocations regressed by +%.2f%% (max +%.0f%%), got: %.1f allocs/op, baseline: %.1f, max allowed: %.1f",
+						tt.desc, n, pct, maxListAllocRegression*100, got, want, maxAllowed)
+				}
+			})
+		}
+	}
+}
+
+// BenchmarkSetNodeSingleKeyList measures bulk SetNode insertion and lookup
+// performance across single-keyed YANG lists of size n.
+func BenchmarkSetNodeSingleKeyList(b *testing.B) {
+	for _, n := range listPerfSizes {
+		fn := newSetSingleKeyWorkload(b, n)
+		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				fn()
+			}
+		})
+	}
+}
+
+// BenchmarkSetNodeMultiKeyList measures bulk SetNode insertion and lookup
+// performance across multi-keyed YANG lists of size n.
+func BenchmarkSetNodeMultiKeyList(b *testing.B) {
+	for _, n := range listPerfSizes {
+		fn := newSetMultiKeyWorkload(b, n)
+		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				fn()
+			}
+		})
+	}
+}
+
+// BenchmarkGetNodeSingleKeyList measures concrete GetNode lookup latency across
+// populated single-keyed YANG lists of size n.
+func BenchmarkGetNodeSingleKeyList(b *testing.B) {
+	for _, n := range listPerfSizes {
+		fn := newGetSingleKeyWorkload(b, n)
+		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				fn()
+			}
+		})
+	}
+}
+
+// BenchmarkGetNodeMultiKeyList measures concrete GetNode lookup latency across
+// populated multi-keyed YANG lists of size n.
+func BenchmarkGetNodeMultiKeyList(b *testing.B) {
+	for _, n := range listPerfSizes {
+		fn := newGetMultiKeyWorkload(b, n)
+		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				fn()
+			}
+		})
+	}
+}
+
+// BenchmarkGetOrCreateNodeSingleKeyList measures concrete GetOrCreateNode
+// lookup latency across populated single-keyed YANG lists of size n.
+func BenchmarkGetOrCreateNodeSingleKeyList(b *testing.B) {
+	for _, n := range listPerfSizes {
+		fn := newGetOrCreateSingleKeyWorkload(b, n)
+		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				fn()
+			}
+		})
+	}
+}
+
+// BenchmarkGetOrCreateNodeMultiKeyList measures concrete GetOrCreateNode lookup
+// latency across populated multi-keyed YANG lists of size n.
+func BenchmarkGetOrCreateNodeMultiKeyList(b *testing.B) {
+	for _, n := range listPerfSizes {
+		fn := newGetOrCreateMultiKeyWorkload(b, n)
+		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				fn()
+			}
+		})
+	}
+}
+
+// BenchmarkDeleteNodeSingleKeyList measures bulk DeleteNode performance across
+// populated single-keyed YANG lists of size n.
+func BenchmarkDeleteNodeSingleKeyList(b *testing.B) {
+	schema := containerWithStringKey()
+	for _, n := range listPerfSizes {
+		keys, paths := buildDeleteSingleKeyInputs(n)
+		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				b.StopTimer()
+				root := populateSingleKeyContainer(keys)
+				b.StartTimer()
+				deleteAllPaths(b, schema, root, paths)
+			}
+		})
+	}
+}
+
+// BenchmarkDeleteNodeMultiKeyList measures bulk DeleteNode performance across
+// populated multi-keyed YANG lists of size n.
+func BenchmarkDeleteNodeMultiKeyList(b *testing.B) {
+	addParents(containerWithMultiKeyedList)
+	for _, n := range listPerfSizes {
+		keys, paths := buildDeleteMultiKeyInputs(n)
+		b.Run(fmt.Sprintf("n=%d", n), func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				b.StopTimer()
+				root := populateMultiKeyContainer(keys)
+				b.StartTimer()
+				deleteAllPaths(b, containerWithMultiKeyedList, root, paths)
+			}
+		})
+	}
+}
+
+// newSetSingleKeyWorkload returns a repeatable closure that populates n entries
+// into an empty single-keyed list via SetNode.
+func newSetSingleKeyWorkload(tb testing.TB, n int) func() {
+	tb.Helper()
+	schema := containerWithStringKey()
+	val := &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}}
+	paths := make([]*gpb.Path, n)
+	for i := range n {
+		paths[i] = mustPath(fmt.Sprintf("/config/simple-key-list[key1=item-%d]/outer/inner/int32-leaf-field", i))
+	}
+	return func() {
+		root := &ContainerStruct1{}
+		for _, p := range paths {
+			if err := SetNode(schema, root, p, val, &InitMissingElements{}); err != nil {
+				tb.Fatalf("SetNode(%v) failed: %v", p, err)
+			}
+		}
+	}
+}
+
+// newSetMultiKeyWorkload returns a repeatable closure that populates n entries
+// into an empty multi-keyed list via SetNode.
+func newSetMultiKeyWorkload(tb testing.TB, n int) func() {
+	tb.Helper()
+	addParents(containerWithMultiKeyedList)
+	val := &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}}
+	paths := make([]*gpb.Path, n)
+	for i := range n {
+		paths[i] = mustPath(fmt.Sprintf("/struct-key-list[key1=item-%d][key2=%d][key3=E_VALUE_FORTY_TWO]/outer/inner/int32-leaf-field", i, i))
+	}
+	return func() {
+		root := &ContainerStruct3{}
+		for _, p := range paths {
+			if err := SetNode(containerWithMultiKeyedList, root, p, val, &InitMissingElements{}); err != nil {
+				tb.Fatalf("SetNode(%v) failed: %v", p, err)
+			}
+		}
+	}
+}
+
+// newGetSingleKeyWorkload returns a repeatable closure that queries concrete
+// keys round-robin via GetNode on a populated n-element single-keyed list.
+func newGetSingleKeyWorkload(tb testing.TB, n int) func() {
+	tb.Helper()
+	schema := containerWithStringKey()
+	val := &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}}
+	root := &ContainerStruct1{}
+	paths := make([]*gpb.Path, n)
+	for i := range n {
+		paths[i] = mustPath(fmt.Sprintf("/config/simple-key-list[key1=item-%d]/outer/inner/int32-leaf-field", i))
+		if err := SetNode(schema, root, paths[i], val, &InitMissingElements{}); err != nil {
+			tb.Fatalf("SetNode(%v) setup failed: %v", paths[i], err)
+		}
+	}
+	var idx int
+	return func() {
+		p := paths[idx%n]
+		idx++
+		if _, err := GetNode(schema, root, p); err != nil {
+			tb.Fatalf("GetNode(%v) failed: %v", p, err)
+		}
+	}
+}
+
+// newGetMultiKeyWorkload returns a repeatable closure that queries concrete
+// keys round-robin via GetNode on a populated n-element multi-keyed list.
+func newGetMultiKeyWorkload(tb testing.TB, n int) func() {
+	tb.Helper()
+	addParents(containerWithMultiKeyedList)
+	val := &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}}
+	root := &ContainerStruct3{}
+	paths := make([]*gpb.Path, n)
+	for i := range n {
+		paths[i] = mustPath(fmt.Sprintf("/struct-key-list[key1=item-%d][key2=%d][key3=E_VALUE_FORTY_TWO]/outer/inner/int32-leaf-field", i, i))
+		if err := SetNode(containerWithMultiKeyedList, root, paths[i], val, &InitMissingElements{}); err != nil {
+			tb.Fatalf("SetNode(%v) setup failed: %v", paths[i], err)
+		}
+	}
+	var idx int
+	return func() {
+		p := paths[idx%n]
+		idx++
+		if _, err := GetNode(containerWithMultiKeyedList, root, p); err != nil {
+			tb.Fatalf("GetNode(%v) failed: %v", p, err)
+		}
+	}
+}
+
+// newGetOrCreateSingleKeyWorkload returns a repeatable closure that queries
+// existing concrete keys round-robin via GetOrCreateNode on a populated
+// n-element single-keyed list.
+func newGetOrCreateSingleKeyWorkload(tb testing.TB, n int) func() {
+	tb.Helper()
+	schema := containerWithStringKey()
+	val := &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}}
+	root := &ContainerStruct1{}
+	paths := make([]*gpb.Path, n)
+	for i := range n {
+		paths[i] = mustPath(fmt.Sprintf("/config/simple-key-list[key1=item-%d]/outer/inner/int32-leaf-field", i))
+		if err := SetNode(schema, root, paths[i], val, &InitMissingElements{}); err != nil {
+			tb.Fatalf("SetNode(%v) setup failed: %v", paths[i], err)
+		}
+	}
+	var idx int
+	return func() {
+		p := paths[idx%n]
+		idx++
+		if _, _, err := GetOrCreateNode(schema, root, p); err != nil {
+			tb.Fatalf("GetOrCreateNode(%v) failed: %v", p, err)
+		}
+	}
+}
+
+// newGetOrCreateMultiKeyWorkload returns a repeatable closure that queries
+// existing concrete keys round-robin via GetOrCreateNode on a populated
+// n-element multi-keyed list.
+func newGetOrCreateMultiKeyWorkload(tb testing.TB, n int) func() {
+	tb.Helper()
+	addParents(containerWithMultiKeyedList)
+	val := &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}}
+	root := &ContainerStruct3{}
+	paths := make([]*gpb.Path, n)
+	for i := range n {
+		paths[i] = mustPath(fmt.Sprintf("/struct-key-list[key1=item-%d][key2=%d][key3=E_VALUE_FORTY_TWO]/outer/inner/int32-leaf-field", i, i))
+		if err := SetNode(containerWithMultiKeyedList, root, paths[i], val, &InitMissingElements{}); err != nil {
+			tb.Fatalf("SetNode(%v) setup failed: %v", paths[i], err)
+		}
+	}
+	var idx int
+	return func() {
+		p := paths[idx%n]
+		idx++
+		if _, _, err := GetOrCreateNode(containerWithMultiKeyedList, root, p); err != nil {
+			tb.Fatalf("GetOrCreateNode(%v) failed: %v", p, err)
+		}
+	}
+}
+
+// buildDeleteSingleKeyInputs constructs the string keys and gNMI deletion paths
+// for an n-element single-keyed list.
+func buildDeleteSingleKeyInputs(n int) ([]string, []*gpb.Path) {
+	keys := make([]string, n)
+	paths := make([]*gpb.Path, n)
+	for i := range n {
+		keys[i] = fmt.Sprintf("item-%d", i)
+		paths[i] = mustPath(fmt.Sprintf("/config/simple-key-list[key1=%s]", keys[i]))
+	}
+	return keys, paths
+}
+
+// populateSingleKeyContainer constructs a ContainerStruct1 pre-populated with
+// keys for DeleteNode measurement.
+func populateSingleKeyContainer(keys []string) *ContainerStruct1 {
+	m := make(map[string]*ListElemStruct1, len(keys))
+	for _, k := range keys {
+		kv := k
+		m[k] = &ListElemStruct1{Key1: &kv}
+	}
+	return &ContainerStruct1{StructKeyList: m}
+}
+
+// newDeleteSingleKeyWorkload pre-allocates runs+1 populated containers so that
+// testing.AllocsPerRun measures only DeleteNode allocations across n entries.
+func newDeleteSingleKeyWorkload(tb testing.TB, n, runs int) func() {
+	tb.Helper()
+	schema := containerWithStringKey()
+	keys, paths := buildDeleteSingleKeyInputs(n)
+	roots := make([]*ContainerStruct1, runs+1)
+	for i := range roots {
+		roots[i] = populateSingleKeyContainer(keys)
+	}
+	var idx int
+	return func() {
+		root := roots[idx]
+		idx++
+		deleteAllPaths(tb, schema, root, paths)
+	}
+}
+
+// buildDeleteMultiKeyInputs constructs the composite KeyStruct keys and gNMI
+// deletion paths for an n-element multi-keyed list.
+func buildDeleteMultiKeyInputs(n int) ([]KeyStruct, []*gpb.Path) {
+	keys := make([]KeyStruct, n)
+	paths := make([]*gpb.Path, n)
+	for i := range n {
+		keys[i] = KeyStruct{Key1: fmt.Sprintf("item-%d", i), Key2: int32(i), EnumKey: 42}
+		paths[i] = mustPath(fmt.Sprintf("/struct-key-list[key1=item-%d][key2=%d][key3=E_VALUE_FORTY_TWO]", i, i))
+	}
+	return keys, paths
+}
+
+// populateMultiKeyContainer constructs a ContainerStruct3 pre-populated with
+// keys for DeleteNode measurement.
+func populateMultiKeyContainer(keys []KeyStruct) *ContainerStruct3 {
+	m := make(map[KeyStruct]*ListElemStruct3, len(keys))
+	for _, k := range keys {
+		k1, k2 := k.Key1, k.Key2
+		m[k] = &ListElemStruct3{Key1: &k1, Key2: &k2, EnumKey: k.EnumKey}
+	}
+	return &ContainerStruct3{StructKeyList: m}
+}
+
+// newDeleteMultiKeyWorkload pre-allocates runs+1 populated containers so that
+// testing.AllocsPerRun measures only DeleteNode allocations across n entries.
+func newDeleteMultiKeyWorkload(tb testing.TB, n, runs int) func() {
+	tb.Helper()
+	addParents(containerWithMultiKeyedList)
+	keys, paths := buildDeleteMultiKeyInputs(n)
+	roots := make([]*ContainerStruct3, runs+1)
+	for i := range roots {
+		roots[i] = populateMultiKeyContainer(keys)
+	}
+	var idx int
+	return func() {
+		root := roots[idx]
+		idx++
+		deleteAllPaths(tb, containerWithMultiKeyedList, root, paths)
+	}
+}
+
+// deleteAllPaths deletes each gNMI path in paths from root under schema.
+func deleteAllPaths(tb testing.TB, schema *yang.Entry, root any, paths []*gpb.Path) {
+	tb.Helper()
+	for _, p := range paths {
+		if err := DeleteNode(schema, root, p); err != nil {
+			tb.Fatalf("DeleteNode(%v) failed: %v", p, err)
+		}
 	}
 }

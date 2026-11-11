@@ -204,7 +204,13 @@ type testStruct struct {
 	Test testEnum
 }
 
+// TestStringToType verifies conversion of string representations into target
+// reflect.Type values across supported scalar, defined, and enum types.
 func TestStringToType(t *testing.T) {
+	// customString is a defined string type used to verify Convert(t) on string keys.
+	type customString string
+	// customFloat is a defined float64 type used to verify Convert(t) on decimal64 keys.
+	type customFloat float64
 	ts := testStruct{}
 	tests := []struct {
 		s       string
@@ -212,11 +218,20 @@ func TestStringToType(t *testing.T) {
 		wantErr bool
 	}{
 		{s: "hehehe", t: reflect.TypeOf("")},
+		{s: "defined", t: reflect.TypeOf(customString(""))},
 		{s: "123", t: reflect.TypeOf(uint16(10))},
 		{s: "123", t: reflect.TypeOf(uint32(20))},
 		{s: "123", t: reflect.TypeOf(int16(-30))},
+		{s: "3.14", t: reflect.TypeOf(float64(0))},
+		{s: "-0.5", t: reflect.TypeOf(customFloat(0))},
+		{s: "not-a-float", t: reflect.TypeOf(float64(0)), wantErr: true},
+		{s: "NaN", t: reflect.TypeOf(float64(0)), wantErr: true},
+		{s: "Inf", t: reflect.TypeOf(float64(0)), wantErr: true},
+		{s: "-Inf", t: reflect.TypeOf(float64(0)), wantErr: true},
 		{s: "true", t: reflect.TypeOf(true)},
 		{s: "false", t: reflect.TypeOf(false)},
+		{s: "true", t: reflect.TypeOf(testutil.YANGEmpty(false))},
+		{s: "false", t: reflect.TypeOf(testutil.YANGEmpty(true))},
 		{s: "yes", t: reflect.TypeOf(false), wantErr: true},
 		// invalid value for the type
 		{s: "fortytwo", t: reflect.TypeOf(uint16(0)), wantErr: true},
@@ -225,6 +240,8 @@ func TestStringToType(t *testing.T) {
 		{s: "test_enum3", t: reflect.TypeOf(ts.Test)},
 		// invalid enum for the enum type
 		{s: "fortytwo", t: reflect.TypeOf(ts.Test), wantErr: true},
+		// Unsupported non-scalar types must return an error.
+		{s: "bytes", t: reflect.TypeOf([]byte(nil)), wantErr: true},
 	}
 
 	for i, tt := range tests {
