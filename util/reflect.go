@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 
 	log "github.com/golang/glog"
@@ -191,7 +190,7 @@ func InsertIntoSlice(parentSlice interface{}, value interface{}) error {
 // InsertIntoMap inserts value with key into parent which must be a map.
 func InsertIntoMap(parentMap interface{}, key interface{}, value interface{}) error {
 	DbgPrint("InsertIntoMap into parent type %T with key %v(%T) value \n%s\n (%T)",
-		parentMap, ValueStrDebug(key), key, pretty.Sprint(value), value)
+		parentMap, ValueStrDebug(key), key, ValueStrDebug(value), value)
 
 	v := reflect.ValueOf(parentMap)
 	t := reflect.TypeOf(parentMap)
