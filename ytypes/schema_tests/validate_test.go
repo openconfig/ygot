@@ -774,6 +774,30 @@ func TestUnmarshal(t *testing.T) {
 	}
 }
 
+func BenchmarkUnmarshal(b *testing.B) {
+	d := &oc.Device{}
+	for i := 0; i < 100; i++ {
+		intf := d.GetOrCreateInterface(fmt.Sprintf("eth%d", i))
+		intf.Description = ygot.String(fmt.Sprintf("interface %d", i))
+		intf.Mtu = ygot.Uint16(9000)
+		for j := 0; j < 10; j++ {
+			sub := intf.GetOrCreateSubinterface(uint32(j))
+			sub.Description = ygot.String(fmt.Sprintf("subinterface %d.%d", i, j))
+			sub.GetOrCreateIpv4().GetOrCreateAddress(fmt.Sprintf("10.%d.%d.1", i, j)).PrefixLength = ygot.Uint8(24)
+		}
+	}
+	js, err := ygot.EmitJSON(d, &ygot.EmitJSONConfig{Format: ygot.RFC7951})
+	if err != nil {
+		b.Fatalf("ygot.EmitJSON: %v", err)
+	}
+
+	for b.Loop() {
+		if err := oc.Unmarshal([]byte(js), &oc.Device{}); err != nil {
+			b.Fatalf("oc.Unmarshal: %v", err)
+		}
+	}
+}
+
 /*
 TestLeafrefCurrent validates that the current() function works when
 

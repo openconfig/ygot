@@ -19,7 +19,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
@@ -252,7 +251,7 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 		}
 	}
 
-	util.DbgPrint("container after unmarshal:\n%s\n", pretty.Sprint(destv.Interface()))
+	util.DbgPrint("container after unmarshal:\n%s\n", util.ValueStrDebug(destv.Interface()))
 	return nil
 }
 
